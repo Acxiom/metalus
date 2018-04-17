@@ -45,7 +45,7 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
       this.globals.get(globalName) match {
         case str: String =>
           Some(str)
-        case _: Option[String] =>
+        case _: Option[_] =>
           this.globals.get(globalName).asInstanceOf[Option[String]]
         case _ =>
           None

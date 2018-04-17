@@ -105,7 +105,6 @@ object PipelineExecutor {
                                             pipelines: List[Pipeline]): PipelineStepException = {
     val ex = t match {
       case se: PipelineStepException => se
-      case pe: PauseException => pe
       case t: Throwable => PipelineException(message = Some("An unknown exception has occurred"), cause = t,
         pipelineId = pipeline.id, stepId = Some("Unknown"))
     }
