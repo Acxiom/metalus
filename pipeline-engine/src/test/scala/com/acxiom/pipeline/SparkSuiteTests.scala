@@ -54,7 +54,7 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
         }
         override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
-            case pe: PipelineException =>
+            case pe: PauseException =>
               assert(pe.pipelineId.getOrElse("") == "1")
               assert(pe.stepId.getOrElse("") == "PAUSESTEP")
           }

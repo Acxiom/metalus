@@ -40,11 +40,16 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
 
   def getGlobalString(globalName: String): Option[String] = {
     if (this.globals.isDefined &&
-      this.globals.get.contains(globalName) &&
-      this.globals.get(globalName).isInstanceOf[String]) {
-      // TODO Add a helper function that can determine if the stored value is a String or Option[String]
+      this.globals.get.contains(globalName)) {
       // TODO Expand to support other types
-      Some(this.globals.get(globalName).asInstanceOf[String])
+      this.globals.get(globalName) match {
+        case str: String =>
+          Some(str)
+        case _: Option[String] =>
+          this.globals.get(globalName).asInstanceOf[Option[String]]
+        case _ =>
+          None
+      }
     } else {
       None
     }

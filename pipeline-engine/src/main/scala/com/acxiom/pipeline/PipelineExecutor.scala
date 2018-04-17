@@ -84,7 +84,7 @@ object PipelineExecutor {
     val newPipelineContext =
       pipelineContext.setParameterByPipelineId(pipelineContext.getGlobalString("pipelineId").getOrElse(""),
         step.id.getOrElse(""), result)
-        .setGlobal("stepId", step.id.getOrElse(""))
+        .setGlobal("stepId", stepId)
     // Call the next step here
     val stepResult = if (steps.contains(stepId.getOrElse(""))) {
       executeStep(steps(stepId.get), pipeline, steps, newPipelineContext)
