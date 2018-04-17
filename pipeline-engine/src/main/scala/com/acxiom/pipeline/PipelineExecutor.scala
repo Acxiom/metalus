@@ -113,7 +113,7 @@ object PipelineExecutor {
       pipelineContext.pipelineListener.get.registerStepException(ex, pipelineContext)
       pipelineContext.pipelineListener.get.executionFinished(pipelines.slice(0, pipelines.indexWhere(pipeline => {
         pipeline.id.get == pipeline.id.getOrElse("")
-      })), pipelineContext)
+      }) + 1), pipelineContext)
     }
     ex
   }
