@@ -13,7 +13,7 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
   override def beforeAll() {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
-    Logger.getLogger("com.acxiom.datalake").setLevel(Level.DEBUG)
+    Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
     SparkTestHelper.sparkConf = new SparkConf()
       .setMaster(SparkTestHelper.MASTER)
       .setAppName(SparkTestHelper.APPNAME)

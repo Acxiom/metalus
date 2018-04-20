@@ -37,7 +37,7 @@ object PipelineExecutor {
           if (messages.isDefined && messages.get.nonEmpty) {
             messages.get.foreach(m => m.messageType match {
               case PipelineStepMessageType.error =>
-                throw PipelineException(pipelineId = Some(m.pipelineId), stepId = Some(m.stepId))
+                throw PipelineException(message = Some(m.message), pipelineId = Some(m.pipelineId), stepId = Some(m.stepId))
               case PipelineStepMessageType.pause =>
                 throw PauseException(pipelineId = Some(m.pipelineId), stepId = Some(m.stepId))
               case PipelineStepMessageType.warn =>

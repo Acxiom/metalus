@@ -20,8 +20,8 @@
     </properties>
 
     <modules>
-        <module>pipeline-engine</module>
-        <module>kafka-driver</module>
+        <module>spark-pipeline-engine</module>
+        <module>streaming-pipeline-drivers</module>
     </modules>
 
     <dependencies>
@@ -84,7 +84,7 @@
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.compat.version}</artifactId>
-            <version>3.0.0</version>
+            <version>3.0.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
