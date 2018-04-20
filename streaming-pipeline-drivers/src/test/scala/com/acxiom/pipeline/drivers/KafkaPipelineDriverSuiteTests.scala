@@ -112,7 +112,6 @@ class KafkaPipelineDriverSuiteTests extends FunSpec with BeforeAndAfterAll with 
         "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", "localhost:9092",
         "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds",
       "--duration", "1")
-      print("Starting driver")
       new KafkaPipelineDriver().main(args.toArray)
       Then("5 records should be processed")
       assert(executionComplete)
