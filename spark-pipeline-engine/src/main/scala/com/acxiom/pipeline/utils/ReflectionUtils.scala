@@ -2,7 +2,8 @@ package com.acxiom.pipeline.utils
 
 import java.lang.reflect.InvocationTargetException
 
-import com.acxiom.pipeline.{PipelineContext, PipelineStep, PipelineStepResponse}
+import com.acxiom.pipeline.annotations.{StepDefinition, StepFunction, StepFunctionParameter, StepObject}
+import com.acxiom.pipeline.{EngineMeta, PipelineContext, PipelineStep, PipelineStepResponse}
 import org.apache.log4j.Logger
 
 import scala.annotation.tailrec
@@ -111,6 +112,58 @@ object ReflectionUtils {
       }
     } else {
       value
+    }
+  }
+
+  /**
+    * Helper function that will load an object and check for step functions. Use the @StepObject and @StepFunction
+    * annotations to identify which objects and functions should be included.
+    *
+    * @param stepObjectPath The fully qualified class name.
+    * @return A list of step definitions.
+    */
+  def findStepDefinitions(stepObjectPath: String): Option[List[StepDefinition]] = {
+    val mirror = ru.runtimeMirror(getClass.getClassLoader)
+    Try(mirror.staticModule(stepObjectPath)) match {
+      case Success(_) =>
+        val module = mirror.staticModule(stepObjectPath)
+        val im = mirror.reflectModule(module)
+        val annotation = im.symbol.annotations.find(_.tree.tpe =:= ru.typeOf[StepObject])
+        if (annotation.isDefined) {
+          Some(im.symbol.info.decls.foldLeft(List[StepDefinition]())((steps, symbol) => {
+            val ann = symbol.annotations.find(_.tree.tpe =:= ru.typeOf[StepFunction])
+            if (ann.isDefined) {
+              val params = symbol.asMethod.paramLists.head
+              val parameters = if (params.nonEmpty) {
+                params.foldLeft(List[StepFunctionParameter]())((stepParams, paramSymbol) => {
+                  if (paramSymbol.name.toString != "pipelineContext") {
+                    stepParams :+ StepFunctionParameter(
+                      paramSymbol.typeSignature.toString match {
+                        case "Integer" => "number"
+                        case _ => "text"
+                      }, paramSymbol.name.toString)
+                  } else {
+                    stepParams
+                  }
+                })
+              } else {
+                List[StepFunctionParameter]()
+              }
+              steps :+ StepDefinition(
+                ann.get.tree.children.tail.head.toString().replaceAll("\"", ""),
+                ann.get.tree.children.tail(1).toString().replaceAll("\"", ""),
+                ann.get.tree.children.tail(2).toString().replaceAll("\"", ""),
+                ann.get.tree.children.tail(3).toString().replaceAll("\"", ""),
+                parameters,
+                EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}")))
+            } else {
+              steps
+            }
+          }))
+        } else {
+          None
+        }
+      case Failure(_) => None
     }
   }
 
