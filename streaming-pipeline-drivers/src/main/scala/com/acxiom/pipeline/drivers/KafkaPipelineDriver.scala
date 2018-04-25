@@ -63,8 +63,10 @@ class KafkaPipelineDriver {
         // Need to commit the offsets in Kafka that we have consumed
         val offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
         // Convert the RDD into a dataFrame
-        val dataFrame = pipelineContext.sparkSession.get.createDataFrame(rdd.map(r => Row(r.key(), r.value())),
-          StructType(List(StructField("key", StringType), StructField("value", StringType)))).select("key", "value")
+        val dataFrame = pipelineContext.sparkSession.get.createDataFrame(rdd.map(r => Row(r.key(), r.value(), r.topic())),
+          StructType(List(StructField("key", StringType),
+            StructField("value", StringType),
+            StructField("topic", StringType)))).toDF()
         // Refresh the pipelineContext prior to run new data
         val ctx = driverSetup.refreshContext(pipelineContext).setGlobal("initialDataFrame", dataFrame)
         // Process the data frame

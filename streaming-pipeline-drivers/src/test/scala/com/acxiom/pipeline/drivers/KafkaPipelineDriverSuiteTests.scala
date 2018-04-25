@@ -182,6 +182,8 @@ object MockTestSteps {
       }
     })
 
+    assert(dataFrame.select("topic").distinct().collect()(0).getString(ZERO) == pipelineContext.globals.get("topics"))
+
     PipelineStepResponse(Some(true), None)
   }
 }
