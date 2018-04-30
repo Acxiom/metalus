@@ -27,7 +27,7 @@ import org.apache.spark.streaming.{Duration, Seconds, StreamingContext}
   * "groupId" - should be a string
   * "terminationPeriod" - This is a number (ms) that informs the system to run for the specified amount of time and then shut down.
   */
-class KafkaPipelineDriver {
+object KafkaPipelineDriver {
   private val logger = Logger.getLogger(getClass)
   private val DEFAULT_DURATION_TYPE = "seconds"
   private val DEFAULT_DURATION = "10"

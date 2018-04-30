@@ -123,7 +123,7 @@ object PipelineExecutor {
     }
     if (pipelineContext.pipelineListener.isDefined) {
       pipelineContext.pipelineListener.get.registerStepException(ex, pipelineContext)
-      pipelineContext.pipelineListener.get.executionFinished(pipelines.slice(0, pipelines.indexWhere(pipeline => {
+      pipelineContext.pipelineListener.get.executionStopped(pipelines.slice(0, pipelines.indexWhere(pipeline => {
         pipeline.id.get == pipeline.id.getOrElse("")
       }) + 1), pipelineContext)
     }

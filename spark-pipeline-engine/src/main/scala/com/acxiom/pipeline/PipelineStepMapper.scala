@@ -140,6 +140,8 @@ trait PipelineStepMapper {
   private def returnBestValue(value: String,
                               parameter: Parameter,
                               pipelineContext: PipelineContext): Option[Any] = {
+    // TODO Figure out how to walk the pipeline chain looking for values when pipelineId is not present and value is not part of current pipeline.
+    // TODO How do we access the full PipelineStepResponse on line 157
     val pipelinePath = getPathValues(value, pipelineContext)
     if (pipelinePath.mainValue.startsWith("@") || pipelinePath.mainValue.startsWith("$")) {
       val paramName = pipelinePath.mainValue.substring(1)

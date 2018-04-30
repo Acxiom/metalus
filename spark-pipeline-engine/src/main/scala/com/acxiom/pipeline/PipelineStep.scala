@@ -124,7 +124,8 @@ trait PipelineStepResponse {
   val namedReturns: Option[Map[String, Any]]
 }
 
-case class DefaultPipelineStepResponse(primaryReturn: Option[Any], namedReturns: Option[Map[String, Any]] = None) extends PipelineStepResponse
+case class DefaultPipelineStepResponse(primaryReturn: Option[Any], namedReturns: Option[Map[String, Any]] = None)
+  extends PipelineStepResponse
 
 object PipelineStepResponse {
   def apply(primaryReturn: Option[Any], namedReturns: Option[Map[String, Any]]): PipelineStepResponse =
