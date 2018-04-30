@@ -8,6 +8,7 @@ import org.apache.log4j.Logger
 
 import scala.annotation.tailrec
 import scala.reflect.runtime.{universe => ru}
+import scala.runtime.BoxedUnit
 import scala.util.{Failure, Success, Try}
 
 object ReflectionUtils {
@@ -81,10 +82,9 @@ object ReflectionUtils {
       stepObject.reflectMethod(method)(params: _*) match {
         case response: PipelineStepResponse => response
         case response => PipelineStepResponse(response match {
-          case value: Option[_] =>
-            value
-          case _ =>
-            Some(response)
+          case value: Option[_] => value
+          case _: BoxedUnit => None
+          case _ => Some(response)
         }, None)
       }
     } catch {

@@ -3,6 +3,8 @@ package com.acxiom.pipeline
 import com.acxiom.pipeline.utils.ReflectionUtils
 import org.apache.log4j.Logger
 
+import scala.annotation.tailrec
+
 object PipelineExecutor {
   private val logger = Logger.getLogger(getClass)
 
@@ -58,22 +60,34 @@ object PipelineExecutor {
     }
   }
 
+  @tailrec
   private def executeStep(step: PipelineStep,
                           pipeline: Pipeline,
                           steps: Map[String, PipelineStep],
                           pipelineContext: PipelineContext): PipelineContext = {
-
     logger.debug(s"Executing Step (${step.id.getOrElse("")}) ${step.displayName.getOrElse("")}")
     if (pipelineContext.pipelineListener.isDefined) {
       pipelineContext.pipelineListener.get.pipelineStepStarted(pipeline, step, pipelineContext)
     }
     // Create a map of values for each defined parameter
     val parameterValues: Map[String, Any] = pipelineContext.parameterMapper.createStepParameterMap(step, pipelineContext)
-
-    val result = ReflectionUtils.processStep(step, parameterValues, pipelineContext)
+    val result = step.executeIfEmpty.getOrElse("") match {
+      case "" => ReflectionUtils.processStep(step, parameterValues, pipelineContext)
+      case value: String =>
+        val param = Parameter(Some("text"), Some("dynamic"), Some(true), None, Some(value))
+        val ret = pipelineContext.parameterMapper.mapParameter(param, pipelineContext)
+        ret match {
+          case option: Option[Any] => if (option.isEmpty) {
+            ReflectionUtils.processStep(step, parameterValues, pipelineContext)
+          } else {
+            PipelineStepResponse(option, None)
+          }
+          case _ => PipelineStepResponse(Some(ret), None)
+        }
+    }
     val stepId =
       step match {
-        case PipelineStep(_, _, _, Some("branch"), _, _, _) =>
+        case PipelineStep(_, _, _, Some("branch"), _, _, _, _) =>
           // match the result against the step parameter name until we find a match
           val matchedParameter = step.params.get.find(p => p.name.get == result.toString).get
           // Use the value of the matched parameter as the next step id
@@ -85,8 +99,11 @@ object PipelineExecutor {
       pipelineContext.setParameterByPipelineId(pipelineContext.getGlobalString("pipelineId").getOrElse(""),
         step.id.getOrElse(""), result)
         .setGlobal("stepId", stepId)
+    if (newPipelineContext.pipelineListener.isDefined) {
+      newPipelineContext.pipelineListener.get.pipelineStepFinished(pipeline, step, newPipelineContext)
+    }
     // Call the next step here
-    val stepResult = if (steps.contains(stepId.getOrElse(""))) {
+    if (steps.contains(stepId.getOrElse(""))) {
       executeStep(steps(stepId.get), pipeline, steps, newPipelineContext)
     } else if (stepId.isDefined) {
       throw PipelineException(message = Some("Step Id does not exist in pipeline"),
@@ -94,10 +111,6 @@ object PipelineExecutor {
     } else {
       newPipelineContext
     }
-    if (newPipelineContext.pipelineListener.isDefined) {
-      newPipelineContext.pipelineListener.get.pipelineStepFinished(pipeline, step, stepResult)
-    }
-    stepResult
   }
 
   private def handleStepExecutionExceptions(t: Throwable, pipeline: Pipeline,

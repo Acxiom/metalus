@@ -92,7 +92,7 @@ trait PipelineStepMapper {
     }
   }
 
-  private def mapParameter(parameter: Parameter, pipelineContext: PipelineContext): Any = {
+  def mapParameter(parameter: Parameter, pipelineContext: PipelineContext): Any = {
     // Get the value/defaultValue for this parameter
     val value = getParamValue(parameter)
     val returnValue = if (value.isDefined) {
@@ -141,8 +141,8 @@ trait PipelineStepMapper {
                               pipelineContext: PipelineContext): Option[Any] = {
 
     if (value.startsWith("@") || value.startsWith("$")) {
+      // TODO Need to enable fetching parameters by pipelineId and going through previous pipelines to find a value.
       // the value is marked as a step parameter, get it from pipelineContext.parameters (Will be a PipelineStepResponse)
-
       val parameters = pipelineContext.parameters
         .getParametersByPipelineId(pipelineContext.getGlobalString("pipelineId").getOrElse(""))
       if (parameters.get.parameters.contains(value.substring(1))) {

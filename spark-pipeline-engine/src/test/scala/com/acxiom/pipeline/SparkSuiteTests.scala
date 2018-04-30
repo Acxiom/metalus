@@ -61,7 +61,7 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
         }
       }
       // Execution should complete without exception
-      new DefaultPipelineDriver().main(args.toArray)
+      DefaultPipelineDriver.main(args.toArray)
     }
 
     it("Should run two pipelines") {
@@ -87,7 +87,7 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
         }
       }
       // Execution should complete without exception
-      new DefaultPipelineDriver().main(args.toArray)
+      DefaultPipelineDriver.main(args.toArray)
     }
 
     it("Should run one pipeline and pause") {
@@ -115,7 +115,34 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
         }
       }
       // Execution should complete without exception
-      new DefaultPipelineDriver().main(args.toArray)
+      DefaultPipelineDriver.main(args.toArray)
+    }
+
+    it("Should run second step because first returns nothing") {
+      val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "four",
+        "--globalInput", "global-input-value")
+      SparkTestHelper.pipelineListener = new PipelineListener {
+        override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Unit = {
+          step.id.getOrElse("") match {
+            case "DYNAMICBRANCHSTEP" =>
+              pipelineContext.parameters.getParametersByPipelineId(pipeline.id.getOrElse("-1")).get.parameters("DYNAMICBRANCHSTEP")
+                .asInstanceOf[PipelineStepResponse].primaryReturn.get.asInstanceOf[String] == "global-input-value"
+            case "DYNAMICBRANCH2STEP" =>
+              pipelineContext.parameters.getParametersByPipelineId(pipeline.id.getOrElse("-1")).get.parameters("DYNAMICBRANCH2STEP")
+                .asInstanceOf[PipelineStepResponse].primaryReturn.get.asInstanceOf[String] == "global-input-value"
+            case _ =>
+          }
+        }
+        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+          fail("Unexpected exception registered")
+        }
+
+        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
+          assert(pipelines.lengthCompare(1) == 0)
+        }
+      }
+      // Execution should complete without exception
+      DefaultPipelineDriver.main(args.toArray)
     }
   }
 }
@@ -136,11 +163,24 @@ object SparkTestHelper {
   val GLOBAL_SINGLE_STEP = PipelineStep(Some("GLOBALVALUESTEP"), Some("Global Value Step"), None, Some("Pipeline"),
     Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("!globalInput")))),
     Some(EngineMeta(Some("MockPipelineSteps.globalVariableStep"))), None)
+  val RETURN_NOTHING_STEP = PipelineStep(Some("RETURNNONESTEP"), Some("Return No Value"), None, Some("Pipeline"),
+    Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("string")))),
+    Some(EngineMeta(Some("MockPipelineSteps.returnNothingStep"))), Some("DYNAMICBRANCHSTEP"))
+  val DYNAMIC_BRANCH_STEP = PipelineStep(Some("DYNAMICBRANCHSTEP"), Some("Global Value Step"), None, Some("Pipeline"),
+    Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("!globalInput")))),
+    Some(EngineMeta(Some("MockPipelineSteps.globalVariableStep"))), None, Some("@RETURNNONESTEP || !NON_EXISTENT_VALUE"))
+  val DYNAMIC_BRANCH2_STEP = PipelineStep(Some("DYNAMICBRANCH2STEP"), Some("Global Value Step"), None, Some("Pipeline"),
+    Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("!globalInput")))),
+    Some(EngineMeta(Some("MockPipelineSteps.globalVariableStep"))), None, Some("!NON_EXISTENT_VALUE || @DYNAMICBRANCHSTEP"))
   val BASIC_PIPELINE = List(Pipeline(Some("1"), Some("Basic Pipeline"), Some(List(GLOBAL_VALUE_STEP, PAUSE_STEP))))
   val TWO_PIPELINE = List(Pipeline(Some("0"), Some("First Pipeline"), Some(List(GLOBAL_SINGLE_STEP))),
     Pipeline(Some("1"), Some("Second Pipeline"), Some(List(GLOBAL_SINGLE_STEP))))
   val THREE_PIPELINE = List(Pipeline(Some("0"), Some("Basic Pipeline"), Some(List(GLOBAL_VALUE_STEP, PAUSE_STEP))),
     Pipeline(Some("1"), Some("Second Pipeline"), Some(List(GLOBAL_SINGLE_STEP))))
+  val FOUR_PIPELINE = List(Pipeline(Some("1"), Some("First Pipeline"),
+    Some(List(RETURN_NOTHING_STEP,
+      DYNAMIC_BRANCH_STEP.copy(nextStepId = Some("DYNAMICBRANCH2STEP")),
+      DYNAMIC_BRANCH2_STEP))))
 }
 
 case class SparkTestDriverSetup(parameters: Map[String, Any]) extends DriverSetup {
@@ -149,6 +189,7 @@ case class SparkTestDriverSetup(parameters: Map[String, Any]) extends DriverSetu
     case "basic" => SparkTestHelper.BASIC_PIPELINE
     case "two" => SparkTestHelper.TWO_PIPELINE
     case "three" => SparkTestHelper.THREE_PIPELINE
+    case "four" => SparkTestHelper.FOUR_PIPELINE
   }
 
   override def initialPipelineId: String = ""
@@ -183,4 +224,6 @@ object MockPipelineSteps {
     pipelineContext.addStepMessage(PipelineStepMessage(string, stepId, pipelineId, PipelineStepMessageType.pause))
     string
   }
+
+  def returnNothingStep(string: String): Unit = {}
 }

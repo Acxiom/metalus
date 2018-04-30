@@ -9,7 +9,7 @@ import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
   * handle all of the initial setup such as building out pipelines, identifying the initialPipelineId is present and
   * creating the PipelineContext.
   */
-class DefaultPipelineDriver {
+object DefaultPipelineDriver {
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("driverSetupClass")))
     val initializationClass = parameters("driverSetupClass").asInstanceOf[String]

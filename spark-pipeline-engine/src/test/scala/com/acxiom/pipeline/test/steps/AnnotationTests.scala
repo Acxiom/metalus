@@ -13,7 +13,7 @@ class AnnotationTests extends FunSpec {
     it("Should find step object in provided package") {
       val outputFile = Files.createTempFile("stepPackageOutput", ".json")
       outputFile.toFile.deleteOnExit()
-      new StepMetaDataExtractor().main(Array(
+      StepMetaDataExtractor.main(Array(
         "--stepPackages", "com.acxiom.pipeline.test.steps, com.acxiom.pipeline.nosteps",
         "--outputFile", outputFile.toFile.getAbsolutePath))
       val json = Source.fromFile(outputFile.toFile).mkString

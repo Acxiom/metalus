@@ -15,7 +15,7 @@ import scala.collection.JavaConverters._
   * --stepPackages - required package(s) to scan. Can be a comma separated string to scan multiple packages.
   * --outputFile - optional file path to write the JSON. Otherwise, output will be to the console.
   */
-class StepMetaDataExtractor {
+object StepMetaDataExtractor {
   implicit val formats: Formats = DefaultFormats
 
   def main(args: Array[String]): Unit = {
@@ -29,6 +29,7 @@ class StepMetaDataExtractor {
       val urls = Thread.currentThread().getContextClassLoader.getResources(pack)
       // Identify all classes for each distinct url
       packageDefinitions + (p -> urls.asScala.toList.distinct.foldLeft(List[StepDefinition]())((definitions, url) => {
+        // TODO Need to handle jars
         val classFiles = new File(url.getFile).listFiles()
         classFiles.foldLeft(definitions)((stepDefinitions, cf) => {
           val stepPath = s"$p.${cf.getName.substring(0, cf.getName.indexOf("."))}"
