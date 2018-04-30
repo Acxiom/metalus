@@ -138,4 +138,13 @@ case class PipelineParameters(parameters: List[PipelineParameter] = List()) {
       this
     }
   }
+
+  /**
+    * This will determine if the pipeline parameters contains anything for the given pipelineId.
+    * @param pipelineId Te id to verify.
+    * @return true if the pipeline parameters has something for this id.
+    */
+  def hasPipelineParameters(pipelineId: String): Boolean = {
+    getParametersByPipelineId(pipelineId).isDefined
+  }
 }

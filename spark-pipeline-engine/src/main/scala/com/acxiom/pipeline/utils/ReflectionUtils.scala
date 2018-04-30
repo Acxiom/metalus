@@ -104,14 +104,18 @@ object ReflectionUtils {
     * @return The value from the field or an empty string
     */
   def extractField(entity: Any, fieldName: String, extractFromOption: Boolean = true): Any = {
-    val value = getField(entity, fieldName)
-    if (extractFromOption) {
-      value match {
-        case option: Option[_] if option.isDefined => option.get
-        case _ => value
-      }
+    if (fieldName == "") {
+      entity
     } else {
-      value
+      val value = getField(entity, fieldName)
+      if (extractFromOption) {
+        value match {
+          case option: Option[_] if option.isDefined => option.get
+          case _ => value
+        }
+      } else {
+        value
+      }
     }
   }
 

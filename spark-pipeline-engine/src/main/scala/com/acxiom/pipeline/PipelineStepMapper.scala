@@ -1,5 +1,6 @@
 package com.acxiom.pipeline
 
+import com.acxiom.pipeline.utils.ReflectionUtils
 import org.apache.log4j.Logger
 
 import scala.annotation.tailrec
@@ -139,34 +140,84 @@ trait PipelineStepMapper {
   private def returnBestValue(value: String,
                               parameter: Parameter,
                               pipelineContext: PipelineContext): Option[Any] = {
-
-    if (value.startsWith("@") || value.startsWith("$")) {
-      // TODO Need to enable fetching parameters by pipelineId and going through previous pipelines to find a value.
-      // the value is marked as a step parameter, get it from pipelineContext.parameters (Will be a PipelineStepResponse)
-      val parameters = pipelineContext.parameters
-        .getParametersByPipelineId(pipelineContext.getGlobalString("pipelineId").getOrElse(""))
-      if (parameters.get.parameters.contains(value.substring(1))) {
-        parameters.get.parameters(value.substring(1)).asInstanceOf[PipelineStepResponse].primaryReturn
+    val pipelinePath = getPathValues(value, pipelineContext)
+    if (pipelinePath.mainValue.startsWith("@") || pipelinePath.mainValue.startsWith("$")) {
+      val paramName = pipelinePath.mainValue.substring(1)
+      // See if the paramName is a pipelineId
+      val pipelineId = if (pipelinePath.pipelineId.isDefined) {
+        pipelinePath.pipelineId.get
       } else {
-        None
+        pipelineContext.getGlobalString("pipelineId").getOrElse("")
       }
-    } else if (value.startsWith("!")) {
-      // the value is marked as a global parameter, get it from pipelineContext.globals
-      val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
-      if (globals.contains(value.substring(1))) {
-        val global = globals(value.substring(1))
-        global match {
-          case g: Option[_] => g
-          case _ => Some(global)
+      val parameters = pipelineContext.parameters.getParametersByPipelineId(pipelineId)
+      // the value is marked as a step parameter, get it from pipelineContext.parameters (Will be a PipelineStepResponse)
+      if (parameters.get.parameters.contains(paramName)) {
+        parameters.get.parameters(paramName).asInstanceOf[PipelineStepResponse].primaryReturn match {
+          case g: Option[_] if g.isDefined =>
+            Some(ReflectionUtils.extractField(g.get, pipelinePath.extraPath.getOrElse("")))
+          case _: Option[_] => None
+          case resp =>
+            Some(ReflectionUtils.extractField(resp, pipelinePath.extraPath.getOrElse("")))
         }
       } else {
         None
       }
-    } else if (value.nonEmpty) {
+    } else if (pipelinePath.mainValue.startsWith("!")) {
+      getGlobalParameter(pipelinePath.mainValue, pipelinePath.extraPath.getOrElse(""), pipelineContext)
+    } else if (pipelinePath.mainValue.nonEmpty) {
       // a value exists with no prefix character (hardcoded value)
-      Some(mapByType(Some(value), parameter))
+      Some(mapByType(Some(pipelinePath.mainValue), parameter))
     } else {
       // the value is empty
+      None
+    }
+  }
+
+  private def getPathValues(value: String, pipelineContext: PipelineContext): PipelinePath = {
+    if (value.contains('.')) {
+      // Check for the special character
+      val special = if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!")) {
+        value.substring(0, 1)
+      } else {
+        ""
+      }
+      val pipelineId = value.substring(0, value.indexOf('.')).substring(1)
+      val paths = value.split('.')
+      if (pipelineContext.parameters.hasPipelineParameters(pipelineId)) {
+        val mainPath = if (special != "") {
+          s"$special${paths(1)}"
+        } else {
+          paths(1)
+        }
+        val extraPath = if (paths.length > 2) {
+          Some(paths.toList.slice(2, paths.length).mkString("."))
+        } else {
+          None
+        }
+        PipelinePath(Some(pipelineId), mainPath, extraPath)
+      } else {
+        PipelinePath(None, paths.head, if (paths.lengthCompare(1) == 0) {
+         None
+        } else {
+          Some(paths.slice(1, paths.length).mkString("."))
+        })
+      }
+    } else {
+      PipelinePath(None, value, None)
+    }
+  }
+
+  private def getGlobalParameter(value: String, extractPath: String, pipelineContext: PipelineContext): Option[Any] = {
+    // the value is marked as a global parameter, get it from pipelineContext.globals
+    val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
+    if (globals.contains(value.substring(1))) {
+      val global = globals(value.substring(1))
+      global match {
+        case g: Option[_] if g.isDefined => Some(ReflectionUtils.extractField(g.get, extractPath))
+        case _: Option[_] => None
+        case _ => Some(global)
+      }
+    } else {
       None
     }
   }
@@ -181,4 +232,6 @@ trait PipelineStepMapper {
       None
     }
   }
+
+  private case class PipelinePath(pipelineId: Option[String], mainValue: String, extraPath: Option[String])
 }
