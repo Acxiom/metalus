@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.drivers
 
 import com.acxiom.pipeline.PipelineExecutor
-import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
+import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.log4j.Logger
@@ -29,8 +29,6 @@ import org.apache.spark.streaming.{Duration, Seconds, StreamingContext}
   */
 object KafkaPipelineDriver {
   private val logger = Logger.getLogger(getClass)
-  private val DEFAULT_DURATION_TYPE = "seconds"
-  private val DEFAULT_DURATION = "10"
 
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("driverSetupClass", "topics", "kafkaNodes")))
@@ -41,9 +39,9 @@ object KafkaPipelineDriver {
     logger.info(s"Listening for Kafka messages using topics: ${topics.mkString(",")}")
     val pipelineContext = driverSetup.pipelineContext
 
-    val streamingContext = new StreamingContext(pipelineContext.sparkSession.get.sparkContext,
-      getDuration(Some(parameters.getOrElse("duration-type", "seconds").asInstanceOf[String]),
-        Some(parameters.getOrElse("duration", "10").asInstanceOf[String])))
+    val streamingContext = StreamingUtils.createStreamingContext(pipelineContext.sparkSession.get.sparkContext,
+      Some(parameters.getOrElse("duration-type", "seconds").asInstanceOf[String]),
+      Some(parameters.getOrElse("duration", "10").asInstanceOf[String]))
 
     val kafkaParams = Map[String, Object](
       ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> parameters("kafkaNodes").asInstanceOf[String],
@@ -79,28 +77,7 @@ object KafkaPipelineDriver {
     }
 
     streamingContext.start()
-    setTerminationState(streamingContext, parameters)
+    StreamingUtils.setTerminationState(streamingContext, parameters)
     logger.info("Shutting down Kafka Pipeline Driver")
-  }
-
-  private def setTerminationState(streamingContext: StreamingContext, parameters: Map[String, Any]):Unit = {
-    if (parameters.contains("terminationPeriod")) { // This is really just used for testing
-      logger.info(s"Kafka Pipeline Driver will terminate after ${parameters("terminationPeriod").asInstanceOf[String]} ms")
-      val terminated = streamingContext.awaitTerminationOrTimeout(parameters("terminationPeriod").asInstanceOf[String].toLong)
-      if (!terminated) {
-        streamingContext.stop(false, true)
-      }
-    } else {
-      logger.info("Kafka Pipeline Driver will wait until process is killed")
-      streamingContext.awaitTermination()
-    }
-  }
-
-  private def getDuration(durationType: Option[String] = Some(DEFAULT_DURATION_TYPE),
-                          duration: Option[String] = Some(DEFAULT_DURATION)): Duration = {
-    durationType match {
-      case Some("seconds") => Seconds(duration.get.toInt)
-      case _ => Seconds("30".toInt)
-    }
   }
 }
