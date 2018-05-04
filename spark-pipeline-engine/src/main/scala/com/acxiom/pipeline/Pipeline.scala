@@ -6,13 +6,38 @@ import org.apache.spark.util.CollectionAccumulator
 import scala.collection.JavaConversions._
 
 /**
+  * This object provides an easy way to create a new Pipeline.
+  */
+object Pipeline {
+  def apply(id: Option[String] = None,
+            name: Option[String] = None,
+            steps: Option[List[PipelineStep]] = None): Pipeline = DefaultPipeline(id, name, steps)
+}
+
+trait Pipeline {
+  def id: Option[String] = None
+  def name: Option[String] = None
+  def steps: Option[List[PipelineStep]] = None
+}
+
+/**
   * Contains the a pipeline definition to be executed.
   *
   * @param id    The unique id of this pipeline.
   * @param name  The pipeline name used for logging and errors.
   * @param steps A list of steps to execute.
   */
-case class Pipeline(id: Option[String] = None, name: Option[String] = None, steps: Option[List[PipelineStep]] = None)
+case class DefaultPipeline(override val id: Option[String] = None,
+                           override val name: Option[String] = None,
+                           override val steps: Option[List[PipelineStep]] = None) extends Pipeline
+
+/**
+  * Extends the Pipeline trait and adds the additional "typeClass" field that can be overridden and used when parsing
+  * from JSON.
+  */
+trait JsonPipeline extends Pipeline {
+  def typeClass: String = "Pipeline"
+}
 
 /**
   * Global object that may be passed to step functions.
@@ -38,6 +63,12 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            pipelineListener: Option[PipelineListener] = Some(DefaultPipelineListener()),
                            stepMessages: Option[CollectionAccumulator[PipelineStepMessage]]) {
 
+  /**
+    * Get the named global value as a string.
+    *
+    * @param globalName The name of the global property to return.
+    * @return An option containing the value or None
+    */
   def getGlobalString(globalName: String): Option[String] = {
     if (this.globals.isDefined &&
       this.globals.get.contains(globalName)) {
@@ -97,6 +128,14 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     }
   }
 
+  /**
+    * This function provides a short cut for adding values to the pipeline parameters object.
+    *
+    * @param pipelineId The id of the pipeline.
+    * @param name The name of the parameter to set.
+    * @param parameter The value of the parameter to set.
+    * @return An updated PipelineContext.
+    */
   def setParameterByPipelineId(pipelineId: String, name: String, parameter: Any): PipelineContext = {
     val params = parameters.setParameterByPipelineId(pipelineId, name, parameter)
     this.copy(parameters = params)
@@ -141,6 +180,7 @@ case class PipelineParameters(parameters: List[PipelineParameter] = List()) {
 
   /**
     * This will determine if the pipeline parameters contains anything for the given pipelineId.
+    *
     * @param pipelineId Te id to verify.
     * @return true if the pipeline parameters has something for this id.
     */

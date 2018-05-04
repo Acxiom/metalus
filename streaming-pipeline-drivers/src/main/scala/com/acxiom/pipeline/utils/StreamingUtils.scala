@@ -31,8 +31,8 @@ object StreamingUtils {
     * @return A StreamingContext
     */
   def createStreamingContext(sparkContext: SparkContext,
-                             duration: Option[Duration] = Some(getDuration())): StreamingContext = {
-    new StreamingContext(sparkContext, duration.get)
+                             duration: Option[Duration]): StreamingContext = {
+    new StreamingContext(sparkContext, duration.getOrElse(getDuration()))
   }
 
   def getDuration(durationType: Option[String] = Some(DEFAULT_DURATION_TYPE),

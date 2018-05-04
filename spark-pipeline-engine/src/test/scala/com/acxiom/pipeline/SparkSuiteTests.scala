@@ -153,43 +153,15 @@ object SparkTestHelper {
   var sparkConf: SparkConf = _
   var sparkSession: SparkSession = _
   var pipelineListener: PipelineListener = _
-
-  val GLOBAL_VALUE_STEP = PipelineStep(Some("GLOBALVALUESTEP"), Some("Global Value Step"), None, Some("Pipeline"),
-    Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("!globalInput")))),
-    Some(EngineMeta(Some("MockPipelineSteps.globalVariableStep"))), Some("PAUSESTEP"))
-  val PAUSE_STEP = PipelineStep(Some("PAUSESTEP"), Some("Pause Step"), None, Some("Pipeline"),
-    Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("@GLOBALVALUESTEP")))),
-    Some(EngineMeta(Some("MockPipelineSteps.pauseStep"))))
-  val GLOBAL_SINGLE_STEP = PipelineStep(Some("GLOBALVALUESTEP"), Some("Global Value Step"), None, Some("Pipeline"),
-    Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("!globalInput")))),
-    Some(EngineMeta(Some("MockPipelineSteps.globalVariableStep"))), None)
-  val RETURN_NOTHING_STEP = PipelineStep(Some("RETURNNONESTEP"), Some("Return No Value"), None, Some("Pipeline"),
-    Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("string")))),
-    Some(EngineMeta(Some("MockPipelineSteps.returnNothingStep"))), Some("DYNAMICBRANCHSTEP"))
-  val DYNAMIC_BRANCH_STEP = PipelineStep(Some("DYNAMICBRANCHSTEP"), Some("Global Value Step"), None, Some("Pipeline"),
-    Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("!globalInput")))),
-    Some(EngineMeta(Some("MockPipelineSteps.globalVariableStep"))), None, Some("@RETURNNONESTEP || !NON_EXISTENT_VALUE"))
-  val DYNAMIC_BRANCH2_STEP = PipelineStep(Some("DYNAMICBRANCH2STEP"), Some("Global Value Step"), None, Some("Pipeline"),
-    Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("!globalInput")))),
-    Some(EngineMeta(Some("MockPipelineSteps.globalVariableStep"))), None, Some("!NON_EXISTENT_VALUE || @DYNAMICBRANCHSTEP"))
-  val BASIC_PIPELINE = List(Pipeline(Some("1"), Some("Basic Pipeline"), Some(List(GLOBAL_VALUE_STEP, PAUSE_STEP))))
-  val TWO_PIPELINE = List(Pipeline(Some("0"), Some("First Pipeline"), Some(List(GLOBAL_SINGLE_STEP))),
-    Pipeline(Some("1"), Some("Second Pipeline"), Some(List(GLOBAL_SINGLE_STEP))))
-  val THREE_PIPELINE = List(Pipeline(Some("0"), Some("Basic Pipeline"), Some(List(GLOBAL_VALUE_STEP, PAUSE_STEP))),
-    Pipeline(Some("1"), Some("Second Pipeline"), Some(List(GLOBAL_SINGLE_STEP))))
-  val FOUR_PIPELINE = List(Pipeline(Some("1"), Some("First Pipeline"),
-    Some(List(RETURN_NOTHING_STEP,
-      DYNAMIC_BRANCH_STEP.copy(nextStepId = Some("DYNAMICBRANCH2STEP")),
-      DYNAMIC_BRANCH2_STEP))))
 }
 
 case class SparkTestDriverSetup(parameters: Map[String, Any]) extends DriverSetup {
 
   override def pipelines: List[Pipeline] = parameters("pipeline") match {
-    case "basic" => SparkTestHelper.BASIC_PIPELINE
-    case "two" => SparkTestHelper.TWO_PIPELINE
-    case "three" => SparkTestHelper.THREE_PIPELINE
-    case "four" => SparkTestHelper.FOUR_PIPELINE
+    case "basic" => PipelineDefs.BASIC_PIPELINE
+    case "two" => PipelineDefs.TWO_PIPELINE
+    case "three" => PipelineDefs.THREE_PIPELINE
+    case "four" => PipelineDefs.FOUR_PIPELINE
   }
 
   override def initialPipelineId: String = ""

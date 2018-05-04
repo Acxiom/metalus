@@ -51,9 +51,9 @@ case class EngineMeta(spark: Option[String] = None)
   * Trait that defines the minimum properties required by an exception thrown by a PipelineStep
   */
 trait PipelineStepException extends Exception {
-  val errorType: Option[String]
-  val dateTime: Option[String]
-  val message: Option[String]
+  def errorType: Option[String]
+  def dateTime: Option[String]
+  def message: Option[String]
 }
 
 /**

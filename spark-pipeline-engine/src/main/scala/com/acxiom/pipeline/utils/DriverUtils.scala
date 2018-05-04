@@ -1,9 +1,14 @@
 package com.acxiom.pipeline.utils
 
+import java.text.ParseException
+
+import com.acxiom.pipeline.{DefaultPipeline, Pipeline}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
+import org.json4s.native.JsonMethods.parse
+import org.json4s.{DefaultFormats, Formats, ShortTypeHints, TypeHints}
 
 object DriverUtils {
 
@@ -64,5 +69,41 @@ object DriverUtils {
       }
     }
     parameters
+  }
+
+  /**
+    * This function will take a JSON string containing a pipeline definition. It is expected that the definition will be
+    * a JSON array.
+    *
+    * @param pipelineJson The JSON string containing the Pipeline metadata
+    * @return A List of Pipeline objects
+    */
+  def parsePipelineJson(pipelineJson: String): Option[List[Pipeline]] = {
+    implicit val formats: Formats = DefaultFormats
+    if (pipelineJson(0) != '[') {
+      throw new ParseException(pipelineJson, 0)
+    }
+    parse(pipelineJson).extractOpt[List[DefaultPipeline]]
+  }
+
+  /**
+    * This function will take a JSON string containing a pipeline definition. It is expected that the definition will be
+    * a JSON array. This function also let's the caller specifiy the pipeline class type. The provided type should extend
+    * JsonPipeline and override the typeClass attribute. When calling this function, use classOf[CustomPipeline] for the
+    * pipelineType parameter.
+    *
+    * @param pipelineJson The JSON string containing the Pipeline metadata
+    * @param pipelineType The class definition of the custom Pipeline
+    * @return A List of Pipeline objects
+    */
+  def parsePipelineJson(pipelineJson: String, pipelineType: Class[_]): Option[List[Pipeline]] = {
+    implicit val formats: DefaultFormats = new DefaultFormats {
+      override val typeHintFieldName: String = "typeClass"
+      override val typeHints: TypeHints = ShortTypeHints(List(pipelineType))
+    }
+    if (pipelineJson(0) != '[') {
+      throw new ParseException(pipelineJson, 0)
+    }
+    parse(pipelineJson).extractOpt[List[Pipeline]]
   }
 }
