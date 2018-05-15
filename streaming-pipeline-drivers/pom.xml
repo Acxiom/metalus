@@ -19,7 +19,7 @@
     <dependencies>
         <dependency>
             <groupId>com.acxiom</groupId>
-            <artifactId>pipeline-engine</artifactId>
+            <artifactId>spark-pipeline-engine_${scala.compat.version}</artifactId>
             <version>${parent.version}</version>
         </dependency>
 
