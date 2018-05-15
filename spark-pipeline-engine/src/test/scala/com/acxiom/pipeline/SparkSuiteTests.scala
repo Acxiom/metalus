@@ -18,8 +18,7 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
       .setMaster(SparkTestHelper.MASTER)
       .setAppName(SparkTestHelper.APPNAME)
     SparkTestHelper.sparkConf.set("spark.hadoop.io.compression.codecs",
-      "org.apache.hadoop.io.compress.ZFramedCodec,org.apache.hadoop.io." +
-        "compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
+      ",org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
         "org.apache.hadoop.io.compress.GzipCodec,org.apache." +
         "hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec")
 

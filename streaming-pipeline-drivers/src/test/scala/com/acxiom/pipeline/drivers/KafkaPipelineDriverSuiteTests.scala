@@ -39,8 +39,7 @@ class KafkaPipelineDriverSuiteTests extends FunSpec with BeforeAndAfterAll with 
       .setAppName(SparkTestHelper.APPNAME)
         .set("spark.local.dir", sparkLocalDir.toFile.getAbsolutePath)
     SparkTestHelper.sparkConf.set("spark.hadoop.io.compression.codecs",
-      "org.apache.hadoop.io.compress.ZFramedCodec,org.apache.hadoop.io." +
-        "compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
+      ",org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
         "org.apache.hadoop.io.compress.GzipCodec,org.apache." +
         "hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec")
 

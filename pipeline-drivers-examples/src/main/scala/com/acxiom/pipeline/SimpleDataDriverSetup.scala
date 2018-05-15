@@ -7,8 +7,7 @@ import org.apache.spark.sql.SparkSession
 case class SimpleDataDriverSetup(parameters: Map[String, Any]) extends DriverSetup {
 
   private val sparkConf = new SparkConf().set("spark.hadoop.io.compression.codecs",
-    "org.apache.hadoop.io.compress.ZFramedCodec,org.apache.hadoop.io." +
-      "compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
+    "org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
       "org.apache.hadoop.io.compress.GzipCodec,org.apache." +
       "hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec")
 
