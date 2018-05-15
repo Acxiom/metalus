@@ -1,5 +1,5 @@
 # Spark Pipeline Driver
-This project aims to make writing Spark applications easier by abstracting the effort to assemble the driver into
+This project aims to make writing [Spark](http://spark.apache.org) applications easier by abstracting the effort to assemble the driver into
 reusable steps and pipelines.
 
 ## Building
