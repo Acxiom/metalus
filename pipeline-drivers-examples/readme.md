@@ -112,7 +112,7 @@ PipelineContext as well as supplying the pipelines that will be executed.
         Some("Returns counts by the provided field name. The result is a data frame."), Some("Pipeline"),
         Some(List(Parameter(Some("text"), Some("fieldName"), Some(true), None, Some("!grouping_field")),
           Parameter(Some("text"), Some("dataFrame"), Some(true), None, Some("@LOADFILESTEP")))),
-        Some(EngineMeta(Some("Grouping.countsByField"))),
+        Some(EngineMeta(Some("GroupingSteps.countsByField"))),
         Some("WRITEFILESTEP"))
     
       private val WRITE_FILE = PipelineStep(Some("WRITEFILESTEP"), Some("Write Data Frame to a json file"),
