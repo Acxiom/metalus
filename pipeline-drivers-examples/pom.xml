@@ -17,6 +17,13 @@
             <groupId>com.acxiom</groupId>
             <artifactId>spark-pipeline-engine_${scala.compat.version}</artifactId>
             <version>${parent.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.acxiom</groupId>
+            <artifactId>streaming-pipeline-drivers_${scala.compat.version}</artifactId>
+            <version>${parent.version}</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

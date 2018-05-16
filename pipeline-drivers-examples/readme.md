@@ -148,6 +148,7 @@ Submit a job:
 	spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 	--master spark://localhost:7077 \
 	--deploy-mode client \
+	--jars <jar_path/spark-pipeline-engine_2.11-0.1.0-SNAPSHOT.jar,<jar_path/streaming-pipeline-drivers_2.11-0.1.0-SNAPSHOT.jar
 	<jar_path>/pipeline-drivers-examples_2.11-0.1.0-SNAPSHOT.jar \
 	--driverSetupClass com.acxiom.pipeline.SimpleDataDriverSetup \
 	--input_url <location of input file> \
