@@ -1,7 +1,7 @@
 # Spark Pipeline Driver Examples
 This project contains examples demonstrating how to get started.
 
-##Simple Data Operations example
+## Simple Data Operations example
 This example was taken from the Spark examples page and adapted.
 
 ### Example Code
