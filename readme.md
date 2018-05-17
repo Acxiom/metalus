@@ -3,7 +3,7 @@ This project aims to make writing [Spark](http://spark.apache.org) applications 
 reusable steps and pipelines.
 
 ## Example
-Examples of building pipelines can be found in the *pipeline-drivers-examples* project
+Examples of building pipelines can be found in the [pipeline-drivers-examples](/pipeline-drivers-examples) project
 
 ## Concepts
 This framework aims to provide all of the tools required to build Spark applications using reusable components allowing
@@ -11,50 +11,13 @@ developers to focus on functionality instead of plumbing.
 
 ### Drivers
 A driver is the entry point of the application. Each driver provides different benefits. The default pipeline driver that
-comes with the *spark-pipeline-engine* is useful for single run applications that shutdown after the pipelines have
-finished. The *streaming-pipeline-drivers* component provides additional drivers that are useful for long running 
+comes with the [spark-pipeline-engine](/spark-pipeline-engine) is useful for single run applications that shutdown after the pipelines have
+finished. The [streaming-pipeline-drivers](/streaming-pipeline-drivers) component provides additional drivers that are useful for long running 
 applications that connect to a streaming source and continually process incoming data.
 
 #### Driver Setup
 Each provided driver relies on the *DriverSetup* trait. Each project is required to implement this trait and pass the
 class name as a command line parameter. The driver will then call the different functions to begin processing data. 
-
-### Steps
-A step is a single reusable code function that can be executed in a pipeline. There are two parts to a step, the actual
-function and the *PipelineStep* metadata. The function should define the parameters that are required to execute properly
-and the metadata is is used by the pipeline to define how those parameters are populated.
-
-##### PipelineContext
-The *PipelineContext* is a shared object that contains the current state of the pipeline execution. This includes all
-global values as well as the result from previous step executions for all pipelines that have been executed.
-
-Note that if a step function has *pipelineContext: PipelineContext* in the signature it is not required to map the parameter 
-as the system will automatically inject the current context.
-
-#### PipelineStep Metadata Values Special Syntax
-PipelineSteps can use special syntax to indicate that a system value should be used instead of a static provided value.
-
-* **!** - When the value begins with this character, the system will search the PipelineContext.globals for the named parameter and pass that value to the step function.
-* **@** - When the value begins with this character, the system will search the PipelineContext.parameters for the named parameter and pass the primaryReturn value to the step function.
-* **$** - When the value begins with this character, the system will search the PipelineContext.parameters for the named parameter and pass that value to the step function.
-
-In addition to searching the parameters for the current pipeline, the user has the option of specifying a pipelineId in 
-the syntax for *@* and *$* to specify any previous pipeline value. *Example: @p1.StepOne*
-
-Values may also be embedded. The user has the option to reference properties embedded in top level objects. Given an 
-object (obj) that contains a sub-object (subObj) which contains a name, the user could access the name field using this
-syntax:
-
-	$obj.subObj.name
-	
-Here is the object descried as JSON:
-
-	{
-		"subObj": {
-			"name": "Spark"
-		}
-	} 
-
 
 ### Pipelines
 A pipeline is a list of *PipelineStep*s that need to be executed. Each step in a pipeline will be executed until
@@ -92,6 +55,42 @@ execution of the current pipeline.
 #### Exceptions
 Throwing an exception that is not a *PipelineStepException* will result in the application stopping and possibly being
 restarted. This should only be done when the error is no longer recoverable.
+
+### Steps
+A step is a single reusable code function that can be executed in a pipeline. There are two parts to a step, the actual
+function and the *PipelineStep* metadata. The function should define the parameters that are required to execute properly
+and the metadata is is used by the pipeline to define how those parameters are populated.
+
+##### PipelineContext
+The *PipelineContext* is a shared object that contains the current state of the pipeline execution. This includes all
+global values as well as the result from previous step executions for all pipelines that have been executed.
+
+Note that if a step function has *pipelineContext: PipelineContext* in the signature it is not required to map the parameter 
+as the system will automatically inject the current context.
+
+#### PipelineStep Metadata Values Special Syntax
+PipelineSteps can use special syntax to indicate that a system value should be used instead of a static provided value.
+
+* **!** - When the value begins with this character, the system will search the PipelineContext.globals for the named parameter and pass that value to the step function.
+* **@** - When the value begins with this character, the system will search the PipelineContext.parameters for the named parameter and pass the primaryReturn value to the step function.
+* **$** - When the value begins with this character, the system will search the PipelineContext.parameters for the named parameter and pass that value to the step function.
+
+In addition to searching the parameters for the current pipeline, the user has the option of specifying a pipelineId in 
+the syntax for *@* and *$* to specify any previous pipeline value. *Example: @p1.StepOne*
+
+Values may also be embedded. The user has the option to reference properties embedded in top level objects. Given an 
+object (obj) that contains a sub-object (subObj) which contains a name, the user could access the name field using this
+syntax:
+
+	$obj.subObj.name
+	
+Here is the object descried as JSON:
+
+	{
+		"subObj": {
+			"name": "Spark"
+		}
+	} 
 
 ## Building
 The project is built using [Apache Maven](http://maven.apache.org/).
