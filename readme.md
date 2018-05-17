@@ -3,7 +3,7 @@ This project aims to make writing [Spark](http://spark.apache.org) applications 
 reusable steps and pipelines.
 
 ## Example
-Examples of building pipelines can be found in the [pipeline-drivers-examples](/pipeline-drivers-examples) project
+Examples of building pipelines can be found in the [pipeline-drivers-examples](pipeline-drivers-examples/) project
 
 ## Concepts
 This framework aims to provide all of the tools required to build Spark applications using reusable components allowing
@@ -11,20 +11,32 @@ developers to focus on functionality instead of plumbing.
 
 ### Drivers
 A driver is the entry point of the application. Each driver provides different benefits. The default pipeline driver that
-comes with the [spark-pipeline-engine](/spark-pipeline-engine) is useful for single run applications that shutdown after the pipelines have
-finished. The [streaming-pipeline-drivers](/streaming-pipeline-drivers) component provides additional drivers that are useful for long running 
+comes with the [spark-pipeline-engine](spark-pipeline-engine/) is useful for single run applications that shutdown after the pipelines have
+finished. The [streaming-pipeline-drivers](streaming-pipeline-drivers/) component provides additional drivers that are useful for long running 
 applications that connect to a streaming source and continually process incoming data.
 
 #### Driver Setup
 Each provided driver relies on the *DriverSetup* trait. Each project is required to implement this trait and pass the
-class name as a command line parameter. The driver will then call the different functions to begin processing data. 
+class name as a command line parameter. The driver will then call the different functions to begin processing data. Visit
+[spark-pipeline-engine](spark-pipeline-engine/readme.md) for more information.
+
+#####  SparkConf and SparkSession
+This DriverSetup implementation is responsible for initializing the SparkConf and SparkSession. A utility object is
+provided named *DriverUtils* that can be used to create the SparkConf.
+
+##### Pipelines
+The *pipelines* function is responsible for returning a List of *Pipeline* objects that will be executed.
+
+##### PipelineContext
+The *PipelineContext* needs to be initialized and refreshed. Streaming drivers will call the refresh function after each
+data set is processed.
 
 ### Pipelines
 A pipeline is a list of *PipelineStep*s that need to be executed. Each step in a pipeline will be executed until
 completion or an exception is thrown. 
 
 #### Pipeline Chaining
-Pipelines can be chained together and provide may be restarted. When restarting a pipeline, all
+Pipelines can be chained together and may be restarted. When restarting a pipeline, all
 pipelines after that pipeline will also be executed.
 
 #### Branching
