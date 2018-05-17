@@ -10,6 +10,39 @@ The Pipeline case class describes the pipeline that needs to be executed. Only t
 * **name** - A name to display in logs and error messages.
 * **steps** - A list of steps to execute.
 
+#### Pipeline Chaining
+Pipelines can be chained together and may be restarted. When restarting a pipeline, all
+pipelines after that pipeline will also be executed.
+
+#### Branching
+When the flow of the pipeline execution needs to be determined conditionally, a step may be set with a *type* of **branch**.
+The return value of the branch should match the name of a parameter in the step params metadata. The value of that parameter
+will be used as the id of the next step to execute.
+
+#### Conditional Execution
+Each step has an attribute named *executeIfEmpty* which takes a value just like the parameters of the step. If the value
+is empty, then the step will be executed. This is useful in pipeline chaining to aid with sharing resources such as a 
+DataFrame. 
+
+One example is the application runs two pipelines. During the execution of the first pipeline a DataFrame is created that
+reads from a parquet table and performs some operations. The second pipeline also needs to read data from the parquet table.
+However, since the second pipeline may be restarted without the first pipeline being executed, it will need a step that
+reads the data from the parquet table. By passing the DataFrame from the first pipeline into the *executeIfEmpty* attribute,
+the step will only be executed if the the DataFrame is missing. This allows sharing the DAG across pipelines which will
+also allow Spark to perform optimizations.
+
+#### Flow Control
+There are two ways to stop pipelines:
+
+* **PipelineStepMessage** - A step may register a message and set the type of either *pause* or *error* that will prevent
+additional pipelines from executing. The current pipeline will complete execution.
+* **PipelineStepException** - A step may throw an exception based on the *PipelineStepException* which will stop the
+execution of the current pipeline.
+
+#### Exceptions
+Throwing an exception that is not a *PipelineStepException* will result in the application stopping and possibly being
+restarted. This should only be done when the error is no longer recoverable.
+
 ### PipelineStep
 The PipelineStep describes the step functions that need to be called including how data is passed between steps. When 
 creating a PipelineStep, these values need to be populated:
@@ -48,7 +81,10 @@ Here is the object descried as JSON:
 	} 
 
 ##### PipelineContext
-Note that if a function has *pipelineContext: PipelineContext* in the signature it is not required to map the parameter 
+The *PipelineContext* is a shared object that contains the current state of the pipeline execution. This includes all
+global values as well as the result from previous step executions for all pipelines that have been executed.
+
+Note that if a step function has *pipelineContext: PipelineContext* in the signature it is not required to map the parameter 
 as the system will automatically inject the current context.
 
 ### DefaultPipelineDriver

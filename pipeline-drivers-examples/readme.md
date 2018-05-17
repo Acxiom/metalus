@@ -5,9 +5,9 @@ This project contains examples demonstrating how to get started.
 This example was taken from the [Spark Examples](http://spark.apache.org/examples.html) page and adapted.
 
 ### Example Code
-This sample was taken from the [Spark Examples](http://spark.apache.org/examples.html) page and converted to use the Pipeline Engine. All of the code
-exists in this project as a way to quick start, however below is a walk through of creating each of the required
-components.
+This sample was taken from the [Spark Examples](http://spark.apache.org/examples.html) page and converted to use the
+Pipeline Engine. All of the code exists in this project as a way to quick start, however below is a walk through of 
+creating each of the required components.
 
 #### InputOutputSteps
 Two steps are required to read and write files. This could be a single operation, but in order to be more reusable input
