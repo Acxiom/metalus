@@ -1,9 +1,6 @@
 # Spark Pipeline Engine
 This component provides a framework for building Spark processing pipelines built with reusable steps.
 
-## Example
-TODO: Provide a tutorial for building a basic app using the framework and running it against a Spark cluster
-
 ## High Level Class Overview
 
 ### Pipeline
