@@ -10,6 +10,8 @@ The Pipeline case class describes the pipeline that needs to be executed. Only t
 * **name** - A name to display in logs and error messages.
 * **steps** - A list of steps to execute.
 
+![Default Pipeline Execution](../docs/images/Default_Pipeline_Execution.png "Default Pipeline Execution")
+
 #### Pipeline Chaining
 Pipelines can be chained together and may be restarted. When restarting a pipeline, all
 pipelines after that pipeline will also be executed.
@@ -89,6 +91,8 @@ as the system will automatically inject the current context.
 
 ### DefaultPipelineDriver
 This driver provides an entry point for the Spark application.
+
+![Default Driver Flow](../docs/images/Default_Driver_Flow.png "Default Driver Flow")
 
 #### Command line parameters
 Any application command line parameters will be made available to the DriverSetup class upon initialization.
