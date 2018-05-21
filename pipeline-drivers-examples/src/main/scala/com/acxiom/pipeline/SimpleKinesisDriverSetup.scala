@@ -30,10 +30,17 @@ case class SimpleKinesisDriverSetup(parameters: Map[String, Any]) extends Driver
     Some("Pipeline"),
     Some(List(Parameter(Some("text"), Some("dataFrame"), Some(true), None, Some("!initialDataFrame")))),
     Some(EngineMeta(Some("GroupingSteps.recordCount"))),
-    None)
+    Some("WRITEFILESTEP"))
+
+  private val WRITE_FILE = PipelineStep(Some("WRITEFILESTEP"), Some("Write Data Frame to a json file"),
+    Some("This step will write a DataFrame from the provided URL"), Some("Pipeline"),
+    Some(List(Parameter(Some("text"), Some("url"), Some(true), None, Some("!output_url")),
+      Parameter(Some("text"), Some("dataFrame"), Some(true), None, Some("!initialDataFrame")),
+      Parameter(Some("text"), Some("mode"), Some(true), None, Some("append")))),
+    Some(EngineMeta(Some("InputOutputSteps.writeJSONFile"))))
 
   override def pipelines: List[Pipeline] = List(Pipeline(Some("SIMPLE_KINESIS_PIPELINE"), Some("Simple Kinesis Example"),
-    Some(List(COUNT_DF))))
+    Some(List(COUNT_DF, WRITE_FILE))))
 
   override def initialPipelineId: String = ""
 
