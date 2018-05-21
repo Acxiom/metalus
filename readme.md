@@ -15,6 +15,8 @@ comes with the [spark-pipeline-engine](spark-pipeline-engine/) is useful for sin
 finished. The [streaming-pipeline-drivers](streaming-pipeline-drivers/) component provides additional drivers that are useful for long running 
 applications that connect to a streaming source and continually process incoming data.
 
+![Driver Initialization](docs/images/DefaultPipelineDriver.png "Default Pipeline Driver Flow")
+
 #### Driver Setup
 Each provided driver relies on the *DriverSetup* trait. Each project is required to implement this trait and pass the
 class name as a command line parameter. The driver will then call the different functions to begin processing data. Visit
@@ -33,7 +35,11 @@ data set is processed.
 
 ### Pipelines
 A pipeline is a list of [*PipelineStep*](spark-pipeline-engine/src/main/scala/com/acxiom/pipeline/PipelineStep.scala)s that need to be executed. Each step in a pipeline will be executed until
-completion or an exception is thrown. 
+completion or an exception is thrown.
+
+During execution, the provided *PipelineListener* will receive notifications when the execution starts and finishes, when
+a pipeline starts and finishes and when each step starts and finishes. Additionally when an exception is handled, the listener
+will be notified.
 
 Visit [spark-pipeline-engine](spark-pipeline-engine/readme.md) for more information.
 
