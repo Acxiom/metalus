@@ -86,8 +86,10 @@ Here is the object descried as JSON:
 The *PipelineContext* is a shared object that contains the current state of the pipeline execution. This includes all
 global values as well as the result from previous step executions for all pipelines that have been executed.
 
-Note that if a step function has *pipelineContext: PipelineContext* in the signature it is not required to map the parameter 
+**Note** that if a step function has *pipelineContext: PipelineContext* in the signature it is not required to map the parameter 
 as the system will automatically inject the current context.
+
+**Note** that steps only have **read** access to the *PipelineContext* and may not make any changes.
 
 ### DefaultPipelineDriver
 This driver provides an entry point for the Spark application.
