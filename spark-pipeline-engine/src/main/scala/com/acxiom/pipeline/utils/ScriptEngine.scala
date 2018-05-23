@@ -2,10 +2,8 @@ package com.acxiom.pipeline.utils
 
 import com.acxiom.pipeline.PipelineContext
 import javax.script.{Compilable, ScriptEngineManager, SimpleBindings}
-import org.json4s.{DefaultFormats, Formats}
 
 class ScriptEngine {
-  private implicit val formats: Formats = DefaultFormats
   private val engine = new ScriptEngineManager().getEngineByName("Nashorn").asInstanceOf[Compilable]
 
   /**
