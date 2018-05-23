@@ -55,28 +55,41 @@ class JavascriptStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhen
     Files.copy(getClass.getResourceAsStream("/MOCK_DATA.csv"),
       FileSystems.getDefault.getPath(tempFile.getAbsolutePath),
       StandardCopyOption.REPLACE_EXISTING)
-    it("Should load a file") {
-      val script =
-        s"""
-           |var MetaData = Java.type('org.apache.spark.sql.types.Metadata');
-           |var StructType = Java.type('org.apache.spark.sql.types.StructType');
-           |var StructField = Java.type('org.apache.spark.sql.types.StructField');
-           |var DataTypes = Java.type('org.apache.spark.sql.types.DataTypes');
-           |var schema = new StructType(new Array(
-           |  new StructField('id', DataTypes.LongType, true, MetaData.empty()),
-           |  new StructField('first_name', DataTypes.StringType, true, MetaData.empty()),
-           |  new StructField('last_name', DataTypes.StringType, true, MetaData.empty()),
-           |  new StructField('email', DataTypes.StringType, true, MetaData.empty()),
-           |  new StructField('gender', DataTypes.StringType, true, MetaData.empty()),
-           |  new StructField('ein', DataTypes.StringType, true, MetaData.empty()),
-           |  new StructField('postal_code', DataTypes.StringType, true, MetaData.empty())
-           |));
-           |var sparkSession = pipelineContext.sparkSession().get();
-           |var dfReader = sparkSession.read();
-           |dfReader = dfReader.schema(schema).option('sep', ',').option("inferSchema", false)
-           |dfReader.option("header", true).format('csv').load('${tempFile.getAbsolutePath}');
+
+    val script =
+      """
+         |var MetaData = Java.type('org.apache.spark.sql.types.Metadata');
+         |var StructType = Java.type('org.apache.spark.sql.types.StructType');
+         |var StructField = Java.type('org.apache.spark.sql.types.StructField');
+         |var DataTypes = Java.type('org.apache.spark.sql.types.DataTypes');
+         |var schema = new StructType(new Array(
+         |  new StructField('id', DataTypes.LongType, true, MetaData.empty()),
+         |  new StructField('first_name', DataTypes.StringType, true, MetaData.empty()),
+         |  new StructField('last_name', DataTypes.StringType, true, MetaData.empty()),
+         |  new StructField('email', DataTypes.StringType, true, MetaData.empty()),
+         |  new StructField('gender', DataTypes.StringType, true, MetaData.empty()),
+         |  new StructField('ein', DataTypes.StringType, true, MetaData.empty()),
+         |  new StructField('postal_code', DataTypes.StringType, true, MetaData.empty())
+         |));
+         |var sparkSession = pipelineContext.sparkSession().get();
+         |var dfReader = sparkSession.read();
+         |dfReader = dfReader.schema(schema).option('sep', ',').option("inferSchema", false)
+         |dfReader.option("header", true).format('csv').load($path);
          """.stripMargin
-      val result = JavascriptSteps.processScriptWithValue(script, tempFile.getAbsolutePath, pipelineContext)
+
+    it("Should load a file using JS") {
+      val updatedScript = script.replaceAll("\\$path", s"'${tempFile.getAbsolutePath}'")
+      val result = JavascriptSteps.processScript(updatedScript, pipelineContext)
+      assert(result.primaryReturn.isDefined)
+      val df = result.primaryReturn.get.asInstanceOf[DataFrame]
+      val count = df.count()
+      assert(count == 1000)
+      assert(df.schema.fields.length == 7)
+    }
+
+    it ("Should load a file using JS and a provide user value") {
+      val updatedScript = script.replaceAll("\\$path", "userValue")
+      val result = JavascriptSteps.processScriptWithValue(updatedScript, tempFile.getAbsolutePath, pipelineContext)
       assert(result.primaryReturn.isDefined)
       val df = result.primaryReturn.get.asInstanceOf[DataFrame]
       val count = df.count()
