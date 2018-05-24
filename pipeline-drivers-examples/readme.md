@@ -139,7 +139,7 @@ used when creating the steps. Additionally, the last two steps used the step ref
 value from a previous step and used to populate a function parameter. 
 
 ### Running
-The code will need to be package as an uber jar (the example project does this automatically when package is called) that 
+The code will need to be packaged as an uber jar (the example project does this automatically when package is called) that
 contains all of the dependencies. Once this is done, place the jar in a location that can be read by Spark.
 
 Submit a job:
