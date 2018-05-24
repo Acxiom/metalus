@@ -21,6 +21,7 @@
 
     <modules>
         <module>spark-pipeline-engine</module>
+        <module>common-pipeline-steps</module>
         <module>streaming-pipeline-drivers</module>
         <module>pipeline-drivers-examples</module>
     </modules>
