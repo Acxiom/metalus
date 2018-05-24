@@ -50,7 +50,7 @@ class ScriptEngineTests extends FunSpec with BeforeAndAfterAll {
         Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(), None, None)
       val js =
         """
-          | 'RedOnTheHead' + obj;
+          | 'RedOnTheHead' + userValue;
         """.stripMargin
       val result = scriptEngine.executeScriptWithObject(js, "Fred", pipelineContext)
       assert(result == "RedOnTheHeadFred")

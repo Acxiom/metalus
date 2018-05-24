@@ -2,10 +2,8 @@ package com.acxiom.pipeline.utils
 
 import com.acxiom.pipeline.PipelineContext
 import javax.script.{Compilable, ScriptEngineManager, SimpleBindings}
-import org.json4s.{DefaultFormats, Formats}
 
 class ScriptEngine {
-  private implicit val formats: Formats = DefaultFormats
   private val engine = new ScriptEngineManager().getEngineByName("Nashorn").asInstanceOf[Compilable]
 
   /**
@@ -36,15 +34,15 @@ class ScriptEngine {
     * This function will execute a javascript with access to the "pipelineContext" object and the provided "obj".
     *
     * @param script          The script to execute.
-    * @param obj             The object to make accessible to the script.
+    * @param userValue       The object to make accessible to the script.
     * @param pipelineContext The pipelineContext containing the globals.
     * @return The result of the execution.
     */
-  def executeScriptWithObject(script: String, obj: Any, pipelineContext: PipelineContext): Any = {
+  def executeScriptWithObject(script: String, userValue: Any, pipelineContext: PipelineContext): Any = {
     // Add it to the script context
     val bindings = new SimpleBindings()
     bindings.put("pipelineContext", pipelineContext)
-    bindings.put("obj", obj)
+    bindings.put("userValue", userValue)
     engine.compile(script).eval(bindings)
   }
 }
