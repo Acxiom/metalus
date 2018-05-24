@@ -157,3 +157,5 @@ Submit a job:
 	--output_url <location to write the JSON file
 	```
 
+## Simple Streaming Example
+A [**simple Kinesis streaming example**](docs/kinesis-streaming-example.md) is also available.
