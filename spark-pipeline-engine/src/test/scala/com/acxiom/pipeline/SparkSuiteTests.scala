@@ -43,13 +43,14 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
       val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "basic",
         "--globalInput", "global-input-value")
       SparkTestHelper.pipelineListener = new PipelineListener {
-        override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Unit = {
+        override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
           step.id.getOrElse("") match {
             case "GLOBALVALUESTEP" =>
               pipelineContext.parameters.getParametersByPipelineId("1").get.parameters("GLOBALVALUESTEP")
                 .asInstanceOf[PipelineStepResponse].primaryReturn.get.asInstanceOf[String] == "global-input-value"
             case _ =>
           }
+          None
         }
         override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
@@ -67,13 +68,14 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
       val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "two",
         "--globalInput", "global-input-value")
       SparkTestHelper.pipelineListener = new PipelineListener {
-        override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Unit = {
+        override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
           step.id.getOrElse("") match {
             case "GLOBALVALUESTEP" =>
               pipelineContext.parameters.getParametersByPipelineId(pipeline.id.getOrElse("-1")).get.parameters("GLOBALVALUESTEP")
                 .asInstanceOf[PipelineStepResponse].primaryReturn.get.asInstanceOf[String] == "global-input-value"
             case _ => fail("Unexpected pipeline finished")
           }
+          None
         }
         override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
@@ -93,13 +95,14 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
       val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "three",
         "--globalInput", "global-input-value")
       SparkTestHelper.pipelineListener = new PipelineListener {
-        override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Unit = {
+        override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
           step.id.getOrElse("") match {
             case "GLOBALVALUESTEP" =>
               pipelineContext.parameters.getParametersByPipelineId(pipeline.id.getOrElse("-1")).get.parameters("GLOBALVALUESTEP")
                 .asInstanceOf[PipelineStepResponse].primaryReturn.get.asInstanceOf[String] == "global-input-value"
             case _ =>
           }
+          None
         }
         override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
@@ -121,7 +124,7 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
       val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "four",
         "--globalInput", "global-input-value")
       SparkTestHelper.pipelineListener = new PipelineListener {
-        override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Unit = {
+        override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
           step.id.getOrElse("") match {
             case "DYNAMICBRANCHSTEP" =>
               pipelineContext.parameters.getParametersByPipelineId(pipeline.id.getOrElse("-1")).get.parameters("DYNAMICBRANCHSTEP")
@@ -131,6 +134,7 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
                 .asInstanceOf[PipelineStepResponse].primaryReturn.get.asInstanceOf[String] == "global-input-value"
             case _ =>
           }
+          None
         }
         override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           fail("Unexpected exception registered")
@@ -143,6 +147,31 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
       // Execution should complete without exception
       DefaultPipelineDriver.main(args.toArray)
     }
+  }
+
+  it("Should accept changes to pipelineContext at the before processing a step") {
+    val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "nopause",
+      "--globalInput", "global-input-value")
+    SparkTestHelper.pipelineListener = new PipelineListener {
+      override def pipelineStepStarted(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
+        assert(!pipelineContext.parameters.getParametersByPipelineId("1").get.parameters.contains("madeit"))
+        step.id.getOrElse("") match {
+          case "GLOBALVALUESTEP" =>
+            Some(pipelineContext.copy(parameters = pipelineContext.parameters.copy(
+              pipelineContext.parameters.parameters :+ PipelineParameter ("madeit", Map ())
+            )))
+            None
+          case _ => None
+        }
+      }
+
+      override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
+        assert(!pipelineContext.parameters.getParametersByPipelineId("1").get.parameters.contains("madeit"))
+        None
+      }
+    }
+    // Execution should complete without exception
+    DefaultPipelineDriver.main(args.toArray)
   }
 }
 
@@ -161,6 +190,7 @@ case class SparkTestDriverSetup(parameters: Map[String, Any]) extends DriverSetu
     case "two" => PipelineDefs.TWO_PIPELINE
     case "three" => PipelineDefs.THREE_PIPELINE
     case "four" => PipelineDefs.FOUR_PIPELINE
+    case "nopause" => PipelineDefs.BASIC_NOPAUSE
   }
 
   override def initialPipelineId: String = ""

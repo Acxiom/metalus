@@ -34,6 +34,9 @@ object PipelineDefs {
     Some(List(RETURN_NOTHING_STEP.copy(nextStepId = Some("DYNAMICBRANCHSTEP")),
       DYNAMIC_BRANCH_STEP.copy(nextStepId = Some("DYNAMICBRANCH2STEP")),
       DYNAMIC_BRANCH2_STEP))))
+
+  val BASIC_NOPAUSE = List(TestPipeline(Some("1"), Some("Basic Pipeline"),
+    Some(List(GLOBAL_VALUE_STEP.copy(nextStepId = Some("RETURNNONESTEP")), RETURN_NOTHING_STEP))))
 }
 
 case class TestPipeline(override val id: Option[String] = None,

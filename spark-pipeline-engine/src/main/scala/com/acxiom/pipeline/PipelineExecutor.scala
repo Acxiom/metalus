@@ -66,50 +66,78 @@ object PipelineExecutor {
                           steps: Map[String, PipelineStep],
                           pipelineContext: PipelineContext): PipelineContext = {
     logger.debug(s"Executing Step (${step.id.getOrElse("")}) ${step.displayName.getOrElse("")}")
-    if (pipelineContext.pipelineListener.isDefined) {
-      pipelineContext.pipelineListener.get.pipelineStepStarted(pipeline, step, pipelineContext)
-    }
+    val updatedPipelineContext = handleStepStartedEvent(step, pipeline, pipelineContext)
+
     // Create a map of values for each defined parameter
-    val parameterValues: Map[String, Any] = pipelineContext.parameterMapper.createStepParameterMap(step, pipelineContext)
+    val parameterValues: Map[String, Any] = updatedPipelineContext.parameterMapper.createStepParameterMap(step, updatedPipelineContext)
     val result = step.executeIfEmpty.getOrElse("") match {
-      case "" => ReflectionUtils.processStep(step, parameterValues, pipelineContext)
+      // process step normally if empty
+      case "" => ReflectionUtils.processStep(step, parameterValues, updatedPipelineContext)
       case value: String =>
+        // wrap the value in a parameter object
         val param = Parameter(Some("text"), Some("dynamic"), Some(true), None, Some(value))
-        val ret = pipelineContext.parameterMapper.mapParameter(param, pipelineContext)
+        val ret = updatedPipelineContext.parameterMapper.mapParameter(param, updatedPipelineContext)
         ret match {
           case option: Option[Any] => if (option.isEmpty) {
-            ReflectionUtils.processStep(step, parameterValues, pipelineContext)
+            // empty option runs step normally
+            ReflectionUtils.processStep(step, parameterValues, updatedPipelineContext)
           } else {
+            // non-empty options return the parameter in a pipeline step response
             PipelineStepResponse(option, None)
           }
+          // wrap the return parameter as an option in a pipline step response
           case _ => PipelineStepResponse(Some(ret), None)
         }
     }
-    val stepId =
-      step match {
-        case PipelineStep(_, _, _, Some("branch"), _, _, _, _) =>
-          // match the result against the step parameter name until we find a match
-          val matchedParameter = step.params.get.find(p => p.name.get == result.toString).get
-          // Use the value of the matched parameter as the next step id
-          Some(matchedParameter.value.get.asInstanceOf[String])
-        case _ =>
-          step.nextStepId
-      }
+
+    // setup the next step
+    val nextStepId = getNextStepId(step, result)
     val newPipelineContext =
       pipelineContext.setParameterByPipelineId(pipelineContext.getGlobalString("pipelineId").getOrElse(""),
         step.id.getOrElse(""), result)
-        .setGlobal("stepId", stepId)
-    if (newPipelineContext.pipelineListener.isDefined) {
-      newPipelineContext.pipelineListener.get.pipelineStepFinished(pipeline, step, newPipelineContext)
-    }
+        .setGlobal("stepId", nextStepId)
+
+    // run the step finished event
+    val finishedPipelineContext = handleStepFinishedEvent(step, pipeline, newPipelineContext)
+
     // Call the next step here
-    if (steps.contains(stepId.getOrElse(""))) {
-      executeStep(steps(stepId.get), pipeline, steps, newPipelineContext)
-    } else if (stepId.isDefined) {
+    if (steps.contains(nextStepId.getOrElse(""))) {
+      executeStep(steps(nextStepId.get), pipeline, steps, finishedPipelineContext)
+    } else if (nextStepId.isDefined) {
       throw PipelineException(message = Some("Step Id does not exist in pipeline"),
-        pipelineId = Some(newPipelineContext.getGlobalString("pipelineId").getOrElse("")), stepId = stepId)
+        pipelineId = Some(finishedPipelineContext.getGlobalString("pipelineId").getOrElse("")), stepId = nextStepId)
     } else {
-      newPipelineContext
+      finishedPipelineContext
+    }
+  }
+
+  private def getNextStepId(step: PipelineStep, result:Any): Option[String] = {
+    step match {
+      case PipelineStep(_, _, _, Some("branch"), _, _, _, _) =>
+        // match the result against the step parameter name until we find a match
+        val matchedParameter = step.params.get.find(p => p.name.get == result.toString).get
+        // Use the value of the matched parameter as the next step id
+        Some(matchedParameter.value.get.asInstanceOf[String])
+      case _ =>
+        step.nextStepId
+    }
+  }
+
+  private def handleStepStartedEvent(step: PipelineStep, pipeline: Pipeline, pipelineContext: PipelineContext): PipelineContext = {
+    if (pipelineContext.pipelineListener.isDefined) {
+      val pc = pipelineContext.pipelineListener.get.pipelineStepStarted(pipeline, step, pipelineContext)
+      if(pc.isEmpty) pipelineContext else pc.get
+    } else {
+      pipelineContext
+    }
+  }
+
+  private def handleStepFinishedEvent(step: PipelineStep, pipeline: Pipeline, pipelineContext: PipelineContext): PipelineContext = {
+    if (pipelineContext.pipelineListener.isDefined) {
+      val pc = pipelineContext.pipelineListener.get.pipelineStepFinished(pipeline, step, pipelineContext)
+      if(pc.isEmpty) pipelineContext else pc.get
+    } else {
+      pipelineContext
     }
   }
 

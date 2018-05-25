@@ -31,12 +31,14 @@ trait PipelineListener {
     logger.info(s"Finished pipeline ${pipeline.name.getOrElse(pipeline.id.getOrElse(""))}")
   }
 
-  def pipelineStepStarted(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Unit = {
+  def pipelineStepStarted(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
     logger.info(s"Starting step ${step.displayName.getOrElse(step.id.getOrElse(""))} of pipeline ${pipeline.name.getOrElse(pipeline.id.getOrElse(""))}")
+    None
   }
 
-  def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Unit = {
+  def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
     logger.info(s"Finished step ${step.displayName.getOrElse(step.id.getOrElse(""))} of pipeline${pipeline.name.getOrElse(pipeline.id.getOrElse(""))}")
+    None
   }
 
   def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {}

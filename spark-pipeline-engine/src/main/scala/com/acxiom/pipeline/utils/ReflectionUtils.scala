@@ -80,7 +80,9 @@ object ReflectionUtils {
     // Invoke the method
     try {
       stepObject.reflectMethod(method)(params: _*) match {
+        // a pipeline step response is returned as is
         case response: PipelineStepResponse => response
+        // all others are wrapped in a pipeline step response when empty secondary named parameters
         case response => PipelineStepResponse(response match {
           case value: Option[_] => value
           case _: BoxedUnit => None
