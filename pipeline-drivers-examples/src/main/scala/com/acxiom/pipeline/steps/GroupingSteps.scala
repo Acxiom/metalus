@@ -12,4 +12,12 @@ object GroupingSteps {
   def countsByField(dataFrame: DataFrame, fieldName: String): DataFrame = {
     dataFrame.groupBy(fieldName).count()
   }
+
+  @StepFunction("bcdd0f7c-0b2a-410d-9871-8400107046c3",
+    "Record Count",
+    "Returns number of records in the data frame.",
+    "Pipeline")
+  def recordCount(dataFrame: DataFrame): Long = {
+    dataFrame.count()
+  }
 }

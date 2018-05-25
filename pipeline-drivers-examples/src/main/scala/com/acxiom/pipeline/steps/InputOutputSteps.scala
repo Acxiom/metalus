@@ -24,7 +24,7 @@ object InputOutputSteps {
     "Write Data Frame to a json file",
     "This step will write a DataFrame from the provided URL",
     "Pipeline")
-  def writeJSONFile(dataFrame: DataFrame, url: String): Unit = {
-    dataFrame.write.format("json").save(url)
+  def writeJSONFile(dataFrame: DataFrame, url: String, mode: String = "error"): Unit = {
+    dataFrame.write.mode(mode).format("json").save(url)
   }
 }
