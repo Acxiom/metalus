@@ -141,37 +141,42 @@ trait PipelineStepMapper {
                               parameter: Parameter,
                               pipelineContext: PipelineContext): Option[Any] = {
     // TODO Figure out how to walk the pipeline chain looking for values when pipelineId is not present and value is not part of current pipeline.
-    // TODO How do we access the full PipelineStepResponse on line 157
     val pipelinePath = getPathValues(value, pipelineContext)
-    if (pipelinePath.mainValue.startsWith("@") || pipelinePath.mainValue.startsWith("$")) {
-      val paramName = pipelinePath.mainValue.substring(1)
-      // See if the paramName is a pipelineId
-      val pipelineId = if (pipelinePath.pipelineId.isDefined) {
-        pipelinePath.pipelineId.get
-      } else {
-        pipelineContext.getGlobalString("pipelineId").getOrElse("")
-      }
-      val parameters = pipelineContext.parameters.getParametersByPipelineId(pipelineId)
-      // the value is marked as a step parameter, get it from pipelineContext.parameters (Will be a PipelineStepResponse)
-      if (parameters.get.parameters.contains(paramName)) {
-        parameters.get.parameters(paramName).asInstanceOf[PipelineStepResponse].primaryReturn match {
-          case g: Option[_] if g.isDefined =>
-            Some(ReflectionUtils.extractField(g.get, pipelinePath.extraPath.getOrElse("")))
-          case _: Option[_] => None
-          case resp =>
-            Some(ReflectionUtils.extractField(resp, pipelinePath.extraPath.getOrElse("")))
-        }
-      } else {
-        None
-      }
-    } else if (pipelinePath.mainValue.startsWith("!")) {
-      getGlobalParameter(pipelinePath.mainValue, pipelinePath.extraPath.getOrElse(""), pipelineContext)
-    } else if (pipelinePath.mainValue.nonEmpty) {
-      // a value exists with no prefix character (hardcoded value)
-      Some(mapByType(Some(pipelinePath.mainValue), parameter))
+    pipelinePath.mainValue match {
+      case p if List('@', '#', '$').contains(p.head) => getPipelineParameterValue(pipelinePath, pipelineContext)
+      case g if g.startsWith("!") => getGlobalParameterValue(g, pipelinePath.extraPath.getOrElse(""), pipelineContext)
+      case o if o.nonEmpty => Some(mapByType(Some(o), parameter))
+      case _ => None
+    }
+  }
+
+  private def getPipelineParameterValue(pipelinePath: PipelinePath, pipelineContext: PipelineContext): Option[Any] = {
+    val paramName = pipelinePath.mainValue.substring(1)
+    // See if the paramName is a pipelineId
+    val pipelineId = if (pipelinePath.pipelineId.isDefined) {
+      pipelinePath.pipelineId.get
     } else {
-      // the value is empty
+      pipelineContext.getGlobalString("pipelineId").getOrElse("")
+    }
+    val parameters = pipelineContext.parameters.getParametersByPipelineId(pipelineId)
+    logger.debug(s"pulling parameter from Pipeline Parameters,paramName=$paramName,pipelineId=$pipelineId,parameters=$parameters")
+    // the value is marked as a step parameter, get it from pipelineContext.parameters (Will be a PipelineStepResponse)
+    if (parameters.get.parameters.contains(paramName)) {
+      pipelinePath.mainValue.head match {
+        case '@' => getSpecificValue(parameters.get.parameters(paramName).asInstanceOf[PipelineStepResponse].primaryReturn, pipelinePath)
+        case '#' => getSpecificValue(parameters.get.parameters(paramName).asInstanceOf[PipelineStepResponse].namedReturns, pipelinePath)
+        case '$' => getSpecificValue(parameters.get.parameters(paramName), pipelinePath)
+      }
+    } else {
       None
+    }
+  }
+
+  private def getSpecificValue(parentObject: Any, pipelinePath: PipelinePath): Option[Any] = {
+    parentObject match {
+      case g: Option[_] if g.isDefined => Some(ReflectionUtils.extractField(g.get, pipelinePath.extraPath.getOrElse("")))
+      case _: Option[_] => None
+      case resp => Some(ReflectionUtils.extractField(resp, pipelinePath.extraPath.getOrElse("")))
     }
   }
 
@@ -209,7 +214,7 @@ trait PipelineStepMapper {
     }
   }
 
-  private def getGlobalParameter(value: String, extractPath: String, pipelineContext: PipelineContext): Option[Any] = {
+  private def getGlobalParameterValue(value: String, extractPath: String, pipelineContext: PipelineContext): Option[Any] = {
     // the value is marked as a global parameter, get it from pipelineContext.globals
     val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
     if (globals.contains(value.substring(1))) {
@@ -217,7 +222,7 @@ trait PipelineStepMapper {
       global match {
         case g: Option[_] if g.isDefined => Some(ReflectionUtils.extractField(g.get, extractPath))
         case _: Option[_] => None
-        case _ => Some(global)
+        case _ => Some(ReflectionUtils.extractField(global, extractPath))
       }
     } else {
       None
