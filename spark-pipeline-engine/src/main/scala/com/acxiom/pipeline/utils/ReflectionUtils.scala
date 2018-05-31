@@ -191,7 +191,7 @@ object ReflectionUtils {
       fieldName
     }
 
-    val value = entity match {
+    val value = obj match {
       case map: Map[_, _] => map.asInstanceOf[Map[String, Any]](name)
       case _ => getFieldValue(obj, name)
     }

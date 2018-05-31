@@ -183,7 +183,7 @@ trait PipelineStepMapper {
   private def getPathValues(value: String, pipelineContext: PipelineContext): PipelinePath = {
     if (value.contains('.')) {
       // Check for the special character
-      val special = if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!")) {
+      val special = if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!") || value.startsWith("#")) {
         value.substring(0, 1)
       } else {
         ""
