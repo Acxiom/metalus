@@ -85,11 +85,11 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("primary from current pipeline using $", Parameter(value=Some("$step1.primaryReturn"),`type`=Some("string")), List(1,2,3)),
         ("primary from specific pipeline using @", Parameter(value=Some("@pipeline-id-1.step1.primaryKey1String"),`type`=Some("string")),
           "primaryKey1Value"),
-        // TODO: ("primary from specific pipeline using $", Parameter(value=Some("$pipeline-id-1.step1.primaryReturn"),`type`=Some("string")),
-        //  "primaryKey1Value"),
-        // TODO: ("namedReturns from specific pipeline using $", Parameter(value=Some("$pipeline-id-1.step2.namedReturns.namedKey2String"), `type`=Some("string")),
-        //  "namedKey2Value"),
-        // TODO: ("namedReturns using #", Parameter(value=Some("#step2.namedKey2String"),`type`=Some("string")), "namedKey2Value"),
+        ("primary from specific pipeline using $", Parameter(value=Some("$pipeline-id-1.step1.primaryReturn.primaryKey1String"),`type`=Some("string")),
+        "primaryKey1Value"),
+        ("namedReturns from specific pipeline using $", Parameter(value=Some("$pipeline-id-1.step2.namedReturns.namedKey2String"), `type`=Some("string")),
+          "namedKey2Value"),
+        ("namedReturns using #", Parameter(value=Some("#pipeline-id-1.step2.namedKey2String"),`type`=Some("string")), "namedKey2Value"),
         ("namedReturns from current pipeline using #", Parameter(value=Some("#step1"),`type`=Some("string")), Map("namedKey" -> "namedValue"))
       )
 
