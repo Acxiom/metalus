@@ -19,18 +19,17 @@ object PipelineExecutor {
       pipelines
     }
 
-    if (initialContext.pipelineListener.isDefined) {
-      initialContext.pipelineListener.get.executionStarted(pipelines, initialContext)
-    }
+    val esContext = handleExecutionStartedEvent(executingPipelines, initialContext)
 
     try {
       val pipelineLookup = executingPipelines.map(p => p.id.getOrElse("") -> p.name.getOrElse("")).toMap
-      val ctx = executingPipelines.foldLeft(initialContext)((ctx, pipeline) => {
-        if (ctx.pipelineListener.isDefined) ctx.pipelineListener.get.pipelineStarted(pipeline, ctx)
+      val ctx = executingPipelines.foldLeft(esContext)((ctx, pipeline) => {
+
+        val psCtx = handlePipelineStartedEvent(pipeline, ctx)
         // Map the steps for easier lookup during execution
         val stepLookup = pipeline.steps.get.map(step => step.id.get -> step).toMap
         // Set the pipelineId in the global lookup
-        val updatedCtx = initialContext
+        val updatedCtx = psCtx
           .setGlobal("pipelineId", pipeline.id)
           .setGlobal("stepId", pipeline.steps.get.head.id.get)
         try {
@@ -47,13 +46,12 @@ object PipelineExecutor {
               case _ =>
             })
           }
-          if (initialContext.pipelineListener.isDefined) initialContext.pipelineListener.get.pipelineFinished(pipeline, resultPipelineContext)
-          resultPipelineContext
+          handlePipelineFinishedEvent(pipeline, resultPipelineContext)
         } catch {
           case t: Throwable => throw handleStepExecutionExceptions(t, pipeline, ctx, executingPipelines)
         }
       })
-      if (initialContext.pipelineListener.isDefined) initialContext.pipelineListener.get.executionFinished(executingPipelines, ctx)
+      handleExecutionFinishedEvent(executingPipelines, ctx)
     } catch {
       case p: PauseException => logger.info(s"Paused pipeline flow at pipeline ${p.pipelineId} step ${p.stepId}. ${p.message}")
       case t: Throwable => throw t
@@ -66,21 +64,21 @@ object PipelineExecutor {
                           steps: Map[String, PipelineStep],
                           pipelineContext: PipelineContext): PipelineContext = {
     logger.debug(s"Executing Step (${step.id.getOrElse("")}) ${step.displayName.getOrElse("")}")
-    val updatedPipelineContext = handleStepStartedEvent(step, pipeline, pipelineContext)
+    val ssContext = handleStepStartedEvent(step, pipeline, pipelineContext)
 
     // Create a map of values for each defined parameter
-    val parameterValues: Map[String, Any] = updatedPipelineContext.parameterMapper.createStepParameterMap(step, updatedPipelineContext)
+    val parameterValues: Map[String, Any] = ssContext.parameterMapper.createStepParameterMap(step, ssContext)
     val result = step.executeIfEmpty.getOrElse("") match {
       // process step normally if empty
-      case "" => ReflectionUtils.processStep(step, parameterValues, updatedPipelineContext)
+      case "" => ReflectionUtils.processStep(step, parameterValues, ssContext)
       case value: String =>
         // wrap the value in a parameter object
         val param = Parameter(Some("text"), Some("dynamic"), Some(true), None, Some(value))
-        val ret = updatedPipelineContext.parameterMapper.mapParameter(param, updatedPipelineContext)
+        val ret = ssContext.parameterMapper.mapParameter(param, ssContext)
         ret match {
           case option: Option[Any] => if (option.isEmpty) {
             // empty option runs step normally
-            ReflectionUtils.processStep(step, parameterValues, updatedPipelineContext)
+            ReflectionUtils.processStep(step, parameterValues, ssContext)
           } else {
             // non-empty options return the parameter in a pipeline step response
             PipelineStepResponse(option, None)
@@ -93,21 +91,21 @@ object PipelineExecutor {
     // setup the next step
     val nextStepId = getNextStepId(step, result)
     val newPipelineContext =
-      pipelineContext.setParameterByPipelineId(pipelineContext.getGlobalString("pipelineId").getOrElse(""),
+      ssContext.setParameterByPipelineId(ssContext.getGlobalString("pipelineId").getOrElse(""),
         step.id.getOrElse(""), result)
         .setGlobal("stepId", nextStepId)
 
     // run the step finished event
-    val finishedPipelineContext = handleStepFinishedEvent(step, pipeline, newPipelineContext)
+    val sfContext = handleStepFinishedEvent(step, pipeline, newPipelineContext)
 
     // Call the next step here
     if (steps.contains(nextStepId.getOrElse(""))) {
-      executeStep(steps(nextStepId.get), pipeline, steps, finishedPipelineContext)
+      executeStep(steps(nextStepId.get), pipeline, steps, sfContext)
     } else if (nextStepId.isDefined) {
       throw PipelineException(message = Some("Step Id does not exist in pipeline"),
-        pipelineId = Some(finishedPipelineContext.getGlobalString("pipelineId").getOrElse("")), stepId = nextStepId)
+        pipelineId = Some(sfContext.getGlobalString("pipelineId").getOrElse("")), stepId = nextStepId)
     } else {
-      finishedPipelineContext
+      sfContext
     }
   }
 
@@ -122,6 +120,44 @@ object PipelineExecutor {
         step.nextStepId
     }
   }
+
+  private def handleExecutionStartedEvent(pipelines: List[Pipeline], pipelineContext: PipelineContext): PipelineContext = {
+    if (pipelineContext.pipelineListener.isDefined) {
+      val pc = pipelineContext.pipelineListener.get.executionStarted(pipelines, pipelineContext)
+      if(pc.isEmpty) pipelineContext else pc.get
+    } else {
+      pipelineContext
+    }
+  }
+
+  private def handleExecutionFinishedEvent(pipelines: List[Pipeline], pipelineContext: PipelineContext): PipelineContext = {
+    if (pipelineContext.pipelineListener.isDefined) {
+      val pc = pipelineContext.pipelineListener.get.executionFinished(pipelines, pipelineContext)
+      if(pc.isEmpty) pipelineContext else pc.get
+    } else {
+      pipelineContext
+    }
+  }
+
+  private def handlePipelineStartedEvent(pipeline: Pipeline, pipelineContext: PipelineContext): PipelineContext = {
+    if (pipelineContext.pipelineListener.isDefined) {
+      logger.info("handling pipeline started event")
+      val pc = pipelineContext.pipelineListener.get.pipelineStarted(pipeline, pipelineContext)
+      if(pc.isEmpty) pipelineContext else pc.get
+    } else {
+      pipelineContext
+    }
+  }
+
+  private def handlePipelineFinishedEvent(pipeline: Pipeline, pipelineContext: PipelineContext): PipelineContext = {
+    if (pipelineContext.pipelineListener.isDefined) {
+      val pc = pipelineContext.pipelineListener.get.pipelineFinished(pipeline, pipelineContext)
+      if(pc.isEmpty) pipelineContext else pc.get
+    } else {
+      pipelineContext
+    }
+  }
+
 
   private def handleStepStartedEvent(step: PipelineStep, pipeline: Pipeline, pipelineContext: PipelineContext): PipelineContext = {
     if (pipelineContext.pipelineListener.isDefined) {

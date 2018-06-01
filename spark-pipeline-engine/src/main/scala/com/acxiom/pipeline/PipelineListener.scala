@@ -11,24 +11,28 @@ case class DefaultPipelineListener() extends PipelineListener {}
 trait PipelineListener {
   private val logger = Logger.getLogger(getClass)
 
-  def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
+  def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
     logger.info(s"Starting execution of pipelines ${pipelines.map(p => p.name.getOrElse(p.id.getOrElse("")))}")
+    None
   }
 
-  def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
+  def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
     logger.info(s"Starting execution of pipelines ${pipelines.map(p => p.name.getOrElse(p.id.getOrElse("")))}")
+    None
   }
 
   def executionStopped(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
     logger.info(s"Stopping execution of pipelines. Completed: ${pipelines.map(p => p.name.getOrElse(p.id.getOrElse("")))}")
   }
 
-  def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext): Unit = {
+  def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
     logger.info(s"Starting pipeline ${pipeline.name.getOrElse(pipeline.id.getOrElse(""))}")
+    None
   }
 
-  def pipelineFinished(pipeline: Pipeline, pipelineContext: PipelineContext): Unit = {
+  def pipelineFinished(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
     logger.info(s"Finished pipeline ${pipeline.name.getOrElse(pipeline.id.getOrElse(""))}")
+    None
   }
 
   def pipelineStepStarted(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {

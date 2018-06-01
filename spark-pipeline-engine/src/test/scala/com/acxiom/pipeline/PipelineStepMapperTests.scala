@@ -89,8 +89,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         "primaryKey1Value"),
         ("namedReturns from specific pipeline using $", Parameter(value=Some("$pipeline-id-1.step2.namedReturns.namedKey2String"), `type`=Some("string")),
           "namedKey2Value"),
-        ("namedReturns using #", Parameter(value=Some("#pipeline-id-1.step2.namedKey2String"),`type`=Some("string")), "namedKey2Value"),
-        ("namedReturns from current pipeline using #", Parameter(value=Some("#step1"),`type`=Some("string")), Map("namedKey" -> "namedValue"))
+        ("namedReturns from specific pipeline using #", Parameter(value=Some("#pipeline-id-1.step2.namedKey2String"),`type`=Some("string")), "namedKey2Value"),
+        ("namedReturns from current pipeline using #", Parameter(value=Some("#step1.namedKey"),`type`=Some("string")), "namedValue")
       )
 
       tests.foreach(test => {
