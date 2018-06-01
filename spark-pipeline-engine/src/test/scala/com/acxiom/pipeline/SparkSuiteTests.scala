@@ -7,9 +7,9 @@ import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
-import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
+import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen, Suite}
 
-class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
+class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen with Suite {
   override def beforeAll() {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
@@ -83,8 +83,9 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
           }
         }
 
-        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
+        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
           assert(pipelines.lengthCompare(2) == 0)
+          None
         }
       }
       // Execution should complete without exception
@@ -112,8 +113,9 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
           }
         }
 
-        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
+        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
           assert(pipelines.lengthCompare(1) == 0)
+          None
         }
       }
       // Execution should complete without exception
@@ -140,8 +142,9 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
           fail("Unexpected exception registered")
         }
 
-        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
+        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
           assert(pipelines.lengthCompare(1) == 0)
+          None
         }
       }
       // Execution should complete without exception
@@ -153,21 +156,60 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with Suite {
     val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "nopause",
       "--globalInput", "global-input-value")
     SparkTestHelper.pipelineListener = new PipelineListener {
+
+      override def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+        Then(s"expect no global parameter named 'execution_started' before execution starts")
+        assert(pipelineContext.getGlobalString("execution_started").isEmpty)
+        And("add parameter named 'execution_started'")
+        Some(pipelineContext.setGlobal("execution_started", "true"))
+      }
+
+      override def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext): Option[PipelineContext] = {
+        Then("expect global parameter 'execution_started' to exist when pipeline starts")
+        assert(pipelineContext.getGlobalString("execution_started").getOrElse("") == "true")
+        Then(s"expect no parameter named 'pipeline_${pipeline.id.get}_started' before pipeline starts")
+        assert(pipelineContext.getGlobalString(s"pipeline_${pipeline.id.get}_started").isEmpty)
+        And(s"add parameter named 'pipeline_${pipeline.id.get}_started' when pipeline starts")
+        Some(pipelineContext.setGlobal(s"pipeline_${pipeline.id.get}_started", "true"))
+      }
+
       override def pipelineStepStarted(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
-        assert(!pipelineContext.parameters.getParametersByPipelineId("1").get.parameters.contains("madeit"))
-        step.id.getOrElse("") match {
-          case "GLOBALVALUESTEP" =>
-            Some(pipelineContext.copy(parameters = pipelineContext.parameters.copy(
-              pipelineContext.parameters.parameters :+ PipelineParameter ("madeit", Map ())
-            )))
-            None
-          case _ => None
-        }
+        Then(s"expect parameter named 'pipeline_${pipeline.id.get}_started' before each step starts")
+        assert(pipelineContext.getGlobalString(s"pipeline_${pipeline.id.get}_started").getOrElse("") == "true")
+        Then(s"expect no parameter named 'step_${step.id.get}_started' before step starts")
+        assert(pipelineContext.getGlobalString(s"step_${step.id.get}_started").isEmpty)
+        And(s"add parameter named 'step_${step.id.get}_started' when step starts")
+        Some(pipelineContext.setGlobal(s"step_${step.id.get}_started", "true"))
       }
 
       override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
-        assert(!pipelineContext.parameters.getParametersByPipelineId("1").get.parameters.contains("madeit"))
-        None
+        Then(s"expect parameter named 'step_${step.id.get}_started' to exist before step finishes")
+        assert(pipelineContext.getGlobalString(s"step_${step.id.get}_started").getOrElse("") == "true")
+        Then(s"expect no parameter named 'step_${step.id.get}_finished' before step finishes")
+        assert(pipelineContext.getGlobalString(s"step_${step.id.get}_finished").isEmpty)
+        And(s"add parameter named 'step_${step.id.get}_finished' when finished")
+        Some(pipelineContext.setGlobal(s"step_${step.id.get}_finished", "true"))
+      }
+
+      override def pipelineFinished(pipeline: Pipeline, pipelineContext: PipelineContext): Option[PipelineContext] = {
+        pipeline.steps.getOrElse(List()).foreach(s => {
+          Then(s"expect parameter named 'step_${s.id.get}_finished' to exist before pipeline finishes")
+          assert(pipelineContext.getGlobalString(s"step_${s.id.get}_finished").getOrElse("") == "true")
+        })
+
+        Then(s"expect no parameter named 'pipeline_${pipeline.id.get}_finished' before pipeline finishes")
+        assert(pipelineContext.getGlobalString(s"pipeline_${pipeline.id.get}_finished").isEmpty)
+        And(s"add pipeline parameter named 'pipeline_${pipeline.id.get}_finished' when finished")
+        Some(pipelineContext.setGlobal(s"pipeline_${pipeline.id.get}_finished", "true"))
+      }
+
+      override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+        pipelines.foreach(p => {
+          Then(s"expect parameter named 'pipeline_${p.id.get}_finished' to exist before execution finishes")
+          assert(pipelineContext.getGlobalString(s"pipeline_${p.id.get}_finished").getOrElse("") == "true")
+        })
+        And(s"add gparameter named 'execution_finished' when finished")
+        Some(pipelineContext.setGlobal("execution_finished", "true"))
       }
     }
     // Execution should complete without exception
