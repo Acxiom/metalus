@@ -127,62 +127,6 @@ object PipelineExecutor {
       if (rCtx.isEmpty) pipelineContext else rCtx.get
     } else { pipelineContext }
   }
-/*
-  private def handleExecutionStartedEvent(pipelines: List[Pipeline], pipelineContext: PipelineContext): PipelineContext = {
-    if (pipelineContext.pipelineListener.isDefined) {
-      val pc = pipelineContext.pipelineListener.get.executionStarted(pipelines, pipelineContext)
-      if(pc.isEmpty) pipelineContext else pc.get
-    } else {
-      pipelineContext
-    }
-  }
-
-  private def handleExecutionFinishedEvent(pipelines: List[Pipeline], pipelineContext: PipelineContext): PipelineContext = {
-    if (pipelineContext.pipelineListener.isDefined) {
-      val pc = pipelineContext.pipelineListener.get.executionFinished(pipelines, pipelineContext)
-      if(pc.isEmpty) pipelineContext else pc.get
-    } else {
-      pipelineContext
-    }
-  }
-
-  private def handlePipelineStartedEvent(pipeline: Pipeline, pipelineContext: PipelineContext): PipelineContext = {
-    if (pipelineContext.pipelineListener.isDefined) {
-      logger.info("handling pipeline started event")
-      val pc = pipelineContext.pipelineListener.get.pipelineStarted(pipeline, pipelineContext)
-      if(pc.isEmpty) pipelineContext else pc.get
-    } else {
-      pipelineContext
-    }
-  }
-
-  private def handlePipelineFinishedEvent(pipeline: Pipeline, pipelineContext: PipelineContext): PipelineContext = {
-    if (pipelineContext.pipelineListener.isDefined) {
-      val pc = pipelineContext.pipelineListener.get.pipelineFinished(pipeline, pipelineContext)
-      if(pc.isEmpty) pipelineContext else pc.get
-    } else {
-      pipelineContext
-    }
-  }
-
-  private def handleStepStartedEvent(step: PipelineStep, pipeline: Pipeline, pipelineContext: PipelineContext): PipelineContext = {
-    if (pipelineContext.pipelineListener.isDefined) {
-      val pc = pipelineContext.pipelineListener.get.pipelineStepStarted(pipeline, step, pipelineContext)
-      if(pc.isEmpty) pipelineContext else pc.get
-    } else {
-      pipelineContext
-    }
-  }
-
-  private def handleStepFinishedEvent(step: PipelineStep, pipeline: Pipeline, pipelineContext: PipelineContext): PipelineContext = {
-    if (pipelineContext.pipelineListener.isDefined) {
-      val pc = pipelineContext.pipelineListener.get.pipelineStepFinished(pipeline, step, pipelineContext)
-      if(pc.isEmpty) pipelineContext else pc.get
-    } else {
-      pipelineContext
-    }
-  }
-  */
 
   private def handleStepExecutionExceptions(t: Throwable, pipeline: Pipeline,
                                             pipelineContext: PipelineContext,

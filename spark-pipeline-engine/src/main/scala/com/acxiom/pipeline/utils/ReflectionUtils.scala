@@ -96,6 +96,13 @@ object ReflectionUtils {
     }
   }
 
+  /**
+    * execute a function on an existing object by providing the function name and parameters (in expected order)
+    * @param obj        the object with the function that needs to be run
+    * @param funcName   the name of the function on the object to run
+    * @param params     the parameters required for the function (in proper order)
+    * @return     the results of the executed function
+    */
   def executeFunctionByName(obj: Any, funcName: String, params: List[Any]): Any = {
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     val reflectedObj = mirror.reflect(obj)
