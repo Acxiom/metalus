@@ -62,9 +62,12 @@ creating a PipelineStep, these values need to be populated:
 PipelineSteps can use special syntax to indicate that a system value should be used instead of a static provided value.
 
 * **!** - When the value begins with this character, the system will search the PipelineContext.globals for the named parameter and pass that value to the step function.
-* **@** - When the value begins with this character, the system will search the PipelineContext.parameters for the named parameter and pass the primaryReturn value to the step function.
 * **$** - When the value begins with this character, the system will search the PipelineContext.parameters for the named parameter and pass that value to the step function.
+* **@** - When the value begins with this character, the system will search the PipelineContext.parameters for the named parameter and pass the primaryReturn value to the step function.
+* **#** - When the value begins with this character, the system will search the PipelineContext.parameters for the named parameter and pass the namedReturns value to the step function.
 
+The **@** and **#** symbols are shortcuts that assume the value in PipelineContext.parameters is a PipelineStepresponse.
+ 
 In addition to searching the parameters for the current pipeline, the user has the option of specifying a pipelineId in 
 the syntax for *@* and *$* to specify any previous pipeline value. *Example: @p1.StepOne*
 
@@ -81,6 +84,8 @@ Here is the object descried as JSON:
 			"name": "Spark"
 		}
 	} 
+
+![Default Pipeline Mapping FLow](../docs/images/Default_Parameter_Mapping.png "Default Parameter Mapping Flow")
 
 ##### PipelineContext
 The *PipelineContext* is a shared object that contains the current state of the pipeline execution. This includes all

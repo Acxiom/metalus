@@ -8,6 +8,7 @@ import org.apache.log4j.Logger
 
 import scala.annotation.tailrec
 import scala.reflect.runtime.{universe => ru}
+import scala.reflect.runtime.universe._
 import scala.runtime.BoxedUnit
 import scala.util.{Failure, Success, Try}
 
@@ -80,7 +81,9 @@ object ReflectionUtils {
     // Invoke the method
     try {
       stepObject.reflectMethod(method)(params: _*) match {
+        // a pipeline step response is returned as is
         case response: PipelineStepResponse => response
+        // all others are wrapped in a pipeline step response when empty secondary named parameters
         case response => PipelineStepResponse(response match {
           case value: Option[_] => value
           case _: BoxedUnit => None
@@ -91,6 +94,21 @@ object ReflectionUtils {
       case it: InvocationTargetException => throw it.getTargetException
       case t: Throwable => throw t
     }
+  }
+
+  /**
+    * execute a function on an existing object by providing the function name and parameters (in expected order)
+    * @param obj        the object with the function that needs to be run
+    * @param funcName   the name of the function on the object to run
+    * @param params     the parameters required for the function (in proper order)
+    * @return     the results of the executed function
+    */
+  def executeFunctionByName(obj: Any, funcName: String, params: List[Any]): Any = {
+    val mirror = ru.runtimeMirror(getClass.getClassLoader)
+    val reflectedObj = mirror.reflect(obj)
+    val ts = reflectedObj.symbol.typeSignature
+    val method = ts.member(TermName(funcName)).asMethod
+    reflectedObj.reflectMethod(method)(params: _*)
   }
 
   /**
@@ -189,7 +207,7 @@ object ReflectionUtils {
       fieldName
     }
 
-    val value = entity match {
+    val value = obj match {
       case map: Map[_, _] => map.asInstanceOf[Map[String, Any]](name)
       case _ => getFieldValue(obj, name)
     }
