@@ -8,6 +8,7 @@ import org.apache.log4j.Logger
 
 import scala.annotation.tailrec
 import scala.reflect.runtime.{universe => ru}
+import scala.reflect.runtime.universe._
 import scala.runtime.BoxedUnit
 import scala.util.{Failure, Success, Try}
 
@@ -93,6 +94,14 @@ object ReflectionUtils {
       case it: InvocationTargetException => throw it.getTargetException
       case t: Throwable => throw t
     }
+  }
+
+  def executeFunctionByName(obj: Any, funcName: String, params: List[Any]): Any = {
+    val mirror = ru.runtimeMirror(getClass.getClassLoader)
+    val reflectedObj = mirror.reflect(obj)
+    val ts = reflectedObj.symbol.typeSignature
+    val method = ts.member(TermName(funcName)).asMethod
+    reflectedObj.reflectMethod(method)(params: _*)
   }
 
   /**

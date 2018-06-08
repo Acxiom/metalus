@@ -19,13 +19,12 @@ object PipelineExecutor {
       pipelines
     }
 
-    val esContext = handleExecutionStartedEvent(executingPipelines, initialContext)
+    val esContext = handleEvent(initialContext, "executionStarted", List(executingPipelines, initialContext))
 
     try {
       val pipelineLookup = executingPipelines.map(p => p.id.getOrElse("") -> p.name.getOrElse("")).toMap
-      val ctx = executingPipelines.foldLeft(esContext)((ctx, pipeline) => {
-
-        val psCtx = handlePipelineStartedEvent(pipeline, ctx)
+      val ctx = executingPipelines.foldLeft(esContext)((accCtx, pipeline) => {
+        val psCtx = handleEvent(accCtx, "pipelineStarted", List(pipeline, accCtx))
         // Map the steps for easier lookup during execution
         val stepLookup = pipeline.steps.get.map(step => step.id.get -> step).toMap
         // Set the pipelineId in the global lookup
@@ -46,14 +45,15 @@ object PipelineExecutor {
               case _ =>
             })
           }
-          handlePipelineFinishedEvent(pipeline, resultPipelineContext)
+          handleEvent(resultPipelineContext, "pipelineFinished", List(pipeline, resultPipelineContext))
         } catch {
-          case t: Throwable => throw handleStepExecutionExceptions(t, pipeline, ctx, executingPipelines)
+          case t: Throwable => throw handleStepExecutionExceptions(t, pipeline, accCtx, executingPipelines)
         }
       })
-      handleExecutionFinishedEvent(executingPipelines, ctx)
+      handleEvent(ctx, "executionFinished", List(executingPipelines, ctx))
     } catch {
       case p: PauseException => logger.info(s"Paused pipeline flow at pipeline ${p.pipelineId} step ${p.stepId}. ${p.message}")
+      case _: PipelineStepException => logger.info(s"Stopping pipeline because of an exception")
       case t: Throwable => throw t
     }
   }
@@ -64,7 +64,7 @@ object PipelineExecutor {
                           steps: Map[String, PipelineStep],
                           pipelineContext: PipelineContext): PipelineContext = {
     logger.debug(s"Executing Step (${step.id.getOrElse("")}) ${step.displayName.getOrElse("")}")
-    val ssContext = handleStepStartedEvent(step, pipeline, pipelineContext)
+    val ssContext = handleEvent(pipelineContext, "pipelineStepStarted", List(pipeline, step, pipelineContext))
 
     // Create a map of values for each defined parameter
     val parameterValues: Map[String, Any] = ssContext.parameterMapper.createStepParameterMap(step, ssContext)
@@ -96,7 +96,7 @@ object PipelineExecutor {
         .setGlobal("stepId", nextStepId)
 
     // run the step finished event
-    val sfContext = handleStepFinishedEvent(step, pipeline, newPipelineContext)
+    val sfContext = handleEvent(newPipelineContext, "pipelineStepFinished", List(pipeline, step, newPipelineContext))
 
     // Call the next step here
     if (steps.contains(nextStepId.getOrElse(""))) {
@@ -121,6 +121,13 @@ object PipelineExecutor {
     }
   }
 
+  private def handleEvent(pipelineContext: PipelineContext, funcName: String, params: List[Any]): PipelineContext = {
+    if (pipelineContext.pipelineListener.isDefined) {
+      val rCtx = ReflectionUtils.executeFunctionByName(pipelineContext.pipelineListener.get, funcName, params).asInstanceOf[Option[PipelineContext]]
+      if (rCtx.isEmpty) pipelineContext else rCtx.get
+    } else { pipelineContext }
+  }
+/*
   private def handleExecutionStartedEvent(pipelines: List[Pipeline], pipelineContext: PipelineContext): PipelineContext = {
     if (pipelineContext.pipelineListener.isDefined) {
       val pc = pipelineContext.pipelineListener.get.executionStarted(pipelines, pipelineContext)
@@ -158,7 +165,6 @@ object PipelineExecutor {
     }
   }
 
-
   private def handleStepStartedEvent(step: PipelineStep, pipeline: Pipeline, pipelineContext: PipelineContext): PipelineContext = {
     if (pipelineContext.pipelineListener.isDefined) {
       val pc = pipelineContext.pipelineListener.get.pipelineStepStarted(pipeline, step, pipelineContext)
@@ -176,6 +182,7 @@ object PipelineExecutor {
       pipelineContext
     }
   }
+  */
 
   private def handleStepExecutionExceptions(t: Throwable, pipeline: Pipeline,
                                             pipelineContext: PipelineContext,
