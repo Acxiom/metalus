@@ -106,7 +106,7 @@ object PipelineExecutor {
     if (steps.contains(stepId.getOrElse(""))) {
       executeStep(steps(stepId.get), pipeline, steps, newPipelineContext)
     } else if (stepId.isDefined) {
-      throw PipelineException(message = Some("Step Id does not exist in pipeline"),
+      throw PipelineException(message = Some(s"Step Id '$stepId' does not exist in pipeline"),
         pipelineId = Some(newPipelineContext.getGlobalString("pipelineId").getOrElse("")), stepId = stepId)
     } else {
       newPipelineContext

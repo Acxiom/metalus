@@ -2,6 +2,8 @@ package com.acxiom.pipeline.drivers
 
 import com.acxiom.pipeline.PipelineExecutor
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}
+import com.amazonaws.auth.BasicAWSCredentials
+import com.amazonaws.services.kinesis.AmazonKinesisClient
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream
 import com.amazonaws.services.kinesis.model.Record
 import org.apache.log4j.Logger
@@ -9,6 +11,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.storage.StorageLevel
+import org.apache.spark.streaming.Seconds
 import org.apache.spark.streaming.kinesis.KinesisUtils
 
 /**
@@ -50,16 +53,29 @@ object KinesisPipelineDriver {
     val streamingContext =
       StreamingUtils.createStreamingContext(pipelineContext.sparkSession.get.sparkContext, Some(duration))
 
-    val stream = KinesisUtils.createStream(
-      streamingContext, appName,
-      parameters("streamName").asInstanceOf[String],
-      parameters("endPointURL").asInstanceOf[String],
-      parameters("regionName").asInstanceOf[String],
-      InitialPositionInStream.LATEST, duration, StorageLevel.MEMORY_AND_DISK_2,
-      (r: Record) => Row(r.getPartitionKey, new String(r.getData.array()), appName),
-      awsAccessKey, awsAccessSecret)
+    // Handle multiple shards
+    val credentials = new BasicAWSCredentials(awsAccessKey, awsAccessSecret)
+    val kinesisClient = new AmazonKinesisClient(credentials)
+    kinesisClient.setEndpoint(parameters("endPointURL").asInstanceOf[String])
+    val numShards = kinesisClient.describeStream(parameters("streamName").asInstanceOf[String]).getStreamDescription().getShards().size
+    logger.info("Number of Kinesis shards is : " + numShards)
 
-    stream.foreachRDD { rdd: RDD[Row] =>
+    // Create the Kinesis DStreams
+    val kinesisStreams = (0 until numShards).map { i =>
+        KinesisUtils.createStream(streamingContext, appName,
+          parameters("streamName").asInstanceOf[String],
+          parameters("endPointURL").asInstanceOf[String],
+          parameters("regionName").asInstanceOf[String],
+          InitialPositionInStream.LATEST, duration, StorageLevel.MEMORY_AND_DISK_2,
+          (r: Record) => Row(r.getPartitionKey, new String(r.getData.array()), appName),
+          awsAccessKey, awsAccessSecret)
+    }
+
+    logger.info("Created " + kinesisStreams.size + " Kinesis DStreams")
+
+    // Union all the streams (in case numStreams > 1)
+    val allStreams = streamingContext.union(kinesisStreams)
+    allStreams.foreachRDD { rdd: RDD[Row] =>
       if (!rdd.isEmpty()) {
         logger.debug("RDD received")
         // Convert the RDD into a dataFrame
@@ -78,6 +94,7 @@ object KinesisPipelineDriver {
 
     streamingContext.start()
     StreamingUtils.setTerminationState(streamingContext, parameters)
-    logger.info("Shutting down Kafka Pipeline Driver")
+
+    logger.info("Shutting down Kinesis Pipeline Driver")
   }
 }
