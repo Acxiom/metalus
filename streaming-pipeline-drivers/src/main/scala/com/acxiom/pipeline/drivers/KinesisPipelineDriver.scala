@@ -48,6 +48,7 @@ object KinesisPipelineDriver {
     val awsAccessSecret = parameters("awsAccessSecret").asInstanceOf[String]
     val appName = parameters("appName").asInstanceOf[String]
 
+
     val duration = StreamingUtils.getDuration(Some(parameters.getOrElse("duration-type", "seconds").asInstanceOf[String]),
       Some(parameters.getOrElse("duration", "10").asInstanceOf[String]))
     val streamingContext =
@@ -59,9 +60,10 @@ object KinesisPipelineDriver {
     kinesisClient.setEndpoint(parameters("endPointURL").asInstanceOf[String])
     val numShards = kinesisClient.describeStream(parameters("streamName").asInstanceOf[String]).getStreamDescription().getShards().size
     logger.info("Number of Kinesis shards is : " + numShards)
+    val numStreams = Option(parameters("consumerStreams").asInstanceOf[String].toInt).getOrElse(numShards)
 
     // Create the Kinesis DStreams
-    val kinesisStreams = (0 until numShards).map { i =>
+    val kinesisStreams = (0 until numStreams).map { i =>
         KinesisUtils.createStream(streamingContext, appName,
           parameters("streamName").asInstanceOf[String],
           parameters("endPointURL").asInstanceOf[String],
