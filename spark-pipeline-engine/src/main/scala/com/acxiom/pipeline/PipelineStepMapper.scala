@@ -2,7 +2,8 @@ package com.acxiom.pipeline
 
 import com.acxiom.pipeline.utils.ReflectionUtils
 import org.apache.log4j.Logger
-
+import org.json4s.{DefaultFormats, Formats}
+import org.json4s.native.JsonMethods.parse
 import scala.annotation.tailrec
 
 object PipelineStepMapper {
@@ -104,8 +105,10 @@ trait PipelineStepMapper {
           val values = s.split("\\|\\|")
           // get the valid return values for the parameters
           getBestValue(values, parameter, pipelineContext)
-        case _ => // TODO Handle other types - This function may need to be reworked to support this so that it can be overridden
-          throw new RuntimeException("Unsupported value type!")
+        case i: Int => Some(i)
+        case i: BigInt => Some(i.toInt)
+        case t => // TODO Handle other types - This function may need to be reworked to support this so that it can be overridden
+          throw new RuntimeException(s"Unsupported value type ${t.getClass} for ${parameter.name.getOrElse("unknown")}!")
       }
     } else {
       None
@@ -230,7 +233,10 @@ trait PipelineStepMapper {
   }
 
   private def mapByValue(value: Option[String], parameter: Parameter): Any = {
-    if (value.isDefined) {
+    implicit val formats: Formats = DefaultFormats
+    if (value.getOrElse("").startsWith("[") || value.getOrElse("").startsWith("{")) {
+      parse(value.get).values // option 1: using the first byte of the string
+    } else if (value.isDefined) {
       value.get
     } else if (parameter.defaultValue.isDefined) {
       logger.debug(s"Parameter ${parameter.name.get} has a defaultValue of ${parameter.defaultValue.getOrElse("")}")

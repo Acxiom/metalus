@@ -53,7 +53,7 @@ object PipelineExecutor {
       handleEvent(ctx, "executionFinished", List(executingPipelines, ctx))
     } catch {
       case p: PauseException => logger.info(s"Paused pipeline flow at pipeline ${p.pipelineId} step ${p.stepId}. ${p.message}")
-      case _: PipelineStepException => logger.info(s"Stopping pipeline because of an exception")
+      case pse: PipelineStepException => logger.error(s"Stopping pipeline because of an exception", pse)
       case t: Throwable => throw t
     }
   }
@@ -113,7 +113,11 @@ object PipelineExecutor {
     step match {
       case PipelineStep(_, _, _, Some("branch"), _, _, _, _) =>
         // match the result against the step parameter name until we find a match
-        val matchedParameter = step.params.get.find(p => p.name.get == result.toString).get
+        val matchValue = result match {
+          case response: PipelineStepResponse => response.primaryReturn.getOrElse("").toString
+          case _ => result
+        }
+        val matchedParameter = step.params.get.find(p => p.name.get == matchValue.toString).get
         // Use the value of the matched parameter as the next step id
         Some(matchedParameter.value.get.asInstanceOf[String])
       case _ =>
