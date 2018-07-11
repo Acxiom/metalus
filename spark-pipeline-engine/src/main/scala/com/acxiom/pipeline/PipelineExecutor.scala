@@ -72,20 +72,20 @@ object PipelineExecutor {
       // process step normally if empty
       case "" => ReflectionUtils.processStep(step, parameterValues, ssContext)
       case value: String =>
-        logger.info(s"Evaluating execute if empty: $value")
+        logger.debug(s"Evaluating execute if empty: $value")
         // wrap the value in a parameter object
         val param = Parameter(Some("text"), Some("dynamic"), Some(true), None, Some(value))
         val ret = ssContext.parameterMapper.mapParameter(param, ssContext)
         ret match {
           case option: Option[Any] => if (option.isEmpty) {
-            logger.info("Executing step normally")
+            logger.debug("Executing step normally")
             ReflectionUtils.processStep(step, parameterValues, ssContext)
           } else {
-            logger.info("Returning existing value")
+            logger.debug("Returning existing value")
             PipelineStepResponse(option, None)
           }
           case _ =>
-            logger.info("Returning existing value")
+            logger.debug("Returning existing value")
             PipelineStepResponse(Some(ret), None)
         }
     }
