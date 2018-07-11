@@ -148,7 +148,7 @@ trait PipelineStepMapper {
     val pipelinePath = getPathValues(value, pipelineContext)
     // TODO The first two cases need to call mapByType after the value has been returned
     pipelinePath.mainValue match {
-      case p if List('@', '#').contains(p.head) => getPipelineParameterValue(pipelinePath, pipelineContext)
+      case p if List('@', '#').contains(p.headOption.getOrElse("")) => getPipelineParameterValue(pipelinePath, pipelineContext)
       case r if r.startsWith("$") => mapRuntimeParameter(pipelinePath, parameter, pipelineContext)
       case g if g.startsWith("!") => getGlobalParameterValue(g, pipelinePath.extraPath.getOrElse(""), pipelineContext)
       case o if o.nonEmpty => Some(mapByType(Some(o), parameter))

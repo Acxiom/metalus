@@ -17,7 +17,7 @@ trait PipelineListener {
   }
 
   def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-    logger.info(s"Starting execution of pipelines ${pipelines.map(p => p.name.getOrElse(p.id.getOrElse("")))}")
+    logger.info(s"Finished execution of pipelines ${pipelines.map(p => p.name.getOrElse(p.id.getOrElse("")))}")
     None
   }
 
@@ -41,7 +41,7 @@ trait PipelineListener {
   }
 
   def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
-    logger.info(s"Finished step ${step.displayName.getOrElse(step.id.getOrElse(""))} of pipeline${pipeline.name.getOrElse(pipeline.id.getOrElse(""))}")
+    logger.info(s"Finished step ${step.displayName.getOrElse(step.id.getOrElse(""))} of pipeline ${pipeline.name.getOrElse(pipeline.id.getOrElse(""))}")
     None
   }
 
