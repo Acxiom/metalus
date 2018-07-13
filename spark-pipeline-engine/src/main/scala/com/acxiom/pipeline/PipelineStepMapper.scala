@@ -101,10 +101,15 @@ trait PipelineStepMapper {
       value.get match {
         case s: String =>
           // TODO Add support for javascript so that we can have complex interactions - @Step1 + '_my_table_name'
-          // convert parameter value into a list of values (for the 'or' use case)
-          val values = s.split("\\|\\|")
-          // get the valid return values for the parameters
-          getBestValue(values, parameter, pipelineContext)
+          // If the parameter type is 'script', return the value as is
+          if (parameter.`type`.getOrElse("none") == "script") {
+            Some(s)
+          } else {
+            // convert parameter value into a list of values (for the 'or' use case)
+            // get the valid return values for the parameters
+            getBestValue(s.split("\\|\\|"), parameter, pipelineContext)
+          }
+        case b: Boolean => Some(b)
         case i: Int => Some(i)
         case i: BigInt => Some(i.toInt)
         case t => // TODO Handle other types - This function may need to be reworked to support this so that it can be overridden
@@ -145,11 +150,26 @@ trait PipelineStepMapper {
                               pipelineContext: PipelineContext): Option[Any] = {
     // TODO Figure out how to walk the pipeline chain looking for values when pipelineId is not present and value is not part of current pipeline.
     val pipelinePath = getPathValues(value, pipelineContext)
+    // TODO The first two cases need to call mapByType after the value has been returned
     pipelinePath.mainValue match {
-      case p if List('@', '#', '$').contains(p.head) => getPipelineParameterValue(pipelinePath, pipelineContext)
+      case p if List('@', '#').contains(p.headOption.getOrElse("")) => getPipelineParameterValue(pipelinePath, pipelineContext)
+      case r if r.startsWith("$") => mapRuntimeParameter(pipelinePath, parameter, pipelineContext)
       case g if g.startsWith("!") => getGlobalParameterValue(g, pipelinePath.extraPath.getOrElse(""), pipelineContext)
       case o if o.nonEmpty => Some(mapByType(Some(o), parameter))
       case _ => None
+    }
+  }
+
+  private def mapRuntimeParameter(pipelinePath: PipelinePath, parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
+    val value = getPipelineParameterValue(pipelinePath, pipelineContext)
+
+    if (value.isDefined) {
+      value.get match {
+        case s: String => Some(mapParameter(parameter.copy(value = Some(s)), pipelineContext))
+        case _ => value
+      }
+    } else {
+      value
     }
   }
 

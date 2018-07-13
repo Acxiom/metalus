@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.utils
 
 import com.acxiom.pipeline.PipelineContext
-import javax.script.{Compilable, ScriptEngineManager, SimpleBindings}
+import javax.script.{Bindings, Compilable, ScriptEngineManager, SimpleBindings}
 
 class ScriptEngine {
   private val engine = new ScriptEngineManager().getEngineByName("Nashorn").asInstanceOf[Compilable]
@@ -24,9 +24,20 @@ class ScriptEngine {
     * @return The result of the execution.
     */
   def executeScript(script: String, pipelineContext: PipelineContext): Any = {
+    executeScript(script, new SimpleBindings(), pipelineContext)
+  }
+
+  /**
+    * This function will execute a javascript with access to the "pipelineContext" object.
+    *
+    * @param script          The script to execute.
+    * @param bindings        Bindings to use when executing the script
+    * @param pipelineContext The pipelineContext containing the globals.
+    * @return The result of the execution.
+    */
+  def executeScript(script: String, bindings: Bindings, pipelineContext: PipelineContext): Any = {
     // Add it to the script context
-    val bindings = new SimpleBindings()
-    bindings.put("pipelineContext", pipelineContext)
+    setDefaultBindings(bindings, pipelineContext)
     engine.compile(script).eval(bindings)
   }
 
@@ -39,10 +50,27 @@ class ScriptEngine {
     * @return The result of the execution.
     */
   def executeScriptWithObject(script: String, userValue: Any, pipelineContext: PipelineContext): Any = {
+    executeScriptWithObject(script, userValue, new SimpleBindings(), pipelineContext)
+  }
+
+  /**
+    * This function will execute a javascript with access to the "pipelineContext" object and the provided "obj".
+    *
+    * @param script          The script to execute.
+    * @param userValue       The object to make accessible to the script.
+    * @param bindings        Bindings to use when executing the script
+    * @param pipelineContext The pipelineContext containing the globals.
+    * @return The result of the execution.
+    */
+  def executeScriptWithObject(script: String, userValue: Any, bindings: Bindings, pipelineContext: PipelineContext): Any = {
     // Add it to the script context
-    val bindings = new SimpleBindings()
-    bindings.put("pipelineContext", pipelineContext)
+    setDefaultBindings(bindings, pipelineContext)
     bindings.put("userValue", userValue)
     engine.compile(script).eval(bindings)
+  }
+
+  private def setDefaultBindings(bindings: Bindings, pipelineContext: PipelineContext): Unit = {
+    bindings.put("pipelineContext", pipelineContext)
+    bindings.put("ReflectionUtils", ReflectionUtils)
   }
 }

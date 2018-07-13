@@ -3,16 +3,21 @@ package com.acxiom.pipeline.steps
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import com.acxiom.pipeline.utils.ScriptEngine
 import com.acxiom.pipeline.{PipelineContext, PipelineStepResponse}
+import javax.script.SimpleBindings
+import org.apache.log4j.Logger
 
 @StepObject
 object JavascriptSteps {
+  private val logger = Logger.getLogger(getClass)
   @StepFunction("5e0358a0-d567-5508-af61-c35a69286e4e",
     "Javascript Step",
     "Executes a Javascript and returns the result",
     "Pipeline")
   def processScript(script: String, pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScriptEngine
-    val result = engine.executeScript(script, pipelineContext)
+    val bindings = new SimpleBindings()
+    bindings.put("logger", logger)
+    val result = engine.executeScript(script, bindings, pipelineContext)
     handleResult(result)
   }
 
@@ -22,7 +27,9 @@ object JavascriptSteps {
     "Pipeline")
   def processScriptWithValue(script: String, value: Any, pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScriptEngine
-    val result = engine.executeScriptWithObject(script, value, pipelineContext)
+    val bindings = new SimpleBindings()
+    bindings.put("logger", logger)
+    val result = engine.executeScriptWithObject(script, value, bindings, pipelineContext)
     handleResult(result)
   }
 
