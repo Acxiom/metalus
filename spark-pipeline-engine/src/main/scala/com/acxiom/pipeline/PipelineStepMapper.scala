@@ -101,10 +101,14 @@ trait PipelineStepMapper {
       value.get match {
         case s: String =>
           // TODO Add support for javascript so that we can have complex interactions - @Step1 + '_my_table_name'
-          // convert parameter value into a list of values (for the 'or' use case)
-          val values = s.split("\\|\\|")
-          // get the valid return values for the parameters
-          getBestValue(values, parameter, pipelineContext)
+          // If the parameter type is 'script', return the value as is
+          if (parameter.`type`.getOrElse("none") == "script") {
+            Some(s)
+          } else {
+            // convert parameter value into a list of values (for the 'or' use case)
+            // get the valid return values for the parameters
+            getBestValue(s.split("\\|\\|"), parameter, pipelineContext)
+          }
         case b: Boolean => Some(b)
         case i: Int => Some(i)
         case i: BigInt => Some(i.toInt)
