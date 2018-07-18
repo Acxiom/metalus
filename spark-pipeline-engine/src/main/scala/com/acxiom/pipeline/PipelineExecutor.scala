@@ -103,7 +103,7 @@ object PipelineExecutor {
     // Call the next step here
     if (steps.contains(nextStepId.getOrElse(""))) {
       executeStep(steps(nextStepId.get), pipeline, steps, sfContext)
-    } else if (nextStepId.isDefined) {
+    } else if (nextStepId.isDefined && nextStepId.get.nonEmpty) {
       throw PipelineException(message = Some("Step Id does not exist in pipeline"),
         pipelineId = Some(sfContext.getGlobalString("pipelineId").getOrElse("")), stepId = nextStepId)
     } else {
@@ -119,9 +119,13 @@ object PipelineExecutor {
           case response: PipelineStepResponse => response.primaryReturn.getOrElse("").toString
           case _ => result
         }
-        val matchedParameter = step.params.get.find(p => p.name.get == matchValue.toString).get
+        val matchedParameter = step.params.get.find(p => p.name.get == matchValue.toString)
         // Use the value of the matched parameter as the next step id
-        Some(matchedParameter.value.get.asInstanceOf[String])
+        if (matchedParameter.isDefined) {
+          Some(matchedParameter.get.value.get.asInstanceOf[String])
+        } else {
+          None
+        }
       case _ =>
         step.nextStepId
     }
