@@ -39,7 +39,7 @@ object PipelineExecutor {
               case PipelineStepMessageType.error =>
                 throw PipelineException(message = Some(m.message), pipelineId = Some(m.pipelineId), stepId = Some(m.stepId))
               case PipelineStepMessageType.pause =>
-                throw PauseException(pipelineId = Some(m.pipelineId), stepId = Some(m.stepId))
+                throw PauseException(message = Some(m.message), pipelineId = Some(m.pipelineId), stepId = Some(m.stepId))
               case PipelineStepMessageType.warn =>
                 logger.warn(s"Step ${m.stepId} in pipeline ${pipelineLookup(m.pipelineId)} issued a warning: ${m.message}")
               case _ =>
