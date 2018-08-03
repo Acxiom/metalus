@@ -208,7 +208,7 @@ object ReflectionUtils {
     }
 
     val value = obj match {
-      case map: Map[_, _] => map.asInstanceOf[Map[String, Any]](name)
+      case map: Map[_, _] => map.asInstanceOf[Map[String, Any]].get(name)
       case _ => getFieldValue(obj, name)
     }
 
