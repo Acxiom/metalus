@@ -39,7 +39,7 @@ object PipelineExecutor {
               case PipelineStepMessageType.error =>
                 throw PipelineException(message = Some(m.message), pipelineId = Some(m.pipelineId), stepId = Some(m.stepId))
               case PipelineStepMessageType.pause =>
-                throw PauseException(pipelineId = Some(m.pipelineId), stepId = Some(m.stepId))
+                throw PauseException(message = Some(m.message), pipelineId = Some(m.pipelineId), stepId = Some(m.stepId))
               case PipelineStepMessageType.warn =>
                 logger.warn(s"Step ${m.stepId} in pipeline ${pipelineLookup(m.pipelineId)} issued a warning: ${m.message}")
               case _ =>
@@ -53,7 +53,7 @@ object PipelineExecutor {
       handleEvent(ctx, "executionFinished", List(executingPipelines, ctx))
     } catch {
       case p: PauseException => logger.info(s"Paused pipeline flow at pipeline ${p.pipelineId} step ${p.stepId}. ${p.message}")
-      case _: PipelineStepException => logger.info(s"Stopping pipeline because of an exception")
+      case pse: PipelineStepException => logger.error(s"Stopping pipeline because of an exception", pse)
       case t: Throwable => throw t
     }
   }
@@ -72,19 +72,21 @@ object PipelineExecutor {
       // process step normally if empty
       case "" => ReflectionUtils.processStep(step, parameterValues, ssContext)
       case value: String =>
+        logger.debug(s"Evaluating execute if empty: $value")
         // wrap the value in a parameter object
         val param = Parameter(Some("text"), Some("dynamic"), Some(true), None, Some(value))
         val ret = ssContext.parameterMapper.mapParameter(param, ssContext)
         ret match {
           case option: Option[Any] => if (option.isEmpty) {
-            // empty option runs step normally
+            logger.debug("Executing step normally")
             ReflectionUtils.processStep(step, parameterValues, ssContext)
           } else {
-            // non-empty options return the parameter in a pipeline step response
+            logger.debug("Returning existing value")
             PipelineStepResponse(option, None)
           }
-          // wrap the return parameter as an option in a pipline step response
-          case _ => PipelineStepResponse(Some(ret), None)
+          case _ =>
+            logger.debug("Returning existing value")
+            PipelineStepResponse(Some(ret), None)
         }
     }
 
@@ -101,7 +103,7 @@ object PipelineExecutor {
     // Call the next step here
     if (steps.contains(nextStepId.getOrElse(""))) {
       executeStep(steps(nextStepId.get), pipeline, steps, sfContext)
-    } else if (nextStepId.isDefined) {
+    } else if (nextStepId.isDefined && nextStepId.get.nonEmpty) {
       throw PipelineException(message = Some("Step Id does not exist in pipeline"),
         pipelineId = Some(sfContext.getGlobalString("pipelineId").getOrElse("")), stepId = nextStepId)
     } else {
@@ -113,9 +115,17 @@ object PipelineExecutor {
     step match {
       case PipelineStep(_, _, _, Some("branch"), _, _, _, _) =>
         // match the result against the step parameter name until we find a match
-        val matchedParameter = step.params.get.find(p => p.name.get == result.toString).get
+        val matchValue = result match {
+          case response: PipelineStepResponse => response.primaryReturn.getOrElse("").toString
+          case _ => result
+        }
+        val matchedParameter = step.params.get.find(p => p.name.get == matchValue.toString)
         // Use the value of the matched parameter as the next step id
-        Some(matchedParameter.value.get.asInstanceOf[String])
+        if (matchedParameter.isDefined) {
+          Some(matchedParameter.get.value.get.asInstanceOf[String])
+        } else {
+          None
+        }
       case _ =>
         step.nextStepId
     }
