@@ -70,8 +70,7 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     * @return An option containing the value or None
     */
   def getGlobalString(globalName: String): Option[String] = {
-    if (this.globals.isDefined &&
-      this.globals.get.contains(globalName)) {
+    if (this.globals.isDefined && this.globals.get.contains(globalName)) {
       // TODO Expand to support other types
       this.globals.get(globalName) match {
         case str: String =>
@@ -81,6 +80,20 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
         case _ =>
           None
       }
+    } else {
+      None
+    }
+  }
+
+  /**
+    * Get the named global value.
+    *
+    * @param globalName The name of the global property to return.
+    * @return An option containing the value or None
+    */
+  def getGlobal(globalName: String): Option[Any] = {
+    if (this.globals.isDefined && this.globals.get.contains(globalName)) {
+      this.globals.get.get(globalName)
     } else {
       None
     }

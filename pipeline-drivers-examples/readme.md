@@ -1,26 +1,26 @@
 # Spark Pipeline Driver Examples
 This project contains examples demonstrating how to get started.
 
-##Simple Data Operations example
-This example was taken from the Spark examples page and adapted.
+## Simple Data Operations example
+This example was taken from the [Spark Examples](http://spark.apache.org/examples.html) page and adapted.
 
 ### Example Code
-Below is an example project taken from the Spark Examples page and converted to use the Pipeline Engine. All of the code
-exists in this project as a way to quick start, however below is a walk through of creating each of the required
-components.
+This sample was taken from the [Spark Examples](http://spark.apache.org/examples.html) page and converted to use the
+Pipeline Engine. All of the code exists in this project as a way to quick start, however below is a walk through of 
+creating each of the required components.
 
 #### InputOutputSteps
 Two steps are required to read and write files. This could be a single operation, but in order to be more reusable input
 and output will be broken apart.
 
-* Create a new object in the *com.acxiom.pipeline.steps* package named **InputOutputSteps**
-* Create a function name *loadFile* and declare four parameters:
+* Created a new object in the *com.acxiom.pipeline.steps* package named [**InputOutputSteps**](src/main/scala/com/acxiom/pipeline/steps/InputOutputSteps.scala)
+* Created a function name *loadFile* and declare four parameters:
 	* url: String
 	* format: String
 	* separator: Option[String]
 	* pipelineContext: PipelineContext
-* Give the function a return type of DataFrame
-* Insert the following code into the body of the function:
+* Gave the function a return type of DataFrame
+* Inserted the following code into the body of the function:
 
 	```scala
 	val dfr = if (separator.isDefined) {
@@ -32,7 +32,7 @@ and output will be broken apart.
 	dfr.load(url)
 	```
 	
-* Create a function name *writeJSONFile* and declare two parameters:
+* Created a function name *writeJSONFile* and declare two parameters:
 	* dataFrame: DataFrame
 	* url: String
 * Give the function a return type of Unit
@@ -45,7 +45,7 @@ and output will be broken apart.
 #### GroupingSteps
 There needs to be a step function created to do the counts.
 
-* Create a new object in the *com.acxiom.pipeline.steps* package named **GroupingSteps**
+* Create a new object in the *com.acxiom.pipeline.steps* package named [**GroupingSteps**](src/main/scala/com/acxiom/pipeline/steps/GroupingSteps.scala)
 * Create a function name *countsByField* and declare two parameters:
 	* dataFrame: DataFrame
 	* fieldName: String
@@ -60,7 +60,7 @@ There needs to be a step function created to do the counts.
 The *DriverSetup* trait is the starting point of the application. The implementation is responsible for preparing the
 PipelineContext as well as supplying the pipelines that will be executed.
 
-* Create a new case class in *com.acxiom.pipeline* named **SimpleDataDriverSetup**.
+* Create a new case class in *com.acxiom.pipeline* named [**SimpleDataDriverSetup**](src/main/scala/com/acxiom/pipeline/SimpleDataDriverSetup.scala).
 * Extend **DriverSetup*
 * Provide the following constructor:
 
@@ -139,7 +139,7 @@ used when creating the steps. Additionally, the last two steps used the step ref
 value from a previous step and used to populate a function parameter. 
 
 ### Running
-The code will need to be package as an uber jar (the example project does this automatically when package is called) that 
+The code will need to be packaged as an uber jar (the example project does this automatically when package is called) that
 contains all of the dependencies. Once this is done, place the jar in a location that can be read by Spark.
 
 Submit a job:
@@ -157,3 +157,5 @@ Submit a job:
 	--output_url <location to write the JSON file
 	```
 
+## Simple Streaming Example
+A [**simple Kinesis streaming example**](docs/kinesis-streaming-example.md) is also available.

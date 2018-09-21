@@ -1,39 +1,76 @@
 package com.acxiom.pipeline.utils
 
 import com.acxiom.pipeline.PipelineContext
-import javax.script.ScriptEngineManager
-import org.json4s.{DefaultFormats, Formats}
-import org.json4s.native.Serialization
+import javax.script.{Bindings, Compilable, ScriptEngineManager, SimpleBindings}
 
 class ScriptEngine {
-  private implicit val formats: Formats = DefaultFormats
-  private val engine = new ScriptEngineManager().getEngineByMimeType("text/javascript")
+  private val engine = new ScriptEngineManager().getEngineByName("Nashorn").asInstanceOf[Compilable]
 
   /**
     * This function will execute a simple self-contained javascript and return the result.
+    *
     * @param script The script to execute.
     * @return The result of the execution.
     */
   def executeSimpleScript(script: String): Any = {
-    engine.eval(script)
+    engine.compile(script).eval()
   }
 
   /**
-    * This function will execute a javascript with access to the "globals" object.
-    * @param script The script to execute.
+    * This function will execute a javascript with access to the "pipelineContext" object.
+    *
+    * @param script          The script to execute.
     * @param pipelineContext The pipelineContext containing the globals.
     * @return The result of the execution.
     */
   def executeScript(script: String, pipelineContext: PipelineContext): Any = {
-    // Serialize the globals object
-    val globals = Serialization.write(pipelineContext.globals)
+    executeScript(script, new SimpleBindings(), pipelineContext)
+  }
+
+  /**
+    * This function will execute a javascript with access to the "pipelineContext" object.
+    *
+    * @param script          The script to execute.
+    * @param bindings        Bindings to use when executing the script
+    * @param pipelineContext The pipelineContext containing the globals.
+    * @return The result of the execution.
+    */
+  def executeScript(script: String, bindings: Bindings, pipelineContext: PipelineContext): Any = {
     // Add it to the script context
-    engine.put("GLOBALS", globals)
-    engine.eval(
-      s"""
-         |// Parse the GLOBALS back into a JSON objetc
-         |var globals = JSON.parse(GLOBALS);
-         |
-         |$script""".stripMargin)
+    setDefaultBindings(bindings, pipelineContext)
+    engine.compile(script).eval(bindings)
+  }
+
+  /**
+    * This function will execute a javascript with access to the "pipelineContext" object and the provided "obj".
+    *
+    * @param script          The script to execute.
+    * @param userValue       The object to make accessible to the script.
+    * @param pipelineContext The pipelineContext containing the globals.
+    * @return The result of the execution.
+    */
+  def executeScriptWithObject(script: String, userValue: Any, pipelineContext: PipelineContext): Any = {
+    executeScriptWithObject(script, userValue, new SimpleBindings(), pipelineContext)
+  }
+
+  /**
+    * This function will execute a javascript with access to the "pipelineContext" object and the provided "obj".
+    *
+    * @param script          The script to execute.
+    * @param userValue       The object to make accessible to the script.
+    * @param bindings        Bindings to use when executing the script
+    * @param pipelineContext The pipelineContext containing the globals.
+    * @return The result of the execution.
+    */
+  def executeScriptWithObject(script: String, userValue: Any, bindings: Bindings, pipelineContext: PipelineContext): Any = {
+    // Add it to the script context
+    setDefaultBindings(bindings, pipelineContext)
+    bindings.put("userValue", userValue)
+    engine.compile(script).eval(bindings)
+  }
+
+  private def setDefaultBindings(bindings: Bindings, pipelineContext: PipelineContext): Unit = {
+    bindings.put("pipelineContext", pipelineContext)
+    bindings.put("ReflectionUtils", ReflectionUtils)
   }
 }

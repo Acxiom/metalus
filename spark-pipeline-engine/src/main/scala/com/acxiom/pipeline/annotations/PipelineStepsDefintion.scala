@@ -9,7 +9,7 @@ case class StepDefinition(id: String,
                           displayName: String,
                           description: String,
                           `type`: String,
-                          parameters: List[StepFunctionParameter],
+                          params: List[StepFunctionParameter],
                           engineMeta: EngineMeta)
 
 case class StepFunctionParameter(`type`: String, name: String)

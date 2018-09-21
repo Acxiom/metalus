@@ -2,7 +2,8 @@ package com.acxiom.pipeline
 
 import com.acxiom.pipeline.utils.ReflectionUtils
 import org.apache.log4j.Logger
-
+import org.json4s.{DefaultFormats, Formats}
+import org.json4s.native.JsonMethods.parse
 import scala.annotation.tailrec
 
 object PipelineStepMapper {
@@ -100,12 +101,19 @@ trait PipelineStepMapper {
       value.get match {
         case s: String =>
           // TODO Add support for javascript so that we can have complex interactions - @Step1 + '_my_table_name'
-          // convert parameter value into a list of values (for the 'or' use case)
-          val values = s.split("\\|\\|")
-          // get the valid return values for the parameters
-          getBestValue(values, parameter, pipelineContext)
-        case _ => // TODO Handle other types - This function may need to be reworked to support this so that it can be overridden
-          throw new RuntimeException("Unsupported value type!")
+          // If the parameter type is 'script', return the value as is
+          if (parameter.`type`.getOrElse("none") == "script") {
+            Some(s)
+          } else {
+            // convert parameter value into a list of values (for the 'or' use case)
+            // get the valid return values for the parameters
+            getBestValue(s.split("\\|\\|"), parameter, pipelineContext)
+          }
+        case b: Boolean => Some(b)
+        case i: Int => Some(i)
+        case i: BigInt => Some(i.toInt)
+        case t => // TODO Handle other types - This function may need to be reworked to support this so that it can be overridden
+          throw new RuntimeException(s"Unsupported value type ${t.getClass} for ${parameter.name.getOrElse("unknown")}!")
       }
     } else {
       None
@@ -141,44 +149,64 @@ trait PipelineStepMapper {
                               parameter: Parameter,
                               pipelineContext: PipelineContext): Option[Any] = {
     // TODO Figure out how to walk the pipeline chain looking for values when pipelineId is not present and value is not part of current pipeline.
-    // TODO How do we access the full PipelineStepResponse on line 157
     val pipelinePath = getPathValues(value, pipelineContext)
-    if (pipelinePath.mainValue.startsWith("@") || pipelinePath.mainValue.startsWith("$")) {
-      val paramName = pipelinePath.mainValue.substring(1)
-      // See if the paramName is a pipelineId
-      val pipelineId = if (pipelinePath.pipelineId.isDefined) {
-        pipelinePath.pipelineId.get
-      } else {
-        pipelineContext.getGlobalString("pipelineId").getOrElse("")
+    // TODO The first two cases need to call mapByType after the value has been returned
+    pipelinePath.mainValue match {
+      case p if List('@', '#').contains(p.headOption.getOrElse("")) => getPipelineParameterValue(pipelinePath, pipelineContext)
+      case r if r.startsWith("$") => mapRuntimeParameter(pipelinePath, parameter, pipelineContext)
+      case g if g.startsWith("!") => getGlobalParameterValue(g, pipelinePath.extraPath.getOrElse(""), pipelineContext)
+      case o if o.nonEmpty => Some(mapByType(Some(o), parameter))
+      case _ => None
+    }
+  }
+
+  private def mapRuntimeParameter(pipelinePath: PipelinePath, parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
+    val value = getPipelineParameterValue(pipelinePath, pipelineContext)
+
+    if (value.isDefined) {
+      value.get match {
+        case s: String => Some(mapParameter(parameter.copy(value = Some(s)), pipelineContext))
+        case _ => value
       }
-      val parameters = pipelineContext.parameters.getParametersByPipelineId(pipelineId)
-      // the value is marked as a step parameter, get it from pipelineContext.parameters (Will be a PipelineStepResponse)
-      if (parameters.get.parameters.contains(paramName)) {
-        parameters.get.parameters(paramName).asInstanceOf[PipelineStepResponse].primaryReturn match {
-          case g: Option[_] if g.isDefined =>
-            Some(ReflectionUtils.extractField(g.get, pipelinePath.extraPath.getOrElse("")))
-          case _: Option[_] => None
-          case resp =>
-            Some(ReflectionUtils.extractField(resp, pipelinePath.extraPath.getOrElse("")))
-        }
-      } else {
-        None
-      }
-    } else if (pipelinePath.mainValue.startsWith("!")) {
-      getGlobalParameter(pipelinePath.mainValue, pipelinePath.extraPath.getOrElse(""), pipelineContext)
-    } else if (pipelinePath.mainValue.nonEmpty) {
-      // a value exists with no prefix character (hardcoded value)
-      Some(mapByType(Some(pipelinePath.mainValue), parameter))
     } else {
-      // the value is empty
+      value
+    }
+  }
+
+  private def getPipelineParameterValue(pipelinePath: PipelinePath, pipelineContext: PipelineContext): Option[Any] = {
+    val paramName = pipelinePath.mainValue.substring(1)
+    // See if the paramName is a pipelineId
+    val pipelineId = if (pipelinePath.pipelineId.isDefined) {
+      pipelinePath.pipelineId.get
+    } else {
+      pipelineContext.getGlobalString("pipelineId").getOrElse("")
+    }
+    val parameters = pipelineContext.parameters.getParametersByPipelineId(pipelineId)
+    logger.debug(s"pulling parameter from Pipeline Parameters,paramName=$paramName,pipelineId=$pipelineId,parameters=$parameters")
+    // the value is marked as a step parameter, get it from pipelineContext.parameters (Will be a PipelineStepResponse)
+    if (parameters.get.parameters.contains(paramName)) {
+      pipelinePath.mainValue.head match {
+        case '@' => getSpecificValue(parameters.get.parameters(paramName).asInstanceOf[PipelineStepResponse].primaryReturn, pipelinePath)
+        case '#' => getSpecificValue(parameters.get.parameters(paramName).asInstanceOf[PipelineStepResponse].namedReturns, pipelinePath)
+        case '$' => getSpecificValue(parameters.get.parameters(paramName), pipelinePath)
+      }
+    } else {
       None
+    }
+  }
+
+  private def getSpecificValue(parentObject: Any, pipelinePath: PipelinePath): Option[Any] = {
+    parentObject match {
+      case g: Option[_] if g.isDefined => Some(ReflectionUtils.extractField(g.get, pipelinePath.extraPath.getOrElse("")))
+      case _: Option[_] => None
+      case resp => Some(ReflectionUtils.extractField(resp, pipelinePath.extraPath.getOrElse("")))
     }
   }
 
   private def getPathValues(value: String, pipelineContext: PipelineContext): PipelinePath = {
     if (value.contains('.')) {
       // Check for the special character
-      val special = if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!")) {
+      val special = if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!") || value.startsWith("#")) {
         value.substring(0, 1)
       } else {
         ""
@@ -209,7 +237,7 @@ trait PipelineStepMapper {
     }
   }
 
-  private def getGlobalParameter(value: String, extractPath: String, pipelineContext: PipelineContext): Option[Any] = {
+  private def getGlobalParameterValue(value: String, extractPath: String, pipelineContext: PipelineContext): Option[Any] = {
     // the value is marked as a global parameter, get it from pipelineContext.globals
     val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
     if (globals.contains(value.substring(1))) {
@@ -217,7 +245,7 @@ trait PipelineStepMapper {
       global match {
         case g: Option[_] if g.isDefined => Some(ReflectionUtils.extractField(g.get, extractPath))
         case _: Option[_] => None
-        case _ => Some(global)
+        case _ => Some(ReflectionUtils.extractField(global, extractPath))
       }
     } else {
       None
@@ -225,7 +253,10 @@ trait PipelineStepMapper {
   }
 
   private def mapByValue(value: Option[String], parameter: Parameter): Any = {
-    if (value.isDefined) {
+    implicit val formats: Formats = DefaultFormats
+    if (value.getOrElse("").startsWith("[") || value.getOrElse("").startsWith("{")) {
+      parse(value.get).values // option 1: using the first byte of the string
+    } else if (value.isDefined) {
       value.get
     } else if (parameter.defaultValue.isDefined) {
       logger.debug(s"Parameter ${parameter.name.get} has a defaultValue of ${parameter.defaultValue.getOrElse("")}")

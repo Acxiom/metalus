@@ -89,7 +89,7 @@ class KafkaPipelineDriverSuiteTests extends FunSpec with BeforeAndAfterAll with 
 
       var executionComplete = false
       SparkTestHelper.pipelineListener = new PipelineListener {
-        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
+        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
           assert(pipelines.lengthCompare(1) == 0)
           val params = pipelineContext.parameters.getParametersByPipelineId("1")
           assert(params.isDefined)
@@ -98,6 +98,7 @@ class KafkaPipelineDriverSuiteTests extends FunSpec with BeforeAndAfterAll with 
           assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse]
             .primaryReturn.getOrElse(false).asInstanceOf[Boolean])
           executionComplete = true
+          None
         }
         override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {

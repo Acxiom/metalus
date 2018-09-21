@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.acxiom</groupId>
         <artifactId>spark-pipeline-driver</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>1.0.3-SNAPSHOT</version>
     </parent>
 
     <dependencies>
@@ -24,6 +24,11 @@
             <artifactId>streaming-pipeline-drivers_${scala.compat.version}</artifactId>
             <version>${parent.version}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-streaming-kinesis-asl_${scala.compat.version}</artifactId>
+            <version>2.1.0</version>
         </dependency>
     </dependencies>
 
@@ -44,7 +49,8 @@
                             <exclude>log4j:log4j:jar:</exclude>
                             <exclude>org.scala-lang:*:jar:</exclude>
                             <exclude>org.scala-lang.modules:*:jar:</exclude>
-                            <exclude>org.apache.spark:jar:</exclude>
+                            <exclude>org.apache.spark:spark-core_${scala.compat.version}</exclude>
+                            <exclude>org.apache.spark:spark-sql_${scala.compat.version}</exclude>
                             <exclude>org.scalamock:jar:</exclude>
                             <exclude>org.scalatest:jar:</exclude>
                         </excludes>
