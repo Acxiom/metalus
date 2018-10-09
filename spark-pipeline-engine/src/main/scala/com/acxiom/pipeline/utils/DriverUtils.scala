@@ -80,7 +80,7 @@ object DriverUtils {
     */
   def parsePipelineJson(pipelineJson: String): Option[List[Pipeline]] = {
     implicit val formats: Formats = DefaultFormats
-    if (pipelineJson(0) != '[') {
+    if (pipelineJson.trim()(0) != '[') {
       throw new ParseException(pipelineJson, 0)
     }
     parse(pipelineJson).extractOpt[List[DefaultPipeline]]
@@ -101,7 +101,7 @@ object DriverUtils {
       override val typeHintFieldName: String = "typeClass"
       override val typeHints: TypeHints = ShortTypeHints(List(pipelineType))
     }
-    if (pipelineJson(0) != '[') {
+    if (pipelineJson.trim()(0) != '[') {
       throw new ParseException(pipelineJson, 0)
     }
     parse(pipelineJson).extractOpt[List[Pipeline]]

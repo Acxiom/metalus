@@ -120,6 +120,16 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     this.copy(globals = Some(this.globals.getOrElse(Map[String, Any]()) + (globalName -> globalValue)))
 
   /**
+    * This function will add or update a single entry on the globals map.
+    *
+    * @param globalName  The name of the global property to set.
+    * @param globalValue The value of the global property to set.
+    * @return A new PipelineContext with an updated globals map.
+    */
+  def setGlobal(globalName: String, globalValue: Any): PipelineContext =
+    this.copy(globals = Some(this.globals.getOrElse(Map[String, Any]()) + (globalName -> globalValue)))
+
+  /**
     * Adds a new PipelineStepMessage to the context
     *
     * @param message The message to add.
@@ -182,13 +192,13 @@ case class PipelineParameters(parameters: List[PipelineParameter] = List()) {
     */
   def setParameterByPipelineId(pipelineId: String, name: String, parameter: Any): PipelineParameters = {
     val param = getParametersByPipelineId(pipelineId)
-    if (param.isDefined) {
+    val updatedParameters = if (param.isDefined) {
       val p = param.get.copy(parameters = param.get.parameters + (name -> parameter))
-      val updatedParameters = parameters.map(ps => if (ps.pipelineId == pipelineId) p else ps)
-      this.copy(parameters = updatedParameters)
+      parameters.map(ps => if (ps.pipelineId == pipelineId) p else ps)
     } else {
-      this
+      parameters :+ PipelineParameter(pipelineId, Map[String, Any](name -> parameter))
     }
+    this.copy(parameters = updatedParameters)
   }
 
   /**
@@ -201,3 +211,11 @@ case class PipelineParameters(parameters: List[PipelineParameter] = List()) {
     getParametersByPipelineId(pipelineId).isDefined
   }
 }
+
+/**
+  * This class represents the result of executing a list of pipelines.
+  *
+  * @param pipelineContext The final pipeline context when execution stopped
+  * @param success Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
+  */
+case class PipelineExecutionResult(pipelineContext: PipelineContext, success: Boolean)
