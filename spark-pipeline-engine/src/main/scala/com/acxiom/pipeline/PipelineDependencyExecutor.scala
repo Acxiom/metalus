@@ -5,6 +5,8 @@ import java.util.UUID
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
+import scala.collection.JavaConverters._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object PipelineDependencyExecutor {
@@ -98,7 +100,13 @@ object PipelineDependencyExecutor {
       true
     } else {
       val parents = execution.parents.get.filter(id => {
-        results.contains(id) && results(id).result.isDefined
+        results.contains(id) &&
+          results(id).result.isDefined &&
+          (results(id).result.get.pipelineContext.stepMessages.isEmpty ||
+            results(id).result.get.pipelineContext.stepMessages.get.value.isEmpty ||
+            !results(id).result.get.pipelineContext.stepMessages.get.value.asScala.exists(p => {
+              p.messageType == PipelineStepMessageType.error || p.messageType == PipelineStepMessageType.pause
+            }))
       })
       parents.length == execution.parents.get.length
     }

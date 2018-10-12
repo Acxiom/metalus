@@ -8,9 +8,12 @@ The **PipelineDependencyExecutor** object allows pipelines to execute in paralle
 pipelines or groups of pipelines. Using a list **PipelineExecution** traits, the executor will build an execution 
 graph that is executed in a threaded manner.
 
-When one execution is dependent on another. the *globals* and *parameters* objects will be taken from the final 
+When one execution is dependent on another, the *globals* and *parameters* objects will be taken from the final 
 **PipelineContext** and injected into the globals object as a map keyed by the id from the *PipelineExectution*.
-In the map these objects may be referenced by the names *globals* and *pipelineParameters*. 
+In the map these objects may be referenced by the names *globals* and *pipelineParameters*.
+
+In the event that the result of an execution plan results in an exception or one of the pipelines being paused or errored,
+then downstream executions will not run. 
 
 ### Pipeline
 The Pipeline case class describes the pipeline that needs to be executed. Only three attributes are required:
