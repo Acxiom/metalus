@@ -2,11 +2,12 @@ package com.acxiom.pipeline.utils
 
 import java.text.ParseException
 
-import com.acxiom.pipeline.{DefaultPipeline, Pipeline}
+import com.acxiom.pipeline.{DefaultPipeline, Pipeline, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
+import org.apache.spark.sql.DataFrame
 import org.json4s.native.JsonMethods.parse
 import org.json4s.{DefaultFormats, Formats, ShortTypeHints, TypeHints}
 
@@ -105,5 +106,14 @@ object DriverUtils {
       throw new ParseException(pipelineJson, 0)
     }
     parse(pipelineJson).extractOpt[List[Pipeline]]
+  }
+
+  def addInitialDatFrameToExecutionPlan(executionPlan: List[PipelineExecution],
+                                        initialDataFrame: DataFrame): List[PipelineExecution] = {
+    executionPlan.map(execution => PipelineExecution(execution.id,
+      execution.pipelines,
+      execution.initialPipelineId,
+      execution.pipelineContext.setGlobal("initialDataFrame", initialDataFrame),
+      execution.parents))
   }
 }

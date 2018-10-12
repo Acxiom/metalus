@@ -26,8 +26,12 @@ trait DriverSetup {
     * @return An execution plan or None if not implemented
     */
   def executionPlan: Option[List[PipelineExecution]] = {
-    // TODO Return a default execution plan using the "pipelines"
-    None
+    if (Option(this.pipelines).isDefined && this.pipelines.nonEmpty) {
+      val initialId = if (Option(this.initialPipelineId).isDefined && this.initialPipelineId.nonEmpty) Some(this.asInstanceOf) else None
+      Some(List(PipelineExecution("0", this.pipelines, initialId, this.pipelineContext)))
+    } else {
+      None
+    }
   }
 
   /**
@@ -39,6 +43,11 @@ trait DriverSetup {
     * @return An execution plan
     */
   def refreshExecutionPlan(executionPlan: List[PipelineExecution]): List[PipelineExecution] = {
-    executionPlan
+    executionPlan.map(execution =>
+      PipelineExecution(execution.id,
+        execution.pipelines,
+        execution.initialPipelineId,
+        refreshContext(execution.pipelineContext),
+        execution.parents))
   }
 }

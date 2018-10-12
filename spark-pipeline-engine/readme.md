@@ -1,7 +1,16 @@
 # Spark Pipeline Engine
 This component provides a framework for building Spark processing pipelines built with reusable steps.
 
-## High Level Class Overview
+## Execution Overview
+
+### Execution Plan
+The **PipelineDependencyExecutor** object allows pipelines to execute in parallel and express dependencies between
+pipelines or groups of pipelines. Using a list **PipelineExecution** traits, the executor will build an execution 
+graph that is executed in a threaded manner.
+
+When one execution is dependent on another. the *globals* and *parameters* objects will be taken from the final 
+**PipelineContext** and injected into the globals object as a map keyed by the id from the *PipelineExectution*.
+In the map these objects may be referenced by the names *globals* and *pipelineParameters*. 
 
 ### Pipeline
 The Pipeline case class describes the pipeline that needs to be executed. Only three attributes are required:
@@ -108,8 +117,13 @@ Any application command line parameters will be made available to the DriverSetu
 * **driverSetupClass** - This class will handle all of the initial setup such as building out pipelines, creating the PipelineContext.
  
 ### DriverSetup
-This trait provides the basic function required to process data. Implementations will be required to override three
-functions that are used by drivers guide data processing.
+This trait provides the basic function required to process data.
+
+Implementations will be required to override the **executionPlan** function in order to guide processing. An additional
+function **refreshExecutionPlan** is used by the streaming drivers.
+
+Legacy projects that implemented **pipelines**, **initialPipelineId** and **pipelineContext** are still supported. The updated
+DriverSetup trait will automatically create an execution plan.
 
 ### PipelineContext
 The PipelineContext is an object that contains current execution information. The context will automatically be passed

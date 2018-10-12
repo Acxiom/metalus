@@ -121,11 +121,10 @@ PipelineContext as well as supplying the pipelines that will be executed.
           Parameter(Some("text"), Some("dataFrame"), Some(true), None, Some("@PROCESSDFSTEP")))),
         Some(EngineMeta(Some("InputOutputSteps.writeJSONFile"))))
 	```
-* Override the *pipelines* function to return a pipeline:
+* Override the *pipelines* function to return an empty List:
 
 	```scala
-	override def pipelines: List[Pipeline] = List(Pipeline(Some("SIMPLE_DATA_PIPELINE"), Some("Simple Data Example"),
-        Some(List(LOAD_FILE, PROCESS_DF, WRITE_FILE))))
+	override def pipelines: List[Pipeline] = List()
 	```
 * Override the *initialPipelineId* function to return an empty string.
 * Override the *pipelineContext* function:
@@ -133,6 +132,15 @@ PipelineContext as well as supplying the pipelines that will be executed.
 	```scala
 	override def pipelineContext: PipelineContext = ctx
 	``` 
+	
+* Override the *executionPlan* function to return an list containing a single execution:
+
+	```scala
+	override def executionPlan: Option[List[PipelineExecution]] = Some(List(PipelineExecution("0",
+    List(Pipeline(Some("SIMPLE_DATA_PIPELINE"), Some("Simple Data Example"),
+      Some(List(LOAD_FILE, PROCESS_DF, WRITE_FILE)))), None, ctx, None)))
+	``` 
+
 #### PipelineStep
 While creating the *DriverSetup*, three **PipelineStep**s were also created. Four global values *(beginning with !)* were
 used when creating the steps. Additionally, the last two steps used the step reference *(@)* character to pull the return
