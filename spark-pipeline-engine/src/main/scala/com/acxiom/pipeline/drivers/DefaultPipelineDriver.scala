@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.drivers
 
-import com.acxiom.pipeline.PipelineExecutor
+import com.acxiom.pipeline.PipelineDependencyExecutor
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
 
 /**
@@ -15,8 +15,9 @@ object DefaultPipelineDriver {
     val initializationClass = parameters("driverSetupClass").asInstanceOf[String]
     val driverSetup = ReflectionUtils.loadClass(initializationClass,
       Some(Map("parameters" -> parameters))).asInstanceOf[DriverSetup]
-    PipelineExecutor.executePipelines(driverSetup.pipelines,
-      if (driverSetup.initialPipelineId == "") None else Some(driverSetup.initialPipelineId),
-      driverSetup.pipelineContext)
+    if (driverSetup.executionPlan.isEmpty) {
+      throw new IllegalStateException(s"Unable to obtain valid execution plan. Please check the DriverSetup class: $initializationClass")
+    }
+    PipelineDependencyExecutor.executePlan(driverSetup.executionPlan.get)
   }
 }

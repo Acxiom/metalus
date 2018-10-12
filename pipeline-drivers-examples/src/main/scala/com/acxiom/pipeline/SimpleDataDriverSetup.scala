@@ -48,10 +48,19 @@ case class SimpleDataDriverSetup(parameters: Map[String, Any]) extends DriverSet
       Parameter(Some("text"), Some("dataFrame"), Some(true), None, Some("@PROCESSDFSTEP")))),
     Some(EngineMeta(Some("InputOutputSteps.writeJSONFile"))))
 
-  override def pipelines: List[Pipeline] = List(Pipeline(Some("SIMPLE_DATA_PIPELINE"), Some("Simple Data Example"),
-    Some(List(LOAD_FILE, PROCESS_DF, WRITE_FILE))))
+  override def pipelines: List[Pipeline] = List()
 
   override def initialPipelineId: String = ""
 
   override def pipelineContext: PipelineContext = ctx
+
+  /**
+    * This function will return the execution plan to be used for the driver.
+    *
+    * @since 1.1.0
+    * @return An execution plan or None if not implemented
+    */
+  override def executionPlan: Option[List[PipelineExecution]] = Some(List(PipelineExecution("0",
+    List(Pipeline(Some("SIMPLE_DATA_PIPELINE"), Some("Simple Data Example"),
+      Some(List(LOAD_FILE, PROCESS_DF, WRITE_FILE)))), None, ctx, None)))
 }

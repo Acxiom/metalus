@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.drivers
 
-import com.acxiom.pipeline.PipelineExecutor
+import com.acxiom.pipeline.PipelineDependencyExecutor
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.services.kinesis.AmazonKinesisClient
@@ -11,8 +11,8 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.streaming.Seconds
 import org.apache.spark.streaming.kinesis.KinesisUtils
+import org.apache.spark.streaming.{Duration, StreamingContext}
 
 /**
   * Provides a driver that listens to a kafka cluster and one or more topics.
@@ -42,37 +42,30 @@ object KinesisPipelineDriver {
     val initializationClass = parameters("driverSetupClass").asInstanceOf[String]
     val driverSetup = ReflectionUtils.loadClass(initializationClass,
       Some(Map("parameters" -> parameters))).asInstanceOf[DriverSetup]
-    val pipelineContext = driverSetup.pipelineContext
-
+    if (driverSetup.executionPlan.isEmpty) {
+      throw new IllegalStateException(s"Unable to obtain valid execution plan. Please check the DriverSetup class: $initializationClass")
+    }
+    val executionPlan = driverSetup.executionPlan.get
+    val sparkSession = executionPlan.head.pipelineContext.sparkSession.get
     val awsAccessKey = parameters("awsAccessKey").asInstanceOf[String]
     val awsAccessSecret = parameters("awsAccessSecret").asInstanceOf[String]
     val appName = parameters("appName").asInstanceOf[String]
 
-
     val duration = StreamingUtils.getDuration(Some(parameters.getOrElse("duration-type", "seconds").asInstanceOf[String]),
       Some(parameters.getOrElse("duration", "10").asInstanceOf[String]))
     val streamingContext =
-      StreamingUtils.createStreamingContext(pipelineContext.sparkSession.get.sparkContext, Some(duration))
+      StreamingUtils.createStreamingContext(sparkSession.sparkContext, Some(duration))
 
     // Handle multiple shards
     val credentials = new BasicAWSCredentials(awsAccessKey, awsAccessSecret)
     val kinesisClient = new AmazonKinesisClient(credentials)
     kinesisClient.setEndpoint(parameters("endPointURL").asInstanceOf[String])
-    val numShards = kinesisClient.describeStream(parameters("streamName").asInstanceOf[String]).getStreamDescription().getShards().size
+    val numShards = kinesisClient.describeStream(parameters("streamName").asInstanceOf[String]).getStreamDescription.getShards.size
     logger.info("Number of Kinesis shards is : " + numShards)
     val numStreams = Option(parameters("consumerStreams").asInstanceOf[String].toInt).getOrElse(numShards)
 
     // Create the Kinesis DStreams
-    val kinesisStreams = (0 until numStreams).map { i =>
-        KinesisUtils.createStream(streamingContext, appName,
-          parameters("streamName").asInstanceOf[String],
-          parameters("endPointURL").asInstanceOf[String],
-          parameters("regionName").asInstanceOf[String],
-          InitialPositionInStream.LATEST, duration, StorageLevel.MEMORY_AND_DISK_2,
-          (r: Record) => Row(r.getPartitionKey, new String(r.getData.array()), appName),
-          awsAccessKey, awsAccessSecret)
-    }
-
+    val kinesisStreams = createKinesisDStreams(awsAccessKey, awsAccessSecret, appName, duration, streamingContext, numStreams, parameters)
     logger.info("Created " + kinesisStreams.size + " Kinesis DStreams")
 
     // Union all the streams (in case numStreams > 1)
@@ -81,22 +74,30 @@ object KinesisPipelineDriver {
       if (!rdd.isEmpty()) {
         logger.debug("RDD received")
         // Convert the RDD into a dataFrame
-        val dataFrame = pipelineContext.sparkSession.get.createDataFrame(rdd,
-          StructType(List(StructField("key", StringType),
-            StructField("value", StringType),
+        val dataFrame = sparkSession.createDataFrame(rdd,
+          StructType(List(StructField("key", StringType), StructField("value", StringType),
             StructField("topic", StringType)))).toDF()
-        // Refresh the pipelineContext prior to run new data
-        val ctx = driverSetup.refreshContext(pipelineContext).setGlobal("initialDataFrame", dataFrame)
-        // Process the data frame
-        PipelineExecutor.executePipelines(driverSetup.pipelines,
-          if (driverSetup.initialPipelineId == "") None else Some(driverSetup.initialPipelineId), ctx)
+        // Refresh the execution plan prior to processing new data
+        PipelineDependencyExecutor.executePlan(DriverUtils.addInitialDatFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame))
         logger.debug("Completing RDD")
       }
     }
 
     streamingContext.start()
     StreamingUtils.setTerminationState(streamingContext, parameters)
-
     logger.info("Shutting down Kinesis Pipeline Driver")
+  }
+
+  private def createKinesisDStreams(awsAccessKey: String, awsAccessSecret: String, appName: String, duration: Duration,
+                                    streamingContext: StreamingContext, numStreams: Int, parameters: Map[String, Any]) = {
+    (0 until numStreams).map { _ =>
+      KinesisUtils.createStream(streamingContext, appName,
+        parameters("streamName").asInstanceOf[String],
+        parameters("endPointURL").asInstanceOf[String],
+        parameters("regionName").asInstanceOf[String],
+        InitialPositionInStream.LATEST, duration, StorageLevel.MEMORY_AND_DISK_2,
+        (r: Record) => Row(r.getPartitionKey, new String(r.getData.array()), appName),
+        awsAccessKey, awsAccessSecret)
+    }
   }
 }
