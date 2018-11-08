@@ -108,8 +108,14 @@ object DriverUtils {
     parse(pipelineJson).extractOpt[List[Pipeline]]
   }
 
-  def addInitialDatFrameToExecutionPlan(executionPlan: List[PipelineExecution],
-                                        initialDataFrame: DataFrame): List[PipelineExecution] = {
+  /**
+    * This function will add the a data frame to each execution in the list as a global value.
+    * @param executionPlan The list of executions.
+    * @param initialDataFrame The data frame to add.
+    * @return
+    */
+  def addInitialDataFrameToExecutionPlan(executionPlan: List[PipelineExecution],
+                                         initialDataFrame: DataFrame): List[PipelineExecution] = {
     executionPlan.map(execution => PipelineExecution(execution.id,
       execution.pipelines,
       execution.initialPipelineId,

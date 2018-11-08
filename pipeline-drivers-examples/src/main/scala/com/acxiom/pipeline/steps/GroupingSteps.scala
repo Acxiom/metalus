@@ -20,4 +20,12 @@ object GroupingSteps {
   def recordCount(dataFrame: DataFrame): Long = {
     dataFrame.count()
   }
+
+  @StepFunction("99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
+    "Performs a grouping and aggregation of the data",
+    "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
+    "Pipeline")
+  def groupByField(dataFrame: DataFrame, groupByField: String): DataFrame = {
+    dataFrame.groupBy(dataFrame.schema.fields.map(field => dataFrame(field.name)): _*).agg(dataFrame(groupByField))
+  }
 }

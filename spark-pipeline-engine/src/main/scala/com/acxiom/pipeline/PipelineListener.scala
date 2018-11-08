@@ -22,7 +22,7 @@ trait PipelineListener {
   }
 
   def executionStopped(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
-    logger.info(s"Stopping execution of pipelines. Completed: ${pipelines.map(p => p.name.getOrElse(p.id.getOrElse("")))}")
+    logger.info(s"Stopping execution of pipelines. Completed: ${pipelines.map(p => p.name.getOrElse(p.id.getOrElse(""))).mkString(",")}")
   }
 
   def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {

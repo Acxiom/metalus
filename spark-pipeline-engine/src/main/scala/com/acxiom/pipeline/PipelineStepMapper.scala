@@ -43,7 +43,7 @@ trait PipelineStepMapper {
     * This function will determine if the provided value contains an embedded Option
     *
     * @param value The value to inspect
-    * @return true if the value in the Optin is another Option
+    * @return true if the value in the Option is another Option
     */
   @tailrec
   final def isValidOption(value: Option[Any]): Boolean = {
@@ -112,6 +112,7 @@ trait PipelineStepMapper {
         case b: Boolean => Some(b)
         case i: Int => Some(i)
         case i: BigInt => Some(i.toInt)
+        case l: List[_] => Some(l)
         case t => // TODO Handle other types - This function may need to be reworked to support this so that it can be overridden
           throw new RuntimeException(s"Unsupported value type ${t.getClass} for ${parameter.name.getOrElse("unknown")}!")
       }
@@ -239,6 +240,7 @@ trait PipelineStepMapper {
 
   private def getGlobalParameterValue(value: String, extractPath: String, pipelineContext: PipelineContext): Option[Any] = {
     // the value is marked as a global parameter, get it from pipelineContext.globals
+    logger.debug(s"Fetching global value for $value.$extractPath")
     val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
     if (globals.contains(value.substring(1))) {
       val global = globals(value.substring(1))
@@ -248,6 +250,7 @@ trait PipelineStepMapper {
         case _ => Some(ReflectionUtils.extractField(global, extractPath))
       }
     } else {
+      logger.debug(s"globals does not contain the requested value: $value.$extractPath")
       None
     }
   }

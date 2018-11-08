@@ -24,6 +24,7 @@ class KafkaPipelineDriverSuiteTests extends FunSpec with BeforeAndAfterAll with 
   kafkaProperties.put("zookeeper.connect", testingServer.getConnectString)
   kafkaProperties.put("host.name", "127.0.0.1")
   kafkaProperties.put("auto.create.topics.enable", "true")
+  kafkaProperties.put("offsets.topic.replication.factor", "1")
   kafkaProperties.put(KafkaConfig.LogDirsProp, kafkaLogs.toFile.getAbsolutePath)
   val server = new KafkaServerStartable(new KafkaConfig(kafkaProperties))
 
