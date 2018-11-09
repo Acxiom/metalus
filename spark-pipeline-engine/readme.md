@@ -6,7 +6,8 @@ This component provides a framework for building Spark processing pipelines buil
 ### Execution Plan
 The **PipelineDependencyExecutor** object allows pipelines to execute in parallel and express dependencies between
 pipelines or groups of pipelines. Using a list **PipelineExecution** traits, the executor will build an execution 
-graph that is executed in a threaded manner.
+graph that is executed in a threaded manner. Each execution is responsible for processing a chain of pipelines using
+the pipeline execution shown in the **Pipeline** section below.
 
 When one execution is dependent on another, the *globals* and *parameters* objects will be taken from the final 
 **PipelineContext** and injected into the globals object as a map keyed by the id from the *PipelineExectution*.
@@ -14,6 +15,10 @@ In the map these objects may be referenced by the names *globals* and *pipelineP
 
 In the event that the result of an execution plan results in an exception or one of the pipelines being paused or errored,
 then downstream executions will not run. 
+
+![Pipeline Execution Plan Example](../docs/images/Execution_Plan_Example.png "Pipeline Execution Dependencies")
+
+![Pipeline Execution Plan Flow](../docs/images/Execution_Plan_Flow.png "Pipeline Execution Flow")
 
 ### Pipeline
 The Pipeline case class describes the pipeline that needs to be executed. Only three attributes are required:
