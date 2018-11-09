@@ -75,6 +75,7 @@ TODO: Figure out the spark version or document it.
 The project is made up of three main components:
 
 * Spark Pipeline Engine
+* Common Pipeline Steps
 * Streaming Pipeline Drivers
 * Pipeline Drivers Examples
 
@@ -82,6 +83,9 @@ The project is made up of three main components:
 This component contains all of the functionality required to build processing pipelines. Processing pipelines contain a
 series of PipelineSteps which are executed in order, conditionally or as branching logic. Multiple pipelines may be
 chained together in a single Spark session with objects from pipelines being made available to subsequent pipelines.
+
+### Common Pipeline Steps
+This component contains steps that are considered generic enough to be used in any project.
 
 ### Streaming Pipeline Drivers
 This component contains drivers classes that connect to various streaming technologies like [Kafka](http://kafka.apache.org/) and [Kinesis](https://aws.amazon.com/kinesis/). Each
