@@ -16,7 +16,14 @@ In the map these objects may be referenced by the names *globals* and *pipelineP
 In the event that the result of an execution plan results in an exception or one of the pipelines being paused or errored,
 then downstream executions will not run. 
 
+Below is an example of an execution plan demonstrating a single root pipeline chain that has three child dependencies.
+A final pipeline chain has a dependency on two of the three child pipeline chains. In this example, pipeline chain *A* will
+execute first. Once it is complete, then pipeline chains *B*, *C* and *D* can be executed in parallel depending on resources
+available. The final pipeline chain *E* will only execute once both *B* and *D* have completed successfully.:
+
 ![Pipeline Execution Plan Example](../docs/images/Execution_Plan_Example.png "Pipeline Execution Dependencies")
+
+This next diagram shows how an execution plan is processed:
 
 ![Pipeline Execution Plan Flow](../docs/images/Execution_Plan_Flow.png "Pipeline Execution Flow")
 
