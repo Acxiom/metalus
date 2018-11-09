@@ -192,8 +192,9 @@ Add this as the first entry in the steps array.
 Save the pipeline json to a file named **execution-pipelines.json**
 
 ## Extraction Pipelines
-Additional pipelines will be created that take the DataFrame from the first pipeline and
-extract specific fields of data. Each pipeline will generate a new DataFrame.
+Additional pipelines will be created that take the DataFrame generated in the *ROOT* execution
+(available as a global lookup) and extract specific fields of data. Each pipeline will generate 
+a new DataFrame which will be added to the globals object of the final execution.
 
 Two new steps are required to perform this process:
 
