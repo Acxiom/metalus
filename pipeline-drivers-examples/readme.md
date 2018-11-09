@@ -1,6 +1,8 @@
 # Spark Pipeline Driver Examples
 This project contains examples demonstrating how to get started.
 
+* An example of the execution plan functionality is available [here](docs/pipeline-execution-plan-example.md).
+* An example of using kenesis to stream data is available [here](docs/kinesis-streaming-example.md).
 ## Simple Data Operations example
 This example was taken from the [Spark Examples](http://spark.apache.org/examples.html) page and adapted.
 
