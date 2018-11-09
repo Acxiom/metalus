@@ -26,8 +26,12 @@ class name as a command line parameter. The driver will then call the different 
 This DriverSetup implementation is responsible for initializing the SparkConf and SparkSession. A utility object is
 provided named *DriverUtils* that can be used to create the SparkConf.
 
-##### Pipelines
-The *pipelines* function is responsible for returning a List of *Pipeline* objects that will be executed.
+##### Pipelines / Execution Plan
+The *executionPlan* function is responsible for returning a List of *PipelineExecution* objects that contain the
+*pipelines* that should be executed and the dependencies that should be observed. The *pipelines* function has 
+been deprecated and should only return an empty list. Any *DriverSetup* that still implements the *pipelines* function
+and not the *executionPlan* function will still work as the *DriverSetup* trait will convert the pipelines into an
+Execution Plan.
 
 ##### PipelineContext
 The *PipelineContext* needs to be initialized and refreshed. Streaming drivers will call the refresh function after each
