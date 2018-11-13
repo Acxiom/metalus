@@ -10,7 +10,7 @@ object PipelineExecutor {
 
   def executePipelines(pipelines: List[Pipeline],
                        initialPipelineId: Option[String],
-                       initialContext: PipelineContext): Unit = {
+                       initialContext: PipelineContext): PipelineExecutionResult = {
     val executingPipelines = if (initialPipelineId.isDefined) {
       pipelines.slice(pipelines.indexWhere(pipeline => {
         pipeline.id.get == initialPipelineId.getOrElse("")
@@ -18,9 +18,7 @@ object PipelineExecutor {
     } else {
       pipelines
     }
-
     val esContext = handleEvent(initialContext, "executionStarted", List(executingPipelines, initialContext))
-
     try {
       val pipelineLookup = executingPipelines.map(p => p.id.getOrElse("") -> p.name.getOrElse("")).toMap
       val ctx = executingPipelines.foldLeft(esContext)((accCtx, pipeline) => {
@@ -50,10 +48,14 @@ object PipelineExecutor {
           case t: Throwable => throw handleStepExecutionExceptions(t, pipeline, accCtx, executingPipelines)
         }
       })
-      handleEvent(ctx, "executionFinished", List(executingPipelines, ctx))
+      PipelineExecutionResult(handleEvent(ctx, "executionFinished", List(executingPipelines, ctx)), success = true)
     } catch {
-      case p: PauseException => logger.info(s"Paused pipeline flow at pipeline ${p.pipelineId} step ${p.stepId}. ${p.message}")
-      case pse: PipelineStepException => logger.error(s"Stopping pipeline because of an exception", pse)
+      case p: PauseException =>
+        logger.info(s"Paused pipeline flow at pipeline ${p.pipelineId} step ${p.stepId}. ${p.message}")
+        PipelineExecutionResult(esContext, success = false)
+      case pse: PipelineStepException =>
+        logger.error(s"Stopping pipeline because of an exception", pse)
+        PipelineExecutionResult(esContext, success = false)
       case t: Throwable => throw t
     }
   }
