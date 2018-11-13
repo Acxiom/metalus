@@ -38,7 +38,7 @@ The *PipelineContext* needs to be initialized and refreshed. Streaming drivers w
 data set is processed.
 
 ### Pipelines
-A pipeline is a list of [*PipelineStep*](spark-pipeline-engine/src/main/scala/com/acxiom/pipeline/PipelineStep.scala)s that need to be executed. Each step in a pipeline will be executed until
+A pipeline is a list of [*PipelineSteps*](spark-pipeline-engine/src/main/scala/com/acxiom/pipeline/PipelineStep.scala) that need to be executed. Each step in a pipeline will be executed until
 completion or an exception is thrown.
 
 During execution, the provided *PipelineListener* will receive notifications when the execution starts and finishes, when
