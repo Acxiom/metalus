@@ -78,7 +78,7 @@ object KinesisPipelineDriver {
           StructType(List(StructField("key", StringType), StructField("value", StringType),
             StructField("topic", StringType)))).toDF()
         // Refresh the execution plan prior to processing new data
-        PipelineDependencyExecutor.executePlan(DriverUtils.addInitialDatFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame))
+        PipelineDependencyExecutor.executePlan(DriverUtils.addInitialDataFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame))
         logger.debug("Completing RDD")
       }
     }

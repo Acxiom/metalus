@@ -69,7 +69,7 @@ object KafkaPipelineDriver {
             StructField("value", StringType),
             StructField("topic", StringType)))).toDF()
         // Refresh the execution plan prior to processing new data
-        PipelineDependencyExecutor.executePlan(DriverUtils.addInitialDatFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame))
+        PipelineDependencyExecutor.executePlan(DriverUtils.addInitialDataFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame))
         // commit offsets after pipeline(s) completes
         stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetRanges)
         logger.debug(s"Committing Kafka offsets ${offsetRanges.mkString(",")}")

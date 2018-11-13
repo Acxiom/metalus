@@ -14,7 +14,7 @@ Submit a job:
 	spark-submit --class com.acxiom.pipeline.drivers.KinesisPipelineDriver \
 	--master spark://localhost:7077 \
 	--deploy-mode client \
-	--jars <jar_path/spark-pipeline-engine_2.11-0.1.0-SNAPSHOT.jar,<jar_path/streaming-pipeline-drivers_2.11-0.1.0-SNAPSHOT.jar <jar_path>/pipeline-drivers-examples_2.11-0.1.0-SNAPSHOT.jar \
+	--jars <jar_path/spark-pipeline-engine_2.11-<VERSION>.jar,<jar_path/streaming-pipeline-drivers_2.11-<VERSION>.jar <jar_path>/pipeline-drivers-examples_2.11-<VERSION>.jar \
 	--driverSetupClass com.acxiom.pipeline.SimpleKinesisDriverSetup \
 	--appName <Application name> \
     --streamName <Stream name> \

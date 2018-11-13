@@ -26,15 +26,19 @@ class name as a command line parameter. The driver will then call the different 
 This DriverSetup implementation is responsible for initializing the SparkConf and SparkSession. A utility object is
 provided named *DriverUtils* that can be used to create the SparkConf.
 
-##### Pipelines
-The *pipelines* function is responsible for returning a List of *Pipeline* objects that will be executed.
+##### Pipelines / Execution Plan
+The *executionPlan* function is responsible for returning a List of *PipelineExecution* objects that contain the
+*pipelines* that should be executed and the dependencies that should be observed. The *pipelines* function has 
+been deprecated and should only return an empty list. Any *DriverSetup* that still implements the *pipelines* function
+and not the *executionPlan* function will still work as the *DriverSetup* trait will convert the pipelines into an
+Execution Plan.
 
 ##### PipelineContext
 The *PipelineContext* needs to be initialized and refreshed. Streaming drivers will call the refresh function after each
 data set is processed.
 
 ### Pipelines
-A pipeline is a list of [*PipelineStep*](spark-pipeline-engine/src/main/scala/com/acxiom/pipeline/PipelineStep.scala)s that need to be executed. Each step in a pipeline will be executed until
+A pipeline is a list of [*PipelineSteps*](spark-pipeline-engine/src/main/scala/com/acxiom/pipeline/PipelineStep.scala) that need to be executed. Each step in a pipeline will be executed until
 completion or an exception is thrown.
 
 During execution, the provided *PipelineListener* will receive notifications when the execution starts and finishes, when
@@ -71,6 +75,7 @@ TODO: Figure out the spark version or document it.
 The project is made up of three main components:
 
 * Spark Pipeline Engine
+* Common Pipeline Steps
 * Streaming Pipeline Drivers
 * Pipeline Drivers Examples
 
@@ -78,6 +83,9 @@ The project is made up of three main components:
 This component contains all of the functionality required to build processing pipelines. Processing pipelines contain a
 series of PipelineSteps which are executed in order, conditionally or as branching logic. Multiple pipelines may be
 chained together in a single Spark session with objects from pipelines being made available to subsequent pipelines.
+
+### Common Pipeline Steps
+This component contains steps that are considered generic enough to be used in any project.
 
 ### Streaming Pipeline Drivers
 This component contains drivers classes that connect to various streaming technologies like [Kafka](http://kafka.apache.org/) and [Kinesis](https://aws.amazon.com/kinesis/). Each

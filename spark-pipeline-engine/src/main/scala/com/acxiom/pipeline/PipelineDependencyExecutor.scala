@@ -2,14 +2,15 @@ package com.acxiom.pipeline
 
 import java.util.UUID
 
+import org.apache.log4j.Logger
+
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
-
 import scala.collection.JavaConverters._
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object PipelineDependencyExecutor {
+  val logger: Logger = Logger.getLogger(getClass)
   /**
     *
     * @param executions A list of executions to process
@@ -33,6 +34,7 @@ object PipelineDependencyExecutor {
           lookup
         }
       })
+      logger.debug(s"Starting the execution of ${rootExecutions.map(_.id).mkString(",")}")
       processFutures(rootExecutions.map(startExecution), Map[String, FutureResult](), executionGraph)
     }
   }
@@ -59,6 +61,11 @@ object PipelineDependencyExecutor {
           val result = f.value.get.get
           // Don't do anything if the result has already been recorded
           if (!futureResultMap.resultMap.contains(result.execution.id)) {
+            val success = if (result.result.isDefined) { result.result.get.success } else { false }
+            logger.debug(s"Saving result of execution ${result.execution.id} as $success")
+            if (!success && result.error.isDefined) {
+              logger.error(s"Exception thrown from execution ${result.execution.id}", result.error.get)
+            }
             // Update the results with the result of this future
             val updateResultMap = futureResultMap.resultMap + (result.execution.id -> result)
             val updatedResults = futureResultMap.copy(resultMap = updateResultMap)
@@ -73,6 +80,7 @@ object PipelineDependencyExecutor {
             futureResultMap
           }
         } else {
+          logger.warn("Execution did not execute successfully!")
           // If the future is not a success, then do nothing. This should be a rare occurrence
           futureResultMap
         }
@@ -102,7 +110,8 @@ object PipelineDependencyExecutor {
       val parents = execution.parents.get.filter(id => {
         results.contains(id) &&
           results(id).result.isDefined &&
-          (results(id).result.get.pipelineContext.stepMessages.isEmpty ||
+          (results(id).result.get.success ||
+            results(id).result.get.pipelineContext.stepMessages.isEmpty ||
             results(id).result.get.pipelineContext.stepMessages.get.value.isEmpty ||
             !results(id).result.get.pipelineContext.stepMessages.get.value.asScala.exists(p => {
               p.messageType == PipelineStepMessageType.error || p.messageType == PipelineStepMessageType.pause
