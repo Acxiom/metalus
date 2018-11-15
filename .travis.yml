@@ -1,9 +1,5 @@
 language: scala
 
-os:
-  - linux
-  - osx
-
 matrix:
   include:
     - os: linux
