@@ -105,7 +105,7 @@ trait PipelineStepMessage {
 
 object PipelineStepMessageType extends Enumeration {
   type PipelineStepMessageType = Value
-  val error, warn, pause = Value
+  val error, warn, pause, info = Value
 }
 
 object PipelineStepMessage {

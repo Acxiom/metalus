@@ -1,6 +1,8 @@
 # Spark Pipeline Driver Examples
 This project contains examples demonstrating how to get started.
 
+* An example of the execution plan functionality is available [here](docs/pipeline-execution-plan-example.md).
+* An example of using kenesis to stream data is available [here](docs/kinesis-streaming-example.md).
 ## Simple Data Operations example
 This example was taken from the [Spark Examples](http://spark.apache.org/examples.html) page and adapted.
 
@@ -20,7 +22,7 @@ and output will be broken apart.
 	* separator: Option[String]
 	* pipelineContext: PipelineContext
 * Gave the function a return type of DataFrame
-* Inserted the following code into the body of the function:
+* Inserted the following code into the body of the function (**Note**: This code is slightly different in the example project):
 
 	```scala
 	val dfr = if (separator.isDefined) {
@@ -61,7 +63,7 @@ The *DriverSetup* trait is the starting point of the application. The implementa
 PipelineContext as well as supplying the pipelines that will be executed.
 
 * Create a new case class in *com.acxiom.pipeline* named [**SimpleDataDriverSetup**](src/main/scala/com/acxiom/pipeline/SimpleDataDriverSetup.scala).
-* Extend **DriverSetup*
+* Extend **DriverSetup**
 * Provide the following constructor:
 
 	```scala
@@ -121,11 +123,10 @@ PipelineContext as well as supplying the pipelines that will be executed.
           Parameter(Some("text"), Some("dataFrame"), Some(true), None, Some("@PROCESSDFSTEP")))),
         Some(EngineMeta(Some("InputOutputSteps.writeJSONFile"))))
 	```
-* Override the *pipelines* function to return a pipeline:
+* Override the *pipelines* function to return an empty List:
 
 	```scala
-	override def pipelines: List[Pipeline] = List(Pipeline(Some("SIMPLE_DATA_PIPELINE"), Some("Simple Data Example"),
-        Some(List(LOAD_FILE, PROCESS_DF, WRITE_FILE))))
+	override def pipelines: List[Pipeline] = List()
 	```
 * Override the *initialPipelineId* function to return an empty string.
 * Override the *pipelineContext* function:
@@ -133,6 +134,15 @@ PipelineContext as well as supplying the pipelines that will be executed.
 	```scala
 	override def pipelineContext: PipelineContext = ctx
 	``` 
+	
+* Override the *executionPlan* function to return an list containing a single execution:
+
+	```scala
+	override def executionPlan: Option[List[PipelineExecution]] = Some(List(PipelineExecution("0",
+    List(Pipeline(Some("SIMPLE_DATA_PIPELINE"), Some("Simple Data Example"),
+      Some(List(LOAD_FILE, PROCESS_DF, WRITE_FILE)))), None, ctx, None)))
+	``` 
+
 #### PipelineStep
 While creating the *DriverSetup*, three **PipelineStep**s were also created. Four global values *(beginning with !)* were
 used when creating the steps. Additionally, the last two steps used the step reference *(@)* character to pull the return
@@ -148,8 +158,8 @@ Submit a job:
 	spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 	--master spark://localhost:7077 \
 	--deploy-mode client \
-	--jars <jar_path/spark-pipeline-engine_2.11-0.1.0-SNAPSHOT.jar,<jar_path/streaming-pipeline-drivers_2.11-0.1.0-SNAPSHOT.jar
-	<jar_path>/pipeline-drivers-examples_2.11-0.1.0-SNAPSHOT.jar \
+	--jars <jar_path/spark-pipeline-engine_2.11-<VERSION>.jar,<jar_path/streaming-pipeline-drivers_2.11-<VERSION>.jar
+	<jar_path>/pipeline-drivers-examples_2.11-<VERSION>.jar \
 	--driverSetupClass com.acxiom.pipeline.SimpleDataDriverSetup \
 	--input_url <location of input file> \
 	--input_format <csv, parquet, etc...> \

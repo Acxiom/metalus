@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.drivers
 
-import com.acxiom.pipeline.PipelineExecutor
+import com.acxiom.pipeline.PipelineDependencyExecutor
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -9,7 +9,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.streaming.kafka010._
-import org.apache.spark.streaming.{Duration, Seconds, StreamingContext}
 
 /**
   * Provides a driver that listens to a kafka cluster and one or more topics.
@@ -37,9 +36,13 @@ object KafkaPipelineDriver {
       Some(Map("parameters" -> parameters))).asInstanceOf[DriverSetup]
     val topics = parameters("topics").asInstanceOf[String].split(",")
     logger.info(s"Listening for Kafka messages using topics: ${topics.mkString(",")}")
-    val pipelineContext = driverSetup.pipelineContext
+    if (driverSetup.executionPlan.isEmpty) {
+      throw new IllegalStateException(s"Unable to obtain valid execution plan. Please check the DriverSetup class: $initializationClass")
+    }
+    val executionPlan = driverSetup.executionPlan.get
+    val sparkSession = executionPlan.head.pipelineContext.sparkSession.get
 
-    val streamingContext = StreamingUtils.createStreamingContext(pipelineContext.sparkSession.get.sparkContext,
+    val streamingContext = StreamingUtils.createStreamingContext(sparkSession.sparkContext,
       Some(parameters.getOrElse("duration-type", "seconds").asInstanceOf[String]),
       Some(parameters.getOrElse("duration", "10").asInstanceOf[String]))
 
@@ -61,15 +64,12 @@ object KafkaPipelineDriver {
         // Need to commit the offsets in Kafka that we have consumed
         val offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
         // Convert the RDD into a dataFrame
-        val dataFrame = pipelineContext.sparkSession.get.createDataFrame(rdd.map(r => Row(r.key(), r.value(), r.topic())),
+        val dataFrame = sparkSession.createDataFrame(rdd.map(r => Row(r.key(), r.value(), r.topic())),
           StructType(List(StructField("key", StringType),
             StructField("value", StringType),
             StructField("topic", StringType)))).toDF()
-        // Refresh the pipelineContext prior to run new data
-        val ctx = driverSetup.refreshContext(pipelineContext).setGlobal("initialDataFrame", dataFrame)
-        // Process the data frame
-        PipelineExecutor.executePipelines(driverSetup.pipelines,
-          if (driverSetup.initialPipelineId == "") None else Some(driverSetup.initialPipelineId), ctx)
+        // Refresh the execution plan prior to processing new data
+        PipelineDependencyExecutor.executePlan(DriverUtils.addInitialDataFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame))
         // commit offsets after pipeline(s) completes
         stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetRanges)
         logger.debug(s"Committing Kafka offsets ${offsetRanges.mkString(",")}")

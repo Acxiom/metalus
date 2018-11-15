@@ -2,11 +2,12 @@ package com.acxiom.pipeline.utils
 
 import java.text.ParseException
 
-import com.acxiom.pipeline.{DefaultPipeline, Pipeline}
+import com.acxiom.pipeline.{DefaultPipeline, Pipeline, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
+import org.apache.spark.sql.DataFrame
 import org.json4s.native.JsonMethods.parse
 import org.json4s.{DefaultFormats, Formats, ShortTypeHints, TypeHints}
 
@@ -80,7 +81,7 @@ object DriverUtils {
     */
   def parsePipelineJson(pipelineJson: String): Option[List[Pipeline]] = {
     implicit val formats: Formats = DefaultFormats
-    if (pipelineJson(0) != '[') {
+    if (pipelineJson.trim()(0) != '[') {
       throw new ParseException(pipelineJson, 0)
     }
     parse(pipelineJson).extractOpt[List[DefaultPipeline]]
@@ -101,9 +102,24 @@ object DriverUtils {
       override val typeHintFieldName: String = "typeClass"
       override val typeHints: TypeHints = ShortTypeHints(List(pipelineType))
     }
-    if (pipelineJson(0) != '[') {
+    if (pipelineJson.trim()(0) != '[') {
       throw new ParseException(pipelineJson, 0)
     }
     parse(pipelineJson).extractOpt[List[Pipeline]]
+  }
+
+  /**
+    * This function will add the a data frame to each execution in the list as a global value.
+    * @param executionPlan The list of executions.
+    * @param initialDataFrame The data frame to add.
+    * @return
+    */
+  def addInitialDataFrameToExecutionPlan(executionPlan: List[PipelineExecution],
+                                         initialDataFrame: DataFrame): List[PipelineExecution] = {
+    executionPlan.map(execution => PipelineExecution(execution.id,
+      execution.pipelines,
+      execution.initialPipelineId,
+      execution.pipelineContext.setGlobal("initialDataFrame", initialDataFrame),
+      execution.parents))
   }
 }
