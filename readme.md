@@ -1,7 +1,7 @@
 
-[![Develop Build](https://travis-ci.com/dafreels/spark-pipeline-driver.svg?branch=develop)](https://travis-ci.com/dafreels/spark-pipeline-driver?branch=develop)
+[![Develop Build](https://img.shields.io/travis/73VW/TechnicalReport/build.svg?label=Develop)](https://travis-ci.com/dafreels/spark-pipeline-driver?branch=develop)
 [![Develop Coverage](https://coveralls.io/repos/github/dafreels/spark-pipeline-driver/badge.svg?branch=develop)](https://coveralls.io/github/dafreels/spark-pipeline-driver?branch=develop)
-[![Master Status](https://travis-ci.com/dafreels/spark-pipeline-driver.svg?branch=master)](https://travis-ci.com/dafreels/spark-pipeline-driver?branch=master)
+[![Master Status](https://img.shields.io/travis/73VW/TechnicalReport/build.svg?label=Master)](https://travis-ci.com/dafreels/spark-pipeline-driver?branch=master)
 [![Master Coverage](https://coveralls.io/repos/github/dafreels/spark-pipeline-driver/badge.svg?branch=master)](https://coveralls.io/github/dafreels/spark-pipeline-driver?branch=master)
 
 # Spark Pipeline Driver

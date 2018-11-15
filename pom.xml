@@ -17,6 +17,7 @@
         <scala.compat.version>2.11</scala.compat.version>
         <spark.version>2.3.2</spark.version>
         <scala.style.config>${basedir}/scalastyle_config.xml</scala.style.config>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <modules>
@@ -124,6 +125,19 @@
                 <configuration>
                     <scalaVersion>${scala.version}</scalaVersion>
                     <highlighting>true</highlighting>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.eluder.coveralls</groupId>
+                <artifactId>coveralls-maven-plugin</artifactId>
+                <version>4.3.0</version>
+                <configuration>
+                    <repoToken>${repoToken}</repoToken>
+                    <coberturaReports>
+                        <coberturaReport>spark-pipeline-engine/target/cobertura.xml</coberturaReport>
+                        <coberturaReport>common-pipeline-steps/target/cobertura.xml</coberturaReport>
+                        <coberturaReport>streaming-pipeline-drivers/target/cobertura.xml</coberturaReport>
+                    </coberturaReports>
                 </configuration>
             </plugin>
             <plugin>
