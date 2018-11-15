@@ -1,12 +1,21 @@
+language: shell
+
 os:
   - linux
   - osx
   - windows
+
 matrix:
+  include:
+    - os: linux
+    - os: osx
+      osx_image: xcode9.3
+
   allow_failures:
     - os: windows
-language: scala
+
 scala:
   - 2.11.12
+
 script:
   - mvn
