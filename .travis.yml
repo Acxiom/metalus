@@ -1,4 +1,12 @@
+os:
+  - linux
+  - osx
+  - windows
+matrix:
+  allow_failures:
+    - os: windows
 language: scala
 scala:
-  - 2.11.11
-script: mvn
+  - 2.11.12
+script:
+  - mvn
