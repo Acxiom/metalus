@@ -1,6 +1,8 @@
-develop branch: [![Build Status](https://travis-ci.com/dafreels/spark-pipeline-driver.svg?branch=develop)](https://travis-ci.com/dafreels/spark-pipeline-driver)
 
-master branch: [![Build Status](https://travis-ci.com/dafreels/spark-pipeline-driver.svg?branch=master)](https://travis-ci.com/dafreels/spark-pipeline-driver)
+[![Develop Build](https://img.shields.io/travis/dafreels/spark-pipeline-driver/develop.svg?label=Develop)](https://travis-ci.com/dafreels/spark-pipeline-driver?branch=develop)
+[![Develop Coverage](https://img.shields.io/coveralls/github/dafreels/spark-pipeline-driver/develop.svg?label=Develop)](https://coveralls.io/github/dafreels/spark-pipeline-driver?branch=develop)
+[![Master Status](https://img.shields.io/travis/dafreels/spark-pipeline-driver/master.svg?label=Master)](https://travis-ci.com/dafreels/spark-pipeline-driver?branch=master)
+[![Master Coverage](https://img.shields.io/coveralls/github/dafreels/spark-pipeline-driver/master.svg?label=Master)](https://coveralls.io/github/dafreels/spark-pipeline-driver?branch=master)
 
 # Spark Pipeline Driver
 This project aims to make writing [Spark](http://spark.apache.org) applications easier by abstracting the effort to assemble the driver into
