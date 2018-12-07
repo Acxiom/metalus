@@ -17,14 +17,16 @@ jobs:
     os: linux
     before_script:
       - mvn versions:set -DremoveSnapshot
-      - export project_version=$(mvn help:evaluate -N -Dexpression=project.version|grep -v '\[')
     script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
+    before_deploy:
+      - export project_version=$(mvn help:evaluate -N -Dexpression=project.version|grep -v '\[')
     deploy:
       provider: releases
       api_key: $GITHUB_OAUTH_TOKEN
       name: $project_version
       skip_cleanup: true
+      file_glob: true
       file:
-        - common-pipeline-steps/target/common-pipeline-steps_2.11-$project_version.jar
-        - spark-pipeline-engine/target/spark-pipeline-engine_2.11-$project_version.jar
-        - streaming-pipeline-drivers/target/streaming-pipeline-drivers_2.11-$project_version.jar
+        - common-pipeline-steps/target/common-pipeline-steps_2.11-*.jar
+        - spark-pipeline-engine/target/spark-pipeline-engine_2.11-*.jar
+        - streaming-pipeline-drivers/target/streaming-pipeline-drivers_2.11-*.jar
