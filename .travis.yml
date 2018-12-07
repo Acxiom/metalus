@@ -1,13 +1,17 @@
 language: scala
 
-matrix:
-  include:
-    - os: linux
-    - os: osx
-      osx_image: xcode9.3
-
 scala:
-  - 2.11.12
+- 2.11.12
 
-script:
-  - mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
+jobs:
+  include:
+    - stage: test
+      matrix:
+        - os: linux
+        - os: osx
+          osx_image: xcode9.3
+      script: mvn clean install
+    - stage: deploy
+      if: branch = master
+      os: linux
+      script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
