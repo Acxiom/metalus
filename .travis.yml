@@ -23,7 +23,7 @@ jobs:
       - mvn versions:set -DremoveSnapshot
     script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
     before_deploy:
-      - export project_version=$(mvn help:evaluate -N -Dexpression=project.version|grep -v '\['|grep -v 'Downloading')
+      - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
       - echo "${project_version}"
       - echo $(ls)
     deploy:
