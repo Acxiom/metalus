@@ -3,15 +3,14 @@ language: scala
 scala:
 - 2.11.12
 
-matrix:
-  include:
-  - os: linux
-  - os: osx
-    osx_image: xcode9.3
-
 jobs:
   include:
   - stage: build
+    os: linux
+    script: mvn clean install
+  -
+    os: osx
+    osx_image: xcode9.3
     script: mvn clean install
   - stage: coverage
     os: linux
