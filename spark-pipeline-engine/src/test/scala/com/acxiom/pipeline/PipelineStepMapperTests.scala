@@ -48,6 +48,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         PipelineParameter("pipeline-id-1",
           Map(
             "rawKey1" -> "rawValue1",
+            "red" -> None,
             "step1" -> PipelineStepResponse(
               Some(Map("primaryKey1String" -> "primaryKey1Value", "primaryKey1Map" -> Map("childKey1Integer" -> 2))),
               Some(Map("namedKey1String" -> "namedValue1", "namedKey1Boolean" -> true, "nameKey1List" -> List(0,1,2)))
@@ -73,6 +74,12 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       )
 
       val tests = List(
+        ("script", Parameter(value=Some("my_script"),`type`=Some("script")), "my_script"),
+        ("boolean", Parameter(value=Some(true),`type`=Some("boolean")), true),
+        ("int", Parameter(value=Some(1),`type`=Some("integer")), 1),
+        ("big int", Parameter(value=Some(BigInt("5")),`type`=Some("integer")), BigInt("5")),
+        ("list", Parameter(value=Some(List("5")),`type`=Some("integer")), List("5")),
+        ("default value", Parameter(name = Some("fred"), defaultValue=Some("default value"),`type`=Some("string")), "default value"),
         ("string from global", Parameter(value=Some("!globalString"),`type`=Some("string")), "globalValue1"),
         ("boolean from global", Parameter(value=Some("!globalBoolean"),`type`=Some("boolean")), true),
         ("integer from global", Parameter(value=Some("!globalInteger"),`type`=Some("integer")), 3),
@@ -80,6 +87,9 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("child object from global", Parameter(value=Some("!globalTestObject.intField"),`type`=Some("integer")), globalTestObject.intField),
         ("non-step value from pipeline", Parameter(value=Some("$pipeline-id-1.rawKey1"),`type`=Some("string")), "rawValue1"),
         ("integer from current pipeline", Parameter(value=Some("$rawInteger"),`type`=Some("integer")), 3),
+        ("missing global parameter", Parameter(value=Some("!fred"),`type`=Some("string")), None),
+        ("missing runtime parameter", Parameter(value=Some("$fred"),`type`=Some("string")), None),
+        ("None runtime parameter", Parameter(name = Some("red test"), value=Some("$pipeline-id-1.red"),`type`=Some("string")), None),
         ("integer from specific pipeline", Parameter(value=Some("$pipeline-id-2.rawInteger"),`type`=Some("integer")), 2),
         ("primary from current pipeline using @", Parameter(value=Some("@step1"),`type`=Some("string")), List(1,2,3)),
         ("primary from current pipeline using $", Parameter(value=Some("$step1.primaryReturn"),`type`=Some("string")), List(1,2,3)),
@@ -98,6 +108,15 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         Then(s"test ${test._1}")
         assert(pipelineContext.parameterMapper.mapParameter(test._2, pipelineContext) == test._3)
       })
+
+      val thrown = intercept[RuntimeException] {
+        pipelineContext.parameterMapper.mapParameter(Parameter(name = Some("badValue"), value=Some(1L),`type`=Some("long")), pipelineContext)
+      }
+      assert(Option(thrown).isDefined)
+      val msg = "Unsupported value type class java.lang.Long for badValue!"
+      assert(thrown.getMessage == msg)
+      assert(pipelineContext.parameterMapper.mapParameter(
+        Parameter(name = Some("badValue"), value=None,`type`=Some("string")), pipelineContext).asInstanceOf[Option[_]].isEmpty)
     }
   }
 
