@@ -3,15 +3,16 @@ language: scala
 scala:
 - 2.11.12
 
-os:
-  - linux
-  - osx
+matrix:
+  include:
+  - os: linux
+  - os: osx
+    osx_image: xcode9.3
 
 jobs:
   include:
-    - stage: build
-      osx_image: xcode9.3
-      script: mvn clean install
-    - stage: coverage
-      os: linux
-      script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
+  - stage: build
+    script: mvn clean install
+  - stage: coverage
+    os: linux
+    script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
