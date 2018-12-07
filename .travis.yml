@@ -20,6 +20,7 @@ jobs:
     script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
     before_deploy:
       - export project_version=$(mvn help:evaluate -N -Dexpression=project.version|grep -v '\[')
+      - echo "$project_version"
     deploy:
       provider: releases
       api_key: $GITHUB_OAUTH_TOKEN
