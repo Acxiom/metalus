@@ -5,26 +5,34 @@ scala:
 
 jobs:
   include:
-  - stage: build
+  - stage: Build
     os: linux
     script: mvn clean install
   -
     os: osx
     osx_image: xcode9.3
     script: mvn clean install
-  - stage: coverage
+  - stage: Coverage
+    if: branch = develop
+    os: linux
+    script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
+  - stage: Release
     if: branch = master
     os: linux
     before_script:
       - mvn versions:set -DremoveSnapshot
-      - export project_version=$(mvn help:evaluate -N -Dexpression=project.version|grep -v '\[')
     script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
+    before_deploy:
+      - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
+      - echo "${project_version}"
+      - echo $(ls)
     deploy:
       provider: releases
       api_key: $GITHUB_OAUTH_TOKEN
-      name: $project_version
+      name: ${project_version}
       skip_cleanup: true
+      file_glob: true
       file:
-        - common-pipeline-steps/target/common-pipeline-steps_2.11-$project_version.jar
-        - spark-pipeline-engine/target/spark-pipeline-engine_2.11-$project_version.jar
-        - streaming-pipeline-drivers/target/streaming-pipeline-drivers_2.11-$project_version.jar
+        - common-pipeline-steps/target/common-pipeline-steps_2.11-${project_version}.jar
+        - spark-pipeline-engine/target/spark-pipeline-engine_2.11-${project_version}.jar
+        - streaming-pipeline-drivers/target/streaming-pipeline-drivers_2.11-${project_version}.jar
