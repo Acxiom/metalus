@@ -77,7 +77,7 @@ when a restart happens, the pipeline that was restarted and any subsequent pipel
 
 #### Branching
 When the flow of the pipeline execution needs to be determined conditionally, a step may be set with a *type* of **branch**.
-The return value of the branch should match the name of a parameter in the step params metadata. The value of the mathced
+The return value of the branch should match the name of a parameter in the step params metadata. The value of the matched
 parameter will be used as the id of the next step to execute.
 
 #### Conditional Step Execution
@@ -86,7 +86,7 @@ is empty, then the step will be executed. This is useful in pipeline chaining to
 DataFrame. 
 
 This feature is useful for optimizing applications that run multiple pipelines that could benefit from reducing the 
-number of times data is read from disk. Consider an application that runs two pipelins, during the execution of the 
+number of times data is read from disk. Consider an application that runs two pipelines, during the execution of the 
 first pipeline a DataFrame is created that reads from a parquet table and performs some operations. The second pipeline 
 also needs to read data from the parquet table. However, since the second pipeline may be restarted without the first 
 pipeline being executed, it will need a step that reads the data from the parquet table. By passing the DataFrame from 
@@ -111,7 +111,7 @@ pipelines. Each *PipelineExecution* in the plan has the ability to execute multi
 a dependency on other executions. Each execution runs the pipelines as described in the *Pipelines* section above.
 
 When one execution is dependent on another, the *globals* and *parameters* objects will be taken from the final 
-**PipelineContext** and injected into the globals object as a map keyed by the id from the parent *PipelineExectution*.
+**PipelineContext** and injected into the globals object as a map keyed by the id from the parent *PipelineExecution*.
 In the map these objects may be referenced by the names *globals* and *pipelineParameters*.
 
 In the event that the result of an execution plan results in an exception or one of the pipelines being paused or errored,
@@ -129,7 +129,7 @@ This next diagram shows how an execution plan is processed:
 ![Pipeline Execution Plan Flow](../docs/images/Execution_Plan_Flow.png "Pipeline Execution Flow")
 
 ## Pipeline Step Mapping
-*Pipelines* represent the reusable construct of the application. In order to abstract the pipeline definition in way that
+*Pipelines* represent the reusable construct of the application. In order to abstract the pipeline definition in a way that
 allows reuse without having to duplicate the metadata, this library has the concept of pipeline step mapping. The pipeline
 is constructed from *PipelineStep* objects that contain the *id* of the step to execute and a list of parameters that
 will be mapped to the step function at runtime. 
