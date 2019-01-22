@@ -55,20 +55,8 @@
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-mllib_${scala.compat.version}</artifactId>
-            <version>${spark.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
             <artifactId>spark-sql_${scala.compat.version}</artifactId>
             <version>${spark.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mongodb.spark</groupId>
-            <artifactId>mongo-spark-connector_${scala.compat.version}</artifactId>
-            <version>1.1.0</version>
             <scope>provided</scope>
         </dependency>
         <!-- Test -->
@@ -190,20 +178,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <!--<plugin>-->
-                <!--<artifactId>maven-dependency-plugin</artifactId>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<phase>package</phase>-->
-                        <!--<goals>-->
-                            <!--<goal>copy-dependencies</goal>-->
-                        <!--</goals>-->
-                        <!--<configuration>-->
-                            <!--<outputDirectory>${project.build.directory}/lib</outputDirectory>-->
-                        <!--</configuration>-->
-                    <!--</execution>-->
-                <!--</executions>-->
-            <!--</plugin>-->
         </plugins>
     </build>
 
@@ -223,27 +197,4 @@
             </plugin>
         </plugins>
     </reporting>
-
-    <repositories>
-        <repository>
-            <id>release</id>
-            <name>Internal Releases</name>
-            <url>http://maven.shareddev.acxiom.net/nexus/repository/releases</url>
-        </repository>
-    </repositories>
-
-    <distributionManagement>
-        <repository>
-            <id>releases</id>
-            <name>Internal Releases</name>
-            <url>http://maven.shareddev.acxiom.net/nexus/content/repositories/releases</url>
-        </repository>
-        <snapshotRepository>
-            <id>snapshots</id>
-            <name>Internal Snapshots</name>
-            <uniqueVersion>true</uniqueVersion>
-            <url>http://maven.shareddev.acxiom.net/nexus/content/repositories/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
-
 </project>
