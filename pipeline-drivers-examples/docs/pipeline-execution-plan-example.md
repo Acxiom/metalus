@@ -26,37 +26,37 @@ Three new steps are required to perform this process:
 
 **Note**: The readHeader step will only work with local files.
 
-* Created a function name *readHeader* and declare three parameters:
+* Create a function named *readHeader* and declare three parameters:
 	* url: String
 	* format: String
 	* separator: Option[String]
-* Gave the function a return type of List[String]
-* Inserted the following code into the body of the function (**Note**: This code is slightly different in the example project):
+* Give the function a return type of List[String]
+* Insert the following code into the body of the function (**Note**: This code is slightly different in the example project):
 
-	```scala
-	val input = new FileInputStream(url)
-    val head = Source.fromInputStream(input).getLines().next()
-    input.close()
-    head.split(separator.getOrElse(",")).map(_.toUpperCase).toList
-	```
+```scala
+val input = new FileInputStream(url)
+	val head = Source.fromInputStream(input).getLines().next()
+	input.close()
+	head.split(separator.getOrElse(",")).map(_.toUpperCase).toList
+```
 
-* Created a function name *createSchema* and declare one parameter:
+* Create a function named *createSchema* and declare one parameter:
 	* columnNames: List[String]
-* Gave the function a return type of StructType
-* Inserted the following code into the body of the function (**Note**: This code is slightly different in the example project):
+* Give the function a return type of StructType
+* Insert the following code into the body of the function (**Note**: This code is slightly different in the example project):
 
 	```scala
 	StructType(columnNames.map(StructField(_, StringType, nullable = true)))
 	```
 
-* Created a function name *loadFileWithSchema* and declare five parameters:
+* Create a function named *loadFileWithSchema* and declare five parameters:
 	* url: String
 	* format: String
 	* separator: Option[String]
 	* schema: Option[StructType]
 	* pipelineContext: PipelineContext
-* Gave the function a return type of DataFrame
-* Inserted the following code into the body of the function (**Note**: This code is slightly different in the example project):
+* Give the function a return type of DataFrame
+* Insert the following code into the body of the function (**Note**: This code is slightly different in the example project):
 
 	```scala
 	val dfr = if (separator.isDefined) {
@@ -72,7 +72,7 @@ Three new steps are required to perform this process:
 	}
 	```
 
-**Note**: The existing *loadFile* function was refactored to call the new *loadFileWithSchema* function an pass
+**Note**: The existing *loadFile* function was refactored to call the new *loadFileWithSchema* function and pass
 *None* as the schema parameter.
 
 ### JSON
@@ -192,43 +192,42 @@ Add this as the first entry in the steps array.
 Save the pipeline json to a file named **execution-pipelines.json**
 
 ## Extraction Pipelines
-Additional pipelines will be created that take the DataFrame generated in the *ROOT* execution
+Additional pipelines will be created that take the *DataFrame* generated in the *ROOT* execution
 (available as a global lookup) and extract specific fields of data. Each pipeline will generate 
-a new DataFrame which will be added to the globals object of the final execution.
+a new *DataFrame* which will be added to the globals object of the final execution.
 
 Two new steps are required to perform this process:
 
-* Created a new object in the *com.acxiom.pipeline.steps* package named [**MappingSteps**](src/main/scala/com/acxiom/pipeline/steps/MappingSteps.scala)
-* Created a function name *selectFields* and declare two parameters:
+* Create a new object in the *com.acxiom.pipeline.steps* package named [**MappingSteps**](src/main/scala/com/acxiom/pipeline/steps/MappingSteps.scala)
+* Create a function named *selectFields* and declare two parameters:
 	* dataFrame: DataFrame
 	* fieldNames: List[String]
-* Gave the function a return type of DataFrame
+* Give the function a return type of DataFrame
 * Create the function below:
 
-	```scala
-	def selectFields(dataFrame: DataFrame, fieldNames: List[String]): DataFrame =
-        dataFrame.select(fieldNames.map(dataFrame(_)) : _*)
-	```
+```scala
+def selectFields(dataFrame: DataFrame, fieldNames: List[String]): DataFrame =
+			dataFrame.select(fieldNames.map(dataFrame(_)) : _*)
+```
 
 * Open the object in the *com.acxiom.pipeline.steps* package named [**GroupingSteps**](src/main/scala/com/acxiom/pipeline/steps/GroupingSteps.scala)
-* Created a function name *groupByField* and declare two parameters:
+* Create a function named *groupByField* and declare two parameters:
 	* dataFrame: DataFrame
 	* groupField: String
 * Give the function a return type of DataFrame
 * Insert the following code into the body of the function:
 
-	```scala
-	dataFrame.groupBy(dataFrame.schema.fields.map(field => dataFrame(field.name)): _*).agg(dataFrame(groupByField))
-	```
+```scala
+dataFrame.groupBy(dataFrame.schema.fields.map(field => dataFrame(field.name)): _*).agg(dataFrame(groupByField))
+```
 
 Four pipelines will need to be created and stored in the **execution-pipelines.json** file. **Note**: That these four 
 pipelines use the exact same steps except that some of the parameters are different. The **DriverSetup** could be used 
 to optimize the data.
 
 ### Extract Product Data Pipeline (PROD)
-This pipeline will take the DataFrame loaded in the first execution pipeline and use it as a
-parameter for the first step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id 
-being **ROOT**.
+This pipeline will take the *DataFrame* loaded in the first execution pipeline and use it as a parameter for the first 
+step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROOT**.
 
 	{
 	  "id": "EXTRACT_PRODUCT_DATA_PIPELINE",
@@ -287,9 +286,8 @@ being **ROOT**.
 	}
 
 ### Extract Customer Data Pipeline (CUST)
-This pipeline will take the DataFrame loaded in the first execution pipeline and use it as a
-parameter for the first step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id 
-being **ROOT**.
+This pipeline will take the *DataFrame* loaded in the first execution pipeline and use it as a parameter for the first 
+step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROOT**.
 
 	{
 	  "id": "EXTRACT_CUSTOMER_DATA_PIPELINE",
@@ -356,9 +354,8 @@ being **ROOT**.
 	}
 
 ### Extract Credit Card Data Pipeline (CC)
-This pipeline will take the DataFrame loaded in the first execution pipeline and use it as a
-parameter for the first step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id 
-being **ROOT**.
+This pipeline will take the *DataFrame* loaded in the first execution pipeline and use it as a parameter for the first 
+step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROOT**.
 
 	{
 	  "id": "EXTRACT_CREDIT_CARD_DATA_PIPELINE",
@@ -421,9 +418,8 @@ being **ROOT**.
 	}
 
 ### Extract Order Data Pipeline (ORD)
-This pipeline will take the DataFrame loaded in the first execution pipeline and use it as a
-parameter for the first step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id 
-being **ROOT**.
+This pipeline will take the *DataFrame* loaded in the first execution pipeline and use it as a parameter for the first 
+step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROOT**.
 
 	{
 	  "id": "EXTRACT_ORDER_DATA_PIPELINE",
@@ -493,7 +489,7 @@ be more optimal to have each of the other pipelines write as a last step.
 
 A new library (mongo connector) and a new step will be required.
 
-First thing is to include the new library in the pom.xml file. Add this entry to the dependecies section:
+First thing is to include the new library in the pom.xml file. Add this entry to the dependencies section:
 
 	<dependency>
 		<groupId>org.mongodb.spark</groupId>
@@ -502,17 +498,18 @@ First thing is to include the new library in the pom.xml file. Add this entry to
 	</dependency>
 
 * Open the object in the *com.acxiom.pipeline.steps* package named [**InputOutputSteps**](src/main/scala/com/acxiom/pipeline/steps/InputOutputSteps.scala)
-* Created a function name *writeDataFrameToMongo* and declare three parameters:
+* Create a function named *writeDataFrameToMongo* and declare three parameters:
 	* dataFrame: DataFrame
 	* uri: String
 	* collectionName: String
 * Give the function a return type of Unit
 * Insert the following code as the function:
 
-	```scala
-	def writeDatFrameToMongo(dataFrame: DataFrame, uri: String, collectionName: String): Unit =
-        MongoSpark.save(dataFrame, WriteConfig(Map("collection" -> collectionName, "uri" -> uri)))
-	```
+```scala
+def writeDatFrameToMongo(dataFrame: DataFrame, uri: String, collectionName: String): Unit =
+			MongoSpark.save(dataFrame, WriteConfig(Map("collection" -> collectionName, "uri" -> uri)))
+```
+
 ### Final Pipeline JSON
 Add the following JSON to the **execution-pipelines.json** file:
 
@@ -647,91 +644,97 @@ Add the following JSON to the **execution-pipelines.json** file:
 	}
 
 ## Create a DriverSetup
-Now that the pipelines have been defined, there needs to be a DriverSetup that can create the execution
-plan.
+Now that the pipelines have been defined, there needs to be a *DriverSetup* that can create the execution plan.
 
 * Create a new case class in *com.acxiom.pipeline* named [**ExecutionPlanDataDriverSetup**](src/main/scala/com/acxiom/pipeline/ExecutionPlanDataDriverSetup.scala).
 * Extend **DriverSetup**
 * Provide the following constructor:
 
-	```scala
-	(parameters: Map[String, Any])
-	```
+```scala
+(parameters: Map[String, Any])
+```
+
 * Initialize the SparkConf:
 
-	```scala
-	private val sparkConf = new SparkConf().set("spark.hadoop.io.compression.codecs",
-        "org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
-          "org.apache.hadoop.io.compress.GzipCodec,org.apache." +
-          "hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec")
-	```
+```scala
+private val sparkConf = new SparkConf().set("spark.hadoop.io.compression.codecs",
+			"org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
+				"org.apache.hadoop.io.compress.GzipCodec,org.apache." +
+				"hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec")
+```
+
 * Initialize the SparkSession:
 
-	```scala
-	private val sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
-	```
+```scala
+private val sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
+```
+
 * Initialize the PipelineContext:
 
-	```scala
-	private val ctx = PipelineContext(Some(sparkConf), Some(sparkSession), Some(parameters),
-        PipelineSecurityManager(),
-        PipelineParameters(List(PipelineParameter("SIMPLE_DATA_PIPELINE", Map[String, Any]()))),
-        Some(if (parameters.contains("stepPackages")) {
-          parameters("stepPackages").asInstanceOf[String]
-            .split(",").toList
-        } else {
-          List("com.acxiom.pipeline.steps")
-        }),
-        PipelineStepMapper(),
-        Some(DefaultPipelineListener()),
-        Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
-	```
+```scala
+private val ctx = PipelineContext(Some(sparkConf), Some(sparkSession), Some(parameters),
+			PipelineSecurityManager(),
+			PipelineParameters(List(PipelineParameter("SIMPLE_DATA_PIPELINE", Map[String, Any]()))),
+			Some(if (parameters.contains("stepPackages")) {
+				parameters("stepPackages").asInstanceOf[String]
+					.split(",").toList
+			} else {
+				List("com.acxiom.pipeline.steps")
+			}),
+			PipelineStepMapper(),
+			Some(DefaultPipelineListener()),
+			Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
+```
+
 * Load the pipelines:
 
-	```scala
-	  private val pipelineList = DriverUtils.parsePipelineJson(Source.fromFile(new File(parameters.getOrElse("pipelinesJson", "").asInstanceOf[String])).mkString)
-      private val executionPlan = List(
-        PipelineExecution("ROOT", pipelineList.get.filter(_.id.getOrElse("") == "LOAD_DATA_PIPELINE"), None, ctx, None),
-        PipelineExecution("PROD", pipelineList.get.filter(_.id.getOrElse("") == "EXTRACT_PRODUCT_DATA_PIPELINE"), None, ctx, Some(List("ROOT"))),
-        PipelineExecution("CUST", pipelineList.get.filter(_.id.getOrElse("") == "EXTRACT_CUSTOMER_DATA_PIPELINE"), None, ctx, Some(List("ROOT"))),
-        PipelineExecution("CC", pipelineList.get.filter(_.id.getOrElse("") == "EXTRACT_CREDIT_CARD_DATA_PIPELINE"), None, ctx, Some(List("ROOT"))),
-        PipelineExecution("ORD", pipelineList.get.filter(_.id.getOrElse("") == "EXTRACT_ORDER_DATA_PIPELINE"), None, ctx, Some(List("ROOT"))),
-        PipelineExecution("SAVE", pipelineList.get.filter(_.id.getOrElse("") == "WRITE_DATA_PIPELINE"), None, ctx, Some(List("PROD", "CUST", "CC", "ORD"))),
-      )
-	```
+```scala
+	private val pipelineList = DriverUtils.parsePipelineJson(Source.fromFile(new File(parameters.getOrElse("pipelinesJson", "").asInstanceOf[String])).mkString)
+		private val executionPlan = List(
+			PipelineExecution("ROOT", pipelineList.get.filter(_.id.getOrElse("") == "LOAD_DATA_PIPELINE"), None, ctx, None),
+			PipelineExecution("PROD", pipelineList.get.filter(_.id.getOrElse("") == "EXTRACT_PRODUCT_DATA_PIPELINE"), None, ctx, Some(List("ROOT"))),
+			PipelineExecution("CUST", pipelineList.get.filter(_.id.getOrElse("") == "EXTRACT_CUSTOMER_DATA_PIPELINE"), None, ctx, Some(List("ROOT"))),
+			PipelineExecution("CC", pipelineList.get.filter(_.id.getOrElse("") == "EXTRACT_CREDIT_CARD_DATA_PIPELINE"), None, ctx, Some(List("ROOT"))),
+			PipelineExecution("ORD", pipelineList.get.filter(_.id.getOrElse("") == "EXTRACT_ORDER_DATA_PIPELINE"), None, ctx, Some(List("ROOT"))),
+			PipelineExecution("SAVE", pipelineList.get.filter(_.id.getOrElse("") == "WRITE_DATA_PIPELINE"), None, ctx, Some(List("PROD", "CUST", "CC", "ORD"))),
+		)
+```
 
 * Override the *pipelines* function to return an empty List:
 
-	```scala
-	override def pipelines: List[Pipeline] = List()
-	```
+```scala
+override def pipelines: List[Pipeline] = List()
+```
+
 * Override the *initialPipelineId* function to return an empty string.
 * Override the *pipelineContext* function This should be the root context:
 
-	```scala
-	override def pipelineContext: PipelineContext = ctx
-	``` 
+```scala
+override def pipelineContext: PipelineContext = ctx
+```
+
 * Override the *executionPlan* function to return an list containing six executions:
 
-	```scala
-	override def executionPlan: Option[List[PipelineExecution]] = Some(executionPlan)
-	```
+```scala
+override def executionPlan: Option[List[PipelineExecution]] = Some(executionPlan)
+```
+
 ## Running
-The code will need to be packaged as an uber jar (the example project does this automatically when package is called) that
-contains all of the dependencies. Once this is done, place the jar in a location that can be read by Spark.
+The code will need to be packaged as an 'uber-jar' (the example project does this automatically when package is called) 
+that contains all of the dependencies. Once this is done, place the jar in a location that can be read by Spark.
 
 Submit a job:
 
-	```
-	spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
-	--master spark://localhost:7077 \
-	--deploy-mode client \
-	--jars <jar_path>/spark-pipeline-engine_2.11-<VERSION>.jar,<jar_path>/streaming-pipeline-drivers_2.11-<VERSION>.jar \
-	<jar_path>/pipeline-drivers-examples_2.11-<VERSION>.jar \
-	--driverSetupClass com.acxiom.pipeline.ExecutionPlanDataDriverSetup \
-	--input_url <location of input file> \
-	--input_format <csv, parquet, etc...> \
-	--pipelinesJson <path to the execution-pipelines.json file> \
-	--mongoURI <URI to connect to the Mongo DB> \
-	--logLevel DEBUG
-	```
+```
+spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
+--master spark://localhost:7077 \
+--deploy-mode client \
+--jars <jar_path>/spark-pipeline-engine_2.11-<VERSION>.jar,<jar_path>/streaming-pipeline-drivers_2.11-<VERSION>.jar \
+<jar_path>/pipeline-drivers-examples_2.11-<VERSION>.jar \
+--driverSetupClass com.acxiom.pipeline.ExecutionPlanDataDriverSetup \
+--input_url <location of input file> \
+--input_format <csv, parquet, etc...> \
+--pipelinesJson <path to the execution-pipelines.json file> \
+--mongoURI <URI to connect to the Mongo DB> \
+--logLevel DEBUG
+```
