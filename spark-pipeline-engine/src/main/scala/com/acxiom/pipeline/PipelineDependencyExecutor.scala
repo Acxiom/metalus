@@ -4,6 +4,7 @@ import java.util.UUID
 
 import org.apache.log4j.Logger
 
+import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.collection.JavaConverters._
@@ -46,6 +47,7 @@ object PipelineDependencyExecutor {
     * @param results The execution results of previous futures
     * @param executionGraph The execution graph of dependencies
     */
+  @tailrec
   private def processFutures(futures: List[Future[FutureResult]],
                              results: Map[String, FutureResult],
                              executionGraph: Map[String, Map[String, PipelineExecution]]): Unit = {
