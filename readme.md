@@ -1,9 +1,7 @@
-
-Develop: [![Develop Build](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=develop)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=develop)
-[![Develop Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/develop.svg?label=Develop)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=develop)
-
-Master: [![Master Status](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=master)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=master)
-[![Master Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/master.svg?label=Master)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=master)
+|Branch|Build|Coverage|
+-------|-----|---------
+|Develop|[![Develop Build](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=develop)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=develop)|[![Develop Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/develop.svg)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=develop)|
+|Master|[![Master Status](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=master)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=master)|[![Master Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/master.svg)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=master)|
 
 # Spark Pipeline Driver
 The goal of this project is to make writing [Spark](http://spark.apache.org) applications easier by abstracting the logic
