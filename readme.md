@@ -1,7 +1,8 @@
 
-[![Develop Build](https://img.shields.io/travis/Acxiom/spark-pipeline-driver/develop.svg?label=Develop)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=develop)
+Develop: [![Develop Build](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=develop)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=develop)
 [![Develop Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/develop.svg?label=Develop)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=develop)
-[![Master Status](https://img.shields.io/travis/Acxiom/spark-pipeline-driver/master.svg?label=Master)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=master)
+
+Master: [![Master Status](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=master)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=master)
 [![Master Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/master.svg?label=Master)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=master)
 
 # Spark Pipeline Driver
