@@ -1,0 +1,50 @@
+language: scala
+
+jobs:
+  allow_failures:
+    - os: windows
+  include:
+  - stage: Build
+    os: linux
+    scala:
+      - 2.11.12
+    script: mvn clean install
+  -
+    os: osx
+    osx_image: xcode9.3
+    scala:
+      - 2.11.12
+    script: mvn clean install
+  -
+    os: windows
+    language: shell
+    before_script:
+      - choco install jdk8
+      - choco install maven
+    script: mvn clean install
+  - stage: Coverage
+    if: branch = develop
+    os: linux
+    scala:
+      - 2.11.12
+    script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
+  - stage: Release
+    if: branch = master
+    os: linux
+    scala:
+      - 2.11.12
+    before_script:
+      - mvn versions:set -DremoveSnapshot
+    script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
+    before_deploy:
+      - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
+    deploy:
+      provider: releases
+      api_key: $GITHUB_OAUTH_TOKEN
+      name: ${project_version}
+      skip_cleanup: true
+      file_glob: true
+      file:
+        - common-pipeline-steps/target/common-pipeline-steps_2.11-${project_version}.jar
+        - spark-pipeline-engine/target/spark-pipeline-engine_2.11-${project_version}.jar
+        - streaming-pipeline-drivers/target/streaming-pipeline-drivers_2.11-${project_version}.jar
