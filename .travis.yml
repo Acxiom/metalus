@@ -1,18 +1,19 @@
 language: scala
 
-scala:
-- 2.11.12
-
 jobs:
   allow_failures:
     - os: windows
   include:
   - stage: Build
     os: linux
+    scala:
+      - 2.11.12
     script: mvn clean install
   -
     os: osx
     osx_image: xcode9.3
+    scala:
+      - 2.11.12
     script: mvn clean install
   -
     os: windows
@@ -24,10 +25,14 @@ jobs:
   - stage: Coverage
     if: branch = develop
     os: linux
+    scala:
+      - 2.11.12
     script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
   - stage: Release
     if: branch = master
     os: linux
+    scala:
+      - 2.11.12
     before_script:
       - mvn versions:set -DremoveSnapshot
     script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
