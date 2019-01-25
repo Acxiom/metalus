@@ -112,8 +112,8 @@ object PipelineDependencyExecutor {
       val parents = execution.parents.get.filter(id => {
         results.contains(id) &&
           results(id).result.isDefined &&
-          (results(id).result.get.success ||
-            results(id).result.get.pipelineContext.stepMessages.isEmpty ||
+          results(id).result.get.success &&
+          (results(id).result.get.pipelineContext.stepMessages.isEmpty ||
             results(id).result.get.pipelineContext.stepMessages.get.value.isEmpty ||
             !results(id).result.get.pipelineContext.stepMessages.get.value.asScala.exists(p => {
               p.messageType == PipelineStepMessageType.error || p.messageType == PipelineStepMessageType.pause
