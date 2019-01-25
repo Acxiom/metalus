@@ -159,16 +159,16 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
 
       override def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
         Then(s"expect no global parameter named 'execution_started' before execution starts")
-        assert(pipelineContext.getGlobalString("execution_started").isEmpty)
+        assert(pipelineContext.getGlobal("execution_started").isEmpty)
         And("add parameter named 'execution_started'")
         Some(pipelineContext.setGlobal("execution_started", "true"))
       }
 
       override def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext): Option[PipelineContext] = {
         Then("expect global parameter 'execution_started' to exist when pipeline starts")
-        assert(pipelineContext.getGlobalString("execution_started").getOrElse("") == "true")
+        assert(pipelineContext.getGlobal("execution_started").getOrElse("") == "true")
         Then(s"expect no parameter named 'pipeline_${pipeline.id.get}_started' before pipeline starts")
-        assert(pipelineContext.getGlobalString(s"pipeline_${pipeline.id.get}_started").isEmpty)
+        assert(pipelineContext.getGlobal(s"pipeline_${pipeline.id.get}_started").isEmpty)
         And(s"add parameter named 'pipeline_${pipeline.id.get}_started' when pipeline starts")
         Some(pipelineContext.setGlobal(s"pipeline_${pipeline.id.get}_started", "true"))
       }
