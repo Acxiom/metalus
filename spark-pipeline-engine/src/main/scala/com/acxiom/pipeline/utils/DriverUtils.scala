@@ -32,8 +32,8 @@ object DriverUtils {
 
     // These properties are required when running the driver on the cluster so the executors
     // will be able to communicate back to the driver.
-    val deployMode = sparkConf.get("spark.submit.deployMode")
-    val master = sparkConf.get("spark.master")
+    val deployMode = sparkConf.get("spark.submit.deployMode", "client")
+    val master = sparkConf.get("spark.master", "local")
     if (deployMode == "cluster" || master == "yarn") {
       logger.debug("Configuring driver to run against a cluster")
       sparkConf

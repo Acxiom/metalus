@@ -11,7 +11,6 @@ import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen, Suite}
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen with Suite {
 
@@ -161,39 +160,35 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 
 	describe("Execution Plan") {
 		it("Should execute a single list of pipelines") {
-			val results = ListBuffer[(String, Boolean)]()
+			val results = new ListenerValidations
 			SparkTestHelper.pipelineListener = new PipelineListener {
 				override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-					val result = ("Execution failed", getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Fred")
-					results += result
+					results.addValidation("Execution failed", getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Fred")
 					None
 				}
 
 				override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
 					exception match {
 						case _ =>
-							val result = ("Unexpected exception registered", false)
-							results += result
+							results.addValidation("Unexpected exception registered", valid = false)
 					}
 				}
 			}
 			val pipelines = DriverUtils.parsePipelineJson(pipelineJson.replace("$value", "Fred"))
 			PipelineDependencyExecutor.executePlan(List(PipelineExecution("0", pipelines.get, None, generatePipelineContext(), None)))
-			results.foreach(result => assert(result._2, result._1))
+			results.validate()
 		}
 
 		it("Should execute a simple dependency graph of two pipeline chains") {
-			val results = ListBuffer[(String, Boolean)]()
+			val results = new ListenerValidations
 			SparkTestHelper.pipelineListener = new PipelineListener {
 				override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
 					val pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
 					pipelineId match {
 						case "Pipeline1" =>
-							val result = ("Execution failed", getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Fred")
-							results += result
+							results.addValidation("Execution failed", getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Fred")
 						case "Pipeline2" =>
-							val result = ("Execution failed", getStringValue(pipelineContext, "Pipeline2", "Pipeline2Step1") == "Fred")
-							results += result
+							results.addValidation("Execution failed", getStringValue(pipelineContext, "Pipeline2", "Pipeline2Step1") == "Fred")
 					}
 					None
 				}
@@ -201,8 +196,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 				override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
 					exception match {
 						case _ =>
-							val result = ("Unexpected exception registered", false)
-							results += result
+							results.addValidation("Unexpected exception registered", valid = false)
 					}
 				}
 			}
@@ -211,44 +205,38 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 			PipelineDependencyExecutor.executePlan(List(
 				PipelineExecution("0", pipelines1.get, None, generatePipelineContext(), None),
 				PipelineExecution("1", pipelines2.get, None, generatePipelineContext(), Some(List("0")))))
-			results.foreach(result => assert(result._2, result._1))
+			results.validate()
 		}
 
 		it("Should execute a multi-tiered chain of dependencies") {
-			val results = mutable.ListBuffer[(String, Boolean)]()
+			val results = new ListenerValidations
 			val resultBuffer = mutable.ListBuffer[String]()
 			SparkTestHelper.pipelineListener = new PipelineListener {
 				override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
 					var pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
 					pipelineId match {
 						case "Pipeline1" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Chain0")
-							results += result
 						case "PipelineChain1" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "PipelineChain1", "Pipeline3Step1") == "Chain0" &&
 									getStringValue(pipelineContext, "PipelineChain1", "Pipeline3Step2") == "Chain1")
-							results += result
 						case "PipelineChain2" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step1") == "Chain0" &&
 									getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step2") == "Chain2")
-							results += result
 						case "PipelineChain3" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step1") == "Chain0" &&
 									getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step2") == "Chain3")
-							results += result
 						case "Pipeline3" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "Pipeline3", "Pipeline3Step1") == "Chain1" &&
 									getStringValue(pipelineContext, "Pipeline3", "Pipeline3Step2") == "Chain3")
-							results += result
 						case "PipelineChain5" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "PipelineChain5", "Pipeline1Step1") == "Chain5")
-							results += result
 					}
 					resultBuffer += pipelineId
 					None
@@ -258,8 +246,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 					exception match {
 						case _ =>
 							val e = Option(exception.getCause).getOrElse(exception)
-							val result = (s"Failed: ${e.getMessage}", false)
-							results += result
+							results.addValidation(s"Failed: ${e.getMessage}", valid = false)
 					}
 				}
 			}
@@ -288,43 +275,37 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 								.replace("\"Pipeline1\"", "\"PipelineChain5\"")).get, None, generatePipelineContext(), None)
 			))
 
-			results.foreach(result => assert(result._2, result._1))
+			results.validate()
 
 			val validResults = List("Pipeline1", "PipelineChain1", "PipelineChain2", "PipelineChain3", "PipelineChain5", "Pipeline3")
 			assert(resultBuffer.diff(validResults).isEmpty)
 		}
 
 		it("Should not execute child when one parent fails with an exception") {
-			val results = ListBuffer[(String, Boolean)]()
+			val results = new ListenerValidations
 			val resultBuffer = mutable.ListBuffer[String]()
 			SparkTestHelper.pipelineListener = new PipelineListener {
 				override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
 					var pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
 					pipelineId match {
 						case "Pipeline1" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Chain0")
-							results += result
 						case "PipelineChain1" =>
-							val result = ("Should not have called PipelineChain1", false)
-							results += result
+							results.addValidation("Should not have called PipelineChain1", valid = false)
 						case "PipelineChain2" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step1") == "Chain0" &&
 									getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step2") == "Chain2")
-							results += result
 						case "PipelineChain3" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step1") == "Chain0" &&
 									getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step2") == "Chain3")
-							results += result
 						case "Pipeline3" =>
-							val result = ("Should not have called Pipeline3", false)
-							results += result
+							results.addValidation("Should not have called Pipeline3", valid = false)
 						case "PipelineChain5" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "PipelineChain5", "Pipeline1Step1") == "Chain5")
-							results += result
 					}
 					resultBuffer += pipelineId
 					None
@@ -335,13 +316,11 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 							case ex: PipelineException =>
 								if (ex.message.getOrElse("") != "Called exception step") {
 									val e = Option(exception.getCause).getOrElse(exception)
-									val result = (s"Failed: ${e.getMessage}", false)
-									results += result
+									results.addValidation(s"Failed: ${e.getMessage}", valid = false)
 								}
 						case _ =>
 							val e = Option(exception.getCause).getOrElse(exception)
-							val result = (s"Failed: ${e.getMessage}", false)
-							results += result
+							results.addValidation(s"Failed: ${e.getMessage}", valid = false)
 					}
 				}
 			}
@@ -371,43 +350,37 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 								.replace("\"Pipeline1\"", "\"PipelineChain5\"")).get, None, generatePipelineContext(), None)
 			))
 			// PipelineChain1 should throw an exception which h=should prevent Pipeline3 from executing
-			results.foreach(result => assert(result._2, result._1))
+			results.validate()
 
 			val validResults = List("Pipeline1", "PipelineChain2", "PipelineChain3", "PipelineChain5")
 			assert(resultBuffer.diff(validResults).isEmpty)
 		}
 
 		it("Should not execute child when one parent pauses") {
-			val results = ListBuffer[(String, Boolean)]()
+			val results = new ListenerValidations
 			val resultBuffer = mutable.ListBuffer[String]()
 			SparkTestHelper.pipelineListener = new PipelineListener {
 				override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
 					var pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
 					pipelineId match {
 						case "Pipeline1" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Chain0")
-							results += result
 						case "PipelineChain1" =>
-							val result = ("Should not have called PipelineChain1", false)
-							results += result
+							results.addValidation("Should not have called PipelineChain1", valid = false)
 						case "PipelineChain2" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step1") == "Chain0" &&
 									getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step2") == "Chain2")
-							results += result
 						case "PipelineChain3" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step1") == "Chain0" &&
 									getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step2") == "Chain3")
-							results += result
 						case "Pipeline3" =>
-							val result = ("Should not have called Pipeline3", false)
-							results += result
+							results.addValidation("Should not have called Pipeline3", valid = false)
 						case "PipelineChain5" =>
-							val result = (s"Execution failed for $pipelineId",
+							results.addValidation(s"Execution failed for $pipelineId",
 								getStringValue(pipelineContext, "PipelineChain5", "Pipeline1Step1") == "Chain5")
-							results += result
 					}
 					resultBuffer += pipelineId
 					None
@@ -418,13 +391,11 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 						case ex: PauseException =>
 							if (ex.message.getOrElse("") != "Called pause step") {
 								val e = Option(exception.getCause).getOrElse(exception)
-								val result = (s"Failed: ${e.getMessage}", false)
-								results += result
+								results.addValidation(s"Failed: ${e.getMessage}", valid = false)
 							}
 						case _ =>
 							val e = Option(exception.getCause).getOrElse(exception)
-							val result = (s"Failed: ${e.getMessage}", false)
-							results += result
+							results.addValidation(s"Failed: ${e.getMessage}", valid = false)
 					}
 				}
 			}
@@ -454,7 +425,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 								.replace("\"Pipeline1\"", "\"PipelineChain5\"")).get, None, generatePipelineContext(), None)
 			))
 			// PipelineChain1 should throw an exception which h=should prevent Pipeline3 from executing
-			results.foreach(result => assert(result._2, result._1))
+			results.validate()
 
 			val validResults = List("Pipeline1", "PipelineChain2", "PipelineChain3", "PipelineChain5")
 			assert(resultBuffer.diff(validResults).isEmpty)

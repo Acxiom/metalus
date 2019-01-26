@@ -60,6 +60,13 @@ class DriverUtilsTests extends FunSpec {
       verifyParsedPipelines(pipelineList.get(1), PipelineDefs.TWO_PIPELINE(1))
     }
 
+    it("Should throw and error when json is invalid") {
+      val thrown = intercept[RuntimeException] {
+        DriverUtils.parsePipelineJson("")
+      }
+      assert(Option(thrown).isDefined)
+    }
+
     def verifyParsedPipelines(pipeline1: Pipeline, pipeline2: Pipeline): Unit = {
       assert(pipeline1.name.getOrElse("") == pipeline2.name.getOrElse("NONE"))
       assert(pipeline1.steps.isDefined)
