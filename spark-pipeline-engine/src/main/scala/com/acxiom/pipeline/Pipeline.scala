@@ -130,6 +130,15 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     this.copy(globals = Some(this.globals.getOrElse(Map[String, Any]()) + (globalName -> globalValue)))
 
   /**
+    * This function will merge an existing Map[String, Any] into the globals map
+    *
+    * @param globals A Map[String, Any] of global properties.
+    * @return A new PipelineContext with an updated globals map.
+    */
+  def setGlobals(globals: Map[String, Any]): PipelineContext =
+    this.copy(globals = Some(if(this.globals.isDefined) this.globals.get ++ globals else globals))
+
+  /**
     * Adds a new PipelineStepMessage to the context
     *
     * @param message The message to add.
