@@ -9,7 +9,8 @@ import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.DataFrame
 import org.json4s.native.JsonMethods.parse
-import org.json4s.{DefaultFormats, Formats, ShortTypeHints, TypeHints}
+import org.json4s.reflect.Reflector
+import org.json4s.{DefaultFormats, Extraction, Formats}
 
 object DriverUtils {
 
@@ -88,24 +89,17 @@ object DriverUtils {
   }
 
   /**
-    * This function will take a JSON string containing a pipeline definition. It is expected that the definition will be
-    * a JSON array. This function also let's the caller specifiy the pipeline class type. The provided type should extend
-    * JsonPipeline and override the typeClass attribute. When calling this function, use classOf[CustomPipeline] for the
-    * pipelineType parameter.
+    * Parse the provided JSON string into an object of the provided class name.
     *
-    * @param pipelineJson The JSON string containing the Pipeline metadata
-    * @param pipelineType The class definition of the custom Pipeline
-    * @return A List of Pipeline objects
+    * @param json The JSON string to parse.
+    * @param className The fully qualified name of the class.
+    * @return An instantiation of the class from the provided JSON.
     */
-  def parsePipelineJson(pipelineJson: String, pipelineType: Class[_]): Option[List[Pipeline]] = {
-    implicit val formats: DefaultFormats = new DefaultFormats {
-      override val typeHintFieldName: String = "typeClass"
-      override val typeHints: TypeHints = ShortTypeHints(List(pipelineType))
-    }
-    if (pipelineJson.trim()(0) != '[') {
-      throw new ParseException(pipelineJson, 0)
-    }
-    parse(pipelineJson).extractOpt[List[Pipeline]]
+  def parseJson(json: String, className: String): Any = {
+    implicit val formats: Formats = DefaultFormats
+    val clazz = Class.forName(className)
+    val scalaType = Reflector.scalaTypeOf(clazz)
+    Extraction.extract(parse(json), scalaType)
   }
 
   /**

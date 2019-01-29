@@ -42,6 +42,10 @@ class name as a command line parameter. The driver will then call the different 
 
 ![Driver Initialization](docs/images/DefaultPipelineDriver.png "Default Pipeline Driver Flow")
 
+### Application
+The *Application* is a configuration based method of describing the application. This includes defining the execution 
+plan, pipelines, pipeline context overrides (*pipeline listener*, *security manager*, *step mapper*) and global values.
+
 ## Projects
 There are several sub-projects:
 
