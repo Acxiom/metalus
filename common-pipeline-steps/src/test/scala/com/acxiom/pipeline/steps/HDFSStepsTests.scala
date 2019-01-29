@@ -76,7 +76,7 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       )
       val dataFrame = chickens.toDF("id", "chicken")
 
-      HDFSSteps.writeDataFrame(dataFrame, "csv", miniCluster.getURI + "/data/chickens.csv")
+      HDFSSteps.writeDataFrame(dataFrame=dataFrame, format="csv", path=miniCluster.getURI + "/data/chickens.csv")
       val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
 
       assert(list.size == 3)
@@ -97,8 +97,6 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     assert(fs.exists(new org.apache.hadoop.fs.Path(path)))
 
     val statuses = fs.globStatus(new org.apache.hadoop.fs.Path(path + "/part*"))
-    statuses.foldLeft(List[String]())(
-      (list, stat) => list ::: Source.fromInputStream(fs.open(stat.getPath)).getLines.toList
-    )
+    statuses.foldLeft(List[String]())((list, stat) => list ::: Source.fromInputStream(fs.open(stat.getPath)).getLines.toList)
   }
 }

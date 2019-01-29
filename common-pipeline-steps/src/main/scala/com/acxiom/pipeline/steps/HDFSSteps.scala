@@ -1,8 +1,9 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.StepFunction
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import org.apache.spark.sql.DataFrame
 
+@StepObject
 object HDFSSteps {
 
   @StepFunction("0a296858-e8b7-43dd-9f55-88d00a7cd8fa",
