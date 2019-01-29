@@ -18,7 +18,6 @@ object JDBCSteps {
                 columns: String = "*",
                 where: Option[String] = None,
                 pipelineContext: PipelineContext): DataFrame = {
-
     val spark = pipelineContext.sparkSession.get
 
     val df = spark.read.format("jdbc")
@@ -27,10 +26,8 @@ object JDBCSteps {
 
     if (where.isEmpty) {
       df.select(columns)
-    }
-    else {
+    } else {
       df.select(columns).where(where.get)
     }
   }
-
 }

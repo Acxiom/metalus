@@ -14,6 +14,7 @@ import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
 
 import scala.collection.mutable.ListBuffer
+import scala.io.Source
 
 class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
@@ -52,7 +53,6 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       PipelineStepMapper(),
       Some(DefaultPipelineListener()),
       Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
-
   }
 
   override def afterAll(): Unit = {
@@ -67,9 +67,7 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
   }
 
   describe("HDFS Steps - Basic writing") {
-
     it("should successfully write to hdfs") {
-
       val spark = this.sparkSession
       import spark.implicits._
 
@@ -80,7 +78,7 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       )
       val dataFrame = chickens.toDF("id", "chicken")
 
-      HDFSSteps.writeDataFrame(dataFrame, "csv", miniCluster.getURI + "/data/chickens.csv", "Overwrite", pipelineContext)
+      HDFSSteps.writeDataFrame(dataFrame, "csv", miniCluster.getURI + "/data/chickens.csv")
       val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
 
       assert(list.size == 3)
@@ -103,12 +101,8 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     val statuses = fs.globStatus(new org.apache.hadoop.fs.Path(path + "/part*"))
     val list = new ListBuffer[String]
     statuses.foreach(stat => {
-      val reader = new Scanner(fs.open(stat.getPath))
-      while (reader.hasNextLine) {
-        list += reader.nextLine()
-      }
+      list ++= Source.fromInputStream(fs.open(stat.getPath)).getLines.toList
     })
     list.toList
   }
-
 }

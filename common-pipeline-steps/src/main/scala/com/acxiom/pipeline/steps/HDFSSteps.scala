@@ -1,6 +1,5 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.StepFunction
 import org.apache.spark.sql.DataFrame
 
@@ -13,9 +12,7 @@ object HDFSSteps {
   def writeDataFrame(dataFrame: DataFrame,
                      format: String = "parquet",
                      path: String,
-                     saveMode: String = "Overwrite",
-                     pipelineContext: PipelineContext): Unit = {
-
+                     saveMode: String = "Overwrite"): Unit = {
     dataFrame.write.format(format)
       .mode(saveMode)
       .save(path)
