@@ -10,8 +10,8 @@ object HDFSSteps {
     "This step will write a dataFrame in a given format to HDFS",
     "Pipeline")
   def writeDataFrame(dataFrame: DataFrame,
-                     format: String = "parquet",
                      path: String,
+                     format: String = "parquet",
                      saveMode: String = "Overwrite"): Unit = {
     dataFrame.write.format(format)
       .mode(saveMode)

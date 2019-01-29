@@ -2,7 +2,6 @@ package com.acxiom.pipeline.steps
 
 import java.io.File
 import java.nio.file.{Files, Path}
-import java.util.Scanner
 
 import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
@@ -13,7 +12,6 @@ import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
 
-import scala.collection.mutable.ListBuffer
 import scala.io.Source
 
 class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
@@ -99,10 +97,8 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     assert(fs.exists(new org.apache.hadoop.fs.Path(path)))
 
     val statuses = fs.globStatus(new org.apache.hadoop.fs.Path(path + "/part*"))
-    val list = new ListBuffer[String]
-    statuses.foreach(stat => {
-      list ++= Source.fromInputStream(fs.open(stat.getPath)).getLines.toList
-    })
-    list.toList
+    statuses.foldLeft(List[String]())(
+      (list, stat) => list ::: Source.fromInputStream(fs.open(stat.getPath)).getLines.toList
+    )
   }
 }
