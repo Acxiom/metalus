@@ -22,7 +22,7 @@ The first pipeline will be responsible for the following actions:
 * Create schema
 * Load orders.csv
 
-Three new steps are required to perform this process:
+Three new steps are required to perform this process and will be added to the *InputOutputSteps* object:
 
 **Note**: The readHeader step will only work with local files.
 

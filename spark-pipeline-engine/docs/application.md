@@ -40,7 +40,7 @@ spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 --jars <jar_path>/spark-pipeline-engine_2.11-<VERSION>.jar,<jar_path>/streaming-pipeline-drivers_2.11-<VERSION>.jar \
 <jar_path>/<uber-jar>.jar \
 --driverSetupClass com.acxiom.pipeline.applications.ApplicationDriverSetup \
---applicationConfigPath <location of iconfiguration json> \
+--applicationConfigPath <location of configuration json> \
 --applicationConfigurationLoader com.acxiom.pipeline.utils.HDFSFileManager \
 --logLevel DEBUG
 ```
