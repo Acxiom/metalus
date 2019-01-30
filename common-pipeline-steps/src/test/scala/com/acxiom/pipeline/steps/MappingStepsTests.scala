@@ -76,7 +76,7 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       assert(outDF1.columns.sameElements(destDF.columns ++ List("gender", "full_name")))
 
       Then("map the new dataframe to the destination dataframe")
-      val outDF2 = MappingSteps.mapToExistingDataFrame(newDF, destDF, mappings)
+      val outDF2 = MappingSteps.mapToDestinationDataFrame(newDF, destDF, mappings)
       And("expect the columns on the output to match the columns from the previous output")
       assert(outDF2.columns.sameElements(outDF1.columns))
 
@@ -167,7 +167,7 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       )
 
       Then("run logic to reorder columns, skipping new attributes")
-      val outDF1 = MappingSteps.orderAttributesToDestinationSchema(newDF, destDF.schema, addMissing = false)
+      val outDF1 = MappingSteps.orderAttributesToDestinationSchema(newDF, destDF.schema, addNewColumns = false)
       assert(outDF1.columns.sameElements(destDF.columns))
       assert(!outDF1.columns.contains("gender"))
 
