@@ -3,11 +3,11 @@ This example will demonstrate how to use an execution plan to create pipeline de
 as execute pipelines in parallel.
 
 There will be six pipelines that are executed:
-* **ROOT** - This is the first pipeline and is responsible for reading in the source file
-* **PROD** - This pipeline will extract the product data from the **ROOT** DataFrame and group by the product id
-* **CUST** - This pipeline will extract the customer data from the **ROOT** DataFrame and group by the customer id
-* **CC** - This pipeline will extract the credit card data from the **ROOT** DataFrame and group by the customer id
-* **ORD** - This pipeline will extract the order data from the **ROOT** DataFrame and group by the order num
+* **ROOT** - This is the first pipeline and is responsible for reading in the source file.
+* **PROD** - This pipeline will extract the product data from the **ROOT** DataFrame and group by the product id.
+* **CUST** - This pipeline will extract the customer data from the **ROOT** DataFrame and group by the customer id.
+* **CC** - This pipeline will extract the credit card data from the **ROOT** DataFrame and group by the customer id.
+* **ORD** - This pipeline will extract the order data from the **ROOT** DataFrame and group by the order num.
 * **SAVE** - This pipeline will write the data from the **PROD**, **CUST**, **CC** and **ORD** DataFrames into Mongo.
 
 ## Example Code
@@ -570,7 +570,7 @@ an execution that is dependent on the *ROOT* execution created previously.
 ```
 ## Final Execution
 Now that the data has been loaded and processed into different forms, a final pipeline will be responsible for writing 
-the data to a data store. This pipeline is only here to show a multi-parent dependency relationship. It would probably 
+the data to a Mongo data store. This pipeline is only here to show a multi-parent dependency relationship. It would probably 
 be more optimal to have each of the other pipelines write as a last step.
 
 A new library (mongo connector) and a new step will be required.

@@ -8,11 +8,11 @@ line parameters need to be provided. There are two sets of parameters that are u
 
 * **applicationJson** - This parameter is useful when passing the contents of the configuration as a string. This is not 
 a recommended option since large configurations could have issues.
-* **applicationConfigPath** - This is the path to the configuration file on the file. 
+* **applicationConfigPath** - This is the path to the configuration file on the file system. 
 * **applicationConfigurationLoader** - This is used to specify a different file manager. Default is local.
 
 ### Local Disk
-There are two ways to pull the configuration from local disk, the first is using the *applicationJson* property. The 
+There are two ways to pull the configuration from the local disk, the first is using the *applicationJson* property. The 
 second method involves populating the *applicationConfigPath* property and either not providing a value for the
 *applicationConfigurationLoader* property or using the value *com.acxiom.pipeline.utils.LocalFileManager*.
 
@@ -185,9 +185,9 @@ to the lookup with the name *mappedObject*.
 ## executions
 The *executions* array is used to define how the application will execute. Each execution contains several settings:
 
-* **id** - This is used to unuquely identify the execution at runtime.
+* **id** - This is used to uniquely identify the execution at runtime.
 * **pipelines** - An array containing one or more pipeline definitions to execute.
-* **parents** - A list of execution *id*s that this execution with which this execution is dependent.
+* **parents** - A list of execution *id*s upon which this execution is dependent.
 
 In addition, any of the global *PipelineContext* settings listed above may be defined which will override the global
 definitions.

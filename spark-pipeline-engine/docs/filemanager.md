@@ -9,7 +9,7 @@ provides two implementations, local and HDFS.
 * **getOutputStream(path, append)** - Returns an OutputStream for the path. The path must be a file. The append option is
 used to indicate whether the file should be overwritten or appended.
 * **rename(path, destPath)** - Renames the provided *path* to the *destPath*.
-* **deleteFile(path)** - Delete the path.
+* **deleteFile(path)** - Deletes the path.
 
 ## Implementations
 

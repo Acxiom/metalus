@@ -17,7 +17,7 @@ The FileManger utility provides an abstraction of different file systems. Step a
 with files on different file systems such as HDFS.
 
 #### DriverUtils
-This utility provides several function to help in the creation of a custom *DriverSetup*
+This utility provides several functions to help in the creation of a custom *DriverSetup*
 
 ### Application
 The Application allows application developers the ability to assemble a Spark application by providing a JSON 
