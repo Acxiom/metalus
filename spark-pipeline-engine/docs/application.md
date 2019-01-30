@@ -2,6 +2,49 @@
 The *Application* concept allows for the creation of an application by providing a JSON configuration document. Options
 are provided that allow customization of the *PipelineContext*, *SparkConf*, global variables and pipelines.
 
+## Running
+There are two ways to run an application. Depending on where the configuration file is located dictates which command
+line parameters need to be provided. There are two sets of parameters that are used depending on where the file is located:
+
+* **applicationJson** - This parameter is useful when passing the contents of the configuration as a string. This is not 
+a recommended option since large configurations could have issues.
+* **applicationConfigPath** - This is the path to the configuration file on the file. 
+* **applicationConfigurationLoader** - This is used to specify a different file manager. Default is local.
+
+### Local Disk
+There are two ways to pull the configuration from local disk, the first is using the *applicationJson* property. The 
+second method involves populating the *applicationConfigPath* property and either not providing a value for the
+*applicationConfigurationLoader* property or using the value *com.acxiom.pipeline.utils.LocalFileManager*.
+
+**Example:**
+```bash
+spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
+--master spark://localhost:7077 \
+--deploy-mode client \
+--jars <jar_path>/spark-pipeline-engine_2.11-<VERSION>.jar,<jar_path>/streaming-pipeline-drivers_2.11-<VERSION>.jar \
+<jar_path>/<uber-jar>.jar \
+--driverSetupClass com.acxiom.pipeline.applications.ApplicationDriverSetup \
+--applicationConfigPath <location of iconfiguration json> \
+--logLevel DEBUG
+```
+
+### HDFS
+Should the configuration be stored on an HDFS file system, then the path should be provided using the *applicationConfigPath* 
+property and pass the value *com.acxiom.pipeline.utils.HDFSFileManager* in the *applicationConfigurationLoader* property.
+
+**Example:**
+```bash
+spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
+--master yarn \
+--deploy-mode cluster \
+--jars <jar_path>/spark-pipeline-engine_2.11-<VERSION>.jar,<jar_path>/streaming-pipeline-drivers_2.11-<VERSION>.jar \
+<jar_path>/<uber-jar>.jar \
+--driverSetupClass com.acxiom.pipeline.applications.ApplicationDriverSetup \
+--applicationConfigPath <location of iconfiguration json> \
+--applicationConfigurationLoader com.acxiom.pipeline.utils.HDFSFileManager \
+--logLevel DEBUG
+```
+
 ## sparkConf
 The *sparkConf* element provides the ability to control which classes are passed to the KryoSerializer and any 
 additional settings that should be added to the configuration. 
@@ -41,7 +84,7 @@ This array is used to set the packages where compiled steps can be found.
 ### pipelineListener
 This object allows specifying a custom *PipelineListener*. The class represented by the fully qualified *className* 
 must be available on the class path. The optional *parameters* specified will be passed to the constructor. Currently
-only simple types are supported, but more complex data types will be supported in the future.
+only simple types and maps are supported, but more complex data types will be supported in the future.
 
 ```json
 {
@@ -57,7 +100,7 @@ only simple types are supported, but more complex data types will be supported i
 ### securityManager
 This object allows specifying a custom *PipelineSecurityManager*. The class represented by the fully qualified *className* 
 must be available on the class path. The optional *parameters* specified will be passed to the constructor. Currently
-only simple types are supported, but more complex data types will be supported in the future.
+only simple types and maps are supported, but more complex data types will be supported in the future.
 
 ```json
 {
@@ -73,7 +116,7 @@ only simple types are supported, but more complex data types will be supported i
 ### stepMapper
 This object allows specifying a custom *PipelineStepMapper*. The class represented by the fully qualified *className* 
 must be available on the class path. The optional *parameters* specified will be passed to the constructor. Currently
-only simple types are supported, but more complex data types will be supported in the future.
+only simple types and maps are supported, but more complex data types will be supported in the future.
 
 ```json
 {

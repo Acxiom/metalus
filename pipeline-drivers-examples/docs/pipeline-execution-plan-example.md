@@ -725,7 +725,7 @@ that contains all of the dependencies. Once this is done, place the jar in a loc
 
 Submit a job:
 
-```
+```bash
 spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 --master spark://localhost:7077 \
 --deploy-mode client \

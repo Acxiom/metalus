@@ -26,10 +26,17 @@ object DriverUtils {
     */
   def createSparkConf(kryoClasses: Array[Class[_]]): SparkConf = {
     // Create the spark conf.
-    val sparkConf = new SparkConf()
+    val tempConf = new SparkConf()
       // This is required to ensure that certain classes can be serialized across the nodes
       .registerKryoClasses(kryoClasses)
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+
+    // Handle test scenarios where the master was not set
+    val sparkConf = if (!tempConf.contains("spark.master")) {
+      tempConf.setMaster("local")
+    } else {
+      tempConf
+    }
 
     // These properties are required when running the driver on the cluster so the executors
     // will be able to communicate back to the driver.
@@ -40,9 +47,9 @@ object DriverUtils {
       sparkConf
         .set("spark.local.ip", java.net.InetAddress.getLocalHost.getHostAddress)
         .set("spark.driver.host", java.net.InetAddress.getLocalHost.getHostAddress)
+    } else {
+      sparkConf
     }
-
-    sparkConf
   }
 
   /**
