@@ -15,7 +15,7 @@ object JDBCSteps {
     "This step will load a table from the provided jdbc information",
     "Pipeline")
   def read(jdbcOptions: JDBCOptions,
-                columns: String = "*",
+                columns: List[String] = List[String]("*"),
                 where: Option[String] = None,
                 pipelineContext: PipelineContext): DataFrame = {
     val spark = pipelineContext.sparkSession.get
@@ -25,9 +25,9 @@ object JDBCSteps {
       .load()
 
     if (where.isEmpty) {
-      df.select(columns)
+      df.selectExpr(columns:_*)
     } else {
-      df.select(columns).where(where.get)
+      df.selectExpr(columns:_*).where(where.get)
     }
   }
 }

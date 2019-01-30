@@ -48,10 +48,10 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     val con = DriverManager.getConnection("jdbc:derby:memory:test;user=test_fixture;create=true")
     val st = con.createStatement()
 
-    st.executeUpdate("CREATE TABLE T (ID INT PRIMARY KEY, NAME VARCHAR(100))")
-    st.executeUpdate("INSERT INTO T VALUES (1, 'MOO')")
-    st.executeUpdate("INSERT INTO T VALUES (2, 'MOO2')")
-    st.executeUpdate("INSERT INTO T VALUES (3, 'MOO')")
+    st.executeUpdate("CREATE TABLE T (ID INT PRIMARY KEY, NAME VARCHAR(100), COLOR VARCHAR(30))")
+    st.executeUpdate("INSERT INTO T VALUES (1, 'SILKIE', 'WHITE')")
+    st.executeUpdate("INSERT INTO T VALUES (2, 'POLISH', 'BUFF')")
+    st.executeUpdate("INSERT INTO T VALUES (3, 'SULTAN', 'WHITE')")
     st.close()
     con.close()
 
@@ -65,6 +65,10 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     Logger.getRootLogger.setLevel(Level.INFO)
     // cleanup spark directories
     FileUtils.deleteDirectory(sparkLocalDir.toFile)
+  }
+
+  def tmp(s: String*): Unit = {
+
   }
 
   describe("JDBCSteps - Basic reading") {
@@ -82,20 +86,20 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       assert(count == 3)
     }
     it("should respect the 'where' option") {
-      val df = JDBCSteps.read(jdbcOptions = new JDBCOptions(jDBCOptions.toMap), where = Some("NAME = 'MOO'"), pipelineContext = pipelineContext)
+      val df = JDBCSteps.read(jdbcOptions = new JDBCOptions(jDBCOptions.toMap), where = Some("COLOR = 'WHITE'"), pipelineContext = pipelineContext)
       val count = df.count()
       assert(count == 2)
     }
-    it("should respect column property") {
+    it("should respect columns parameter") {
       val df = JDBCSteps.read(
         jdbcOptions = new JDBCOptions(jDBCOptions.toMap),
-        columns = "NAME",
-        where = Some("NAME = 'MOO'"),
+        columns = List("NAME", "COLOR"),
+        where = Some("NAME = 'POLISH'"),
         pipelineContext = pipelineContext
       )
 
       val count = df.columns.length
-      assert(count == 1)
+      assert(count == 2)
     }
 
   }

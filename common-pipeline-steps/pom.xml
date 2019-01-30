@@ -25,12 +25,6 @@
             <version>10.14.2.0</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-minicluster</artifactId>
-            <version>3.2.0</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
 </project>
