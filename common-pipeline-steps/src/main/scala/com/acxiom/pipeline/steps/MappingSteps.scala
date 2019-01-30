@@ -12,9 +12,10 @@ object MappingSteps {
 
   /**
     * maps a dataframe to a destination dataframe
-    * @param newDF        the dataframe that needs to be modified
-    * @param existingDF   the dataframe that the new data needs to map to
-    * @param mappings     the mappings object with transform and inputAlias details
+    * @param inputDataFrame         the dataframe that needs to be modified
+    * @param destinationDataFrame   the dataframe that the new data needs to map to
+    * @param mappings               the mappings object with transform and inputAlias details
+    * @param addNewColumns          a flag to determine whether new attributes are to be added to the output
     * @return   a new dataframe that is compatible with the destination schema
     */
   @StepFunction(
@@ -23,15 +24,17 @@ object MappingSteps {
     "This step maps a new dataframe to an existing dataframe to make them compatible",
     "Pipeline"
   )
-  def mapToExistingDataFrame(newDF: DataFrame, existingDF: DataFrame, mappings: List[MappingDetails] = List()): DataFrame = {
-    mapDataFrameToSchema(newDF, existingDF.schema, mappings)
+  def mapToDestinationDataFrame(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, mappings: List[MappingDetails] = List(),
+                             addNewColumns: Boolean = true): DataFrame = {
+    mapDataFrameToSchema(inputDataFrame, destinationDataFrame.schema, mappings, addNewColumns)
   }
 
   /**
     * maps a dataframe to a destination schema
-    * @param dataFrame          the dataframe that needs to be modified
+    * @param inputDataFrame     the dataframe that needs to be modified
     * @param destinationSchema  the schema that the new data should map to
     * @param mappings           the mappings object with transform and inputAlias details
+    * @param addNewColumns      a flag to determine whether new attributes are to be added to the output
     * @return   a new dataframe that is compatible with the destination schema
     */
   @StepFunction(
@@ -40,19 +43,21 @@ object MappingSteps {
     "This step maps a new dataframe to a pre-defined spark schema (StructType)",
     "Pipeline"
   )
-  def mapDataFrameToSchema(dataFrame: DataFrame, destinationSchema: StructType, mappings: List[MappingDetails] = List()): DataFrame = {
-    val aliasedDF = applyAliasesToInputDataFrame(dataFrame, mappings)
+  def mapDataFrameToSchema(inputDataFrame: DataFrame, destinationSchema: StructType, mappings: List[MappingDetails] = List(),
+                           addNewColumns: Boolean = true): DataFrame = {
+    val aliasedDF = applyAliasesToInputDataFrame(inputDataFrame, mappings)
     val transformedDF = applyTransforms(aliasedDF, mappings)
     val fullDF = addMissingDestinationAttributes(transformedDF, destinationSchema)
     val typedDF = convertDataTypesToDestination(fullDF, destinationSchema)
-    orderAttributesToDestinationSchema(typedDF, destinationSchema)
+    orderAttributesToDestinationSchema(typedDF, destinationSchema, addNewColumns)
   }
 
   /**
     * merges two dataframes conforming to the schema of the 2nd dataframe
-    * @param fromDF     the first dataframe
-    * @param toDF       the second dataframe used as the driver
-    * @param mappings   the mappings object with transform and inputAlias details
+    * @param inputDataFrame         the first dataframe
+    * @param destinationDataFrame   the second dataframe used as the driver
+    * @param mappings               the mappings object with transform and inputAlias details
+    * @param addNewColumns          a flag to determine whether new attributes are to be added to the output
     * @return   a new dataframe containing data from both input dataframes
     */
   @StepFunction(
@@ -61,11 +66,12 @@ object MappingSteps {
     "This step maps a new dataframe to an existing dataframe to make them compatible",
     "Pipeline"
   )
-  def mergeDataFrames(fromDF: DataFrame, toDF: DataFrame, mappings: List[MappingDetails] = List()): DataFrame = {
+  def mergeDataFrames(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, mappings: List[MappingDetails] = List(),
+                      addNewColumns: Boolean = true): DataFrame = {
     // map to destination dataframe
-    val mappedFromDF = mapToExistingDataFrame(fromDF, toDF, mappings)
+    val mappedFromDF = mapToDestinationDataFrame(inputDataFrame, destinationDataFrame, mappings, addNewColumns)
     // treating 2 as the driver...adding attributes from df1 that don't exist on df2
-    val finalToDF = addMissingDestinationAttributes(toDF, mappedFromDF.schema)
+    val finalToDF = addMissingDestinationAttributes(destinationDataFrame, mappedFromDF.schema)
     // union dataframes together
     finalToDF.union(mappedFromDF)
   }
@@ -86,8 +92,11 @@ object MappingSteps {
     // pull out mappings that contain a transform
     val mappingsWithTransforms = mappings.filter(_.transform.nonEmpty)
 
+    // apply any alias logic to input column names
+    val aliasedDF = applyAliasesToInputDataFrame(dataFrame, mappings)
+
     // create input dataframe with any transform overrides (preserving input order)
-    val inputExprs = dataFrame.columns.map(a => {
+    val inputExprs = aliasedDF.columns.map(a => {
       val mapping = mappingsWithTransforms.find(_.outputField == a)
       if(mapping.nonEmpty) {
         logger.info(s"adding transform for existing column '${mapping.get.outputField}', transform=${mapping.get.transform.get}")
@@ -97,7 +106,7 @@ object MappingSteps {
 
     // append transforms creating new fields to the end
     val finalExprs = mappingsWithTransforms.foldLeft(inputExprs)( (exprList, m) => {
-      if(dataFrame.columns.contains(m.outputField)) {
+      if(aliasedDF.columns.contains(m.outputField)) {
         exprList
       } else {
         logger.info(s"adding transform for new column '${m.outputField},transform=${m.transform.get}")
@@ -106,7 +115,7 @@ object MappingSteps {
     })
 
     // return dataframe with all transforms applied
-    dataFrame.select(finalExprs: _*)
+    aliasedDF.select(finalExprs: _*)
   }
 
   /**
@@ -162,14 +171,14 @@ object MappingSteps {
     * reorder columns in a dataframe to match order of a destination schema optionally adding new columns to the end
     * @param dataFrame          the input dataframe to be reordered
     * @param destinationSchema  the destination schema driving the column order
-    * @param addMissing         a flag determining whether missing attributes should be added
+    * @param addNewColumns      a flag determining whether missing attributes should be added
     * @return   a new dataframe with column in order specified by destination schema
     */
-  def orderAttributesToDestinationSchema(dataFrame: DataFrame, destinationSchema: StructType, addMissing: Boolean = true): DataFrame = {
+  def orderAttributesToDestinationSchema(dataFrame: DataFrame, destinationSchema: StructType, addNewColumns: Boolean = true): DataFrame = {
     // generate expressions that pull all destination attributes in order
     val destExprs = destinationSchema.map(a => col(a.name))
 
-    val finalExprs = if(addMissing) {
+    val finalExprs = if(addNewColumns) {
       // add expressions for any columns in the dataframe that are not in the destination schema
       destExprs ++ dataFrame.columns.flatMap(x => {
         if(!destinationSchema.exists(_.name == x)) {
