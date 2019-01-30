@@ -9,6 +9,16 @@ construct an *execution plan* and *pipelines*.
 ## Getting Started
 There is some preparation and understanding that needs to happen in order to create dynamically assembled applications.
 
+### Utilities
+There are some utility libraries provided to make writing steps easier.
+
+#### [FileManager](docs/filemanager.md)
+The FileManger utility provides an abstraction of different file systems. Step authors may use this to work directly
+with files on different file systems such as HDFS.
+
+#### DriverUtils
+This utility provides several function to help in the creation of a custom *DriverSetup*
+
 ### Application
 The Application allows application developers the ability to assemble a Spark application by providing a JSON 
 configuration file and specifying the *ApplicationDriverSetup* during the call to 'spark-submit'.
