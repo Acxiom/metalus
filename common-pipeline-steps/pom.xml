@@ -18,6 +18,13 @@
             <artifactId>spark-pipeline-engine_${scala.compat.version}</artifactId>
             <version>${parent.version}</version>
         </dependency>
+        <!-- Test -->
+        <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derby</artifactId>
+            <version>10.14.2.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
