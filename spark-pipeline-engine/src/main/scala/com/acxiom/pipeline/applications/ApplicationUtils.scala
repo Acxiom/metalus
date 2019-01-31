@@ -38,7 +38,7 @@ object ApplicationUtils {
     // Create the SparkSession
     val sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
     // Create the default globals
-    val rootGlobals = if (globals.isDefined) globals.get else Map[String, Any]()
+    val rootGlobals = globals.getOrElse(Map[String, Any]())
     val defaultGlobals = generateGlobals(application.globals, rootGlobals, Some(rootGlobals))
     val globalListener = generatePipelineListener(application.pipelineListener, Some(pipelineListener))
     val globalSecurityManager = generateSecurityManager(application.securityManager, Some(PipelineSecurityManager()))
