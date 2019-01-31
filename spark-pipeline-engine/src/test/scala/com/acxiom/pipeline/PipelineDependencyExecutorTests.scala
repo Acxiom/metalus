@@ -3,6 +3,7 @@ package com.acxiom.pipeline
 import java.io.File
 import java.util.Date
 
+import com.acxiom.pipeline.applications.ApplicationUtils
 import com.acxiom.pipeline.utils.DriverUtils
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
@@ -11,6 +12,7 @@ import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen, Suite}
 
 import scala.collection.mutable
+import scala.io.Source
 
 class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen with Suite {
 
@@ -59,170 +61,110 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 			Some(SparkTestHelper.sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
 	}
 
+	private val pipelineJson =
+		"""
+							|[
+							| {
+							|   "id": "Pipeline1",
+							|   "name": "Pipeline 1",
+							|   "steps": [
+							|     {
+							|       "id": "Pipeline1Step1",
+							|       "displayName": "Pipeline1Step1",
+							|       "type": "preload",
+							|       "params": [
+							|         {
+							|           "type": "text",
+							|           "name": "value",
+							|           "required": true,
+							|           "value": "$value"
+							|         }
+							|       ],
+							|       "engineMeta": {
+							|         "spark": "ExecutionSteps.normalFunction"
+							|       }
+							|     }
+							|   ]
+							| }
+							|]
+					""".stripMargin
+
 	describe("Execution Plan") {
-		val pipelineJson =
-			"""
-				|[
-				| {
-				|   "id": "Pipeline1",
-				|   "name": "Pipeline 1",
-				|   "steps": [
-				|     {
-				|       "id": "Pipeline1Step1",
-				|       "displayName": "Pipeline1Step1",
-				|       "type": "preload",
-				|       "params": [
-				|         {
-				|           "type": "text",
-				|           "name": "value",
-				|           "required": true,
-				|           "value": "$value"
-				|         }
-				|       ],
-				|       "engineMeta": {
-				|         "spark": "ExecutionSteps.normalFunction"
-				|       }
-				|     }
-				|   ]
-				| }
-				|]
-			""".stripMargin
-		val pipeline2Json =
-			"""
-				|[
-				| {
-				|   "id": "Pipeline2",
-				|   "name": "Pipeline 2",
-				|   "steps": [
-				|     {
-				|       "id": "Pipeline2Step1",
-				|       "displayName": "Pipeline2Step1",
-				|       "type": "preload",
-				|       "params": [
-				|         {
-				|           "type": "text",
-				|           "name": "value",
-				|           "required": true,
-				|           "value": "$value"
-				|         }
-				|       ],
-				|       "engineMeta": {
-				|         "spark": "ExecutionSteps.normalFunction"
-				|       }
-				|     }
-				|   ]
-				| }
-				|]
-			""".stripMargin
-		val pipeline3Json =
-			"""
-				|[
-				| {
-				|   "id": "Pipeline3",
-				|   "name": "Pipeline 3",
-				|   "steps": [
-				|     {
-				|       "id": "Pipeline3Step1",
-				|       "displayName": "Pipeline3Step1",
-				|       "nextStepId": "Pipeline3Step2",
-				|       "type": "preload",
-				|       "params": [
-				|         {
-				|           "type": "text",
-				|           "name": "value",
-				|           "required": true,
-				|           "value": "$value"
-				|         }
-				|       ],
-				|       "engineMeta": {
-				|         "spark": "ExecutionSteps.normalFunction"
-				|       }
-				|     },
-				|     {
-				|       "id": "Pipeline3Step2",
-				|       "displayName": "Pipeline3Step2",
-				|       "type": "preload",
-				|       "params": [
-				|         {
-				|           "type": "text",
-				|           "name": "value",
-				|           "required": true,
-				|           "value": "$secondValue"
-				|         }
-				|       ],
-				|       "engineMeta": {
-				|         "spark": "ExecutionSteps.normalFunction"
-				|       }
-				|     }
-				|   ]
-				| }
-				|]
-			""".stripMargin
 		it("Should execute a single list of pipelines") {
-			SparkTestHelper.pipelineListener = new PipelineListener {
+			val results = new ListenerValidations
+			val listener = new PipelineListener {
 				override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-					assert(getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Fred")
+					results.addValidation("Execution failed", getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Fred")
 					None
 				}
 
 				override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
 					exception match {
-						case _ => fail("Unexpected exception registered")
+						case _ =>
+							results.addValidation("Unexpected exception registered", valid = false)
 					}
 				}
 			}
-			val pipelines = DriverUtils.parsePipelineJson(pipelineJson.replace("$value", "Fred"))
-			PipelineDependencyExecutor.executePlan(List(PipelineExecution("0", pipelines.get, None, generatePipelineContext(), None)))
+			val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/single-execution.json")).mkString)
+			PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
+			results.validate()
 		}
 
 		it("Should execute a simple dependency graph of two pipeline chains") {
-			SparkTestHelper.pipelineListener = new PipelineListener {
+			val results = new ListenerValidations
+			val listener = new PipelineListener {
 				override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
 					val pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
 					pipelineId match {
 						case "Pipeline1" =>
-							assert(getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Fred")
+							results.addValidation("Execution failed", getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Fred")
 						case "Pipeline2" =>
-							assert(getStringValue(pipelineContext, "Pipeline2", "Pipeline2Step1") == "Fred")
+							results.addValidation("Execution failed", getStringValue(pipelineContext, "Pipeline2", "Pipeline2Step1") == "Fred")
 					}
 					None
 				}
 
 				override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
 					exception match {
-						case _ => fail("Unexpected exception registered")
+						case _ =>
+							results.addValidation("Unexpected exception registered", valid = false)
 					}
 				}
 			}
-			val pipelines1 = DriverUtils.parsePipelineJson(pipelineJson.replace("$value", "Fred"))
-			val pipelines2 = DriverUtils.parsePipelineJson(pipeline2Json.replace("$value", "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn"))
-			PipelineDependencyExecutor.executePlan(List(
-				PipelineExecution("0", pipelines1.get, None, generatePipelineContext(), None),
-				PipelineExecution("1", pipelines2.get, None, generatePipelineContext(), Some(List("0")))))
+			val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/parent-child.json")).mkString)
+			PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
+			results.validate()
 		}
 
 		it("Should execute a multi-tiered chain of dependencies") {
+			val results = new ListenerValidations
 			val resultBuffer = mutable.ListBuffer[String]()
-			SparkTestHelper.pipelineListener = new PipelineListener {
+			val listener = new PipelineListener {
 				override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
 					var pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
 					pipelineId match {
 						case "Pipeline1" =>
-							assert(getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Chain0")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Chain0")
 						case "PipelineChain1" =>
-							assert(getStringValue(pipelineContext, "PipelineChain1", "Pipeline3Step1") == "Chain0")
-							assert(getStringValue(pipelineContext, "PipelineChain1", "Pipeline3Step2") == "Chain1")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "PipelineChain1", "Pipeline3Step1") == "Chain0" &&
+									getStringValue(pipelineContext, "PipelineChain1", "Pipeline3Step2") == "Chain1")
 						case "PipelineChain2" =>
-							assert(getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step1") == "Chain0")
-							assert(getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step2") == "Chain2")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step1") == "Chain0" &&
+									getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step2") == "Chain2")
 						case "PipelineChain3" =>
-							assert(getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step1") == "Chain0")
-							assert(getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step2") == "Chain3")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step1") == "Chain0" &&
+									getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step2") == "Chain3")
 						case "Pipeline3" =>
-							assert(getStringValue(pipelineContext, "Pipeline3", "Pipeline3Step1") == "Chain1")
-							assert(getStringValue(pipelineContext, "Pipeline3", "Pipeline3Step2") == "Chain3")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "Pipeline3", "Pipeline3Step1") == "Chain1" &&
+									getStringValue(pipelineContext, "Pipeline3", "Pipeline3Step2") == "Chain3")
 						case "PipelineChain5" =>
-							assert(getStringValue(pipelineContext, "PipelineChain5", "Pipeline1Step1") == "Chain5")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "PipelineChain5", "Pipeline1Step1") == "Chain5")
 					}
 					resultBuffer += pipelineId
 					None
@@ -231,63 +173,45 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 				override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
 					exception match {
 						case _ =>
-							resultBuffer += s"Failed: ${exception.getCause.getMessage}"
-							fail("Unexpected exception registered")
+							val e = Option(exception.getCause).getOrElse(exception)
+							results.addValidation(s"Failed: ${e.getMessage}", valid = false)
 					}
 				}
 			}
-			PipelineDependencyExecutor.executePlan(List(
-				PipelineExecution("0", DriverUtils.parsePipelineJson(pipelineJson.replace("$value", "Chain0")).get, None, generatePipelineContext(), None),
-				PipelineExecution("1",
-					DriverUtils.parsePipelineJson(pipeline3Json.replace("$value", "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn")
-									.replace("\"Pipeline3\"", "\"PipelineChain1\"")
-									.replace("$secondValue", "Chain1")).get,
-					None, generatePipelineContext(), Some(List("0"))),
-				PipelineExecution("2",
-					DriverUtils.parsePipelineJson(pipeline3Json.replace("$value", "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn")
-									.replace("ExecutionSteps.normalFunction", "ExecutionSteps.sleepFunction")
-									.replace("\"Pipeline3\"", "\"PipelineChain2\"")
-									.replace("$secondValue", "Chain2")).get, None, generatePipelineContext(), Some(List("0"))),
-				PipelineExecution("3",
-					DriverUtils.parsePipelineJson(pipeline3Json.replace("$value", "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn")
-									.replace("\"Pipeline3\"", "\"PipelineChain3\"")
-									.replace("$secondValue", "Chain3")).get,
-					None, generatePipelineContext(), Some(List("0"))),
-				PipelineExecution("4",
-					DriverUtils.parsePipelineJson(pipeline3Json.replace("$value", "!1.pipelineParameters.PipelineChain1.Pipeline3Step2.primaryReturn")
-									.replace("$secondValue", "!3.pipelineParameters.PipelineChain3.Pipeline3Step2.primaryReturn")).get,
-					None, generatePipelineContext(), Some(List("1", "3"))),
-				PipelineExecution("5", DriverUtils.parsePipelineJson(pipelineJson.replace("$value", "Chain5")
-								.replace("\"Pipeline1\"", "\"PipelineChain5\"")).get, None, generatePipelineContext(), None)
-			))
+
+			val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/multi-tiered.json")).mkString)
+			PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
+			results.validate()
 
 			val validResults = List("Pipeline1", "PipelineChain1", "PipelineChain2", "PipelineChain3", "PipelineChain5", "Pipeline3")
-			resultBuffer.toList.foreach(value => assert(validResults.contains(value), s"Failed $value"))
-			assert(resultBuffer.length == 6)
+			assert(resultBuffer.diff(validResults).isEmpty)
 		}
 
 		it("Should not execute child when one parent fails with an exception") {
+			val results = new ListenerValidations
 			val resultBuffer = mutable.ListBuffer[String]()
-			SparkTestHelper.pipelineListener = new PipelineListener {
+			val listener = new PipelineListener {
 				override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
 					var pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
 					pipelineId match {
 						case "Pipeline1" =>
-							assert(getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Chain0")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Chain0")
 						case "PipelineChain1" =>
-							resultBuffer += "Should not have called PipelineChain1"
-							fail("Should not have called PipelineChain1")
+							results.addValidation("Should not have called PipelineChain1", valid = false)
 						case "PipelineChain2" =>
-							assert(getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step1") == "Chain0")
-							assert(getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step2") == "Chain2")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step1") == "Chain0" &&
+									getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step2") == "Chain2")
 						case "PipelineChain3" =>
-							assert(getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step1") == "Chain0")
-							assert(getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step2") == "Chain3")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step1") == "Chain0" &&
+									getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step2") == "Chain3")
 						case "Pipeline3" =>
-							resultBuffer += "Should not have called Pipeline3"
-							fail("Should not have called Pipeline3")
+							results.addValidation("Should not have called Pipeline3", valid = false)
 						case "PipelineChain5" =>
-							assert(getStringValue(pipelineContext, "PipelineChain5", "Pipeline1Step1") == "Chain5")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "PipelineChain5", "Pipeline1Step1") == "Chain5")
 					}
 					resultBuffer += pipelineId
 					None
@@ -295,65 +219,52 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 
 				override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
 					exception match {
+							case ex: PipelineException =>
+								if (ex.message.getOrElse("") != "Called exception step") {
+									val e = Option(exception.getCause).getOrElse(exception)
+									results.addValidation(s"Failed: ${e.getMessage}", valid = false)
+								}
 						case _ =>
-							resultBuffer += exception.getCause.getMessage
-							fail("Unexpected exception registered")
+							val e = Option(exception.getCause).getOrElse(exception)
+							results.addValidation(s"Failed: ${e.getMessage}", valid = false)
 					}
 				}
 			}
-			PipelineDependencyExecutor.executePlan(List(
-				PipelineExecution("0", DriverUtils.parsePipelineJson(pipelineJson.replace("$value", "Chain0")).get, None, generatePipelineContext(), None),
-				PipelineExecution("1",
-					DriverUtils.parsePipelineJson(pipeline3Json.replace("$value", "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn")
-									.replace("ExecutionSteps.normalFunction", "ExecutionSteps.exceptionStep")
-									.replace("\"Pipeline3\"", "\"PipelineChain1\"")
-									.replace("$secondValue", "Chain1")).get,
-					None, generatePipelineContext(), Some(List("0"))),
-				PipelineExecution("2",
-					DriverUtils.parsePipelineJson(pipeline3Json.replace("$value", "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn")
-									.replace("ExecutionSteps.normalFunction", "ExecutionSteps.sleepFunction")
-									.replace("\"Pipeline3\"", "\"PipelineChain2\"")
-									.replace("$secondValue", "Chain2")).get, None, generatePipelineContext(), Some(List("0"))),
-				PipelineExecution("3",
-					DriverUtils.parsePipelineJson(pipeline3Json.replace("$value", "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn")
-									.replace("\"Pipeline3\"", "\"PipelineChain3\"")
-									.replace("$secondValue", "Chain3")).get,
-					None, generatePipelineContext(), Some(List("0"))),
-				PipelineExecution("4",
-					DriverUtils.parsePipelineJson(pipeline3Json.replace("$value", "!1.pipelineParameters.PipelineChain1.Pipeline3Step2.primaryReturn")
-									.replace("$secondValue", "!3.pipelineParameters.PipelineChain3.Pipeline3Step2.primaryReturn")).get,
-					None, generatePipelineContext(), Some(List("1", "3"))),
-				PipelineExecution("5", DriverUtils.parsePipelineJson(pipelineJson.replace("$value", "Chain5")
-								.replace("\"Pipeline1\"", "\"PipelineChain5\"")).get, None, generatePipelineContext(), None)
-			))
+
 			// PipelineChain1 should throw an exception which h=should prevent Pipeline3 from executing
+			val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/multi-tiered-exception.json")).mkString)
+			PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
+			results.validate()
+
 			val validResults = List("Pipeline1", "PipelineChain2", "PipelineChain3", "PipelineChain5")
-			resultBuffer.toList.foreach(value => assert(validResults.contains(value), s"Failed $value"))
-			assert(resultBuffer.length == 4)
+			assert(resultBuffer.diff(validResults).isEmpty)
 		}
 
 		it("Should not execute child when one parent pauses") {
+			val results = new ListenerValidations
 			val resultBuffer = mutable.ListBuffer[String]()
-			SparkTestHelper.pipelineListener = new PipelineListener {
+			val listener = new PipelineListener {
 				override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
 					var pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
 					pipelineId match {
 						case "Pipeline1" =>
-							assert(getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Chain0")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "Pipeline1", "Pipeline1Step1") == "Chain0")
 						case "PipelineChain1" =>
-							resultBuffer += "Should not have called PipelineChain1"
-							fail("Should not have called PipelineChain1")
+							results.addValidation("Should not have called PipelineChain1", valid = false)
 						case "PipelineChain2" =>
-							assert(getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step1") == "Chain0")
-							assert(getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step2") == "Chain2")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step1") == "Chain0" &&
+									getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step2") == "Chain2")
 						case "PipelineChain3" =>
-							assert(getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step1") == "Chain0")
-							assert(getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step2") == "Chain3")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step1") == "Chain0" &&
+									getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step2") == "Chain3")
 						case "Pipeline3" =>
-							resultBuffer += "Should not have called Pipeline3"
-							fail("Should not have called Pipeline3")
+							results.addValidation("Should not have called Pipeline3", valid = false)
 						case "PipelineChain5" =>
-							assert(getStringValue(pipelineContext, "PipelineChain5", "Pipeline1Step1") == "Chain5")
+							results.addValidation(s"Execution failed for $pipelineId",
+								getStringValue(pipelineContext, "PipelineChain5", "Pipeline1Step1") == "Chain5")
 					}
 					resultBuffer += pipelineId
 					None
@@ -361,47 +272,57 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 
 				override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
 					exception match {
+						case ex: PauseException =>
+							if (ex.message.getOrElse("") != "Called pause step") {
+								val e = Option(exception.getCause).getOrElse(exception)
+								results.addValidation(s"Failed: ${e.getMessage}", valid = false)
+							}
 						case _ =>
-							resultBuffer += exception.getCause.getMessage
-							fail("Unexpected exception registered")
+							val e = Option(exception.getCause).getOrElse(exception)
+							results.addValidation(s"Failed: ${e.getMessage}", valid = false)
 					}
 				}
 			}
-			PipelineDependencyExecutor.executePlan(List(
-				PipelineExecution("0", DriverUtils.parsePipelineJson(pipelineJson.replace("$value", "Chain0")).get, None, generatePipelineContext(), None),
-				PipelineExecution("1",
-					DriverUtils.parsePipelineJson(pipeline3Json.replace("$value", "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn")
-									.replace("ExecutionSteps.normalFunction", "ExecutionSteps.pauseStep")
-									.replace("\"Pipeline3\"", "\"PipelineChain1\"")
-									.replace("$secondValue", "Chain1")).get,
-					None, generatePipelineContext(), Some(List("0"))),
-				PipelineExecution("2",
-					DriverUtils.parsePipelineJson(pipeline3Json.replace("$value", "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn")
-									.replace("ExecutionSteps.normalFunction", "ExecutionSteps.sleepFunction")
-									.replace("\"Pipeline3\"", "\"PipelineChain2\"")
-									.replace("$secondValue", "Chain2")).get, None, generatePipelineContext(), Some(List("0"))),
-				PipelineExecution("3",
-					DriverUtils.parsePipelineJson(pipeline3Json.replace("$value", "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn")
-									.replace("\"Pipeline3\"", "\"PipelineChain3\"")
-									.replace("$secondValue", "Chain3")).get,
-					None, generatePipelineContext(), Some(List("0"))),
-				PipelineExecution("4",
-					DriverUtils.parsePipelineJson(pipeline3Json.replace("$value", "!1.pipelineParameters.PipelineChain1.Pipeline3Step2.primaryReturn")
-									.replace("$secondValue", "!3.pipelineParameters.PipelineChain3.Pipeline3Step2.primaryReturn")).get,
-					None, generatePipelineContext(), Some(List("1", "3"))),
-				PipelineExecution("5", DriverUtils.parsePipelineJson(pipelineJson.replace("$value", "Chain5")
-								.replace("\"Pipeline1\"", "\"PipelineChain5\"")).get, None, generatePipelineContext(), None)
-			))
+
 			// PipelineChain1 should throw an exception which h=should prevent Pipeline3 from executing
+			val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/multi-tiered-pause.json")).mkString)
+			PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
+			results.validate()
+
 			val validResults = List("Pipeline1", "PipelineChain2", "PipelineChain3", "PipelineChain5")
-			resultBuffer.toList.foreach(value => assert(validResults.contains(value), s"Failed $value"))
-			assert(resultBuffer.length == 4)
+			assert(resultBuffer.diff(validResults).isEmpty)
+		}
+	}
+
+	describe("Negative Tests") {
+		it("Should not execute if there is no root execution") {
+			var processExecuted = false
+			SparkTestHelper.pipelineListener = new PipelineListener {
+				override def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext): Option[PipelineContext] = {
+					processExecuted = true
+					None
+				}
+
+				override def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+					processExecuted = true
+					None
+				}
+			}
+			PipelineDependencyExecutor.executePlan(List(PipelineExecution("Fred",
+				DriverUtils.parsePipelineJson(pipelineJson.replace("$value", "Fred")).get,
+				None, generatePipelineContext(), Some(List("meeso")))))
+			assert(!processExecuted)
 		}
 	}
 
 	private def getStringValue(pipelineContext: PipelineContext, pipelineId: String, stepId: String): String = {
-		val response = pipelineContext.parameters.getParametersByPipelineId(pipelineId).get.parameters(stepId).asInstanceOf[PipelineStepResponse]
-		response.primaryReturn.getOrElse("").asInstanceOf[String]
+		val pipelineParameters = pipelineContext.parameters.getParametersByPipelineId(pipelineId)
+		if (pipelineParameters.isDefined) {
+			val response = pipelineParameters.get.parameters(stepId).asInstanceOf[PipelineStepResponse]
+			response.primaryReturn.getOrElse("").asInstanceOf[String]
+		} else {
+			""
+		}
 	}
 }
 
@@ -417,13 +338,13 @@ object ExecutionSteps {
 		PipelineStepResponse(Some(value), Some(Map[String, Any]("time" -> new Date())))
 	}
 
-	def exceptionStep(pipelineContext: PipelineContext): PipelineStepResponse = {
+	def exceptionStep(value: String, pipelineContext: PipelineContext): PipelineStepResponse = {
 		throw PipelineException(message = Some("Called exception step"),
 			pipelineId = pipelineContext.getGlobalString("pipelineId"),
 			stepId = pipelineContext.getGlobalString("stepId"))
 	}
 
-	def pauseStep(pipelineContext: PipelineContext): Unit = {
+	def pauseStep(value: String, pipelineContext: PipelineContext): Unit = {
 		pipelineContext.addStepMessage(
 			PipelineStepMessage("Called pause step",
 				pipelineContext.getGlobalString("stepId").getOrElse(""),

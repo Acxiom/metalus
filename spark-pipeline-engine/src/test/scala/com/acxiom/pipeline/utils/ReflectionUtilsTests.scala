@@ -4,6 +4,7 @@ import com.acxiom.pipeline.{PipelineStepResponse, _}
 import org.scalatest.FunSpec
 
 class ReflectionUtilsTests extends FunSpec {
+  private val FIVE = 5
   describe("ReflectionUtil - processStep") {
     it("Should process step function") {
       val pipelineContext = PipelineContext(None, None, None, PipelineSecurityManager(), PipelineParameters(),
@@ -51,4 +52,16 @@ class ReflectionUtilsTests extends FunSpec {
       assert(mc.asInstanceOf[MockNoParams].string == "no-constructor-string")
     }
   }
+
+  describe("ReflectionUtils - extractField") {
+    it("Should return None when field name is invalid") {
+      assert(ReflectionUtils.extractField(MockObject("string", FIVE), "bob").asInstanceOf[Option[_]].isEmpty)
+    }
+
+    it("Should return None when entity is None") {
+      assert(ReflectionUtils.extractField(None, "something").asInstanceOf[Option[_]].isEmpty)
+    }
+  }
 }
+
+case class MockObject(string: String, num: Int)
