@@ -64,7 +64,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
             ))
           )
         ),
-        PipelineParameter("pipeline-id-2", Map("rawInteger" -> 2)),
+        PipelineParameter("pipeline-id-2", Map("rawInteger" -> 2, "rawDecimal" -> 15.65)),
         PipelineParameter("pipeline-id-3", Map("rawInteger" -> 3, "step1" -> PipelineStepResponse(Some(List(1,2,3)),
           Some(Map("namedKey" -> "namedValue")))))
       ))
@@ -78,7 +78,10 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("boolean", Parameter(value=Some(true),`type`=Some("boolean")), true),
         ("int", Parameter(value=Some(1),`type`=Some("integer")), 1),
         ("big int", Parameter(value=Some(BigInt("5")),`type`=Some("integer")), BigInt("5")),
+        ("decimal", Parameter(value=Some(BigInt("5")),`type`=Some("integer")), BigInt("5")),
         ("list", Parameter(value=Some(List("5")),`type`=Some("integer")), List("5")),
+        ("string list", Parameter(value=Some("[\"a\", \"b\", \"c\" \"d\"]"),`type`=Some("list")), List("a", "b", "c", "d")),
+        ("int list", Parameter(value=Some("[1, 2, 3]"),`type`=Some("list")), List(1, 2, 3)),
         ("default value", Parameter(name = Some("fred"), defaultValue=Some("default value"),`type`=Some("string")), "default value"),
         ("string from global", Parameter(value=Some("!globalString"),`type`=Some("string")), "globalValue1"),
         ("boolean from global", Parameter(value=Some("!globalBoolean"),`type`=Some("boolean")), true),
@@ -91,6 +94,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("missing runtime parameter", Parameter(value=Some("$fred"),`type`=Some("string")), None),
         ("None runtime parameter", Parameter(name = Some("red test"), value=Some("$pipeline-id-1.red"),`type`=Some("string")), None),
         ("integer from specific pipeline", Parameter(value=Some("$pipeline-id-2.rawInteger"),`type`=Some("integer")), 2),
+        ("decimal from specific pipeline", Parameter(value=Some("$pipeline-id-2.rawDecimal"),`type`=Some("decimal")), 15.65),
         ("primary from current pipeline using @", Parameter(value=Some("@step1"),`type`=Some("string")), List(1,2,3)),
         ("primary from current pipeline using $", Parameter(value=Some("$step1.primaryReturn"),`type`=Some("string")), List(1,2,3)),
         ("primary from specific pipeline using @", Parameter(value=Some("@pipeline-id-1.step1.primaryKey1String"),`type`=Some("string")),
