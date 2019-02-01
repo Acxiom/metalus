@@ -97,6 +97,16 @@ class ScalaStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       assert(count == 1000)
       assert(df.schema.fields.length == 7)
     }
+
+    it("Should handle typed bindings"){
+      val updatedScript = script.replaceAll("\\$path", "userValue")
+      val result = ScalaSteps.processScriptWithTypedValue(updatedScript, tempFile.getAbsolutePath, "String", pipelineContext)
+      assert(result.primaryReturn.isDefined)
+      val df = result.primaryReturn.get.asInstanceOf[DataFrame]
+      val count = df.count()
+      assert(count == 1000)
+      assert(df.schema.fields.length == 7)
+    }
   }
 
 }
