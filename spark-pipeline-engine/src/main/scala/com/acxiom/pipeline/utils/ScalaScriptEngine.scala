@@ -9,6 +9,7 @@ import scala.tools.reflect.ToolBox
 class ScalaScriptEngine extends ScriptEngine {
 
   override val engineName: String = "scala"
+  private val toolBox = universe.runtimeMirror(getClass.getClassLoader).mkToolBox()
 
   /**
     * This function will execute a simple self-contained scala script and return the result.
@@ -17,8 +18,7 @@ class ScalaScriptEngine extends ScriptEngine {
     * @return The result of the execution.
     */
   override def executeSimpleScript(script: String): Any = {
-    val r = compile[Any](script)
-    r()
+    compile[Any](script)
   }
 
   /**
@@ -46,20 +46,18 @@ class ScalaScriptEngine extends ScriptEngine {
   }
 
   private def compile[A, B](code: String)( implicit m: ClassTag[A]): (A, PipelineContext) => B = {
-    val tb = universe.runtimeMirror(getClass.getClassLoader).mkToolBox()
-    val tree = tb.parse(
+    val tree = toolBox.parse(
       s"""
          |def wrapper(userValue: ${m.runtimeClass.getCanonicalName}, pipelineContext: com.acxiom.pipeline.PipelineContext): Any = {
          |  $code
          |}
          |wrapper _
       """.stripMargin)
-    tb.compile(tree)().asInstanceOf[(A, PipelineContext) => B]
+    toolBox.compile(tree)().asInstanceOf[(A, PipelineContext) => B]
   }
 
-  private def compile[A](code: String): () => A = {
-    val tb = universe.runtimeMirror(getClass.getClassLoader).mkToolBox()
-    val tree = tb.parse(code.stripMargin)
-    tb.compile(tree)().asInstanceOf[() => A]
+  private def compile[A](code: String):  A = {
+    val tree = toolBox.parse(code.stripMargin)
+    toolBox.compile(tree)().asInstanceOf[A]
   }
 }
