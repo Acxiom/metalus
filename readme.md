@@ -79,5 +79,9 @@ To build the project run:
 Tests are part of the main build.
 
 ## Contributing
-To contribute back changes, fork the main github repository. Once the changes are ready, create a pull request against
-the main develop branch.
+* Start by forking the main GutHub [repository](https://github.com/Acxiom/spark-pipeline-driver).
+* Commit all changes to the develop branch.
+* Create proper scaladoc comments for any new or changed functions.
+* Provide a thorough unit test for the change.
+* Provide any additional documentation required by individual projects.
+

@@ -59,6 +59,27 @@ object ApplicationUtils {
     })
   }
 
+  /**
+    * Utility method that resets the state on the PipeineExecution.
+    *
+    * @param application       The Application configuration
+    * @param rootGlobals       The initial set of globals
+    * @param execution         The execution configuration
+    * @param pipelineExecution The PipelineExecution that needs to be refreshed
+    * @return An updated PipelineExecution
+    */
+  def refreshPipelineExecution(application: Application,
+                               rootGlobals: Option[Map[String, Any]],
+                               execution: Execution,
+                               pipelineExecution: PipelineExecution): PipelineExecution = {
+    val defaultGlobals = generateGlobals(application.globals, rootGlobals.get, rootGlobals)
+    val globalPipelineParameters = generatePipelineParameters(application.pipelineParameters, Some(PipelineParameters()))
+    val ctx = pipelineExecution.pipelineContext
+      .copy(globals = generateGlobals(execution.globals, rootGlobals.get, defaultGlobals))
+        .copy(parameters = generatePipelineParameters(execution.pipelineParameters, globalPipelineParameters).get)
+    pipelineExecution.asInstanceOf[DefaultPipelineExecution].copy(pipelineContext = ctx)
+  }
+
   private def generatePipelineListener(pipelineListenerInfo: Option[ClassInfo],
                                        pipelineListener: Option[PipelineListener]): Option[PipelineListener] = {
     if (pipelineListenerInfo.isDefined) {

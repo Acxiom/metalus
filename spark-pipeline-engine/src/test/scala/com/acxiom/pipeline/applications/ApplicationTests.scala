@@ -96,6 +96,13 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       FileUtils.deleteDirectory(testDirectory.toFile)
       setup.pipelineContext.sparkSession.get.stop()
     }
+
+    it ("Should refresh an application") {
+      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "root" -> true))
+      val executionPlan = setup.executionPlan.get
+      verifyApplication(setup.refreshExecutionPlan(executionPlan))
+      setup.pipelineContext.sparkSession.get.stop()
+    }
   }
 
   private def verifyDriverSetup(driverSetup: DriverSetup): Unit = {
