@@ -56,6 +56,21 @@ case class ApplicationDriverSetup(parameters: Map[String, Any]) extends DriverSe
 
   override def pipelineContext: PipelineContext = executions.head.pipelineContext
 
+  /**
+    * This function allows the driver setup a chance to refresh the execution plan. This is useful in long running
+    * applications such as streaming where artifacts build up over time.
+    *
+    * @param executionPlan The execution plan to refresh
+    * @since 1.1.0
+    * @return An execution plan
+    */
+  override def refreshExecutionPlan(executionPlan: List[PipelineExecution]): List[PipelineExecution] = {
+    executionPlan.map(plan => {
+      val execution = application.executions.get.find(_.id.getOrElse("") == plan.id).get
+      ApplicationUtils.refreshPipelineExecution(application, Some(params), execution, plan)
+    })
+  }
+
   private def loadApplication(parameters: Map[String, Any]): Application = {
     val json = if (parameters.contains("applicationJson")) {
       parameters("applicationJson").asInstanceOf[String]
