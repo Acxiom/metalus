@@ -1,0 +1,251 @@
+{
+  "stepPackages": [
+    "com.acxiom.pipeline.steps",
+    "com.acxiom.pipeline"
+  ],
+  "executions": [
+    {
+      "id": "0",
+      "pipelines": [
+        {
+          "id": "Pipeline1",
+          "name": "Pipeline 1",
+          "steps": [
+            {
+              "id": "Pipeline1Step1",
+              "displayName": "Pipeline1Step1",
+              "type": "preload",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "Chain0"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "1",
+      "pipelines": [
+        {
+          "id": "PipelineChain1",
+          "name": "Pipeline 3",
+          "steps": [
+            {
+              "id": "Pipeline3Step1",
+              "displayName": "Pipeline3Step1",
+              "nextStepId": "Pipeline3Step2",
+              "type": "preload",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "fred"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.exceptionStep"
+              }
+            },
+            {
+              "id": "Pipeline3Step2",
+              "displayName": "Pipeline3Step2",
+              "type": "preload",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "Chain1"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.exceptionStep"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "0"
+      ]
+    },
+    {
+      "id": "2",
+      "pipelines": [
+        {
+          "id": "PipelineChain2",
+          "name": "Pipeline 3",
+          "steps": [
+            {
+              "id": "Pipeline3Step1",
+              "displayName": "Pipeline3Step1",
+              "nextStepId": "Pipeline3Step2",
+              "type": "preload",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.sleepFunction"
+              }
+            },
+            {
+              "id": "Pipeline3Step2",
+              "displayName": "Pipeline3Step2",
+              "type": "preload",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "Chain2"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.sleepFunction"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "0"
+      ]
+    },
+    {
+      "id": "3",
+      "pipelines": [
+        {
+          "id": "PipelineChain3",
+          "name": "Pipeline 3",
+          "steps": [
+            {
+              "id": "Pipeline3Step1",
+              "displayName": "Pipeline3Step1",
+              "nextStepId": "Pipeline3Step2",
+              "type": "preload",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            },
+            {
+              "id": "Pipeline3Step2",
+              "displayName": "Pipeline3Step2",
+              "type": "preload",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "Chain3"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "0"
+      ]
+    },
+    {
+      "id": "4",
+      "pipelines": [
+        {
+          "id": "Pipeline3",
+          "name": "Pipeline 3",
+          "steps": [
+            {
+              "id": "Pipeline3Step1",
+              "displayName": "Pipeline3Step1",
+              "nextStepId": "Pipeline3Step2",
+              "type": "preload",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!1.pipelineParameters.PipelineChain1.Pipeline3Step2.primaryReturn"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            },
+            {
+              "id": "Pipeline3Step2",
+              "displayName": "Pipeline3Step2",
+              "type": "preload",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!3.pipelineParameters.PipelineChain3.Pipeline3Step2.primaryReturn"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "1",
+        "3"
+      ]
+    },
+    {
+      "id": "5",
+      "pipelines": [
+        {
+          "id": "PipelineChain5",
+          "name": "Pipeline 1",
+          "steps": [
+            {
+              "id": "Pipeline1Step1",
+              "displayName": "Pipeline1Step1",
+              "type": "preload",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "Chain5"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

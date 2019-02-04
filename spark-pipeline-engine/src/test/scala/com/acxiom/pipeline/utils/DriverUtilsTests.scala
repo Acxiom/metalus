@@ -2,7 +2,7 @@ package com.acxiom.pipeline.utils
 
 import java.text.ParseException
 
-import com.acxiom.pipeline.{Pipeline, PipelineDefs, TestPipeline}
+import com.acxiom.pipeline.{MockClass, Pipeline, PipelineDefs}
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.FunSpec
@@ -47,17 +47,11 @@ class DriverUtilsTests extends FunSpec {
       verifyParsedPipelines(pipelineList.get(1), PipelineDefs.TWO_PIPELINE(1))
     }
 
-    it("Should parse a JsonPipeline based pipeline") {
-      val json = Serialization.write(PipelineDefs.TWO_PIPELINE)
-      val pipelineList = DriverUtils.parsePipelineJson(json, classOf[TestPipeline])
-      assert(pipelineList.isDefined)
-      assert(pipelineList.get.lengthCompare(2) == 0)
-      assert(pipelineList.get.head.isInstanceOf[TestPipeline])
-      assert(pipelineList.get.head.asInstanceOf[TestPipeline].typeClass == "TestPipeline")
-      assert(pipelineList.get(1).isInstanceOf[TestPipeline])
-      assert(pipelineList.get(1).asInstanceOf[TestPipeline].typeClass == "TestPipeline")
-      verifyParsedPipelines(pipelineList.get.head, PipelineDefs.TWO_PIPELINE.head)
-      verifyParsedPipelines(pipelineList.get(1), PipelineDefs.TWO_PIPELINE(1))
+    it("Should throw and error when json is invalid") {
+      val thrown = intercept[RuntimeException] {
+        DriverUtils.parsePipelineJson("")
+      }
+      assert(Option(thrown).isDefined)
     }
 
     def verifyParsedPipelines(pipeline1: Pipeline, pipeline2: Pipeline): Unit = {
@@ -76,6 +70,19 @@ class DriverUtilsTests extends FunSpec {
       })
     }
   }
-}
 
+  describe("DriverUtils - JSON conversion") {
+    it("Should convert JSON to case class") {
+      val json =
+        """
+          |{
+          | "string": "Frederico"
+          |}
+        """.stripMargin
+      val mc = DriverUtils.parseJson(json, "com.acxiom.pipeline.MockClass")
+      assert(Option(mc).isDefined)
+      assert(mc.asInstanceOf[MockClass].string == "Frederico")
+    }
+  }
+}
 

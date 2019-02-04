@@ -35,8 +35,6 @@ object ReflectionUtils {
       classMirror.reflectConstructor(method)(mapMethodParameters(method.paramLists.head, parameters.getOrElse(Map[String, Any]()),
         mirror.reflect(mirror.reflectModule(module)), symbol.get.asTerm.fullName, method.typeSignature, None)
         : _*)
-    } else {
-      throw new RuntimeException("Unable to find matching constructor")
     }
   }
 
