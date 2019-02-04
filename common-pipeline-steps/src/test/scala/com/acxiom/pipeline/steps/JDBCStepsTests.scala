@@ -1,7 +1,6 @@
 package com.acxiom.pipeline.steps
 
 import java.nio.file.{Files, Path}
-import collection.JavaConversions.propertiesAsScalaMap
 
 import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
@@ -9,7 +8,8 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
-import java.sql.DriverManager
+import java.sql.{DriverManager, ResultSet}
+import java.util.Properties
 
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
 
@@ -48,10 +48,10 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     val con = DriverManager.getConnection("jdbc:derby:memory:test;user=test_fixture;create=true")
     val st = con.createStatement()
 
-    st.executeUpdate("CREATE TABLE T (ID INT PRIMARY KEY, NAME VARCHAR(100), COLOR VARCHAR(30))")
-    st.executeUpdate("INSERT INTO T VALUES (1, 'SILKIE', 'WHITE')")
-    st.executeUpdate("INSERT INTO T VALUES (2, 'POLISH', 'BUFF')")
-    st.executeUpdate("INSERT INTO T VALUES (3, 'SULTAN', 'WHITE')")
+    st.executeUpdate("CREATE TABLE CHICKEN (ID INT PRIMARY KEY, NAME VARCHAR(100), COLOR VARCHAR(30))")
+    st.executeUpdate("INSERT INTO CHICKEN VALUES (1, 'SILKIE', 'WHITE')")
+    st.executeUpdate("INSERT INTO CHICKEN VALUES (2, 'POLISH', 'BUFF')")
+    st.executeUpdate("INSERT INTO CHICKEN VALUES (3, 'SULTAN', 'WHITE')")
     st.close()
     con.close()
 
@@ -78,21 +78,43 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     jDBCOptions.put("url", "jdbc:derby:memory:test")
     jDBCOptions.put("driver", "org.apache.derby.jdbc.EmbeddedDriver")
     jDBCOptions.put("user", "test_fixture")
-    jDBCOptions.put("dbtable", "T")
+    jDBCOptions.put("dbtable", "CHICKEN")
 
     it("should read a dataframe containing all records") {
-      val df = JDBCSteps.read(jdbcOptions = new JDBCOptions(jDBCOptions.toMap), pipelineContext = pipelineContext)
+      val df = JDBCSteps.readWithJDBCOptions(jdbcOptions = new JDBCOptions(jDBCOptions.toMap), pipelineContext = pipelineContext)
       val count = df.count()
       assert(count == 3)
     }
     it("should respect the 'where' option") {
-      val df = JDBCSteps.read(jdbcOptions = new JDBCOptions(jDBCOptions.toMap), where = Some("COLOR = 'WHITE'"), pipelineContext = pipelineContext)
+      val df = JDBCSteps.readWithJDBCOptions(
+        jdbcOptions = new JDBCOptions(jDBCOptions.toMap),
+        where = Some("COLOR = 'WHITE'"),
+        pipelineContext = pipelineContext
+      )
+
       val count = df.count()
       assert(count == 2)
     }
     it("should respect columns parameter") {
-      val df = JDBCSteps.read(
+      val df = JDBCSteps.readWithJDBCOptions(
         jdbcOptions = new JDBCOptions(jDBCOptions.toMap),
+        columns = List("NAME", "COLOR"),
+        where = Some("NAME = 'POLISH'"),
+        pipelineContext = pipelineContext
+      )
+
+      val count = df.columns.length
+      assert(count == 2)
+    }
+
+    it("should respect properties") {
+      val properties = new Properties()
+      properties.setProperty("user", "test_fixture")
+      properties.setProperty("driver", "org.apache.derby.jdbc.EmbeddedDriver")
+      val df = JDBCSteps.readWithProperties(
+        url = "jdbc:derby:memory:test",
+        table = "CHICKEN",
+        connectionProperties = properties,
         columns = List("NAME", "COLOR"),
         where = Some("NAME = 'POLISH'"),
         pipelineContext = pipelineContext
@@ -104,4 +126,38 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
   }
 
+  describe("JDBCSteps - Basic writing") {
+
+    val jDBCOptions = mutable.Map[String, String]()
+
+    jDBCOptions.put("url", "jdbc:derby:memory:test")
+    jDBCOptions.put("driver", "org.apache.derby.jdbc.EmbeddedDriver")
+    jDBCOptions.put("user", "test_fixture")
+    jDBCOptions.put("dbtable", "CHICKEN")
+
+    it("should be able to write to jdbc") {
+      val spark = this.sparkSession
+      import spark.implicits._
+
+      val chickens = Seq(
+        (4, "ONAGADORI", "WHITE"),
+        (5, "LEGHORN", "WHITE"),
+        (6, "APPENZELLER SPITZHAUBEN", "SILVER")
+      )
+
+      JDBCSteps.writeWithJDBCOptions(
+        dataFrame = chickens.toDF("ID", "NAME", "COLOR"),
+        jdbcOptions = new JDBCOptions(jDBCOptions.toMap),
+        saveMode = "Append"
+      )
+
+      val con = DriverManager.getConnection("jdbc:derby:memory:test;user=test_fixture")
+      val st = con.createStatement()
+      val result = st.executeQuery("SELECT COUNT(*) AS CNT FROM CHICKEN")
+      result.next()
+      assert(result.getInt("CNT") == 6)
+      st.close()
+      con.close()
+    }
+  }
 }

@@ -6,6 +6,18 @@ provide api documentation for all private functions and update this readme to pr
 ## Steps
 Here is a list of steps provided.
 
+### HDFSSteps
+This step object provides a way to interact HDFS. Currently a writing step is provided to write a dataframe in a given
+format. the writing step takes the following parameters:
+
+* **dataFrame** - a dataFrame to be written to HDFS
+* **path** - a HDFS path to write to
+* **format** - the format to write the file in. This can be any format recognized by a DataFrameWriter
+* **saveMode** - writing behavior; valid values: (Append, Overwrite, ErrorIfExists, Ignore)
+
+### JDBCSteps
+This step object 
+
 ### JavascriptSteps
 This step object provides a way for the application developer to define steps at runtime using the Javascript language
 without the need for writing and compiling Scala steps. This should only be used for simple step constructs such as 
