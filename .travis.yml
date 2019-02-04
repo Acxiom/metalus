@@ -43,7 +43,7 @@ jobs:
     before_script:
       - mvn versions:set -DremoveSnapshot
       - gpg --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
-      - gpg --allow-secret-key-import --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
+      - gpg --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
     script: mvn --settings deployment/release-settings.xml -P release -DrepoToken=$coverallsToken -Dgpg.executable=gpg -Dgpg.keyname=77FEB4F0227ADB783C1E726F1B725518AF759196 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg clean scoverage:report scala:doc scalastyle:check coveralls:report deploy
     before_deploy:
       - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
