@@ -33,6 +33,30 @@ object JDBCSteps {
     }
   }
 
+  @StepFunction("72dbbfc8-bd1d-4ce4-ab35-28fa8385ea54",
+    "Load table as DataFrame",
+    "This step will load a table from the provided jdbc information",
+    "Pipeline")
+  def readWithStepOptions(jDBCStepsOptions: JDBCStepsOptions,
+                          columns: List[String] = List[String]("*"),
+                          where: Option[String] = None,
+                          pipelineContext: PipelineContext): DataFrame = {
+    val spark = pipelineContext.sparkSession.get
+
+    val df = spark.read.jdbc(
+      url = jDBCStepsOptions.url,
+      table = jDBCStepsOptions.table,
+      predicates = jDBCStepsOptions.predicates.getOrElse(Array[String]()),
+      connectionProperties = jDBCStepsOptions.connectionProperties.getOrElse(new Properties())
+    )
+
+    if (where.isEmpty) {
+      df.selectExpr(columns: _*)
+    } else {
+      df.selectExpr(columns: _*).where(where.get)
+    }
+  }
+
   @StepFunction("dcc57409-eb91-48c0-975b-ca109ba30195",
     "Load table as DataFrame",
     "This step will load a table from the provided jdbc information",
@@ -81,9 +105,25 @@ object JDBCSteps {
       .mode(saveMode)
       .jdbc(url, table, connectionProperties)
   }
+
+  @StepFunction("3d6b77a1-52c2-49ba-99a0-7ec773dac696",
+    "Write DataFrame to JDBC",
+    "This step will write a DataFrame as a table using JDBC",
+    "Pipeline")
+  def writeWithStepOptions(dataFrame: DataFrame,
+                           jDBCStepsOptions: JDBCStepsOptions,
+                           saveMode: String = "Overwrite"): Unit = {
+    dataFrame.write
+      .mode(saveMode)
+      .jdbc(
+        jDBCStepsOptions.url,
+        jDBCStepsOptions.table,
+        jDBCStepsOptions.connectionProperties.getOrElse(new Properties()))
+  }
+
 }
 
 case class JDBCStepsOptions(url: String,
                             table: String,
-                            predicates: Array[String] = Array[String](),
-                            connectionProperties: Properties = new Properties())
+                            predicates: Option[Array[String]] = None,
+                            connectionProperties: Option[Properties] = None)

@@ -111,10 +111,10 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       val properties = new Properties()
       properties.setProperty("user", "test_fixture")
       properties.setProperty("driver", "org.apache.derby.jdbc.EmbeddedDriver")
-      val df = JDBCSteps.readWithProperties(
+      val df = JDBCSteps.readWithStepOptions(JDBCStepsOptions(
         url = "jdbc:derby:memory:test",
         table = "CHICKEN",
-        connectionProperties = properties,
+        connectionProperties = Some(properties)),
         columns = List("NAME", "COLOR"),
         where = Some("NAME = 'POLISH'"),
         pipelineContext = pipelineContext
