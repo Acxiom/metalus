@@ -1,0 +1,102 @@
+### MappingSteps
+MappingSteps provides the user with steps that can help transform data into a pre-defined schema or integrate into an existing
+data frame.  This includes reordering columns, adding placeholders for missing columns, applying transformations from input to output,
+standardizing column names, and converting column data types to match the destination.
+
+Instructions for alternate column names on input or transforms are stored in a 'MappingDetails' object explained in more
+detail below:
+
+#### MappingDetails Object
+A list of MappingDetails objects can be included to provide additional flexibility in the mapping process.  A MappingDetails
+record can be created for any column that may require manipulation to map to the desired value.  
+
+*Note:* Only columns that require special handling need to be included in this lis.  There is no need to create objects for
+columns that don't need special handling.  Also, this list can be left out entirely with no repercussions. 
+
+#### Parameters List
+* *__outputField__* - stores the name of the field to be output 
+    * must match destination name exactly if mapping to existing data frame or schema
+    * new columns can be created using transforms with a new outputField name
+* *__inputAliases__* - contains a list of alternate column names on the input that should be mapped to the outputField
+    * must be unique across all column names and other aliases in a destination data frame or schema
+* *__transform__* - stores spark sql expression to be applied during mapping
+    * any column names referenced in the transform should exist on the input data frame to avoid spark errors
+    * can include any valid spark sql functions
+    * can include any fields on the data frame
+    * no type validation is included in the current version
+
+#### MappingDetails Example
+The following example shows how a list of MappingDetails objects might be created to map and transform incoming data.
+
+In this specific example, any input columns with named "first_name", "fname", or "firstname" will be mapped to column "first_name"
+on the output and will have the "initcap" function applied to the value.  Also, a new field will be generated called "new_column" that
+that will be created using the provided transform.
+
+```
+[
+  {
+    outputField: "first_name",
+    inputAliases: ["fname", "firstname"],
+    transform: "initcap(first_name)"
+  },
+  {
+    outputField: "new_column",
+    inputAliases: [],
+    transform: "concat(initcap(first_name), ' ', initcap(last_name)"
+  }
+]
+```
+
+#### Available Mapping Steps
+There are multiple steps that are exposed in the MappingSteps library:  
+
+
+#### mapToDestinationSchema()
+This step will map a data to an existing schema (StructType).  The output will be mapped to the destination schema honoring
+data types, column order (including placeholders for missing columns) and any input aliases and transformation that might be
+provided in the MappingDetails.
+
+##### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|inputDataFrame|DataFrame|a data frame containing data to be mapped to destination| n/a |
+|destinationSchema|StructType|the schema that the new data should conform to| n/a |
+|mappings|List[MappingDetails]|the object containing transforms and input aliases|List()|
+|addNewColumns|Boolean|a flag representing whether new columns on input (not on destination) should be added to output|true|    
+
+
+#### mapToDestinationDataFrame()
+This step will map a data to an existing data frame ensuring schema compatibility allowing new data to be saved safely with
+existing data. The output will be mapped to the destination schema honoring data types, column order (including placeholders
+for missing columns) and any input aliases and transformation that might be provided in the MappingDetails.
+
+##### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|inputDataFrame|DataFrame|a data frame containing data to be mapped to destination| n/a |
+|destinationDataFrame|DataFrame|the data frame that the new data should conform to| n/a |
+|mappings|List[MappingDetails]|the object containing transforms and input aliases|List()|
+|addNewColumns|Boolean|a flag representing whether new columns on input (not on destination) should be added to output|true|    
+
+#### mergeDataFrames()
+This step will map a data to an existing data frame and merge the new data frame safely with destination data frame. The output
+will be a combination of the inputDataFrame (w/transforms, etc...) and the destinationDataFrame.
+
+##### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|inputDataFrame|DataFrame|a data frame containing data to be mapped to destination| n/a |
+|destinationDataFrame|DataFrame|the data frame that the new data should conform to| n/a |
+|mappings|List[MappingDetails]|the object containing transforms and input aliases|List()|
+|addNewColumns|Boolean|a flag representing whether new columns on input (not on destination) should be added to output|true|    
+
+#### applyTransforms()
+This step will apply provided transforms to a data frame honoring any input aliases prior to running expressions. The output
+will include all fields from the original data frame with aliases and transforms applied.  It will also include new columns
+if the MappingDetails object includes transforms for fields that do not exist, yet.
+
+##### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|DataFrame|a data frame containing data to be mapped to destination| n/a |
+|mappings|List[MappingDetails]|the object containing transforms and input aliases|n/a|
