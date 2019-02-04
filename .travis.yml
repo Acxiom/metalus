@@ -29,7 +29,7 @@ jobs:
       - 2.11.12
     script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
   - stage: Release
-    if: branch = master AND type != pull_request AND fork = false
+    if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
     os: linux
     scala:
       - 2.11.12
