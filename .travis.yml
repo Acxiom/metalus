@@ -1,5 +1,11 @@
 language: scala
 
+env:
+  global:
+    - secure: pnLvQ1P5Qu1WEeDYnFqN6wvujaihc+hBN/S96uKWcalX5LVSd58sSd9lmiST1aZLw3jup3tNVS3zOFEkRuJ0vw/kOT8UkwzeG4tfuO/uuVKalS+DbBHLid3+CRdZNs4QOnu12FYuOtVv8KsEsdD9yx2pP1XJH7mI52zVeIsry3MdC2k//FpVja0AG8liteFNk8PTXo+xvnG5V9bltfVFZvRnScpIkpWC5lUXqAA4d1f+JqKxVKwGJmXkGeRqxszMHCYjJQogNcQZqrnLXOiT6H9tpsQesAz77XLSKhXLetoOmD0kXVOnAh53GV1zgOrxFFshSWn+/QFP3tW3fQGgD176Fv/Aid3iW9f/ex7F8NagebFt/4DIVA8mtHbhmwoNPSvPxEBuF2EC1+jNEZzajUoRpG1njAs8ZSio7KyYNhv5LvVFsBt5akZqFqg1YWfU25Mdi8E+pRPKZO3Slqy4l+TNYatOdbngKTggOCRLcJz0H7n+7m4Ilo8xDTfs+Mro20wIKm9LMN+IX9Yc4wWOW13lLE5FU2PSfpLsa1uDjmBX8QWhWrEaTMpG7vB+kkdvIO/7ppv+h/Xu7Av2cTHa92F3mU3Rv6S7veoHU6Z9FOAlEvn3pNyjpgY3vA4drF3mQwr3KxUWwTOcGxlZ1nzxEVlmBAZWvG+CZokR81x7Cfg=
+    - secure: Oa2P9ikWv5DIAylYEAbs9WBvS0hnvi3vjLMKdtGDrUwmMfi5a88zyqPoDxPaarlXWA6cc2RREz312yOxli2R3HopWUWN4YZo8Sf9+rTotZwDufhVTmLM5Pd9msRAAqWSFGZ2PSMDrYiGvbZWux/KodVjfx/ta6FlQbeBhUwRp+SVLmoZhQulvqvYavVOFaPrY1WzkVZG8+ZuySOsvoS0eQV0zH5Rrk7lRTBSPUjUZqZQLcuHA7aZcdZC1n0GrzDmxrLk6eYPm0tgK6qKPprRbRf05yRlvPaDO5OcbwlpWHuKEGarydpkCTMi+BHqhl2Ww+hMyad8rNfv+B0Wca5wYuX+DMjFZFaFnGpsWy3zbv0MBWsyaHCI4Xy59s+ChDxYwJ8yi5/x5Fwrt9vnTx9IFJYpLzUAvIq6pNEYOVWeeFuW/2OY/pzdRPQscHu7wFtVAO4Y2PuW+WnXBoHtxqEXR4HOYh243AH95DQ6Zn3uq3TWmXM5+EkYVMAlL+9p9u3VbGRr51b6Cp0hgaGOv7DWm8Qg0wMHULlCuDBNV5JZGFHK7dAcS/U+XyuFTMLp0Qi6EMtAL2EfhkqZNUCw+D7Ct7JXsXmOupV99ZDjDw98TLemwjBaT5B2e4jDe3Lsa0QOFVekTkVM1X4c50JBxAsQ8fUEv1GdAAKzlIgXet2SBpg=
+    - secure: KcJgqUTqYZ6KGmYqBsVFsYVOqTL9iWh8wq3yVq+dftWfCb2nOFYW7IL6sDmZMk5v9WeFmA1EZOxxbauZi30NdHv6/Eni7BZ/AkrUWgnCrsj5odEJkpXaj9WkdmvRO5B2lQwwgMWj75elt//6nXhtbw53U66VcOAIQWvk5BRHZ8z9WlYHNj2CmWedQ/lXIhTeE2L94+MmqocYwDL3dZfFoxsjH71P059dVs7rlZn46tuMItDDh0Xl5cNSTJ6jwZC4ypx7rt4agWZQOMaEbLhWVAH6VX+nzbi0JcBW93F8aIM4LfTTdc2fV9R+5VhiDs1MgMzgOzaGaNGV4tvX3ey9baxWZqUU3RmhF29/c80DyKU+hVgu7pDfTyzB7N0uduo4RHow/+/rGgcWyYKQ/qygQQRhixsXiSh47Ns8qi4CLY0pzlwExHrb4mZmUzUX3OShCsdX3bNlN8zUAzvxH9CB1fIxYtm2bOCFW6JiL/N8xpS6GBk+CnHZNdGg6lZg23gkmxn52doE0OlIjlOJswPhMOFPvdeKGp6aRkKaN4KNBG1yXfz0ZVrKXEE/E7LVCkIiYNyO+vmgSIYpQXR8lh+8povSJpXrCvsrqZKiuc53y28J1GSwBvKf958DOmVOcexaagaFdsQ5HYQrDKTKJvboB6AfXEHpxd8PT/OFZfoqgb8=
+
 jobs:
   allow_failures:
     - os: windows
@@ -8,20 +14,23 @@ jobs:
     os: linux
     scala:
       - 2.11.12
-    script: mvn clean install
+    install: true
+    script: mvn -B clean install
   -
     os: osx
     osx_image: xcode9.3
     scala:
       - 2.11.12
-    script: mvn clean install
+    install: true
+    script: mvn -B clean install
   -
     os: windows
     language: shell
+    install: true
     before_script:
       - choco install jdk8
       - choco install maven
-    script: mvn clean install
+    script: mvn -B clean install
   - stage: Coverage
     if: branch = develop
     os: linux
@@ -29,13 +38,20 @@ jobs:
       - 2.11.12
     script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
   - stage: Release
-    if: branch = master
+    if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
     os: linux
     scala:
       - 2.11.12
+    before_install:
+      - openssl aes-256-cbc -K $encrypted_60fb54548dfb_key -iv $encrypted_60fb54548dfb_iv -in deployment/acxsigningkey.asc.enc -out deployment/acxsigningkey.asc -d
+      - mvn -B versions:set -DremoveSnapshot
+    install:
+      - mvn -B -DskipTests=true clean install
+      - mvn -B -DrepoToken=$coverallsToken scoverage:report scala:doc scalastyle:check coveralls:report
     before_script:
-      - mvn versions:set -DremoveSnapshot
-    script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
+      - gpg --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
+      - gpg --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
+    script: mvn --settings deployment/release-settings.xml -B -P release -DskipTests=true -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg deploy
     before_deploy:
       - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
     deploy:

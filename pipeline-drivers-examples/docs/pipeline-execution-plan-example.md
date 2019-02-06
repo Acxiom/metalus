@@ -198,7 +198,7 @@ a new *DataFrame* which will be added to the globals object of the final executi
 
 Two new steps are required to perform this process:
 
-* Create a new object in the *com.acxiom.pipeline.steps* package named [**MappingSteps**](src/main/scala/com/acxiom/pipeline/steps/MappingSteps.scala)
+* Create a new object in the *com.acxiom.pipeline.steps* package named [**SplitSteps**](src/main/scala/com/acxiom/pipeline/steps/SplitSteps.scala)
 * Create a function named *selectFields* and declare two parameters:
 	* dataFrame: DataFrame
 	* fieldNames: List[String]
@@ -255,7 +255,7 @@ step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROO
 				  }
                 ],
                 "engineMeta": {
-                  "spark": "MappingSteps.selectFields"
+                  "spark": "SplitSteps.selectFields"
                 }
               },
               {
@@ -323,7 +323,7 @@ step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROO
 				  }
                 ],
                 "engineMeta": {
-                  "spark": "MappingSteps.selectFields"
+                  "spark": "SplitSteps.selectFields"
                 }
               },
               {
@@ -387,7 +387,7 @@ step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROO
 				  }
                 ],
                 "engineMeta": {
-                  "spark": "MappingSteps.selectFields"
+                  "spark": "SplitSteps.selectFields"
                 }
               },
               {
@@ -452,7 +452,7 @@ step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROO
 				  }
                 ],
                 "engineMeta": {
-                  "spark": "MappingSteps.selectFields"
+                  "spark": "SplitSteps.selectFields"
                 }
               },
               {

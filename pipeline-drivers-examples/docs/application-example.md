@@ -20,8 +20,8 @@ The data file has been added in the *mock_data* directory.
 Create a new file named *application-example.json* and place it somewhere that can be reached once the application 
 starts. The example json file exists in the *mock_data* directory of this project as a reference.
 
-The initial file should have a basic structure that has configuration for the *SparkConf*, *stepPackages* and an empty 
-*executions* array.
+The initial file should have a basic structure that has configuration for the *SparkConf*, *stepPackages*, an empty *globals*
+object, and an empty *executions* array.
 
 ```json
 {
@@ -41,6 +41,7 @@ The initial file should have a basic structure that has configuration for the *S
     "com.acxiom.pipeline.steps",
     "com.acxiom.pipeline"
   ],
+  "globals": {},
   "executions": []
 }
 ```
@@ -234,22 +235,14 @@ Save the pipeline json to the *pipelines* array.
 
 ## Extraction Pipelines
 Additional pipelines will be created that take the *DataFrame* generated in the *ROOT* execution
-(available as a global lookup) and extract specific fields of data. Each pipeline will generate 
-a new *DataFrame* which will be added to the globals object of the final execution.
+(available as a global lookup) and perform various mapping tasks on the incoming data frame (including pulling specific fields and basic transforms).
+Each pipeline will generate a new *DataFrame* which will be added to the globals object of the final execution.
 
-Two new steps are required to perform this process:
+The details for the MappingStep steps can be found in the *common-pipeline-steps* library.  The Schema and Mappings objects
+passed to the steps should be added to the *Globals* section above of the Application (details provided in each extraction
+pipeline section below).
 
-* Create a new object in the *com.acxiom.pipeline.steps* package named [**MappingSteps**](src/main/scala/com/acxiom/pipeline/steps/MappingSteps.scala)
-* Create a function named *selectFields* and declare two parameters:
-	* dataFrame: DataFrame
-	* fieldNames: List[String]
-* Give the function a return type of DataFrame
-* Create the function below:
-
-```scala
-def selectFields(dataFrame: DataFrame, fieldNames: List[String]): DataFrame =
-			dataFrame.select(fieldNames.map(dataFrame(_)) : _*)
-```
+A new step is also required to perform this process:
 
 * Open the object in the *com.acxiom.pipeline.steps* package named [**GroupingSteps**](src/main/scala/com/acxiom/pipeline/steps/GroupingSteps.scala)
 * Create a function named *groupByField* and declare two parameters:
@@ -271,72 +264,100 @@ This pipeline will take the *DataFrame* loaded in the first execution pipeline a
 step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROOT**. This pipeline needs to be part of 
 an execution that is dependent on the *ROOT* execution created previously.
 
+The following parameters should be added to the application globals which will be responsible for setting the column order,
+column names, and data types on output.  No aliases or transforms are required for this pipeline, so the mappings parameter
+is left out:
+```json
+"productSchema": {
+      "className": "com.acxiom.pipeline.steps.Schema",
+      "object": {
+        "attributes": [
+          {
+            "name": "PRODUCT_NAME",
+            "dataType": "String"
+          },
+          {
+            "name": "PRODUCT_ID",
+            "dataType": "String"
+          },
+          {
+            "name": "COST",
+            "dataType": "Double"
+          }
+        ]
+      }
+    }
+```
+
+...and the following is added to the pipelines:
 ```json
 {
   "id": "PROD",
   "pipelines": [
-	{
-	  "id": "EXTRACT_PRODUCT_DATA_PIPELINE",
-	  "name": "Extract Product Data Pipeline",
-	  "steps": [
-		{
-		  "id": "MAPFIELDSSTEP",
-		  "stepId": "772912d6-ee6a-5228-ae7a-0127eb2dce37",
-		  "displayName": "Selects a subset of fields from a DataFrame",
-		  "description": "Creates a new DataFrame which is a subset of the provided DataFrame",
-		  "type": "Pipeline",
-		  "nextStepId": "GROUPDATASTEP",
-		  "params": [
-			{
-			  "type": "string",
-			  "name": "dataFrame",
-			  "required": true,
-			  "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
-			},
-			{
-			  "type": "list",
-			  "name": "fieldNames",
-			  "required": true,
-			  "value": [
-				"product_id",
-				"product_name",
-				"cost"
-			  ]
-			}
-		  ],
-		  "engineMeta": {
-			"spark": "MappingSteps.selectFields"
-		  }
-		},
-		{
-		  "id": "GROUPDATASTEP",
-		  "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
-		  "displayName": "Performs a grouping and aggregation of the data",
-		  "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
-		  "type": "Pipeline",
-		  "params": [
-			{
-			  "type": "string",
-			  "name": "dataFrame",
-			  "required": true,
-			  "value": "@MAPFIELDSSTEP"
-			},
-			{
-			  "type": "string",
-			  "name": "groupByField",
-			  "required": true,
-			  "value": "product_id"
-			}
-		  ],
-		  "engineMeta": {
-			"spark": "GroupingSteps.groupByField"
-		  }
-		}
-	  ]
-	}
+    {
+      "id": "EXTRACT_PRODUCT_DATA_PIPELINE",
+      "name": "Extract Product Data Pipeline",
+      "steps": [
+        {
+          "id": "MAPFIELDSSTEP",
+          "stepId": "8f9c08ea-4882-4265-bac7-2da3e942758f",
+          "displayName": "Maps new data to a common schema",
+          "description": "Creates a new DataFrame mapped to an existing schema",
+          "type": "Pipeline",
+          "nextStepId": "GROUPDATASTEP",
+          "params": [
+            {
+              "type": "string",
+              "name": "inputDataFrame",
+              "required": true,
+              "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
+            },
+            {
+              "type": "string",
+              "name": "destinationSchema",
+              "required": true,
+              "value": "!productSchema"
+            },
+            {
+              "type": "boolean",
+              "name": "addNewColumns",
+              "required": true,
+              "value": false
+            }
+          ],
+          "engineMeta": {
+            "spark": "MappingSteps.mapDataFrameToSchema"
+          }
+        },
+        {
+          "id": "GROUPDATASTEP",
+          "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
+          "displayName": "Performs a grouping and aggregation of the data",
+          "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
+          "type": "Pipeline",
+          "params": [
+            {
+              "type": "string",
+              "name": "dataFrame",
+              "required": true,
+              "value": "@MAPFIELDSSTEP"
+            },
+            {
+              "type": "string",
+              "name": "groupByField",
+              "required": true,
+              "value": "PRODUCT_ID"
+            }
+          ],
+          "engineMeta": {
+            "spark": "GroupingSteps.groupByField"
+          }
+        }
+      ]
+    }
   ],
   "parents": [
-	"ROOT"
+    "ROOT"
   ]
 }
 ```
@@ -346,76 +367,143 @@ This pipeline will take the *DataFrame* loaded in the first execution pipeline a
 step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROOT**. This pipeline needs to be part of 
 an execution that is dependent on the *ROOT* execution created previously.
 
+The following parameters should be added to the application globals which will be responsible for setting the column order,
+column names, and data types on output.  Specifically, renaming GENDER to GENDER_CODE applying logic to only save the first
+character in upper case and adding a new field called FULL_NAME which is built from concatenating first name to laste name:
+```json
+"customerSchema": {
+      "className": "com.acxiom.pipeline.steps.Schema",
+      "object": {
+        "attributes": [
+          {
+            "name": "CUSTOMER_ID",
+            "dataType": "Integer"
+          },
+          {
+            "name": "FIRST_NAME",
+            "dataType": "String"
+          },
+          {
+            "name": "LAST_NAME",
+            "dataType": "String"
+          },
+          {
+            "name": "POSTAL_CODE",
+            "dataType": "String"
+          },
+          {
+            "name": "GENDER_CODE",
+            "dataType": "String"
+          },
+          {
+            "name": "EIN",
+            "dataType": "String"
+          },
+          {
+            "name": "EMAIL",
+            "dataType": "String"
+          },
+          {
+            "name": "FULL_NAME",
+            "dataType": "STRING"
+          }
+        ]
+      }
+    },
+    "customerMappings": {
+      "className": "com.acxiom.pipeline.steps.Mappings",
+      "object": {
+        "details": [
+          {
+            "outputField": "GENDER_CODE",
+            "inputAliases": ["GENDER"],
+            "transform": "upper(substring(GENDER_CODE,0,1))"
+          },
+          {
+            "outputField": "FULL_NAME",
+            "inputAliases": [],
+            "transform": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
+          }
+        ]
+      }
+    }
+```
+
+...and the following is added to the pipelines:
 ```json
 {
   "id": "CUST",
   "pipelines": [
-	{
-	  "id": "EXTRACT_CUSTOMER_DATA_PIPELINE",
-	  "name": "Extract Customer Data Pipeline",
-	  "steps": [
-		{
-		  "id": "MAPFIELDSSTEP",
-		  "stepId": "772912d6-ee6a-5228-ae7a-0127eb2dce37",
-		  "displayName": "Selects a subset of fields from a DataFrame",
-		  "description": "Creates a new DataFrame which is a subset of the provided DataFrame",
-		  "type": "Pipeline",
-		  "nextStepId": "GROUPDATASTEP",
-		  "params": [
-			{
-			  "type": "string",
-			  "name": "dataFrame",
-			  "required": true,
-			  "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
-			},
-			{
-			  "type": "list",
-			  "name": "fieldNames",
-			  "required": true,
-			  "value": [
-				"customer_id",
-				"first_name",
-				"last_name",
-				"email",
-				"gender",
-				"ein",
-				"postal_code"
-			  ]
-			}
-		  ],
-		  "engineMeta": {
-			"spark": "MappingSteps.selectFields"
-		  }
-		},
-		{
-		  "id": "GROUPDATASTEP",
-		  "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
-		  "displayName": "Performs a grouping and aggregation of the data",
-		  "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
-		  "type": "Pipeline",
-		  "params": [
-			{
-			  "type": "string",
-			  "name": "dataFrame",
-			  "required": true,
-			  "value": "@MAPFIELDSSTEP"
-			},
-			{
-			  "type": "string",
-			  "name": "groupByField",
-			  "required": true,
-			  "value": "customer_id"
-			}
-		  ],
-		  "engineMeta": {
-			"spark": "GroupingSteps.groupByField"
-		  }
-		}
-	  ]
-	}
+    {
+      "id": "EXTRACT_CUSTOMER_DATA_PIPELINE",
+      "name": "Extract Customer Data Pipeline",
+      "steps": [
+        {
+          "id": "MAPFIELDSSTEP",
+          "stepId": "8f9c08ea-4882-4265-bac7-2da3e942758f",
+          "displayName": "Maps new data to a common schema",
+          "description": "Creates a new DataFrame mapped to an existing schema",
+          "type": "Pipeline",
+          "nextStepId": "GROUPDATASTEP",
+          "params": [
+            {
+              "type": "string",
+              "name": "inputDataFrame",
+              "required": true,
+              "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
+            },
+            {
+              "type": "string",
+              "name": "destinationSchema",
+              "required": true,
+              "value": "!customerSchema"
+            },
+            {
+              "type": "string",
+              "name": "mappings",
+              "required": true,
+              "value": "!customerMappings"
+            },
+            {
+              "type": "boolean",
+              "name": "addNewColumns",
+              "required": true,
+              "value": false
+            }
+          ],
+          "engineMeta": {
+            "spark": "MappingSteps.mapDataFrameToSchema"
+          }
+        },
+        {
+          "id": "GROUPDATASTEP",
+          "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
+          "displayName": "Performs a grouping and aggregation of the data",
+          "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
+          "type": "Pipeline",
+          "params": [
+            {
+              "type": "string",
+              "name": "dataFrame",
+              "required": true,
+              "value": "@MAPFIELDSSTEP"
+            },
+            {
+              "type": "string",
+              "name": "groupByField",
+              "required": true,
+              "value": "CUSTOMER_ID"
+            }
+          ],
+          "engineMeta": {
+            "spark": "GroupingSteps.groupByField"
+          }
+        }
+      ]
+    }
   ],
   "parents": [
-	"ROOT"
+    "ROOT"
   ]
 }
 ```
@@ -424,72 +512,123 @@ This pipeline will take the *DataFrame* loaded in the first execution pipeline a
 step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROOT**. This pipeline needs to be part of 
 an execution that is dependent on the *ROOT* execution created previously.
 
+The following parameters should be added to the application globals which will be responsible for setting the column order,
+column names, and data types on output.  Specifically, renaming CC_NUM to ACCOUNT_NUMBER, CC_TYPE to ACCOUNT_TYPE, and converting
+ACCOUNT_TYPE to uppercase:
+```json
+"creditCardSchema": {
+      "className": "com.acxiom.pipeline.steps.Schema",
+      "object": {
+        "attributes": [
+          {
+            "name": "CUSTOMER_ID",
+            "dataType": "Integer"
+          },
+          {
+            "name": "ACCOUNT_NUMBER",
+            "dataType": "String"
+          },
+          {
+            "name": "ACCOUNT_TYPE",
+            "dataType": "String"
+          }
+        ]
+      }
+    },
+    "creditCardMappings": {
+      "className": "com.acxiom.pipeline.steps.Mappings",
+      "object": {
+        "details": [
+          {
+            "outputField": "ACCOUNT_NUMBER",
+            "inputAliases": ["CC_NUM"],
+            "transform": null
+          },
+          {
+            "outputField": "ACCOUNT_TYPE",
+            "inputAliases": ["CC_TYPE"],
+            "transform": "upper(ACCOUNT_TYPE)"
+          }
+        ]
+      }
+    }
+```
+
+...and the following is added to the pipelines:
 ```json
 {
   "id": "CC",
   "pipelines": [
-	{
-	  "id": "EXTRACT_CREDIT_CARD_DATA_PIPELINE",
-	  "name": "Extract Credit Card Data Pipeline",
-	  "steps": [
-		{
-		  "id": "MAPFIELDSSTEP",
-		  "stepId": "772912d6-ee6a-5228-ae7a-0127eb2dce37",
-		  "displayName": "Selects a subset of fields from a DataFrame",
-		  "description": "Creates a new DataFrame which is a subset of the provided DataFrame",
-		  "type": "Pipeline",
-		  "nextStepId": "GROUPDATASTEP",
-		  "params": [
-			{
-			  "type": "string",
-			  "name": "dataFrame",
-			  "required": true,
-			  "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
-			},
-			{
-			  "type": "list",
-			  "name": "fieldNames",
-			  "required": true,
-			  "value": [
-				"customer_id",
-				"cc_num",
-				"cc_type"
-			  ]
-			}
-		  ],
-		  "engineMeta": {
-			"spark": "MappingSteps.selectFields"
-		  }
-		},
-		{
-		  "id": "GROUPDATASTEP",
-		  "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
-		  "displayName": "Performs a grouping and aggregation of the data",
-		  "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
-		  "type": "Pipeline",
-		  "params": [
-			{
-			  "type": "string",
-			  "name": "dataFrame",
-			  "required": true,
-			  "value": "@MAPFIELDSSTEP"
-			},
-			{
-			  "type": "string",
-			  "name": "groupByField",
-			  "required": true,
-			  "value": "customer_id"
-			}
-		  ],
-		  "engineMeta": {
-			"spark": "GroupingSteps.groupByField"
-		  }
-		}
-	  ]
-	}
+    {
+      "id": "EXTRACT_CREDIT_CARD_DATA_PIPELINE",
+      "name": "Extract Credit Card Data Pipeline",
+      "steps": [
+        {
+          "id": "MAPFIELDSSTEP",
+          "stepId": "8f9c08ea-4882-4265-bac7-2da3e942758f",
+          "displayName": "Maps new data to a common schema",
+          "description": "Creates a new DataFrame mapped to an existing schema",
+          "type": "Pipeline",
+          "nextStepId": "GROUPDATASTEP",
+          "params": [
+            {
+              "type": "string",
+              "name": "inputDataFrame",
+              "required": true,
+              "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
+            },
+            {
+              "type": "string",
+              "name": "destinationSchema",
+              "required": true,
+              "value": "!creditCardSchema"
+            },
+            {
+              "type": "string",
+              "name": "mappings",
+              "required": true,
+              "value": "!creditCardMappings"
+            },
+            {
+              "type": "boolean",
+              "name": "addNewColumns",
+              "required": true,
+              "value": false
+            }
+          ],
+          "engineMeta": {
+            "spark": "MappingSteps.mapDataFrameToSchema"
+          }
+        },
+        {
+          "id": "GROUPDATASTEP",
+          "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
+          "displayName": "Performs a grouping and aggregation of the data",
+          "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
+          "type": "Pipeline",
+          "params": [
+            {
+              "type": "string",
+              "name": "dataFrame",
+              "required": true,
+              "value": "@MAPFIELDSSTEP"
+            },
+            {
+              "type": "string",
+              "name": "groupByField",
+              "required": true,
+              "value": "CUSTOMER_ID"
+            }
+          ],
+          "engineMeta": {
+            "spark": "GroupingSteps.groupByField"
+          }
+        }
+      ]
+    }
   ],
   "parents": [
-	"ROOT"
+    "ROOT"
   ]
 }
 ```
@@ -498,73 +637,121 @@ This pipeline will take the *DataFrame* loaded in the first execution pipeline a
 step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROOT**. This pipeline needs to be part of 
 an execution that is dependent on the *ROOT* execution created previously.
 
+The following parameters should be added to the application globals which will be responsible for setting the column order,
+column names, and data types on output.  Specifically, the ORDER_NUM field will be renamed to ORDER_ID: 
+```json
+"orderSchema": {
+      "className": "com.acxiom.pipeline.steps.Schema",
+      "object": {
+        "attributes": [
+          {
+            "name": "ORDER_ID",
+            "dataType": "String"
+          },
+          {
+            "name": "CUSTOMER_ID",
+            "dataType": "Integer"
+          },
+          {
+            "name": "PRODUCT_ID",
+            "dataType": "String"
+          },
+          {
+            "name": "UNITS",
+            "dataType": "Integer"
+          }
+        ]
+      }
+    },
+    "orderMappings": {
+      "className": "com.acxiom.pipeline.steps.Mappings",
+      "object": {
+        "details": [
+          {
+            "outputField": "ORDER_ID",
+            "inputAliases": ["ORDER_NUM"],
+            "transform": null
+          }
+        ]
+      }
+    }
+```
+
+...and the following is added to the pipelines:
 ```json
 {
   "id": "ORD",
   "pipelines": [
-	{
-	  "id": "EXTRACT_ORDER_DATA_PIPELINE",
-	  "name": "Extract Order Data Pipeline",
-	  "steps": [
-		{
-		  "id": "MAPFIELDSSTEP",
-		  "stepId": "772912d6-ee6a-5228-ae7a-0127eb2dce37",
-		  "displayName": "Selects a subset of fields from a DataFrame",
-		  "description": "Creates a new DataFrame which is a subset of the provided DataFrame",
-		  "type": "Pipeline",
-		  "nextStepId": "GROUPDATASTEP",
-		  "params": [
-			{
-			  "type": "string",
-			  "name": "dataFrame",
-			  "required": true,
-			  "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
-			},
-			{
-			  "type": "list",
-			  "name": "fieldNames",
-			  "required": true,
-			  "value": [
-				"order_num",
-				"product_id",
-				"units",
-				"customer_id"
-			  ]
-			}
-		  ],
-		  "engineMeta": {
-			"spark": "MappingSteps.selectFields"
-		  }
-		},
-		{
-		  "id": "GROUPDATASTEP",
-		  "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
-		  "displayName": "Performs a grouping and aggregation of the data",
-		  "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
-		  "type": "Pipeline",
-		  "params": [
-			{
-			  "type": "string",
-			  "name": "dataFrame",
-			  "required": true,
-			  "value": "@MAPFIELDSSTEP"
-			},
-			{
-			  "type": "string",
-			  "name": "groupByField",
-			  "required": true,
-			  "value": "order_num"
-			}
-		  ],
-		  "engineMeta": {
-			"spark": "GroupingSteps.groupByField"
-		  }
-		}
-	  ]
-	}
+    {
+      "id": "EXTRACT_ORDER_DATA_PIPELINE",
+      "name": "Extract Order Data Pipeline",
+      "steps": [
+        {
+          "id": "MAPFIELDSSTEP",
+          "stepId": "8f9c08ea-4882-4265-bac7-2da3e942758f",
+          "displayName": "Maps new data to a common schema",
+          "description": "Creates a new DataFrame mapped to an existing schema",
+          "type": "Pipeline",
+          "nextStepId": "GROUPDATASTEP",
+          "params": [
+            {
+              "type": "string",
+              "name": "inputDataFrame",
+              "required": true,
+              "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
+            },
+            {
+              "type": "string",
+              "name": "destinationSchema",
+              "required": true,
+              "value": "!orderSchema"
+            },
+            {
+              "type": "string",
+              "name": "mappings",
+              "required": true,
+              "value": "!orderMappings"
+            },
+            {
+              "type": "boolean",
+              "name": "addNewColumns",
+              "required": true,
+              "value": false
+            }
+          ],
+          "engineMeta": {
+            "spark": "MappingSteps.mapDataFrameToSchema"
+          }
+        },
+        {
+          "id": "GROUPDATASTEP",
+          "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
+          "displayName": "Performs a grouping and aggregation of the data",
+          "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
+          "type": "Pipeline",
+          "params": [
+            {
+              "type": "string",
+              "name": "dataFrame",
+              "required": true,
+              "value": "@MAPFIELDSSTEP"
+            },
+            {
+              "type": "string",
+              "name": "groupByField",
+              "required": true,
+              "value": "ORDER_ID"
+            }
+          ],
+          "engineMeta": {
+            "spark": "GroupingSteps.groupByField"
+          }
+        }
+      ]
+    }
   ],
   "parents": [
-	"ROOT"
+    "ROOT"
   ]
 }
 ```
@@ -755,11 +942,10 @@ spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 --deploy-mode client \
 --jars <jar_path>/spark-pipeline-engine_2.11-<VERSION>.jar,<jar_path>/streaming-pipeline-drivers_2.11-<VERSION>.jar \
 <jar_path>/pipeline-drivers-examples_2.11-<VERSION>.jar \
---driverSetupClass com.acxiom.pipeline.ApplicationDataDriverSetup \
+--driverSetupClass com.acxiom.pipeline.applications.ApplicationDriverSetup \
 --applicationConfigPath <location of application-example.json> \
 --input_url <location of input file> \
 --input_format <csv, parquet, etc...> \
---pipelinesJson <path to the execution-pipelines.json file> \
 --mongoURI <URI to connect to the Mongo DB> \
 --logLevel DEBUG
 ```
