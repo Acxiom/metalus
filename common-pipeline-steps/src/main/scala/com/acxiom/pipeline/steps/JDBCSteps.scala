@@ -7,7 +7,7 @@ import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
 
-import scala.collection.JavaConversions.propertiesAsScalaMap
+import scala.collection.JavaConversions._
 
 @StepObject
 object JDBCSteps {
@@ -42,12 +42,14 @@ object JDBCSteps {
                           where: Option[String] = None,
                           pipelineContext: PipelineContext): DataFrame = {
     val spark = pipelineContext.sparkSession.get
+    val map = jDBCStepsOptions.connectionProperties.getOrElse(Map[String, String]())
+    val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
 
     val df = spark.read.jdbc(
       url = jDBCStepsOptions.url,
       table = jDBCStepsOptions.table,
       predicates = jDBCStepsOptions.predicates.getOrElse(Array[String]()),
-      connectionProperties = jDBCStepsOptions.connectionProperties.getOrElse(new Properties())
+      connectionProperties = properties
     )
 
     if (where.isEmpty) {
@@ -64,13 +66,15 @@ object JDBCSteps {
   def readWithProperties(url: String,
                          table: String,
                          predicates: Array[String] = Array[String](),
-                         connectionProperties: Properties = new Properties(),
+                         connectionProperties: Option[Map[String, String]] = None,
                          columns: List[String] = List[String]("*"),
                          where: Option[String] = None,
                          pipelineContext: PipelineContext): DataFrame = {
     val spark = pipelineContext.sparkSession.get
+    val map = connectionProperties.getOrElse(Map[String, String]())
+    val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
 
-    val df = spark.read.jdbc(url, table, predicates, connectionProperties)
+    val df = spark.read.jdbc(url, table, predicates, properties)
 
     if (where.isEmpty) {
       df.selectExpr(columns: _*)
@@ -99,11 +103,13 @@ object JDBCSteps {
   def writeWithProperties(dataFrame: DataFrame,
                           url: String,
                           table: String,
-                          connectionProperties: Properties = new Properties(),
+                          connectionProperties: Option[Map[String, String]] = None,
                           saveMode: String = "Overwrite"): Unit = {
+    val map = connectionProperties.getOrElse(Map[String, String]())
+    val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
     dataFrame.write
       .mode(saveMode)
-      .jdbc(url, table, connectionProperties)
+      .jdbc(url, table, properties)
   }
 
   @StepFunction("3d6b77a1-52c2-49ba-99a0-7ec773dac696",
@@ -115,10 +121,10 @@ object JDBCSteps {
                            saveMode: String = "Overwrite"): Unit = {
     dataFrame.write
       .mode(saveMode)
-      .jdbc(
-        jDBCStepsOptions.url,
-        jDBCStepsOptions.table,
-        jDBCStepsOptions.connectionProperties.getOrElse(new Properties()))
+      .format("jdbc")
+      .option("url", jDBCStepsOptions.url)
+      .option("dbtable", jDBCStepsOptions.table)
+      .options(jDBCStepsOptions.connectionProperties.getOrElse(Map[String, String]()))
   }
 
 }
@@ -126,4 +132,4 @@ object JDBCSteps {
 case class JDBCStepsOptions(url: String,
                             table: String,
                             predicates: Option[Array[String]] = None,
-                            connectionProperties: Option[Properties] = None)
+                            connectionProperties: Option[Map[String, String]] = None)

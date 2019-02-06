@@ -47,10 +47,10 @@ class ScalaScriptEngine extends ScriptEngine {
   }
 
   /**
-    * This function will execute a scala script with access to the "pipelineContext" object and the provided "obj".
+    * This function will execute a scala script with access to the "pipelineContext" object and the provided Bindings.
     *
     * @param script          The script to execute.
-    * @param userValue       The object to make accessible to the script.
+    * @param bindings        The Bindings object to make accessible to the script.
     * @param pipelineContext The pipelineContext containing the globals.
     * @return The result of the execution.
     */

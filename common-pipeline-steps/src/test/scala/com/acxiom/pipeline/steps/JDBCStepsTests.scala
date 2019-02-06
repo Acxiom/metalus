@@ -108,9 +108,10 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     }
 
     it("should respect properties") {
-      val properties = new Properties()
-      properties.setProperty("user", "test_fixture")
-      properties.setProperty("driver", "org.apache.derby.jdbc.EmbeddedDriver")
+      val properties = Map[String, String](
+        "user" -> "test_fixture",
+        "driver" -> "org.apache.derby.jdbc.EmbeddedDriver"
+      )
       val df = JDBCSteps.readWithStepOptions(JDBCStepsOptions(
         url = "jdbc:derby:memory:test",
         table = "CHICKEN",

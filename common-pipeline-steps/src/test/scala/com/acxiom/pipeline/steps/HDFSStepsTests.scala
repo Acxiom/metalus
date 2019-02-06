@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.steps
 
-import java.io.File
+import java.io.{File, PrintWriter}
 import java.nio.file.{Files, Path}
 
 import com.acxiom.pipeline._
@@ -64,16 +64,17 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     FileUtils.deleteDirectory(sparkLocalDir.toFile)
   }
 
-  describe("HDFS Steps - Basic writing") {
+  describe("HDFS Steps - Basic Writing") {
+    val chickens = Seq(
+      ("1", "silkie"),
+      ("2", "polish"),
+      ("3", "sultan")
+    )
+
     it("should successfully write to hdfs") {
       val spark = this.sparkSession
       import spark.implicits._
 
-      val chickens = Seq(
-        (1, "silkie"),
-        (2, "polish"),
-        (3, "sultan")
-      )
       val dataFrame = chickens.toDF("id", "chicken")
 
       HDFSSteps.writeDataFrame(dataFrame=dataFrame, format="csv", path=miniCluster.getURI + "/data/chickens.csv")
@@ -81,10 +82,10 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       assert(list.size == 3)
 
-      var writtenData: Seq[(Int, String)] = Seq()
+      var writtenData: Seq[(String, String)] = Seq()
       list.foreach(l => {
         val tuple = l.split(',')
-        writtenData = writtenData ++ Seq((tuple(0).toInt, tuple(1)))
+        writtenData = writtenData ++ Seq((tuple(0), tuple(1)))
       })
 
       writtenData.sortBy(t => t._1)
@@ -93,10 +94,41 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     }
   }
 
+  describe("HDFS Steps - Basic Reading"){
+    val chickens = Seq(
+      ("1", "silkie"),
+      ("2", "polish"),
+      ("3", "sultan")
+    )
+    it("should successfully read from hdfs") {
+      val csv = "idþchicken\n1þsilkie\n2þpolish\n3þsultan"
+      val path = miniCluster.getURI + "/data/chickens2.csv"
+
+      writeHDFSContext(fs, path, csv)
+
+      val dataFrame = HDFSSteps.readFromHDFS(path = path,
+        format = "csv",
+        properties = Some(Map[String, String]("header" -> "true", "delimiter" -> "þ")),
+        pipelineContext = pipelineContext)
+
+      assert(dataFrame.count() == 3)
+      val result = dataFrame.take(3).map(r => (r.getString(0), r.getString(1))).toSeq
+      assert(result == chickens)
+    }
+  }
+
   private def readHDFSContent(fs: FileSystem, path: String): List[String] = {
     assert(fs.exists(new org.apache.hadoop.fs.Path(path)))
 
     val statuses = fs.globStatus(new org.apache.hadoop.fs.Path(path + "/part*"))
     statuses.foldLeft(List[String]())((list, stat) => list ::: Source.fromInputStream(fs.open(stat.getPath)).getLines.toList)
+  }
+
+  private def writeHDFSContext(fs: FileSystem, path: String, content: String): Unit = {
+
+    val pw = new PrintWriter(fs.create(new org.apache.hadoop.fs.Path(path)))
+    pw.print(content)
+    pw.close()
+
   }
 }
