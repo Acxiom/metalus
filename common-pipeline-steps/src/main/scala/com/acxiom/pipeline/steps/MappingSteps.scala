@@ -126,7 +126,7 @@ object MappingSteps {
     * @param destinationSchema  the schema with the data types to adhere to
     * @return   a new dataframe where all datatypes match destination schema data types
     */
-  def convertDataTypesToDestination(dataFrame: DataFrame, destinationSchema: StructType): DataFrame = {
+  private[steps] def convertDataTypesToDestination(dataFrame: DataFrame, destinationSchema: StructType): DataFrame = {
     val columnExprs = dataFrame.schema.flatMap(a => {
       val destination = destinationSchema.find(_.name == a.name)
       if(destination.isEmpty || destination.get.dataType == a.dataType) {
@@ -152,7 +152,7 @@ object MappingSteps {
     * @param destinationSchema  the destination schema with the desired columns
     * @return   a new dataframe with placeholders
     */
-  def addMissingDestinationAttributes(dataFrame: DataFrame, destinationSchema: StructType): DataFrame = {
+  private[steps] def addMissingDestinationAttributes(dataFrame: DataFrame, destinationSchema: StructType): DataFrame = {
     // fold over destination schema starting with input dataframe columns
     val finalExprs = destinationSchema.foldLeft(dataFrame.columns.map(x => col(x)))( (exprList, f) => {
       if (dataFrame.columns.contains(f.name)) {
@@ -176,7 +176,7 @@ object MappingSteps {
     * @param addNewColumns      a flag determining whether missing attributes should be added
     * @return   a new dataframe with column in order specified by destination schema
     */
-  def orderAttributesToDestinationSchema(dataFrame: DataFrame, destinationSchema: StructType, addNewColumns: Boolean = true): DataFrame = {
+  private[steps] def orderAttributesToDestinationSchema(dataFrame: DataFrame, destinationSchema: StructType, addNewColumns: Boolean = true): DataFrame = {
     // generate expressions that pull all destination attributes in order
     val destExprs = destinationSchema.map(a => col(a.name))
 
