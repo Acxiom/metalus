@@ -7,7 +7,7 @@
     "setOptions": [
       {
         "name": "spark.hadoop.io.compression.codecs",
-        "value": "org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec,hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec,org.apache.hadoop.io.compress.GzipCodec"
+        "value": "org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec,org.apache.hadoop.io.compress.SnappyCodec,org.apache.hadoop.io.compress.GzipCodec"
       }
     ]
   },
@@ -15,6 +15,154 @@
     "com.acxiom.pipeline.steps",
     "com.acxiom.pipeline"
   ],
+  "globals": {
+    "productSchema": {
+      "className": "com.acxiom.pipeline.steps.Schema",
+      "object": {
+        "attributes": [
+          {
+            "name": "PRODUCT_NAME",
+            "dataType": "String"
+          },
+          {
+            "name": "PRODUCT_ID",
+            "dataType": "String"
+          },
+          {
+            "name": "COST",
+            "dataType": "Double"
+          }
+        ]
+      }
+    },
+    "customerSchema": {
+      "className": "com.acxiom.pipeline.steps.Schema",
+      "object": {
+        "attributes": [
+          {
+            "name": "CUSTOMER_ID",
+            "dataType": "Integer"
+          },
+          {
+            "name": "FIRST_NAME",
+            "dataType": "String"
+          },
+          {
+            "name": "LAST_NAME",
+            "dataType": "String"
+          },
+          {
+            "name": "POSTAL_CODE",
+            "dataType": "String"
+          },
+          {
+            "name": "GENDER_CODE",
+            "dataType": "String"
+          },
+          {
+            "name": "EIN",
+            "dataType": "String"
+          },
+          {
+            "name": "EMAIL",
+            "dataType": "String"
+          },
+          {
+            "name": "FULL_NAME",
+            "dataType": "STRING"
+          }
+        ]
+      }
+    },
+    "customerMappings": {
+      "className": "com.acxiom.pipeline.steps.Mappings",
+      "object": {
+        "details": [
+          {
+            "outputField": "GENDER_CODE",
+            "inputAliases": ["GENDER"],
+            "transform": "upper(substring(GENDER_CODE,0,1))"
+          },
+          {
+            "outputField": "FULL_NAME",
+            "inputAliases": [],
+            "transform": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
+          }
+        ]
+      }
+    },
+    "creditCardSchema": {
+      "className": "com.acxiom.pipeline.steps.Schema",
+      "object": {
+        "attributes": [
+          {
+            "name": "CUSTOMER_ID",
+            "dataType": "Integer"
+          },
+          {
+            "name": "ACCOUNT_NUMBER",
+            "dataType": "String"
+          },
+          {
+            "name": "ACCOUNT_TYPE",
+            "dataType": "String"
+          }
+        ]
+      }
+    },
+    "creditCardMappings": {
+      "className": "com.acxiom.pipeline.steps.Mappings",
+      "object": {
+        "details": [
+          {
+            "outputField": "ACCOUNT_NUMBER",
+            "inputAliases": ["CC_NUM"],
+            "transform": null
+          },
+          {
+            "outputField": "ACCOUNT_TYPE",
+            "inputAliases": ["CC_TYPE"],
+            "transform": "upper(ACCOUNT_TYPE)"
+          }
+        ]
+      }
+    },
+    "orderSchema": {
+      "className": "com.acxiom.pipeline.steps.Schema",
+      "object": {
+        "attributes": [
+          {
+            "name": "ORDER_ID",
+            "dataType": "String"
+          },
+          {
+            "name": "CUSTOMER_ID",
+            "dataType": "Integer"
+          },
+          {
+            "name": "PRODUCT_ID",
+            "dataType": "String"
+          },
+          {
+            "name": "UNITS",
+            "dataType": "Integer"
+          }
+        ]
+      }
+    },
+    "orderMappings": {
+      "className": "com.acxiom.pipeline.steps.Mappings",
+      "object": {
+        "details": [
+          {
+            "outputField": "ORDER_ID",
+            "inputAliases": ["ORDER_NUM"],
+            "transform": null
+          }
+        ]
+      }
+    }
+  },
   "executions": [
     {
       "id": "ROOT",
@@ -122,31 +270,33 @@
           "steps": [
             {
               "id": "MAPFIELDSSTEP",
-              "stepId": "772912d6-ee6a-5228-ae7a-0127eb2dce37",
-              "displayName": "Selects a subset of fields from a DataFrame",
-              "description": "Creates a new DataFrame which is a subset of the provided DataFrame",
+              "stepId": "8f9c08ea-4882-4265-bac7-2da3e942758f",
+              "displayName": "Maps new data to a common schema",
+              "description": "Creates a new DataFrame mapped to an existing schema",
               "type": "Pipeline",
               "nextStepId": "GROUPDATASTEP",
               "params": [
                 {
                   "type": "string",
-                  "name": "dataFrame",
+                  "name": "inputDataFrame",
                   "required": true,
                   "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
                 },
                 {
-                  "type": "list",
-                  "name": "fieldNames",
+                  "type": "string",
+                  "name": "destinationSchema",
                   "required": true,
-                  "value": [
-                    "product_id",
-                    "product_name",
-                    "cost"
-                  ]
+                  "value": "!productSchema"
+                },
+                {
+                  "type": "boolean",
+                  "name": "addNewColumns",
+                  "required": true,
+                  "value": false
                 }
               ],
               "engineMeta": {
-                "spark": "MappingSteps.selectFields"
+                "spark": "MappingSteps.mapDataFrameToSchema"
               }
             },
             {
@@ -166,7 +316,7 @@
                   "type": "string",
                   "name": "groupByField",
                   "required": true,
-                  "value": "product_id"
+                  "value": "PRODUCT_ID"
                 }
               ],
               "engineMeta": {
@@ -189,35 +339,39 @@
           "steps": [
             {
               "id": "MAPFIELDSSTEP",
-              "stepId": "772912d6-ee6a-5228-ae7a-0127eb2dce37",
-              "displayName": "Selects a subset of fields from a DataFrame",
-              "description": "Creates a new DataFrame which is a subset of the provided DataFrame",
+              "stepId": "8f9c08ea-4882-4265-bac7-2da3e942758f",
+              "displayName": "Maps new data to a common schema",
+              "description": "Creates a new DataFrame mapped to an existing schema",
               "type": "Pipeline",
               "nextStepId": "GROUPDATASTEP",
               "params": [
                 {
                   "type": "string",
-                  "name": "dataFrame",
+                  "name": "inputDataFrame",
                   "required": true,
                   "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
                 },
                 {
-                  "type": "list",
-                  "name": "fieldNames",
+                  "type": "string",
+                  "name": "destinationSchema",
                   "required": true,
-                  "value": [
-                    "customer_id",
-                    "first_name",
-                    "last_name",
-                    "email",
-                    "gender",
-                    "ein",
-                    "postal_code"
-                  ]
+                  "value": "!customerSchema"
+                },
+                {
+                  "type": "string",
+                  "name": "mappings",
+                  "required": true,
+                  "value": "!customerMappings"
+                },
+                {
+                  "type": "boolean",
+                  "name": "addNewColumns",
+                  "required": true,
+                  "value": false
                 }
               ],
               "engineMeta": {
-                "spark": "MappingSteps.selectFields"
+                "spark": "MappingSteps.mapDataFrameToSchema"
               }
             },
             {
@@ -237,7 +391,7 @@
                   "type": "string",
                   "name": "groupByField",
                   "required": true,
-                  "value": "customer_id"
+                  "value": "CUSTOMER_ID"
                 }
               ],
               "engineMeta": {
@@ -260,31 +414,39 @@
           "steps": [
             {
               "id": "MAPFIELDSSTEP",
-              "stepId": "772912d6-ee6a-5228-ae7a-0127eb2dce37",
-              "displayName": "Selects a subset of fields from a DataFrame",
-              "description": "Creates a new DataFrame which is a subset of the provided DataFrame",
+              "stepId": "8f9c08ea-4882-4265-bac7-2da3e942758f",
+              "displayName": "Maps new data to a common schema",
+              "description": "Creates a new DataFrame mapped to an existing schema",
               "type": "Pipeline",
               "nextStepId": "GROUPDATASTEP",
               "params": [
                 {
                   "type": "string",
-                  "name": "dataFrame",
+                  "name": "inputDataFrame",
                   "required": true,
                   "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
                 },
                 {
-                  "type": "list",
-                  "name": "fieldNames",
+                  "type": "string",
+                  "name": "destinationSchema",
                   "required": true,
-                  "value": [
-                    "customer_id",
-                    "cc_num",
-                    "cc_type"
-                  ]
+                  "value": "!creditCardSchema"
+                },
+                {
+                  "type": "string",
+                  "name": "mappings",
+                  "required": true,
+                  "value": "!creditCardMappings"
+                },
+                {
+                  "type": "boolean",
+                  "name": "addNewColumns",
+                  "required": true,
+                  "value": false
                 }
               ],
               "engineMeta": {
-                "spark": "MappingSteps.selectFields"
+                "spark": "MappingSteps.mapDataFrameToSchema"
               }
             },
             {
@@ -304,7 +466,7 @@
                   "type": "string",
                   "name": "groupByField",
                   "required": true,
-                  "value": "customer_id"
+                  "value": "CUSTOMER_ID"
                 }
               ],
               "engineMeta": {
@@ -327,32 +489,39 @@
           "steps": [
             {
               "id": "MAPFIELDSSTEP",
-              "stepId": "772912d6-ee6a-5228-ae7a-0127eb2dce37",
-              "displayName": "Selects a subset of fields from a DataFrame",
-              "description": "Creates a new DataFrame which is a subset of the provided DataFrame",
+              "stepId": "8f9c08ea-4882-4265-bac7-2da3e942758f",
+              "displayName": "Maps new data to a common schema",
+              "description": "Creates a new DataFrame mapped to an existing schema",
               "type": "Pipeline",
               "nextStepId": "GROUPDATASTEP",
               "params": [
                 {
                   "type": "string",
-                  "name": "dataFrame",
+                  "name": "inputDataFrame",
                   "required": true,
                   "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
                 },
                 {
-                  "type": "list",
-                  "name": "fieldNames",
+                  "type": "string",
+                  "name": "destinationSchema",
                   "required": true,
-                  "value": [
-                    "order_num",
-                    "product_id",
-                    "units",
-                    "customer_id"
-                  ]
+                  "value": "!orderSchema"
+                },
+                {
+                  "type": "string",
+                  "name": "mappings",
+                  "required": true,
+                  "value": "!orderMappings"
+                },
+                {
+                  "type": "boolean",
+                  "name": "addNewColumns",
+                  "required": true,
+                  "value": false
                 }
               ],
               "engineMeta": {
-                "spark": "MappingSteps.selectFields"
+                "spark": "MappingSteps.mapDataFrameToSchema"
               }
             },
             {
@@ -372,7 +541,7 @@
                   "type": "string",
                   "name": "groupByField",
                   "required": true,
-                  "value": "order_num"
+                  "value": "ORDER_ID"
                 }
               ],
               "engineMeta": {
