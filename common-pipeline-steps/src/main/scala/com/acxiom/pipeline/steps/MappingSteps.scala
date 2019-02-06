@@ -200,7 +200,7 @@ object MappingSteps {
     * @param mappings   the mappings object containing the inputAliases
     * @return  a dataframe with updated column names
     */
-  def applyAliasesToInputDataFrame(dataFrame: DataFrame, mappings: Mappings): DataFrame = {
+  private[steps] def applyAliasesToInputDataFrame(dataFrame: DataFrame, mappings: Mappings): DataFrame = {
     // create a map of all aliases to the output name
     val inputAliasMap = mappings.details.flatMap(m => {
         m.inputAliases.map(_ -> m.outputField)
