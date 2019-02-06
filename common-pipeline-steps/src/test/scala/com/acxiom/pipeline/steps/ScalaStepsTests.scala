@@ -90,7 +90,9 @@ class ScalaStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
 
     it ("Should load a file using Scala and a provide user value") {
       val updatedScript = script.replaceAll("\\$path", "userValue.asInstanceOf[String]")
-      val result = ScalaSteps.processScriptWithValue(updatedScript, tempFile.getAbsolutePath, pipelineContext)
+      val result = ScalaSteps.processScriptWithValue(script = updatedScript,
+        value = tempFile.getAbsolutePath,
+        pipelineContext= pipelineContext)
       assert(result.primaryReturn.isDefined)
       val df = result.primaryReturn.get.asInstanceOf[DataFrame]
       val count = df.count()
@@ -100,7 +102,10 @@ class ScalaStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
 
     it("Should handle typed bindings"){
       val updatedScript = script.replaceAll("\\$path", "userValue")
-      val result = ScalaSteps.processScriptWithTypedValue(updatedScript, tempFile.getAbsolutePath, "String", pipelineContext)
+      val result = ScalaSteps.processScriptWithValue(updatedScript,
+        tempFile.getAbsolutePath,
+        "String",
+        pipelineContext)
       assert(result.primaryReturn.isDefined)
       val df = result.primaryReturn.get.asInstanceOf[DataFrame]
       val count = df.count()

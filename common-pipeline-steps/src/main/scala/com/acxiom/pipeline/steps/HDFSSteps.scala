@@ -33,9 +33,17 @@ object HDFSSteps {
   def writeDataFrame(dataFrame: DataFrame,
                      path: String,
                      format: String = "parquet",
+                     properties: Option[Map[String, String]] = None,
                      saveMode: String = "Overwrite"): Unit = {
-    dataFrame.write.format(format)
-      .mode(saveMode)
-      .save(path)
+    if(properties.isDefined) {
+      dataFrame.write.format(format)
+        .mode(saveMode)
+        .options(properties.get)
+        .save(path)
+    } else {
+      dataFrame.write.format(format)
+        .mode(saveMode)
+        .save(path)
+    }
   }
 }

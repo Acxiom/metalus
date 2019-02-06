@@ -22,19 +22,7 @@ object ScalaSteps {
     "Scala script Step with additional object provided",
     "Executes a Scala script and returns the result",
     "Pipeline")
-  def processScriptWithValue(script: String, value: Any, pipelineContext: PipelineContext): PipelineStepResponse = {
-    val engine = new ScalaScriptEngine
-    val bindings = engine.createBindings("logger", logger, "org.apache.log4j.Logger")
-      .setBinding("userValue", value)
-    val result = engine.executeScriptWithBindings(script, bindings, pipelineContext)
-    handleResult(result)
-  }
-
-  @StepFunction("d86b7154-76bb-4e24-8488-23cb0456a0af",
-    "Scala script Step with additional object provided",
-    "Executes a Scala script and returns the result",
-    "Pipeline")
-  def processScriptWithTypedValue(script: String, value: Any, `type`: String, pipelineContext: PipelineContext): PipelineStepResponse = {
+  def processScriptWithValue(script: String, value: Any, `type`: String = "Any", pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
     val bindings = engine.createBindings("logger", logger, "org.apache.log4j.Logger")
       .setBinding("userValue", value, `type`)
