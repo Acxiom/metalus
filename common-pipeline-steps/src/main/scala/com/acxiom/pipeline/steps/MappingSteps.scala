@@ -3,7 +3,7 @@ package com.acxiom.pipeline.steps
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import org.apache.log4j.Logger
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.apache.spark.sql.functions._
 
 @StepObject
@@ -24,9 +24,10 @@ object MappingSteps {
     "This step maps a new dataframe to an existing dataframe to make them compatible",
     "Pipeline"
   )
-  def mapToDestinationDataFrame(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, mappings: List[MappingDetails] = List(),
+  def mapToDestinationDataFrame(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, mappings: Mappings = Mappings(List()),
                              addNewColumns: Boolean = true): DataFrame = {
-    mapDataFrameToSchema(inputDataFrame, destinationDataFrame.schema, mappings, addNewColumns)
+    val schema = Schema(destinationDataFrame.schema.map(x => Attribute(x.name, x.dataType.toString)).toList)
+    mapDataFrameToSchema(inputDataFrame, schema, mappings, addNewColumns)
   }
 
   /**
@@ -43,13 +44,14 @@ object MappingSteps {
     "This step maps a new dataframe to a pre-defined spark schema (StructType)",
     "Pipeline"
   )
-  def mapDataFrameToSchema(inputDataFrame: DataFrame, destinationSchema: StructType, mappings: List[MappingDetails] = List(),
+  def mapDataFrameToSchema(inputDataFrame: DataFrame, destinationSchema: Schema, mappings: Mappings = Mappings(List()),
                            addNewColumns: Boolean = true): DataFrame = {
+    val structType = StructType(destinationSchema.attributes.map(_.toStructField))
     val aliasedDF = applyAliasesToInputDataFrame(inputDataFrame, mappings)
     val transformedDF = applyTransforms(aliasedDF, mappings)
-    val fullDF = addMissingDestinationAttributes(transformedDF, destinationSchema)
-    val typedDF = convertDataTypesToDestination(fullDF, destinationSchema)
-    orderAttributesToDestinationSchema(typedDF, destinationSchema, addNewColumns)
+    val fullDF = addMissingDestinationAttributes(transformedDF, structType)
+    val typedDF = convertDataTypesToDestination(fullDF, structType)
+    orderAttributesToDestinationSchema(typedDF, structType, addNewColumns)
   }
 
   /**
@@ -66,7 +68,7 @@ object MappingSteps {
     "This step maps a new dataframe to an existing dataframe to make them compatible",
     "Pipeline"
   )
-  def mergeDataFrames(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, mappings: List[MappingDetails] = List(),
+  def mergeDataFrames(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, mappings: Mappings = Mappings(List()),
                       addNewColumns: Boolean = true): DataFrame = {
     // map to destination dataframe
     val mappedFromDF = mapToDestinationDataFrame(inputDataFrame, destinationDataFrame, mappings, addNewColumns)
@@ -88,9 +90,9 @@ object MappingSteps {
     "This step transforms existing columns and/or adds new columns to an existing dataframe using expressions provided",
     "Pipeline"
   )
-  def applyTransforms(dataFrame: DataFrame, mappings: List[MappingDetails]): DataFrame = {
+  def applyTransforms(dataFrame: DataFrame, mappings: Mappings): DataFrame = {
     // pull out mappings that contain a transform
-    val mappingsWithTransforms = mappings.filter(_.transform.nonEmpty)
+    val mappingsWithTransforms = mappings.details.filter(_.transform.nonEmpty)
 
     // apply any alias logic to input column names
     val aliasedDF = applyAliasesToInputDataFrame(dataFrame, mappings)
@@ -198,11 +200,13 @@ object MappingSteps {
     * @param mappings   the mappings object containing the inputAliases
     * @return  a dataframe with updated column names
     */
-  def applyAliasesToInputDataFrame(dataFrame: DataFrame, mappings: List[MappingDetails]): DataFrame = {
-    val inputAliasMap = mappings.flatMap(m => {
+  def applyAliasesToInputDataFrame(dataFrame: DataFrame, mappings: Mappings): DataFrame = {
+    // create a map of all aliases to the output name
+    val inputAliasMap = mappings.details.flatMap(m => {
         m.inputAliases.map(_ -> m.outputField)
     }).toMap
 
+    // create expression with aliases applied
     val finalExprs = dataFrame.columns.map(c => {
       if(inputAliasMap.get(c).nonEmpty && inputAliasMap(c) != c) {
         logger.info(s"mapping input column '$c' to destination column '${inputAliasMap(c)}'")
@@ -210,8 +214,26 @@ object MappingSteps {
       col(c).as(inputAliasMap.getOrElse(c, c))
     })
 
+    // select expression from dataFrame and return
     dataFrame.select(finalExprs: _*)
   }
 }
 
+
 case class MappingDetails(outputField: String, inputAliases: List[String] = List(), transform: Option[String] = None)
+case class Mappings(details: List[MappingDetails])
+
+case class Attribute(name: String, dataType: String) {
+  def toStructField: StructField = {
+    val dataType = this.dataType.toLowerCase match {
+      case "string" => DataTypes.StringType
+      case "double" => DataTypes.DoubleType
+      case "integer" => DataTypes.IntegerType
+      case "timestamp" => DataTypes.TimestampType
+      case _ => DataTypes.StringType
+    }
+    StructField(this.name, dataType)
+  }
+}
+case class Schema(attributes: Seq[Attribute])
+

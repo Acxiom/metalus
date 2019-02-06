@@ -62,18 +62,31 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       )).toDF("postal_code", "first_name", "client_id", "gender", "lname", "amount")
 
       And("mappings with transforms and input aliases")
-      val mappings = List(
-        MappingDetails("id", List("client_id"), None),
-        MappingDetails("zip", List("postal_code"), None),
-        MappingDetails("first_name", List(), Some("upper(first_name)")),
-        MappingDetails("last_name", List("lname"), Some("upper(last_name)")),
-        MappingDetails("full_name", List(), Some("concat(initcap(first_name), ' ', initcap(last_name))"))
+      val mappings = Mappings(
+        List(
+          MappingDetails("id", List("client_id"), None),
+          MappingDetails("zip", List("postal_code"), None),
+          MappingDetails("first_name", List(), Some("upper(first_name)")),
+          MappingDetails("last_name", List("lname"), Some("upper(last_name)")),
+          MappingDetails("full_name", List(), Some("concat(initcap(first_name), ' ', initcap(last_name))"))
+        )
+      )
+
+      val dfSchema = Schema(
+        Seq(
+          Attribute("id", "Integer"),
+          Attribute("first_name", "String"),
+          Attribute("last_name", "String"),
+          Attribute("zip", "String"),
+          Attribute("amount", "Double"),
+          Attribute("age", "Integer")
+        )
       )
 
       Then("map the new dataframe to the destination schema")
-      val outDF1 = MappingSteps.mapDataFrameToSchema(newDF, destDF.schema, mappings)
+      val outDF1 = MappingSteps.mapDataFrameToSchema(newDF, dfSchema, mappings)
       And("expect the columns on the output to be the same as the destination with the 2 new fields added")
-      assert(outDF1.columns.sameElements(destDF.columns ++ List("gender", "full_name")))
+      assert(outDF1.columns.sameElements(dfSchema.attributes.map(_.name).toList ++ List("gender", "full_name")))
 
       Then("map the new dataframe to the destination dataframe")
       val outDF2 = MappingSteps.mapToDestinationDataFrame(newDF, destDF, mappings)
@@ -85,11 +98,6 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       And("expect the columns on the output to match the columns from the previous output")
       assert(outDF3.columns.sameElements(outDF1.columns))
       assert(outDF3.count == destDF.count + newDF.count)
-
-      newDF.show()
-      outDF1.show()
-      outDF2.show()
-      outDF3.show()
 
     }
 
@@ -186,10 +194,12 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       val df1 = sparkSession.createDataFrame(data).toDF("id", "first_name", "last_name", "zip")
 
       And("a set of mappings with inputAliases")
-      val mappings = List(
-        MappingDetails("client_id", List("id"), None),
-        MappingDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
-        MappingDetails("zip_code", List("zip", "postal_code"), None)
+      val mappings = Mappings(
+        List(
+          MappingDetails("client_id", List("id"), None),
+          MappingDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
+          MappingDetails("zip_code", List("zip", "postal_code"), None)
+        )
       )
 
       Then("apply alias logic to dataframe")
@@ -226,10 +236,12 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       )
 
       And("a set of mappings")
-      val mappings = List(
-        MappingDetails("id", List(), Some("1000 + id")),
-        MappingDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
-        MappingDetails("zip", List("zip_code", "postal_code"), None)  // should get ignored here
+      val mappings = Mappings(
+        List(
+          MappingDetails("id", List(), Some("1000 + id")),
+          MappingDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
+          MappingDetails("zip", List("zip_code", "postal_code"), None)  // should get ignored here
+        )
       )
 
       Then("apply mappings to dataframe")
@@ -241,7 +253,7 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       assert(newDF.select("full_name").where("id == 1001").collect.head.get(0) == "Buster Dawg")
 
       When("transforms are empty, expect dataFrame to be returned unchanged with no errors")
-      val noTransformsDF = MappingSteps.applyTransforms(df, List())
+      val noTransformsDF = MappingSteps.applyTransforms(df, Mappings(List()))
       assert(noTransformsDF.count == df.count)
     }
   }

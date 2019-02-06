@@ -3,12 +3,12 @@ MappingSteps provides the user with steps that can help transform data into a pr
 data frame.  This includes reordering columns, adding placeholders for missing columns, applying transformations from input to output,
 standardizing column names, and converting column data types to match the destination.
 
-Instructions for alternate column names on input or transforms are stored in a 'MappingDetails' object explained in more
+Instructions for alternate column names on input or transforms are stored in a 'Mappings' object explained in more
 detail below:
 
-#### MappingDetails Object
-A list of MappingDetails objects can be included to provide additional flexibility in the mapping process.  A MappingDetails
-record can be created for any column that may require manipulation to map to the desired value.  
+#### Mappings Object
+A Mappings object consists of a list of MappingDetails objects and can be included to provide additional flexibility in the
+mapping process.  A MappingDetails record can be created for any column that may require manipulation to map to the desired value.  
 
 *Note:* Only columns that require special handling need to be included in this lis.  There is no need to create objects for
 columns that don't need special handling.  Also, this list can be left out entirely with no repercussions. 
@@ -25,26 +25,28 @@ columns that don't need special handling.  Also, this list can be left out entir
     * can include any fields on the data frame
     * no type validation is included in the current version
 
-#### MappingDetails Example
-The following example shows how a list of MappingDetails objects might be created to map and transform incoming data.
+#### Mappings Example
+The following example shows how a Mappings object might be created to map and transform incoming data.
 
 In this specific example, any input columns with named "first_name", "fname", or "firstname" will be mapped to column "first_name"
 on the output and will have the "initcap" function applied to the value.  Also, a new field will be generated called "new_column" that
 that will be created using the provided transform.
 
-```
-[
-  {
-    outputField: "first_name",
-    inputAliases: ["fname", "firstname"],
-    transform: "initcap(first_name)"
-  },
-  {
-    outputField: "new_column",
-    inputAliases: [],
-    transform: "concat(initcap(first_name), ' ', initcap(last_name)"
-  }
-]
+```json
+{
+  "details": [
+     {
+        "outputField": "first_name",
+        "inputAliases": ["fname", "firstname"],
+        "transform": "initcap(first_name)"
+     },
+     {
+        "outputField": "new_column",
+        "inputAliases": [],
+        "transform": "concat(initcap(first_name), ' ', initcap(last_name)"
+     }
+  ]
+}
 ```
 
 #### Available Mapping Steps
@@ -60,8 +62,8 @@ provided in the MappingDetails.
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
 |inputDataFrame|DataFrame|a data frame containing data to be mapped to destination| n/a |
-|destinationSchema|StructType|the schema that the new data should conform to| n/a |
-|mappings|List[MappingDetails]|the object containing transforms and input aliases|List()|
+|destinationSchema|Schema|the schema that the new data should conform to| n/a |
+|mappings|Mappings|the object containing transforms and input aliases|Mappings(List())|
 |addNewColumns|Boolean|a flag representing whether new columns on input (not on destination) should be added to output|true|    
 
 
@@ -75,7 +77,7 @@ for missing columns) and any input aliases and transformation that might be prov
 | --- |:---|:--- |:---:|
 |inputDataFrame|DataFrame|a data frame containing data to be mapped to destination| n/a |
 |destinationDataFrame|DataFrame|the data frame that the new data should conform to| n/a |
-|mappings|List[MappingDetails]|the object containing transforms and input aliases|List()|
+|mappings|Mappings|the object containing transforms and input aliases|Mappings(List())|
 |addNewColumns|Boolean|a flag representing whether new columns on input (not on destination) should be added to output|true|    
 
 #### mergeDataFrames()
@@ -87,7 +89,7 @@ will be a combination of the inputDataFrame (w/transforms, etc...) and the desti
 | --- |:---|:--- |:---:|
 |inputDataFrame|DataFrame|a data frame containing data to be mapped to destination| n/a |
 |destinationDataFrame|DataFrame|the data frame that the new data should conform to| n/a |
-|mappings|List[MappingDetails]|the object containing transforms and input aliases|List()|
+|mappings|Mappings|the object containing transforms and input aliases|Mappings(List())|
 |addNewColumns|Boolean|a flag representing whether new columns on input (not on destination) should be added to output|true|    
 
 #### applyTransforms()
@@ -99,4 +101,4 @@ if the MappingDetails object includes transforms for fields that do not exist, y
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
 |dataFrame|DataFrame|a data frame containing data to be mapped to destination| n/a |
-|mappings|List[MappingDetails]|the object containing transforms and input aliases|n/a|
+|mappings|Mappings|the object containing transforms and input aliases|n/a|
