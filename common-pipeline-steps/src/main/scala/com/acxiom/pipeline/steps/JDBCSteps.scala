@@ -129,6 +129,13 @@ object JDBCSteps {
 
 }
 
+/**
+  *
+  * @param url                  A valid jdbc url.
+  * @param table                A table name or subquery.
+  * @param predicates           Optional predicate used for partitioning.
+  * @param connectionProperties Optional JDBC properties.
+  */
 case class JDBCStepsOptions(url: String,
                             table: String,
                             predicates: Option[Array[String]] = None,
