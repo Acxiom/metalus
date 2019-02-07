@@ -39,7 +39,7 @@ jobs:
     addons:
       sonarcloud:
         organization: $SONAR_ORGANIZATION
-    script: mvn -B -DrepoToken=$coverallsToken clean scoverage:report coveralls:report org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar install
+    script: mvn -B -DrepoToken=$coverallsToken -Dsonar.branch=develop1 clean scoverage:report coveralls:report org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar install
   - stage: Release
     if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
     os: linux
