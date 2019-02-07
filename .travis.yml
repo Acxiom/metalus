@@ -37,7 +37,8 @@ jobs:
       os: linux
       scala:
         - 2.11.12
-      script: mvn -B -DrepoToken=$coverallsToken clean scoverage:report coveralls:report install
+      install: mvn -B -DskipTests=true clean install
+      script: mvn -B -DrepoToken=$coverallsToken clean scoverage:report coveralls:report
     -
       if: branch = develop AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
       os: linux
@@ -46,7 +47,8 @@ jobs:
       addons:
         sonarcloud:
           organization: $SONAR_ORGANIZATION
-      script: mvn -B  -Dsonar.branch=develop clean org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar install
+      install: mvn -B -DskipTests=true clean install
+      script: mvn -B  -Dsonar.branch=develop clean org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
 
     - stage: Release
       if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
