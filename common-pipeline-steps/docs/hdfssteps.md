@@ -1,7 +1,7 @@
-#HDFSSteps
+# HDFSSteps
 This step object provides a way to read from and write to HDFS. There are two step functions provided:
 
-##Write DataFrame
+## Write DataFrame
 This function will write a given DataFrame to the provided path. Full parameter descriptions are listed below:
 
 * **dataFrame** - A dataFrame to be written to HDFS.
@@ -11,7 +11,7 @@ This function will write a given DataFrame to the provided path. Full parameter 
 * **saveMode** - The Writing behavior. Valid values: (Append, Overwrite, ErrorIfExists, Ignore). 
 The default value is "_Overwrite_".
 
-##Read From HDFS
+## Read From HDFS
 This function will read a file from the provided path into a DataFrame. Full parameter descriptions are listed below:
 
 * **path** - A HDFS file path to read.

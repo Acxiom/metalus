@@ -1,4 +1,4 @@
-#JDBCSteps
+# JDBCSteps
 This step object provides a way to read and write via JDBC. A case class named JDBCStepOptions is provided 
 that accepts a url, a table name, and a Map[String, String] of properties.
 There are six step functions provided:
@@ -11,7 +11,7 @@ Given a JDBCOptions object, this step will read a table into a DataFrame. Full p
 ```List[String]("Count(*) AS CNT", "Min(ID) AS MINI")```
 * **where** - Optional filter condition.
 
-##Read With StepOptions
+## Read With StepOptions
 Given a JDBCStepOptions object, this step will read a table into a DataFrame. Full parameter descriptions are listed below:
 
 * **jDBCStepOptions** - A JDBCStepOptions object used to connect.
@@ -19,7 +19,7 @@ Given a JDBCStepOptions object, this step will read a table into a DataFrame. Fu
 ```List[String]("Count(*) AS CNT", "Min(ID) AS MINI")```
 * **where** - Optional filter condition.
 
-##Read With Properties
+## Read With Properties
 Given a url and table name, this step will read a table into a DataFrame. Full parameter descriptions are listed below:
 
 * **url** - A valid jdbc url.
@@ -30,7 +30,7 @@ Given a url and table name, this step will read a table into a DataFrame. Full p
 ```List[String]("Count(*) AS CNT", "Min(ID) AS MINI")```
 * **where** - Optional filter condition.
 
-##Write With JDBCOptions
+## Write With JDBCOptions
 Given a JDBCOptions object and a DataFrame, this step will write to a table via JDBC. 
 Full parameter descriptions are listed below:
 
@@ -39,7 +39,7 @@ Full parameter descriptions are listed below:
 * **saveMode** - The Writing behavior. Valid values: (Append, Overwrite, ErrorIfExists, Ignore). 
 The default value is "_Overwrite_".
 
-##Write With StepOptions
+## Write With StepOptions
 Given a JDBCStepOptions object and a DataFrame, this step will write to a table via JDBC. 
 Full parameter descriptions are listed below:
 
@@ -48,7 +48,7 @@ Full parameter descriptions are listed below:
 * **saveMode** - The Writing behavior. Valid values: (Append, Overwrite, ErrorIfExists, Ignore). 
 The default value is "_Overwrite_".
 
-##Write With StepOptions
+## Write With StepOptions
 Given a url and table name, this step will write to a table via JDBC. 
 Full parameter descriptions are listed below:
 
