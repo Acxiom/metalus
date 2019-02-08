@@ -51,7 +51,8 @@ object MappingSteps {
     val transformedDF = applyTransforms(aliasedDF, mappings)
     val fullDF = addMissingDestinationAttributes(transformedDF, structType)
     val typedDF = convertDataTypesToDestination(fullDF, structType)
-    orderAttributesToDestinationSchema(typedDF, structType, addNewColumns)
+    val filteredDF = if(mappings.filter.isEmpty) typedDF else applyFilter(typedDF, mappings.filter.get)
+    orderAttributesToDestinationSchema(filteredDF, structType, addNewColumns)
   }
 
   /**
@@ -92,7 +93,7 @@ object MappingSteps {
   )
   def applyTransforms(dataFrame: DataFrame, mappings: Mappings): DataFrame = {
     // pull out mappings that contain a transform
-    val mappingsWithTransforms = mappings.details.filter(_.transform.nonEmpty)
+    val mappingsWithTransforms = mappings.columnDetails.filter(_.transform.nonEmpty)
 
     // apply any alias logic to input column names
     val aliasedDF = applyAliasesToInputDataFrame(dataFrame, mappings)
@@ -118,6 +119,47 @@ object MappingSteps {
 
     // return dataframe with all transforms applied
     aliasedDF.select(finalExprs: _*)
+  }
+
+  /**
+    * filters dataframe based on provided where clause
+    * @param dataFrame  the dataframe to filter
+    * @param where      the where clause filter
+    * @return   a filtered dataframe
+    */
+  @StepFunction(
+    "fa0fcabb-d000-4a5e-9144-692bca618ddb",
+    "Filter a DataFrame",
+    "This step will filter a dataframe based on the where expression provided",
+    "Pipeline"
+  )
+  def applyFilter(dataFrame: DataFrame, where: String): DataFrame = {
+    dataFrame.where(where)
+  }
+
+  /**
+    * standardizes column names on an existing dataframe
+    * @param dataFrame  the dataframe with columns that need to be standardized
+    * @return   a new dataframe with standardized columns
+    */
+  @StepFunction(
+    "a981080d-714c-4d36-8b09-d95842ec5655",
+    "Standardize Column Names on a DataFrame",
+    "This step will standardize columns names on existing dataframe",
+    "Pipeline"
+  )
+  def standardizeColumnNames(dataFrame: DataFrame): DataFrame = {
+    val nameMap = dataFrame.columns.map(c => col(c).as(cleanColumnName(c)))
+    dataFrame.select(nameMap: _*)
+  }
+
+  /**
+    * cleans up a column name to a common case and removes characters that are not column name friendly
+    * @param name  the column name that needs to be cleaned up
+    * @return   a cleaned up version of the column name
+    */
+  private[steps] def cleanColumnName(name: String): String = {
+    name.toUpperCase.replace(" ", "_").replace("__", "_")
   }
 
   /**
@@ -202,16 +244,19 @@ object MappingSteps {
     */
   private[steps] def applyAliasesToInputDataFrame(dataFrame: DataFrame, mappings: Mappings): DataFrame = {
     // create a map of all aliases to the output name
-    val inputAliasMap = mappings.details.flatMap(m => {
-        m.inputAliases.map(_ -> m.outputField)
+    val inputAliasMap = mappings.columnDetails.flatMap(m => {
+      m.inputAliases.map(a => {
+        if (mappings.standardizeColumnNames) cleanColumnName(a) -> cleanColumnName(m.outputField) else a -> m.outputField
+      })
     }).toMap
 
     // create expression with aliases applied
     val finalExprs = dataFrame.columns.map(c => {
-      if(inputAliasMap.get(c).nonEmpty && inputAliasMap(c) != c) {
-        logger.info(s"mapping input column '$c' to destination column '${inputAliasMap(c)}'")
+      val colName = if(mappings.standardizeColumnNames) cleanColumnName(c) else c
+      if(inputAliasMap.getOrElse(colName, c) != c) {
+        logger.info(s"mapping input column '$c' to destination column '${inputAliasMap.getOrElse(colName, colName)}'")
       }
-      col(c).as(inputAliasMap.getOrElse(c, c))
+      col(c).as(inputAliasMap.getOrElse(colName, colName))
     })
 
     // select expression from dataFrame and return
@@ -220,8 +265,8 @@ object MappingSteps {
 }
 
 
-case class MappingDetails(outputField: String, inputAliases: List[String] = List(), transform: Option[String] = None)
-case class Mappings(details: List[MappingDetails])
+case class ColumnDetails(outputField: String, inputAliases: List[String] = List(), transform: Option[String] = None)
+case class Mappings(columnDetails: List[ColumnDetails], filter: Option[String] = None, standardizeColumnNames: Boolean = false)
 
 case class Attribute(name: String, dataType: String) {
   def toStructField: StructField = {

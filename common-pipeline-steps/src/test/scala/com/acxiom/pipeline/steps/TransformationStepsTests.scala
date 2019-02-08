@@ -9,7 +9,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 
-class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen  {
+class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen  {
   val MASTER = "local[2]"
   val APPNAME = "javascript-steps-spark"
   var sparkConf: SparkConf = _
@@ -64,11 +64,11 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       And("mappings with transforms and input aliases")
       val mappings = Mappings(
         List(
-          MappingDetails("id", List("client_id"), None),
-          MappingDetails("zip", List("postal_code"), None),
-          MappingDetails("first_name", List(), Some("upper(first_name)")),
-          MappingDetails("last_name", List("lname"), Some("upper(last_name)")),
-          MappingDetails("full_name", List(), Some("concat(initcap(first_name), ' ', initcap(last_name))"))
+          ColumnDetails("id", List("client_id"), None),
+          ColumnDetails("zip", List("postal_code"), None),
+          ColumnDetails("first_name", List(), Some("upper(first_name)")),
+          ColumnDetails("last_name", List("lname"), Some("upper(last_name)")),
+          ColumnDetails("full_name", List(), Some("concat(initcap(first_name), ' ', initcap(last_name))"))
         )
       )
 
@@ -196,9 +196,9 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       And("a set of mappings with inputAliases")
       val mappings = Mappings(
         List(
-          MappingDetails("client_id", List("id"), None),
-          MappingDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
-          MappingDetails("zip_code", List("zip", "postal_code"), None)
+          ColumnDetails("client_id", List("id"), None),
+          ColumnDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
+          ColumnDetails("zip_code", List("zip", "postal_code"), None)
         )
       )
 
@@ -238,9 +238,9 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       And("a set of mappings")
       val mappings = Mappings(
         List(
-          MappingDetails("id", List(), Some("1000 + id")),
-          MappingDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
-          MappingDetails("zip", List("zip_code", "postal_code"), None)  // should get ignored here
+          ColumnDetails("id", List(), Some("1000 + id")),
+          ColumnDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
+          ColumnDetails("zip", List("zip_code", "postal_code"), None)  // should get ignored here
         )
       )
 
