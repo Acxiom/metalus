@@ -7,4 +7,4 @@ provide api documentation for all functions and provide documentation with addit
 Here is a list of steps provided:
 
 * [JavascriptSteps](docs/javascriptsteps.md)
-* [MappingSteps](docs/mappingsteps.md)
+* [TransformationSteps](docs/transformationsteps.md)
