@@ -60,10 +60,9 @@ dataframe and column names will not be standardized.
 #### Available Transformation Steps
 There are multiple steps that are exposed in the TransformationSteps library:  
 
-
 #### mapToDestinationSchema()
 This step will map a data to an existing schema (StructType).  The output will be mapped to the destination schema honoring
-data types, column order (including placeholders for missing columns) and any input aliases and transformation that might be
+data types, column order (including placeholders for missing columns), filters, and any input aliases and transformation that might be
 provided in the Transformation object.
 
 ##### Input Parameters
@@ -74,11 +73,10 @@ provided in the Transformation object.
 |transforms|Transformations|the object containing transforms and input aliases|Transformations(List())|
 |addNewColumns|Boolean|a flag representing whether new columns on input (not on destination) should be added to output|true|    
 
-
 #### mapToDestinationDataFrame()
 This step will map a data to an existing data frame ensuring schema compatibility allowing new data to be saved safely with
 existing data. The output will be mapped to the destination schema honoring data types, column order (including placeholders
-for missing columns) and any input aliases and transformation that might be provided in the Transformations object.
+for missing columns), filters, and any input aliases and transformation that might be provided in the Transformations object.
 
 ##### Input Parameters
 | Name | Type | Description | Default |
@@ -95,7 +93,7 @@ will be a combination of the inputDataFrame (w/transforms, etc...) and the desti
 ##### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|inputDataFrame|DataFrame|a data frame containing data to be mapped to destination| n/a |
+|inputDataFrame|DataFrame|a data frame to be merged with destination| n/a |
 |destinationDataFrame|DataFrame|the data frame that the new data should conform to| n/a |
 |transforms|Transformations|the object containing transforms and input aliases|Transformations(List())|
 |addNewColumns|Boolean|a flag representing whether new columns on input (not on destination) should be added to output|true|    
@@ -108,5 +106,25 @@ if the Transformations object includes expressions for columns that do not exist
 ##### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|dataFrame|DataFrame|a data frame containing data to be mapped to destination| n/a |
+|dataFrame|DataFrame|a data frame containing data to be transformed| n/a |
 |transforms|Transformations|the object containing transforms and input aliases|n/a|
+
+#### applyFilter()
+This step will apply a filter to an existing data frame returning only rows that pass the expression criteria.  The expression
+is passed as a String and acts much like a 'where' clause in a sql statement.  Any columns on the input dataframe can be used
+in the expression.
+
+##### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|DataFrame|a data frame containing data to be filtered| n/a |
+|expression|String|the expression containing the filter criteria|n/a|
+
+#### standardizeColumnNames()
+This step will standardize the column names on the dataframe provided.  Standardization includes only replacing non-alphanumeric
+and non-underscore characters (including whitespace) with an underscore (removing duplicate underscores from the final name)
+
+##### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|DataFrame|a data frame containing columns to be standardized| n/a |
