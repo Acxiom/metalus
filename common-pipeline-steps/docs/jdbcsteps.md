@@ -7,17 +7,11 @@ There are six step functions provided:
 Given a JDBCOptions object, this step will read a table into a DataFrame. Full parameter descriptions are listed below:
 
 * **jDBCOptions** - A JDBCOptions object used to connect.
-* **columns** - Optional List[String] of column expressions. Example: 
-```List[String]("Count(*) AS CNT", "Min(ID) AS MINI")```
-* **where** - Optional filter condition.
 
 ## Read With StepOptions
 Given a JDBCStepOptions object, this step will read a table into a DataFrame. Full parameter descriptions are listed below:
 
 * **jDBCStepOptions** - A JDBCStepOptions object used to connect.
-* **columns** - Optional List[String] of column expressions. Example: 
-```List[String]("Count(*) AS CNT", "Min(ID) AS MINI")```
-* **where** - Optional filter condition.
 
 ## Read With Properties
 Given a url and table name, this step will read a table into a DataFrame. Full parameter descriptions are listed below:
@@ -26,9 +20,6 @@ Given a url and table name, this step will read a table into a DataFrame. Full p
 * **table** - A table name or sub query
 * **predicates** - An optional Array[String] of predicates used for partitioning
 * **connectionProperties** - Optional Map[String,String] of properties for the given format.
-* **columns** - Optional List[String] of column expressions. Example: 
-```List[String]("Count(*) AS CNT", "Min(ID) AS MINI")```
-* **where** - Optional filter condition.
 
 ## Write With JDBCOptions
 Given a JDBCOptions object and a DataFrame, this step will write to a table via JDBC. 

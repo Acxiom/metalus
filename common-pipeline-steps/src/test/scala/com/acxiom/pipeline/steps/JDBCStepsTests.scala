@@ -85,28 +85,6 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       val count = df.count()
       assert(count == 3)
     }
-    it("should respect the 'where' option") {
-      val df = JDBCSteps.readWithJDBCOptions(
-        jdbcOptions = new JDBCOptions(jDBCOptions.toMap),
-        where = Some("COLOR = 'WHITE'"),
-        pipelineContext = pipelineContext
-      )
-
-      val count = df.count()
-      assert(count == 2)
-    }
-    it("should respect columns parameter") {
-      val df = JDBCSteps.readWithJDBCOptions(
-        jdbcOptions = new JDBCOptions(jDBCOptions.toMap),
-        columns = List("NAME", "COLOR"),
-        where = Some("NAME = 'POLISH'"),
-        pipelineContext = pipelineContext
-      )
-
-      val count = df.columns.length
-      assert(count == 2)
-    }
-
     it("should respect properties") {
       val properties = Map[String, String](
         "user" -> "test_fixture",
@@ -114,10 +92,8 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       )
       val df = JDBCSteps.readWithStepOptions(JDBCStepsOptions(
         url = "jdbc:derby:memory:test",
-        table = "CHICKEN",
+        table = "(SELECT NAME, COLOR FROM CHICKEN)",
         connectionProperties = Some(properties)),
-        columns = List("NAME", "COLOR"),
-        where = Some("NAME = 'POLISH'"),
         pipelineContext = pipelineContext
       )
 
