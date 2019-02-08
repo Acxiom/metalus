@@ -74,8 +74,8 @@
         ]
       }
     },
-    "customerMappings": {
-      "className": "com.acxiom.pipeline.steps.Mappings",
+    "customerTransforms": {
+      "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
         "details": [
           {
@@ -110,8 +110,8 @@
         ]
       }
     },
-    "creditCardMappings": {
-      "className": "com.acxiom.pipeline.steps.Mappings",
+    "creditCardTransforms": {
+      "className": "com.acxiom.pipeline.steps.Transforms",
       "object": {
         "details": [
           {
@@ -150,8 +150,8 @@
         ]
       }
     },
-    "orderMappings": {
-      "className": "com.acxiom.pipeline.steps.Mappings",
+    "orderTransforms": {
+      "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
         "details": [
           {
@@ -296,7 +296,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "MappingSteps.mapDataFrameToSchema"
+                "spark": "TransformationSteps.mapDataFrameToSchema"
               }
             },
             {
@@ -359,9 +359,9 @@
                 },
                 {
                   "type": "string",
-                  "name": "mappings",
+                  "name": "transforms",
                   "required": true,
-                  "value": "!customerMappings"
+                  "value": "!customerTranforms"
                 },
                 {
                   "type": "boolean",
@@ -371,7 +371,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "MappingSteps.mapDataFrameToSchema"
+                "spark": "TransformationSteps.mapDataFrameToSchema"
               }
             },
             {
@@ -434,9 +434,9 @@
                 },
                 {
                   "type": "string",
-                  "name": "mappings",
+                  "name": "transforms",
                   "required": true,
-                  "value": "!creditCardMappings"
+                  "value": "!creditCardTransforms"
                 },
                 {
                   "type": "boolean",
@@ -446,7 +446,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "MappingSteps.mapDataFrameToSchema"
+                "spark": "TransformationSteps.mapDataFrameToSchema"
               }
             },
             {
@@ -509,9 +509,9 @@
                 },
                 {
                   "type": "string",
-                  "name": "mappings",
+                  "name": "transforms",
                   "required": true,
-                  "value": "!orderMappings"
+                  "value": "!orderTransforms"
                 },
                 {
                   "type": "boolean",
@@ -521,7 +521,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "MappingSteps.mapDataFrameToSchema"
+                "spark": "TransformationSteps.mapDataFrameToSchema"
               }
             },
             {
