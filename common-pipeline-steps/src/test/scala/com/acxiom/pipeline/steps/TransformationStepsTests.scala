@@ -268,4 +268,30 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
     }
   }
 
+  it("should standardize column names") {
+    Given("a dataframe")
+    val df = sparkSession.createDataFrame(Seq(
+      (1, "buster", "dawg", 29483),
+      (2, "rascal", "dawg", 29483)
+    )).toDF(
+      " Id ", "first###name", "1ast name", "    zip    "
+    )
+
+    Then("run it through column standardization")
+    val newDF = TransformationSteps.standardizeColumnNames(df)
+
+    And("expect columns to be standardized")
+    assert(newDF.columns.sameElements(Array("ID", "FIRST_NAME", "C_1AST_NAME", "ZIP")))
+
+    Then("run more specific use cases through clean columns")
+    assert(TransformationSteps.cleanColumnName("cAse") == "CASE")
+    assert(TransformationSteps.cleanColumnName("basic space") == "BASIC_SPACE")
+    assert(TransformationSteps.cleanColumnName("duplicate  spaces") == "DUPLICATE_SPACES")
+    assert(TransformationSteps.cleanColumnName("duplicate__underscores") == "DUPLICATE_UNDERSCORES")
+    assert(TransformationSteps.cleanColumnName("  spaces on ends    ") == "SPACES_ON_ENDS")
+    assert(TransformationSteps.cleanColumnName("__underscores on ends____") == "UNDERSCORES_ON_ENDS")
+    assert(TransformationSteps.cleanColumnName("(sp%ci*l##ch&*()&*()r@c+e^s)") == "SP_CI_L_CH_R_C_E_S")
+    assert(TransformationSteps.cleanColumnName("123_init_numbers") == "C_123_INIT_NUMBERS")
+  }
+
 }

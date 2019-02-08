@@ -158,6 +158,7 @@ object TransformationSteps {
   )
   def standardizeColumnNames(dataFrame: DataFrame): DataFrame = {
     val nameMap = dataFrame.columns.map(c => col(c).as(cleanColumnName(c)))
+    // TODO: handle duplicate column names after cleaning
     dataFrame.select(nameMap: _*)
   }
 
@@ -176,7 +177,7 @@ object TransformationSteps {
       .stripSuffix("_") // cleanup any extra _
 
     // if it starts with a digit, add the 'c_' prefix
-    if (rawName(0).isDigit) { "c_" + rawName } else { rawName }
+    if (rawName(0).isDigit) { "C_" + rawName } else { rawName }
   }
 
   /**
