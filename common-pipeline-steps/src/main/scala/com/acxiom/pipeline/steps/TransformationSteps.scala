@@ -7,7 +7,7 @@ import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.apache.spark.sql.functions._
 
 @StepObject
-object MappingSteps {
+object TransformationSteps {
   private val logger = Logger.getLogger(getClass)
 
   /**
@@ -46,7 +46,13 @@ object MappingSteps {
   )
   def mapDataFrameToSchema(inputDataFrame: DataFrame, destinationSchema: Schema, transforms: Transformations = Transformations(List()),
                            addNewColumns: Boolean = true): DataFrame = {
-    val structType = StructType(destinationSchema.attributes.map(_.toStructField))
+    // create a struct type with cleaned names to pass to methods that need structtype
+    val structType = StructType(destinationSchema.attributes.map(a => {
+      if(transforms.standardizeColumnNames) {
+        a.toStructField.copy(name=cleanColumnName(a.name))
+      } else { a.toStructField }
+    }))
+
     val aliasedDF = applyAliasesToInputDataFrame(inputDataFrame, transforms)
     val transformedDF = applyTransforms(aliasedDF, transforms)
     val fullDF = addMissingDestinationAttributes(transformedDF, structType)
@@ -73,8 +79,8 @@ object MappingSteps {
                       addNewColumns: Boolean = true): DataFrame = {
     // map to destination dataframe
     val mappedFromDF = mapToDestinationDataFrame(inputDataFrame, destinationDataFrame, transforms, addNewColumns)
-    // treating 2 as the driver...adding attributes from df1 that don't exist on df2
-    val finalToDF = addMissingDestinationAttributes(destinationDataFrame, mappedFromDF.schema)
+    // treating destination as the driver...adding attributes from input that don't exist on destination
+    val finalToDF = addMissingDestinationAttributes(applyAliasesToInputDataFrame(destinationDataFrame, transforms), mappedFromDF.schema)
     // union dataframes together
     finalToDF.union(mappedFromDF)
   }
@@ -93,7 +99,9 @@ object MappingSteps {
   )
   def applyTransforms(dataFrame: DataFrame, transforms: Transformations): DataFrame = {
     // pull out mappings that contain a transform
-    val mappingsWithTransforms = transforms.columnDetails.filter(_.expression.nonEmpty)
+    val mappingsWithTransforms = transforms.columnDetails.filter(_.expression.nonEmpty).map(x => {
+      if(transforms.standardizeColumnNames) { x.copy(outputField = cleanColumnName(x.outputField)) } else x
+    })
 
     // apply any alias logic to input column names
     val aliasedDF = applyAliasesToInputDataFrame(dataFrame, transforms)
@@ -124,7 +132,7 @@ object MappingSteps {
   /**
     * filters dataframe based on provided where clause
     * @param dataFrame  the dataframe to filter
-    * @param where      the where clause filter
+    * @param expression the expression to apply to the dataframe to filter rows
     * @return   a filtered dataframe
     */
   @StepFunction(
@@ -133,8 +141,8 @@ object MappingSteps {
     "This step will filter a dataframe based on the where expression provided",
     "Pipeline"
   )
-  def applyFilter(dataFrame: DataFrame, where: String): DataFrame = {
-    dataFrame.where(where)
+  def applyFilter(dataFrame: DataFrame, expression: String): DataFrame = {
+    dataFrame.where(expression)
   }
 
   /**
@@ -239,20 +247,20 @@ object MappingSteps {
   /**
     * renames columns based on inputAliases provided in the mappings object
     * @param dataFrame  the input dataframe
-    * @param mappings   the mappings object containing the inputAliases
+    * @param transforms the transformations object containing the inputAliases
     * @return  a dataframe with updated column names
     */
-  private[steps] def applyAliasesToInputDataFrame(dataFrame: DataFrame, mappings: Transformations): DataFrame = {
+  private[steps] def applyAliasesToInputDataFrame(dataFrame: DataFrame, transforms: Transformations): DataFrame = {
     // create a map of all aliases to the output name
-    val inputAliasMap = mappings.columnDetails.flatMap(m => {
+    val inputAliasMap = transforms.columnDetails.flatMap(m => {
       m.inputAliases.map(a => {
-        if (mappings.standardizeColumnNames) cleanColumnName(a) -> cleanColumnName(m.outputField) else a -> m.outputField
+        if (transforms.standardizeColumnNames) cleanColumnName(a) -> cleanColumnName(m.outputField) else a -> m.outputField
       })
     }).toMap
 
     // create expression with aliases applied
     val finalExprs = dataFrame.columns.map(c => {
-      val colName = if(mappings.standardizeColumnNames) cleanColumnName(c) else c
+      val colName = if(transforms.standardizeColumnNames) cleanColumnName(c) else c
       if(inputAliasMap.getOrElse(colName, c) != c) {
         logger.info(s"mapping input column '$c' to destination column '${inputAliasMap.getOrElse(colName, colName)}'")
       }
