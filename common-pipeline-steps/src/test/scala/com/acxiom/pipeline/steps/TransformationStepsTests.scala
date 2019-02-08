@@ -294,4 +294,22 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
     assert(TransformationSteps.cleanColumnName("123_init_numbers") == "C_123_INIT_NUMBERS")
   }
 
+  it("should apply a filter to a dataframe") {
+    Given("a dataframe")
+    val df = sparkSession.createDataFrame(Seq(
+      (1, "buster", "dawg", 29483),
+      (2, "rascal", "dawg", 29483),
+      (0, "sophie", "dawg", 29483)
+    )).toDF(
+      "id", "first_name", "1ast_name", "zip"
+    )
+    assert(df.count == 3)
+    assert(df.where("id <= 0").count == 1)
+    Then("run dataframe through apply filter logic")
+    val newDF = TransformationSteps.applyFilter(df, "id > 0")
+    And("expect the filter to be applied to the output dataframe")
+    assert(newDF.count == 2)
+    assert(newDF.where("id <= 0").count == 0)
+  }
+
 }
