@@ -48,7 +48,7 @@ object TransformationSteps {
                            addNewColumns: Boolean = true): DataFrame = {
     // create a struct type with cleaned names to pass to methods that need structtype
     val structType = StructType(destinationSchema.attributes.map(a => {
-      if(transforms.standardizeColumnNames) {
+      if(transforms.standardizeColumnNames.getOrElse(false)) {
         a.toStructField.copy(name=cleanColumnName(a.name))
       } else { a.toStructField }
     }))
@@ -100,7 +100,7 @@ object TransformationSteps {
   def applyTransforms(dataFrame: DataFrame, transforms: Transformations): DataFrame = {
     // pull out mappings that contain a transform
     val mappingsWithTransforms = transforms.columnDetails.filter(_.expression.nonEmpty).map(x => {
-      if(transforms.standardizeColumnNames) { x.copy(outputField = cleanColumnName(x.outputField)) } else x
+      if(transforms.standardizeColumnNames.getOrElse(false)) { x.copy(outputField = cleanColumnName(x.outputField)) } else x
     })
 
     // apply any alias logic to input column names
@@ -167,7 +167,16 @@ object TransformationSteps {
     * @return   a cleaned up version of the column name
     */
   private[steps] def cleanColumnName(name: String): String = {
-    name.toUpperCase.replace(" ", "_").replace("__", "_")
+    // return uppercase letters and digits only replacing everything else with an underscore
+    val rawName = name.map(c => {
+      if (c.isLetterOrDigit) c.toUpper else '_'
+    })
+      .replaceAll("_+", "_")
+      .stripPrefix("_")
+      .stripSuffix("_") // cleanup any extra _
+
+    // if it starts with a digit, add the 'c_' prefix
+    if (rawName(0).isDigit) { "c_" + rawName } else { rawName }
   }
 
   /**
@@ -254,13 +263,13 @@ object TransformationSteps {
     // create a map of all aliases to the output name
     val inputAliasMap = transforms.columnDetails.flatMap(m => {
       m.inputAliases.map(a => {
-        if (transforms.standardizeColumnNames) cleanColumnName(a) -> cleanColumnName(m.outputField) else a -> m.outputField
+        if (transforms.standardizeColumnNames.getOrElse(false)) cleanColumnName(a) -> cleanColumnName(m.outputField) else a -> m.outputField
       })
     }).toMap
 
     // create expression with aliases applied
     val finalExprs = dataFrame.columns.map(c => {
-      val colName = if(transforms.standardizeColumnNames) cleanColumnName(c) else c
+      val colName = if(transforms.standardizeColumnNames.getOrElse(false)) cleanColumnName(c) else c
       if(inputAliasMap.getOrElse(colName, c) != c) {
         logger.info(s"mapping input column '$c' to destination column '${inputAliasMap.getOrElse(colName, colName)}'")
       }
@@ -274,7 +283,7 @@ object TransformationSteps {
 
 
 case class ColumnDetails(outputField: String, inputAliases: List[String] = List(), expression: Option[String] = None)
-case class Transformations(columnDetails: List[ColumnDetails], filter: Option[String] = None, standardizeColumnNames: Boolean = false)
+case class Transformations(columnDetails: List[ColumnDetails], filter: Option[String] = None, standardizeColumnNames: Option[Boolean] = Some(false))
 
 case class Attribute(name: String, dataType: String) {
   def toStructField: StructField = {

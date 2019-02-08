@@ -81,12 +81,12 @@
           {
             "outputField": "GENDER_CODE",
             "inputAliases": ["GENDER"],
-            "transform": "upper(substring(GENDER_CODE,0,1))"
+            "expression": "upper(substring(GENDER_CODE,0,1))"
           },
           {
             "outputField": "FULL_NAME",
             "inputAliases": [],
-            "transform": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
+            "expression": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
           }
         ]
       }
@@ -111,18 +111,18 @@
       }
     },
     "creditCardTransforms": {
-      "className": "com.acxiom.pipeline.steps.Transforms",
+      "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
         "details": [
           {
             "outputField": "ACCOUNT_NUMBER",
             "inputAliases": ["CC_NUM"],
-            "transform": null
+            "expression": null
           },
           {
             "outputField": "ACCOUNT_TYPE",
             "inputAliases": ["CC_TYPE"],
-            "transform": "upper(ACCOUNT_TYPE)"
+            "expression": "upper(ACCOUNT_TYPE)"
           }
         ]
       }
@@ -157,7 +157,7 @@
           {
             "outputField": "ORDER_ID",
             "inputAliases": ["ORDER_NUM"],
-            "transform": null
+            "expression": null
           }
         ]
       }
@@ -361,7 +361,7 @@
                   "type": "string",
                   "name": "transforms",
                   "required": true,
-                  "value": "!customerTranforms"
+                  "value": "!customerTransforms"
                 },
                 {
                   "type": "boolean",

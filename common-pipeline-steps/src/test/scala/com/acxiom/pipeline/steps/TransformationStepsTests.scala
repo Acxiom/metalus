@@ -60,29 +60,29 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
         (72034, "scruffy", 3, "F", "cat", "-1.66"),
         (72034, "fluffy", 4, "F", "cat", "4.16"),
         (29483, "Sophie", -1, "F", "dawg", "0.0")
-      )).toDF("postal_code", "first_name", "client_id", "gender", "lname", "amount")
+      )).toDF("postal code", "first  name", "client$id", "gender", " lname ", "$amount$")
 
       And("mappings with transforms and input aliases")
       val mappings = Transformations(
         List(
           ColumnDetails("id", List("client_id"), None),
           ColumnDetails("zip", List("postal_code"), None),
-          ColumnDetails("first_name", List(), Some("upper(FIRST_NAME)")),
-          ColumnDetails("last_name", List("lname"), Some("upper(LAST_NAME)")),
-          ColumnDetails("full_name", List(), Some("concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"))
+          ColumnDetails("first_name", List(), Some("upper(first_name)")),
+          ColumnDetails("last name", List("lname"), Some("upper(LAST_NAME)")),
+          ColumnDetails(" full name ", List(), Some("concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"))
         ),
         Some("id > 0"),
-        standardizeColumnNames = true
+        standardizeColumnNames = Some(true)
       )
 
       val dfSchema = Schema(
         Seq(
-          Attribute("id", "Integer"),
+          Attribute("   id", "Integer"),
           Attribute("first_name", "String"),
           Attribute("last_name", "String"),
           Attribute("zip", "String"),
           Attribute("amount", "Double"),
-          Attribute("age", "Integer")
+          Attribute("age #", "Integer")
         )
       )
 
@@ -93,14 +93,14 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
         TransformationSteps.cleanColumnName(a.name)
       }).toList ++ List("GENDER", "FULL_NAME")))
       assert(outDF1.count == 2)
-      assert(outDF1.where("client_id == -1").count == 0)
+      assert(outDF1.where("id == -1").count == 0)
 
       Then("map the new dataframe to the destination dataframe")
       val outDF2 = TransformationSteps.mapToDestinationDataFrame(newDF, destDF, mappings)
       And("expect the columns on the output to match the columns from the previous output")
       assert(outDF2.columns.sameElements(outDF1.columns))
       assert(outDF2.count == 2)
-      assert(outDF2.where("client_id == -1").count == 0)
+      assert(outDF2.where("id == -1").count == 0)
 
       Then("merge the new data frame with the destination dataframe")
       val outDF3 = TransformationSteps.mergeDataFrames(newDF, destDF, mappings)
