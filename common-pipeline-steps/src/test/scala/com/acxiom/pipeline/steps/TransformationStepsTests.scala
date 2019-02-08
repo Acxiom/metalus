@@ -62,7 +62,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       )).toDF("postal_code", "first_name", "client_id", "gender", "lname", "amount")
 
       And("mappings with transforms and input aliases")
-      val mappings = Mappings(
+      val mappings = Transformations(
         List(
           ColumnDetails("id", List("client_id"), None),
           ColumnDetails("zip", List("postal_code"), None),
@@ -194,7 +194,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       val df1 = sparkSession.createDataFrame(data).toDF("id", "first_name", "last_name", "zip")
 
       And("a set of mappings with inputAliases")
-      val mappings = Mappings(
+      val mappings = Transformations(
         List(
           ColumnDetails("client_id", List("id"), None),
           ColumnDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
@@ -236,7 +236,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       )
 
       And("a set of mappings")
-      val mappings = Mappings(
+      val mappings = Transformations(
         List(
           ColumnDetails("id", List(), Some("1000 + id")),
           ColumnDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
@@ -253,7 +253,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       assert(newDF.select("full_name").where("id == 1001").collect.head.get(0) == "Buster Dawg")
 
       When("transforms are empty, expect dataFrame to be returned unchanged with no errors")
-      val noTransformsDF = MappingSteps.applyTransforms(df, Mappings(List()))
+      val noTransformsDF = MappingSteps.applyTransforms(df, Transformations(List()))
       assert(noTransformsDF.count == df.count)
     }
   }
