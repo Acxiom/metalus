@@ -74,19 +74,19 @@
         ]
       }
     },
-    "customerMappings": {
-      "className": "com.acxiom.pipeline.steps.Mappings",
+    "customerTransforms": {
+      "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
         "details": [
           {
             "outputField": "GENDER_CODE",
             "inputAliases": ["GENDER"],
-            "transform": "upper(substring(GENDER_CODE,0,1))"
+            "expression": "upper(substring(GENDER_CODE,0,1))"
           },
           {
             "outputField": "FULL_NAME",
             "inputAliases": [],
-            "transform": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
+            "expression": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
           }
         ]
       }
@@ -110,19 +110,19 @@
         ]
       }
     },
-    "creditCardMappings": {
-      "className": "com.acxiom.pipeline.steps.Mappings",
+    "creditCardTransforms": {
+      "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
         "details": [
           {
             "outputField": "ACCOUNT_NUMBER",
             "inputAliases": ["CC_NUM"],
-            "transform": null
+            "expression": null
           },
           {
             "outputField": "ACCOUNT_TYPE",
             "inputAliases": ["CC_TYPE"],
-            "transform": "upper(ACCOUNT_TYPE)"
+            "expression": "upper(ACCOUNT_TYPE)"
           }
         ]
       }
@@ -150,14 +150,14 @@
         ]
       }
     },
-    "orderMappings": {
-      "className": "com.acxiom.pipeline.steps.Mappings",
+    "orderTransforms": {
+      "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
         "details": [
           {
             "outputField": "ORDER_ID",
             "inputAliases": ["ORDER_NUM"],
-            "transform": null
+            "expression": null
           }
         ]
       }
@@ -296,7 +296,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "MappingSteps.mapDataFrameToSchema"
+                "spark": "TransformationSteps.mapDataFrameToSchema"
               }
             },
             {
@@ -359,9 +359,9 @@
                 },
                 {
                   "type": "string",
-                  "name": "mappings",
+                  "name": "transforms",
                   "required": true,
-                  "value": "!customerMappings"
+                  "value": "!customerTransforms"
                 },
                 {
                   "type": "boolean",
@@ -371,7 +371,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "MappingSteps.mapDataFrameToSchema"
+                "spark": "TransformationSteps.mapDataFrameToSchema"
               }
             },
             {
@@ -434,9 +434,9 @@
                 },
                 {
                   "type": "string",
-                  "name": "mappings",
+                  "name": "transforms",
                   "required": true,
-                  "value": "!creditCardMappings"
+                  "value": "!creditCardTransforms"
                 },
                 {
                   "type": "boolean",
@@ -446,7 +446,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "MappingSteps.mapDataFrameToSchema"
+                "spark": "TransformationSteps.mapDataFrameToSchema"
               }
             },
             {
@@ -509,9 +509,9 @@
                 },
                 {
                   "type": "string",
-                  "name": "mappings",
+                  "name": "transforms",
                   "required": true,
-                  "value": "!orderMappings"
+                  "value": "!orderTransforms"
                 },
                 {
                   "type": "boolean",
@@ -521,7 +521,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "MappingSteps.mapDataFrameToSchema"
+                "spark": "TransformationSteps.mapDataFrameToSchema"
               }
             },
             {
