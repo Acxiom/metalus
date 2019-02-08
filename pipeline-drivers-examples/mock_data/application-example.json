@@ -16,81 +16,6 @@
     "com.acxiom.pipeline"
   ],
   "globals": {
-    "productSchema": {
-      "className": "com.acxiom.pipeline.steps.Schema",
-      "object": {
-        "attributes": [
-          {
-            "name": "PRODUCT_NAME",
-            "dataType": "String"
-          },
-          {
-            "name": "PRODUCT_ID",
-            "dataType": "String"
-          },
-          {
-            "name": "COST",
-            "dataType": "Double"
-          }
-        ]
-      }
-    },
-    "customerSchema": {
-      "className": "com.acxiom.pipeline.steps.Schema",
-      "object": {
-        "attributes": [
-          {
-            "name": "CUSTOMER_ID",
-            "dataType": "Integer"
-          },
-          {
-            "name": "FIRST_NAME",
-            "dataType": "String"
-          },
-          {
-            "name": "LAST_NAME",
-            "dataType": "String"
-          },
-          {
-            "name": "POSTAL_CODE",
-            "dataType": "String"
-          },
-          {
-            "name": "GENDER_CODE",
-            "dataType": "String"
-          },
-          {
-            "name": "EIN",
-            "dataType": "String"
-          },
-          {
-            "name": "EMAIL",
-            "dataType": "String"
-          },
-          {
-            "name": "FULL_NAME",
-            "dataType": "STRING"
-          }
-        ]
-      }
-    },
-    "customerMappings": {
-      "className": "com.acxiom.pipeline.steps.Mappings",
-      "object": {
-        "details": [
-          {
-            "outputField": "GENDER_CODE",
-            "inputAliases": ["GENDER"],
-            "transform": "upper(substring(GENDER_CODE,0,1))"
-          },
-          {
-            "outputField": "FULL_NAME",
-            "inputAliases": [],
-            "transform": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
-          }
-        ]
-      }
-    },
     "creditCardSchema": {
       "className": "com.acxiom.pipeline.steps.Schema",
       "object": {
@@ -286,7 +211,23 @@
                   "type": "string",
                   "name": "destinationSchema",
                   "required": true,
-                  "value": "!productSchema"
+                  "className": "com.acxiom.pipeline.steps.Schema",
+                  "value": {
+                    "attributes": [
+                      {
+                        "name": "PRODUCT_NAME",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "PRODUCT_ID",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "COST",
+                        "dataType": "Double"
+                      }
+                    ]
+                  }
                 },
                 {
                   "type": "boolean",
@@ -355,13 +296,63 @@
                   "type": "string",
                   "name": "destinationSchema",
                   "required": true,
-                  "value": "!customerSchema"
+                  "className": "com.acxiom.pipeline.steps.Schema",
+                  "value": {
+                    "attributes": [
+                      {
+                        "name": "CUSTOMER_ID",
+                        "dataType": "Integer"
+                      },
+                      {
+                        "name": "FIRST_NAME",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "LAST_NAME",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "POSTAL_CODE",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "GENDER_CODE",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "EIN",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "EMAIL",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "FULL_NAME",
+                        "dataType": "STRING"
+                      }
+                    ]
+                  }
                 },
                 {
                   "type": "string",
                   "name": "mappings",
                   "required": true,
-                  "value": "!customerMappings"
+                  "className": "com.acxiom.pipeline.steps.Mappings",
+                  "value": {
+                    "details": [
+                      {
+                        "outputField": "GENDER_CODE",
+                        "inputAliases": ["GENDER"],
+                        "transform": "upper(substring(GENDER_CODE,0,1))"
+                      },
+                      {
+                        "outputField": "FULL_NAME",
+                        "inputAliases": [],
+                        "transform": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
+                      }
+                    ]
+                  }
                 },
                 {
                   "type": "boolean",

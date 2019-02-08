@@ -16,6 +16,9 @@ required components.
 
 The data file has been added in the *mock_data* directory.
 
+**Note**: Sometimes objects like Schema or Mappings are added to the globals object and other times they are added as a 
+parameter to a step. This is done to illustrate the flexibility provided.
+
 ## Application configuration
 Create a new file named *application-example.json* and place it somewhere that can be reached once the application 
 starts. The example json file exists in the *mock_data* directory of this project as a reference.
@@ -264,32 +267,11 @@ This pipeline will take the *DataFrame* loaded in the first execution pipeline a
 step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROOT**. This pipeline needs to be part of 
 an execution that is dependent on the *ROOT* execution created previously.
 
-The following parameters should be added to the application globals which will be responsible for setting the column order,
+The following pipeline should be added to the pipelines array. The second parameter of the *MAPFIELDSSTEP* step is the
+*destinationSchema*. This parameter defines the schema which will be responsible for setting the column order,
 column names, and data types on output.  No aliases or transforms are required for this pipeline, so the mappings parameter
 is left out:
-```json
-"productSchema": {
-      "className": "com.acxiom.pipeline.steps.Schema",
-      "object": {
-        "attributes": [
-          {
-            "name": "PRODUCT_NAME",
-            "dataType": "String"
-          },
-          {
-            "name": "PRODUCT_ID",
-            "dataType": "String"
-          },
-          {
-            "name": "COST",
-            "dataType": "Double"
-          }
-        ]
-      }
-    }
-```
 
-...and the following is added to the pipelines:
 ```json
 {
   "id": "PROD",
@@ -316,7 +298,23 @@ is left out:
               "type": "string",
               "name": "destinationSchema",
               "required": true,
-              "value": "!productSchema"
+              "className": "com.acxiom.pipeline.steps.Schema",
+              "value": {
+				  "attributes": [
+					{
+					  "name": "PRODUCT_NAME",
+					  "dataType": "String"
+					},
+					{
+					  "name": "PRODUCT_ID",
+					  "dataType": "String"
+					},
+					{
+					  "name": "COST",
+					  "dataType": "Double"
+					}
+				  ]
+				}
             },
             {
               "type": "boolean",
@@ -367,69 +365,10 @@ This pipeline will take the *DataFrame* loaded in the first execution pipeline a
 step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROOT**. This pipeline needs to be part of 
 an execution that is dependent on the *ROOT* execution created previously.
 
-The following parameters should be added to the application globals which will be responsible for setting the column order,
-column names, and data types on output.  Specifically, renaming GENDER to GENDER_CODE applying logic to only save the first
-character in upper case and adding a new field called FULL_NAME which is built from concatenating first name to laste name:
-```json
-"customerSchema": {
-      "className": "com.acxiom.pipeline.steps.Schema",
-      "object": {
-        "attributes": [
-          {
-            "name": "CUSTOMER_ID",
-            "dataType": "Integer"
-          },
-          {
-            "name": "FIRST_NAME",
-            "dataType": "String"
-          },
-          {
-            "name": "LAST_NAME",
-            "dataType": "String"
-          },
-          {
-            "name": "POSTAL_CODE",
-            "dataType": "String"
-          },
-          {
-            "name": "GENDER_CODE",
-            "dataType": "String"
-          },
-          {
-            "name": "EIN",
-            "dataType": "String"
-          },
-          {
-            "name": "EMAIL",
-            "dataType": "String"
-          },
-          {
-            "name": "FULL_NAME",
-            "dataType": "STRING"
-          }
-        ]
-      }
-    },
-    "customerMappings": {
-      "className": "com.acxiom.pipeline.steps.Mappings",
-      "object": {
-        "details": [
-          {
-            "outputField": "GENDER_CODE",
-            "inputAliases": ["GENDER"],
-            "transform": "upper(substring(GENDER_CODE,0,1))"
-          },
-          {
-            "outputField": "FULL_NAME",
-            "inputAliases": [],
-            "transform": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
-          }
-        ]
-      }
-    }
-```
+The following parameter should be added to the pipelines array which will be responsible for setting the column order,
+column names, and data types on output. Specifically, renaming GENDER to GENDER_CODE applying logic to only save the first
+character in upper case and adding a new field called FULL_NAME which is built from concatenating first name to last name:
 
-...and the following is added to the pipelines:
 ```json
 {
   "id": "CUST",
@@ -456,14 +395,64 @@ character in upper case and adding a new field called FULL_NAME which is built f
               "type": "string",
               "name": "destinationSchema",
               "required": true,
-              "value": "!customerSchema"
+              "className": "com.acxiom.pipeline.steps.Schema",
+			  "value": {
+				"attributes": [
+				  {
+					"name": "CUSTOMER_ID",
+					"dataType": "Integer"
+				  },
+				  {
+					"name": "FIRST_NAME",
+					"dataType": "String"
+				  },
+				  {
+					"name": "LAST_NAME",
+					"dataType": "String"
+				  },
+				  {
+					"name": "POSTAL_CODE",
+					"dataType": "String"
+				  },
+				  {
+					"name": "GENDER_CODE",
+					"dataType": "String"
+				  },
+				  {
+					"name": "EIN",
+					"dataType": "String"
+				  },
+				  {
+					"name": "EMAIL",
+					"dataType": "String"
+				  },
+				  {
+					"name": "FULL_NAME",
+					"dataType": "STRING"
+				  }
+				]
+			  }
             },
             {
-              "type": "string",
-              "name": "mappings",
-              "required": true,
-              "value": "!customerMappings"
-            },
+			  "type": "string",
+			  "name": "mappings",
+			  "required": true,
+			  "className": "com.acxiom.pipeline.steps.Mappings",
+			  "value": {
+				"details": [
+				  {
+					"outputField": "GENDER_CODE",
+					"inputAliases": ["GENDER"],
+					"transform": "upper(substring(GENDER_CODE,0,1))"
+				  },
+				  {
+					"outputField": "FULL_NAME",
+					"inputAliases": [],
+					"transform": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
+				  }
+				]
+			  }
+			},
             {
               "type": "boolean",
               "name": "addNewColumns",
