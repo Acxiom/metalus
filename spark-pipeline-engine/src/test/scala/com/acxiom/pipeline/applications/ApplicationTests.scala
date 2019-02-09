@@ -12,6 +12,8 @@ import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.{Level, Logger}
+import org.json4s.{DefaultFormats, Formats}
+import org.json4s.native.Serialization
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
 import scala.io.Source
@@ -139,6 +141,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(ctx2.parameterMapper.asInstanceOf[TestPipelineStepMapper].name == "Sub Step Mapper")
     // Validate the correct pipeline is set
     assert(execution2.pipelines.head.name.getOrElse("") == "Pipeline 2")
+    verifyMappedParameter(execution2)
     // Ensure the correct parent
     assert(execution2.parents.isDefined)
     assert(execution2.parents.get.head == "0")
@@ -166,6 +169,25 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(ctx2.parameters.hasPipelineParameters("Pipeline2"))
     assert(ctx2.parameters.getParametersByPipelineId("Pipeline2").get.parameters.size == 1)
     assert(ctx2.parameters.getParametersByPipelineId("Pipeline2").get.parameters("howard").asInstanceOf[String] == "johnson")
+  }
+
+  private def verifyMappedParameter(execution2: PipelineExecution) = {
+    implicit val formats: Formats = DefaultFormats
+    assert(execution2.pipelines.head.steps.isDefined)
+    assert(execution2.pipelines.head.steps.get.head.params.isDefined)
+    assert(execution2.pipelines.head.steps.get.head.params.get.length == 2)
+    assert(execution2.pipelines.head.steps.get.head.params.get(1).name.getOrElse("") == "parameterObject")
+    assert(execution2.pipelines.head.steps.get.head.params.get(1).className.getOrElse("") == "com.acxiom.pipeline.applications.TestGlobalObject")
+    assert(execution2.pipelines.head.steps.get.head.params.get(1).value.isDefined)
+    assert(execution2.pipelines.head.steps.get.head.params.get(1).value.get.isInstanceOf[Map[String, Any]])
+    val mappedParameter = DriverUtils.parseJson(
+      Serialization.write(execution2.pipelines.head.steps.get.head.params.get(1).value.get.asInstanceOf[Map[String, Any]]),
+      execution2.pipelines.head.steps.get.head.params.get(1).className.getOrElse("")).asInstanceOf[TestGlobalObject]
+    assert(mappedParameter.name.getOrElse("") == "Parameter Mapped Object")
+    assert(mappedParameter.subObjects.isDefined)
+    assert(mappedParameter.subObjects.get.length == 2)
+    assert(mappedParameter.subObjects.get.head.name.getOrElse("") == "Param Object 1")
+    assert(mappedParameter.subObjects.get(1).name.getOrElse("") == "Param Object 2")
   }
 
   private def verifyFirstExecution(execution1: PipelineExecution) = {

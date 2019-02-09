@@ -135,6 +135,23 @@
                   "name": "value",
                   "required": true,
                   "value": "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn"
+                },
+                {
+                  "type": "object",
+                  "name": "parameterObject",
+                  "required": true,
+                  "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+                  "value": {
+                    "name": "Parameter Mapped Object",
+                    "subObjects": [
+                      {
+                        "name": "Param Object 1"
+                      },
+                      {
+                        "name": "Param Object 2"
+                      }
+                    ]
+                  }
                 }
               ],
               "engineMeta": {
