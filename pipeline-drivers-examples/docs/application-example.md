@@ -238,10 +238,10 @@ Save the pipeline json to the *pipelines* array.
 
 ## Extraction Pipelines
 Additional pipelines will be created that take the *DataFrame* generated in the *ROOT* execution
-(available as a global lookup) and perform various mapping tasks on the incoming data frame (including pulling specific fields and basic transforms).
+(available as a global lookup) and perform various transformation tasks on the incoming data frame.
 Each pipeline will generate a new *DataFrame* which will be added to the globals object of the final execution.
 
-The details for the MappingStep steps can be found in the *common-pipeline-steps* library.  The Schema and Mappings objects
+The details for the TransformationStep steps can be found in the *common-pipeline-steps* library.  The Schema and Transformations objects
 passed to the steps should be added to the *Globals* section above of the Application (details provided in each extraction
 pipeline section below).
 
@@ -269,7 +269,7 @@ an execution that is dependent on the *ROOT* execution created previously.
 
 The following pipeline should be added to the pipelines array. The second parameter of the *MAPFIELDSSTEP* step is the
 *destinationSchema*. This parameter defines the schema which will be responsible for setting the column order,
-column names, and data types on output.  No aliases or transforms are required for this pipeline, so the mappings parameter
+column names, and data types on output.  No aliases or transforms are required for this pipeline, so the transforms parameter
 is left out:
 
 ```json
@@ -324,7 +324,7 @@ is left out:
             }
           ],
           "engineMeta": {
-            "spark": "MappingSteps.mapDataFrameToSchema"
+            "spark": "TransformationSteps.mapDataFrameToSchema"
           }
         },
         {
@@ -435,20 +435,20 @@ character in upper case and adding a new field called FULL_NAME which is built f
             },
             {
 			  "type": "string",
-			  "name": "mappings",
+			  "name": "transforms",
 			  "required": true,
-			  "className": "com.acxiom.pipeline.steps.Mappings",
+			  "className": "com.acxiom.pipeline.steps.Transformations",
 			  "value": {
 				"details": [
 				  {
 					"outputField": "GENDER_CODE",
 					"inputAliases": ["GENDER"],
-					"transform": "upper(substring(GENDER_CODE,0,1))"
+					"expression": "upper(substring(GENDER_CODE,0,1))"
 				  },
 				  {
 					"outputField": "FULL_NAME",
 					"inputAliases": [],
-					"transform": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
+					"expression": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
 				  }
 				]
 			  }
@@ -461,7 +461,7 @@ character in upper case and adding a new field called FULL_NAME which is built f
             }
           ],
           "engineMeta": {
-            "spark": "MappingSteps.mapDataFrameToSchema"
+            "spark": "TransformationSteps.mapDataFrameToSchema"
           }
         },
         {
@@ -524,8 +524,8 @@ ACCOUNT_TYPE to uppercase:
         ]
       }
     },
-    "creditCardMappings": {
-      "className": "com.acxiom.pipeline.steps.Mappings",
+    "creditCardTransforms": {
+      "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
         "details": [
           {
@@ -574,9 +574,9 @@ ACCOUNT_TYPE to uppercase:
             },
             {
               "type": "string",
-              "name": "mappings",
+              "name": "transforms",
               "required": true,
-              "value": "!creditCardMappings"
+              "value": "!creditCardTransforms"
             },
             {
               "type": "boolean",
@@ -586,7 +586,7 @@ ACCOUNT_TYPE to uppercase:
             }
           ],
           "engineMeta": {
-            "spark": "MappingSteps.mapDataFrameToSchema"
+            "spark": "TransformationSteps.mapDataFrameToSchema"
           }
         },
         {
@@ -652,8 +652,8 @@ column names, and data types on output.  Specifically, the ORDER_NUM field will 
         ]
       }
     },
-    "orderMappings": {
-      "className": "com.acxiom.pipeline.steps.Mappings",
+    "orderTransforms": {
+      "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
         "details": [
           {
@@ -697,9 +697,9 @@ column names, and data types on output.  Specifically, the ORDER_NUM field will 
             },
             {
               "type": "string",
-              "name": "mappings",
+              "name": "transforms",
               "required": true,
-              "value": "!orderMappings"
+              "value": "!orderTransforms"
             },
             {
               "type": "boolean",
@@ -709,7 +709,7 @@ column names, and data types on output.  Specifically, the ORDER_NUM field will 
             }
           ],
           "engineMeta": {
-            "spark": "MappingSteps.mapDataFrameToSchema"
+            "spark": "TransformationSteps.mapDataFrameToSchema"
           }
         },
         {

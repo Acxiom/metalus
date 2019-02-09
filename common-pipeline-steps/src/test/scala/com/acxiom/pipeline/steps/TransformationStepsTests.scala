@@ -9,7 +9,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 
-class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen  {
+class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen  {
   val MASTER = "local[2]"
   val APPNAME = "javascript-steps-spark"
   var sparkConf: SparkConf = _
@@ -47,7 +47,7 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
     FileUtils.deleteDirectory(sparkLocalDir.toFile)
   }
 
-  describe("MappingStep Tests") {
+  describe("TransforamtionStep Tests") {
     it("should map/merge a dataframe to an existing schema or dataframe") {
       Given("a destination dataframe")
       val destDF = sparkSession.createDataFrame(Seq(
@@ -58,47 +58,57 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       And("a new dataframe that can be mapped to the destination dataframe")
       val newDF = sparkSession.createDataFrame(Seq(
         (72034, "scruffy", 3, "F", "cat", "-1.66"),
-        (72034, "fluffy", 4, "F", "cat", "4.16")
-      )).toDF("postal_code", "first_name", "client_id", "gender", "lname", "amount")
+        (72034, "fluffy", 4, "F", "cat", "4.16"),
+        (29483, "Sophie", -1, "F", "dawg", "0.0")
+      )).toDF("postal code", "first  name", "client$id", "gender", " lname ", "$amount$")
 
       And("mappings with transforms and input aliases")
-      val mappings = Mappings(
+      val mappings = Transformations(
         List(
-          MappingDetails("id", List("client_id"), None),
-          MappingDetails("zip", List("postal_code"), None),
-          MappingDetails("first_name", List(), Some("upper(first_name)")),
-          MappingDetails("last_name", List("lname"), Some("upper(last_name)")),
-          MappingDetails("full_name", List(), Some("concat(initcap(first_name), ' ', initcap(last_name))"))
-        )
+          ColumnDetails("id", List("client_id"), None),
+          ColumnDetails("zip", List("postal_code"), None),
+          ColumnDetails("first_name", List(), Some("upper(first_name)")),
+          ColumnDetails("last name", List("lname"), Some("upper(LAST_NAME)")),
+          ColumnDetails(" full name ", List(), Some("concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"))
+        ),
+        Some("id > 0"),
+        standardizeColumnNames = Some(true)
       )
 
       val dfSchema = Schema(
         Seq(
-          Attribute("id", "Integer"),
+          Attribute("   id", "Integer"),
           Attribute("first_name", "String"),
           Attribute("last_name", "String"),
           Attribute("zip", "String"),
           Attribute("amount", "Double"),
-          Attribute("age", "Integer")
+          Attribute("age #", "Integer")
         )
       )
 
       Then("map the new dataframe to the destination schema")
-      val outDF1 = MappingSteps.mapDataFrameToSchema(newDF, dfSchema, mappings)
+      val outDF1 = TransformationSteps.mapDataFrameToSchema(newDF, dfSchema, mappings)
       And("expect the columns on the output to be the same as the destination with the 2 new fields added")
-      assert(outDF1.columns.sameElements(dfSchema.attributes.map(_.name).toList ++ List("gender", "full_name")))
+      assert(outDF1.columns.sameElements(dfSchema.attributes.map(a => {
+        TransformationSteps.cleanColumnName(a.name)
+      }).toList ++ List("GENDER", "FULL_NAME")))
+      assert(outDF1.count == 2)
+      assert(outDF1.where("id == -1").count == 0)
 
       Then("map the new dataframe to the destination dataframe")
-      val outDF2 = MappingSteps.mapToDestinationDataFrame(newDF, destDF, mappings)
+      val outDF2 = TransformationSteps.mapToDestinationDataFrame(newDF, destDF, mappings)
       And("expect the columns on the output to match the columns from the previous output")
       assert(outDF2.columns.sameElements(outDF1.columns))
+      assert(outDF2.count == 2)
+      assert(outDF2.where("id == -1").count == 0)
 
       Then("merge the new data frame with the destination dataframe")
-      val outDF3 = MappingSteps.mergeDataFrames(newDF, destDF, mappings)
+      val outDF3 = TransformationSteps.mergeDataFrames(newDF, destDF, mappings)
       And("expect the columns on the output to match the columns from the previous output")
       assert(outDF3.columns.sameElements(outDF1.columns))
-      assert(outDF3.count == destDF.count + newDF.count)
-
+      assert(outDF3.count == destDF.count + newDF.count - 1)
+      assert(outDF3.count == 4)
+      assert(outDF3.where("id == -1").count == 0)
     }
 
     it("should convert data types to match destination schema") {
@@ -114,7 +124,7 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       )).toDF("string2int", "string2double", "int2string", "double2string", "int2double", "double2int" )
 
       Then("run logic to convert data types on new data frame to match destination data types")
-      val outDF = MappingSteps.convertDataTypesToDestination(newDF, destDF.schema)
+      val outDF = TransformationSteps.convertDataTypesToDestination(newDF, destDF.schema)
 
       And("expect output dataframe to have data types matching destination")
       outDF.schema.map(c => {
@@ -148,7 +158,7 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       )).toDF("first_name", "id", "last_name")
 
       Then("run logic to add missing attributes")
-      val outDF = MappingSteps.addMissingDestinationAttributes(newDF, destDF.schema)
+      val outDF = TransformationSteps.addMissingDestinationAttributes(newDF, destDF.schema)
 
       And("expect counts to match")
       assert(outDF.count == newDF.count)
@@ -175,12 +185,12 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       )
 
       Then("run logic to reorder columns, skipping new attributes")
-      val outDF1 = MappingSteps.orderAttributesToDestinationSchema(newDF, destDF.schema, addNewColumns = false)
+      val outDF1 = TransformationSteps.orderAttributesToDestinationSchema(newDF, destDF.schema, addNewColumns = false)
       assert(outDF1.columns.sameElements(destDF.columns))
       assert(!outDF1.columns.contains("gender"))
 
       Then("run logic to reorder columns adding new columns to the end")
-      val outDF2 = MappingSteps.orderAttributesToDestinationSchema(newDF, destDF.schema)
+      val outDF2 = TransformationSteps.orderAttributesToDestinationSchema(newDF, destDF.schema)
       assert(outDF2.columns.last == "gender")
       assert(outDF2.columns.filterNot(_ == "gender").sameElements(destDF.columns))
     }
@@ -194,16 +204,16 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       val df1 = sparkSession.createDataFrame(data).toDF("id", "first_name", "last_name", "zip")
 
       And("a set of mappings with inputAliases")
-      val mappings = Mappings(
+      val mappings = Transformations(
         List(
-          MappingDetails("client_id", List("id"), None),
-          MappingDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
-          MappingDetails("zip_code", List("zip", "postal_code"), None)
+          ColumnDetails("client_id", List("id"), None),
+          ColumnDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
+          ColumnDetails("zip_code", List("zip", "postal_code"), None)
         )
       )
 
       Then("apply alias logic to dataframe")
-      val outDF1 = MappingSteps.applyAliasesToInputDataFrame(df1, mappings)
+      val outDF1 = TransformationSteps.applyAliasesToInputDataFrame(df1, mappings)
 
       And("expect columns to be named appropriately")
       assert(outDF1.columns.contains("client_id"))
@@ -216,7 +226,7 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       Then("create a dataframe with different names")
       val df2 = sparkSession.createDataFrame(data).toDF("client_id", "first_name", "last_name", "postal_code")
       And("apply alias logic to the new dataframe")
-      val outDF2 = MappingSteps.applyAliasesToInputDataFrame(df2, mappings)
+      val outDF2 = TransformationSteps.applyAliasesToInputDataFrame(df2, mappings)
 
       And("expect columns to be named appropriately")
       assert(outDF2.columns.contains("zip_code"))
@@ -236,16 +246,16 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       )
 
       And("a set of mappings")
-      val mappings = Mappings(
+      val mappings = Transformations(
         List(
-          MappingDetails("id", List(), Some("1000 + id")),
-          MappingDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
-          MappingDetails("zip", List("zip_code", "postal_code"), None)  // should get ignored here
+          ColumnDetails("id", List(), Some("1000 + id")),
+          ColumnDetails("full_name", List(), Some("concat(initCap(first_name), ' ', initCap(last_name))")),
+          ColumnDetails("zip", List("zip_code", "postal_code"), None)  // should get ignored here
         )
       )
 
       Then("apply mappings to dataframe")
-      val newDF = MappingSteps.applyTransforms(df, mappings)
+      val newDF = TransformationSteps.applyTransforms(df, mappings)
       And("expect count and column order to match input with new transforms at the end")
       assert(newDF.count == df.count)
       assert(newDF.columns === df.columns :+ "full_name")
@@ -253,9 +263,53 @@ class MappingStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThe
       assert(newDF.select("full_name").where("id == 1001").collect.head.get(0) == "Buster Dawg")
 
       When("transforms are empty, expect dataFrame to be returned unchanged with no errors")
-      val noTransformsDF = MappingSteps.applyTransforms(df, Mappings(List()))
+      val noTransformsDF = TransformationSteps.applyTransforms(df, Transformations(List()))
       assert(noTransformsDF.count == df.count)
     }
+  }
+
+  it("should standardize column names") {
+    Given("a dataframe")
+    val df = sparkSession.createDataFrame(Seq(
+      (1, "buster", "dawg", 29483),
+      (2, "rascal", "dawg", 29483)
+    )).toDF(
+      " Id ", "first###name", "1ast name", "    zip    "
+    )
+
+    Then("run it through column standardization")
+    val newDF = TransformationSteps.standardizeColumnNames(df)
+
+    And("expect columns to be standardized")
+    assert(newDF.columns.sameElements(Array("ID", "FIRST_NAME", "C_1AST_NAME", "ZIP")))
+
+    Then("run more specific use cases through clean columns")
+    assert(TransformationSteps.cleanColumnName("cAse") == "CASE")
+    assert(TransformationSteps.cleanColumnName("basic space") == "BASIC_SPACE")
+    assert(TransformationSteps.cleanColumnName("duplicate  spaces") == "DUPLICATE_SPACES")
+    assert(TransformationSteps.cleanColumnName("duplicate__underscores") == "DUPLICATE_UNDERSCORES")
+    assert(TransformationSteps.cleanColumnName("  spaces on ends    ") == "SPACES_ON_ENDS")
+    assert(TransformationSteps.cleanColumnName("__underscores on ends____") == "UNDERSCORES_ON_ENDS")
+    assert(TransformationSteps.cleanColumnName("(sp%ci*l##ch&*()&*()r@c+e^s)") == "SP_CI_L_CH_R_C_E_S")
+    assert(TransformationSteps.cleanColumnName("123_init_numbers") == "C_123_INIT_NUMBERS")
+  }
+
+  it("should apply a filter to a dataframe") {
+    Given("a dataframe")
+    val df = sparkSession.createDataFrame(Seq(
+      (1, "buster", "dawg", 29483),
+      (2, "rascal", "dawg", 29483),
+      (0, "sophie", "dawg", 29483)
+    )).toDF(
+      "id", "first_name", "1ast_name", "zip"
+    )
+    assert(df.count == 3)
+    assert(df.where("id <= 0").count == 1)
+    Then("run dataframe through apply filter logic")
+    val newDF = TransformationSteps.applyFilter(df, "id > 0")
+    And("expect the filter to be applied to the output dataframe")
+    assert(newDF.count == 2)
+    assert(newDF.where("id <= 0").count == 0)
   }
 
 }
