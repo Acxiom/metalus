@@ -38,7 +38,7 @@
     "creditCardTransforms": {
       "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
-        "details": [
+        "columnDetails": [
           {
             "outputField": "ACCOUNT_NUMBER",
             "inputAliases": ["CC_NUM"],
@@ -78,7 +78,7 @@
     "orderTransforms": {
       "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
-        "details": [
+        "columnDetails": [
           {
             "outputField": "ORDER_ID",
             "inputAliases": ["ORDER_NUM"],
@@ -340,7 +340,7 @@
                   "required": true,
                   "className": "com.acxiom.pipeline.steps.Transformations",
                   "value": {
-                    "details": [
+                    "columnDetails": [
                       {
                         "outputField": "GENDER_CODE",
                         "inputAliases": ["GENDER"],

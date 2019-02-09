@@ -16,7 +16,7 @@ required components.
 
 The data file has been added in the *mock_data* directory.
 
-**Note**: Sometimes objects like Schema or Mappings are added to the globals object and other times they are added as a 
+**Note**: Sometimes objects like Schema or Transformations are added to the globals object and other times they are added as a 
 parameter to a step. This is done to illustrate the flexibility provided.
 
 ## Application configuration
@@ -439,7 +439,7 @@ character in upper case and adding a new field called FULL_NAME which is built f
 			  "required": true,
 			  "className": "com.acxiom.pipeline.steps.Transformations",
 			  "value": {
-				"details": [
+				"columnDetails": [
 				  {
 					"outputField": "GENDER_CODE",
 					"inputAliases": ["GENDER"],
@@ -527,16 +527,16 @@ ACCOUNT_TYPE to uppercase:
     "creditCardTransforms": {
       "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
-        "details": [
+        "columnDetails": [
           {
             "outputField": "ACCOUNT_NUMBER",
             "inputAliases": ["CC_NUM"],
-            "transform": null
+            "expression": null
           },
           {
             "outputField": "ACCOUNT_TYPE",
             "inputAliases": ["CC_TYPE"],
-            "transform": "upper(ACCOUNT_TYPE)"
+            "expression": "upper(ACCOUNT_TYPE)"
           }
         ]
       }
@@ -655,11 +655,11 @@ column names, and data types on output.  Specifically, the ORDER_NUM field will 
     "orderTransforms": {
       "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
-        "details": [
+        "columnDetails": [
           {
             "outputField": "ORDER_ID",
             "inputAliases": ["ORDER_NUM"],
-            "transform": null
+            "expression": null
           }
         ]
       }
