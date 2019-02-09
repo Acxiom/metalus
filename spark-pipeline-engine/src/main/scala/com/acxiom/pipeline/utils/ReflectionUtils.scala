@@ -152,38 +152,45 @@ object ReflectionUtils {
         if (annotation.isDefined) {
           Some(im.symbol.info.decls.foldLeft(List[StepDefinition]())((steps, symbol) => {
             val ann = symbol.annotations.find(_.tree.tpe =:= ru.typeOf[StepFunction])
-            if (ann.isDefined) {
-              val params = symbol.asMethod.paramLists.head
-              val parameters = if (params.nonEmpty) {
-                params.foldLeft(List[StepFunctionParameter]())((stepParams, paramSymbol) => {
-                  if (paramSymbol.name.toString != "pipelineContext") {
-                    stepParams :+ StepFunctionParameter(
-                      paramSymbol.typeSignature.toString match {
-                        case "Integer" => "number"
-                        case _ => "text"
-                      }, paramSymbol.name.toString)
-                  } else {
-                    stepParams
-                  }
-                })
-              } else {
-                List[StepFunctionParameter]()
-              }
-              steps :+ StepDefinition(
-                ann.get.tree.children.tail.head.toString().replaceAll("\"", ""),
-                ann.get.tree.children.tail(1).toString().replaceAll("\"", ""),
-                ann.get.tree.children.tail(2).toString().replaceAll("\"", ""),
-                ann.get.tree.children.tail(3).toString().replaceAll("\"", ""),
-                parameters,
-                EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}")))
-            } else {
-              steps
-            }
+            generateStepDefinitionList(im, steps, symbol, ann)
           }))
         } else {
           None
         }
       case Failure(_) => None
+    }
+  }
+
+  private def generateStepDefinitionList(im: ru.ModuleMirror,
+                                         steps: List[StepDefinition],
+                                         symbol: ru.Symbol,
+                                         ann: Option[ru.Annotation]): List[StepDefinition] = {
+    if (ann.isDefined) {
+      val params = symbol.asMethod.paramLists.head
+      val parameters = if (params.nonEmpty) {
+        params.foldLeft(List[StepFunctionParameter]())((stepParams, paramSymbol) => {
+          if (paramSymbol.name.toString != "pipelineContext") {
+            stepParams :+ StepFunctionParameter(
+              paramSymbol.typeSignature.toString match {
+                case "Integer" => "number"
+                case _ => "text"
+              }, paramSymbol.name.toString)
+          } else {
+            stepParams
+          }
+        })
+      } else {
+        List[StepFunctionParameter]()
+      }
+      steps :+ StepDefinition(
+        ann.get.tree.children.tail.head.toString().replaceAll("\"", ""),
+        ann.get.tree.children.tail(1).toString().replaceAll("\"", ""),
+        ann.get.tree.children.tail(2).toString().replaceAll("\"", ""),
+        ann.get.tree.children.tail(3).toString().replaceAll("\"", ""),
+        parameters,
+        EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}")))
+    } else {
+      steps
     }
   }
 
