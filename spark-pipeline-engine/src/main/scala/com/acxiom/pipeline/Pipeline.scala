@@ -71,7 +71,6 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     */
   def getGlobalString(globalName: String): Option[String] = {
     if (this.globals.isDefined && this.globals.get.contains(globalName)) {
-      // TODO Expand to support other types
       this.globals.get(globalName) match {
         case str: String =>
           Some(str)
