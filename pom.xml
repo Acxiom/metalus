@@ -49,7 +49,7 @@
         <scala.style.config>${basedir}/scalastyle_config.xml</scala.style.config>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <sonar.core.codeCoveragePlugin>scoverage</sonar.core.codeCoveragePlugin>
-        <sonar.scoverage.reportPath>${project.reporting.outputDirectory}</sonar.scoverage.reportPath>
+        <sonar.scoverage.reportPath>${project.build.directory}/scoverage.xml</sonar.scoverage.reportPath>
         <sonar.exclusions>src/test/scala/**</sonar.exclusions>
     </properties>
 
