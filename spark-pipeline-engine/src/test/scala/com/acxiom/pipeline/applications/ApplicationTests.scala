@@ -99,11 +99,19 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       setup.pipelineContext.sparkSession.get.stop()
     }
 
-    it ("Should refresh an application") {
+    it("Should refresh an application") {
       val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "root" -> true))
       val executionPlan = setup.executionPlan.get
       verifyApplication(setup.refreshExecutionPlan(executionPlan))
       setup.pipelineContext.sparkSession.get.stop()
+    }
+
+    it("Should detect a missing parameter") {
+      val thrown = intercept[RuntimeException] {
+        ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson))
+      }
+      assert(thrown.getMessage.contains("Missing required parameters: root"))
+
     }
   }
 
