@@ -11,6 +11,9 @@
       }
     ]
   },
+  "requiredParameters": [
+    "root"
+  ],
   "stepPackages": [
     "com.acxiom.pipeline.steps",
     "com.acxiom.pipeline"

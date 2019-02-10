@@ -70,6 +70,16 @@ object DriverUtils {
           }
       }
     })
+    validateRequiredParameters(parameters, requiredParameters)
+    parameters
+  }
+
+  /**
+    * Given a map of parameters and a list of required parameter names, verifies that all are present.
+    * @param parameters Parameter map to validate
+    * @param requiredParameters List of parameter names that are required
+    */
+  def validateRequiredParameters(parameters: Map[String, Any], requiredParameters: Option[List[String]]): Unit = {
     if (requiredParameters.isDefined) {
       val missingParams = requiredParameters.get.filter(p => !parameters.contains(p))
 
@@ -77,7 +87,6 @@ object DriverUtils {
         throw new RuntimeException(s"Missing required parameters: ${missingParams.mkString(",")}")
       }
     }
-    parameters
   }
 
   /**
