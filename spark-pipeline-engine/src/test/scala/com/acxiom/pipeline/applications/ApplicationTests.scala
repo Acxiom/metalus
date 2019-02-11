@@ -31,7 +31,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     it("Should create an execution plan") {
       val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
         .setMaster("local")
-      val executionPlan = ApplicationUtils.createExecutionPlan(application, Some(Map[String, Any]("root" -> true)), sparkConf)
+      val executionPlan = ApplicationUtils.createExecutionPlan(application, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf)
       verifyApplication(executionPlan)
       executionPlan.head.pipelineContext.sparkSession.get.stop()
     }
@@ -40,7 +40,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
   describe("ApplicationDriverSetup") {
     val applicationJson = Source.fromInputStream(getClass.getResourceAsStream("/application-test.json")).mkString
     it("Should load and create an Application from the parameters") {
-      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "root" -> true))
+      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "rootLogLevel" -> "OFF"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
@@ -60,7 +60,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
       val setup = ApplicationDriverSetup(Map[String, Any](
         "applicationConfigPath" -> file.getAbsolutePath,
-        "root" -> true))
+        "rootLogLevel" -> "ERROR"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
@@ -87,7 +87,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val setup = ApplicationDriverSetup(Map[String, Any](
         "applicationConfigPath" -> "application-test.json",
         "applicationConfigurationLoader" -> "com.acxiom.pipeline.utils.HDFSFileManager",
-        "root" -> true))
+        "rootLogLevel" -> "FATAL"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
@@ -100,7 +100,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     }
 
     it("Should refresh an application") {
-      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "root" -> true))
+      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "rootLogLevel" -> "DEBUG"))
       val executionPlan = setup.executionPlan.get
       verifyApplication(setup.refreshExecutionPlan(executionPlan))
       setup.pipelineContext.sparkSession.get.stop()
@@ -108,9 +108,9 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
     it("Should detect a missing parameter") {
       val thrown = intercept[RuntimeException] {
-        ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson))
+        ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "logLevel" -> "TRACE"))
       }
-      assert(thrown.getMessage.contains("Missing required parameters: root"))
+      assert(thrown.getMessage.contains("Missing required parameters: rootLogLevel"))
 
     }
   }
@@ -156,8 +156,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     // Verify the globals object was properly constructed
     val globals1 = ctx2.globals.get
     assert(globals1.size == 5)
-    assert(globals1.contains("root"))
-    assert(globals1("root").asInstanceOf[Boolean])
+    assert(globals1.contains("rootLogLevel"))
+    assert(globals1.contains("rootLogLevel"))
     assert(globals1.contains("number"))
     assert(globals1("number").asInstanceOf[BigInt] == 1)
     assert(globals1.contains("float"))
@@ -219,8 +219,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     // Verify the globals object was properly constructed
     val globals = ctx1.globals.get
     assert(globals.size == 5)
-    assert(globals.contains("root"))
-    assert(globals("root").asInstanceOf[Boolean])
+    assert(globals.contains("rootLogLevel"))
+    assert(globals.contains("rootLogLevel"))
     assert(globals.contains("number"))
     assert(globals("number").asInstanceOf[BigInt] == 2)
     assert(globals.contains("float"))

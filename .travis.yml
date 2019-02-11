@@ -77,6 +77,4 @@ jobs:
         skip_cleanup: true
         file_glob: true
         file:
-          - common-pipeline-steps/target/common-pipeline-steps_2.11-${project_version}.jar
-          - spark-pipeline-engine/target/spark-pipeline-engine_2.11-${project_version}.jar
-          - streaming-pipeline-drivers/target/streaming-pipeline-drivers_2.11-${project_version}.jar
+          - application-utils/target/application-utils_2.11-${project_version}.tar.gz

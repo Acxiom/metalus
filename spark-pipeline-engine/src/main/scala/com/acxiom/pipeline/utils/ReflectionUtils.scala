@@ -236,7 +236,11 @@ object ReflectionUtils {
       val method = alternatives.reduce((alt1, alt2) => {
         val params1 = getMatches(alt1.asMethod.paramLists.head, parameterValues)
         val params2 = getMatches(alt2.asMethod.paramLists.head, parameterValues)
-        if (params1 > params2) {
+        if (params1 == params2 &&
+          (parameterValues.size - alt1.asMethod.paramLists.head.length >
+            parameterValues.size - alt2.asMethod.paramLists.head.length)) {
+          alt1
+        } else if (params1 > params2) {
           alt1
         } else {
           alt2
@@ -245,7 +249,6 @@ object ReflectionUtils {
 
       method.asMethod
     } else {
-
       // There was only one method matching the name so return it.
       symbol.asMethod
     }
@@ -256,8 +259,10 @@ object ReflectionUtils {
     val matches = symbols.filter(param => {
       val name = param.name.toString
       if (parameterValues.contains(name)) {
-        val instanceType = parameterValues(name).getClass
         val paramType = Class.forName(param.typeSignature.typeSymbol.fullName)
+        val optionType = param.typeSignature.typeSymbol.fullName.contains("Option")
+        val instanceClass = getFinalValue(optionType, parameterValues(name)).getClass
+        val instanceType = if (instanceClass.getName == "java.lang.Boolean") Class.forName("scala.Boolean") else instanceClass
         parameterValues.contains(name) && paramType.isAssignableFrom(instanceType)
       } else {
         false

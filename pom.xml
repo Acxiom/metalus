@@ -59,6 +59,7 @@
         <module>common-pipeline-steps</module>
         <module>streaming-pipeline-drivers</module>
         <module>pipeline-drivers-examples</module>
+        <module>application-utils</module>
     </modules>
 
     <dependencies>
