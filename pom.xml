@@ -48,6 +48,10 @@
         <spark.version>2.3.2</spark.version>
         <scala.style.config>${basedir}/scalastyle_config.xml</scala.style.config>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <sonar.core.codeCoveragePlugin>scoverage</sonar.core.codeCoveragePlugin>
+        <sonar.scala.coverage.reportPaths>${project.build.directory}/scoverage.xml</sonar.scala.coverage.reportPaths>
+        <sonar.scala.scalastyle.reportPaths>${basedir}/target/checkstyle-result.xml</sonar.scala.scalastyle.reportPaths>
+        <sonar.exclusions>src/test/scala/**</sonar.exclusions>
     </properties>
 
     <modules>
@@ -139,7 +143,6 @@
                         </goals>
                         <configuration>
                             <args>
-                                <!--<arg>-make:transitive</arg>-->
                                 <arg>-dependencyfile</arg>
                                 <arg>${project.build.directory}/.scala_dependencies</arg>
                             </args>
@@ -161,6 +164,25 @@
                     <scalaVersion>${scala.version}</scalaVersion>
                     <highlighting>true</highlighting>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>instrument</id>
+                        <goals>
+                            <!-- used to add instrumentation -->
+                            <goal>pre-compile</goal>
+                            <!-- used to remove instrumentation for testCompile -->
+                            <goal>post-compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>scoverage-report</id>
+                        <goals>
+                            <!-- Needed for Sonar -->
+                            <goal>report-only</goal>
+                        </goals>
+                        <phase>prepare-package</phase>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.eluder.coveralls</groupId>

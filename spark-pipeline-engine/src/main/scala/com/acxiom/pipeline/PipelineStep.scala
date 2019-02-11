@@ -38,7 +38,8 @@ case class Parameter(`type`: Option[String] = None,
                      name: Option[String] = None,
                      required: Option[Boolean] = Some(false),
                      defaultValue: Option[Any] = None,
-                     value: Option[Any] = None)
+                     value: Option[Any] = None,
+                     className: Option[String] = None)
 
 /**
   * This class contains the execution information for a Step

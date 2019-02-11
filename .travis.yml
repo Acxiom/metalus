@@ -10,57 +10,73 @@ jobs:
   allow_failures:
     - os: windows
   include:
-  - stage: Build
-    os: linux
-    scala:
-      - 2.11.12
-    install: true
-    script: mvn -B clean install
-  -
-    os: osx
-    osx_image: xcode9.3
-    scala:
-      - 2.11.12
-    install: true
-    script: mvn -B clean install
-  -
-    os: windows
-    language: shell
-    install: true
-    before_script:
-      - choco install jdk8
-      - choco install maven
-    script: mvn -B clean install
-  - stage: Coverage
-    if: branch = develop
-    os: linux
-    scala:
-      - 2.11.12
-    script: mvn -DrepoToken=$coverallsToken clean scoverage:report install scala:doc scalastyle:check coveralls:report
-  - stage: Release
-    if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
-    os: linux
-    scala:
-      - 2.11.12
-    before_install:
-      - openssl aes-256-cbc -K $encrypted_60fb54548dfb_key -iv $encrypted_60fb54548dfb_iv -in deployment/acxsigningkey.asc.enc -out deployment/acxsigningkey.asc -d
-      - mvn -B versions:set -DremoveSnapshot
-    install:
-      - mvn -B -DskipTests=true clean install
-      - mvn -B -DrepoToken=$coverallsToken scoverage:report scala:doc scalastyle:check coveralls:report
-    before_script:
-      - gpg --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
-      - gpg --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
-    script: mvn --settings deployment/release-settings.xml -B -P release -DskipTests=true -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg deploy
-    before_deploy:
-      - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
-    deploy:
-      provider: releases
-      api_key: $GITHUB_OAUTH_TOKEN
-      name: ${project_version}
-      skip_cleanup: true
-      file_glob: true
-      file:
-        - common-pipeline-steps/target/common-pipeline-steps_2.11-${project_version}.jar
-        - spark-pipeline-engine/target/spark-pipeline-engine_2.11-${project_version}.jar
-        - streaming-pipeline-drivers/target/streaming-pipeline-drivers_2.11-${project_version}.jar
+    - stage: Build
+      os: linux
+      scala:
+        - 2.11.12
+      install: true
+      script: mvn -B clean install
+    -
+      os: osx
+      osx_image: xcode9.3
+      scala:
+        - 2.11.12
+      install: true
+      script: mvn -B clean install
+    -
+      os: windows
+      language: shell
+      install: true
+      before_script:
+        - choco install jdk8
+        - choco install maven
+      script: mvn -B clean install
+
+    - stage: Code Quality
+      if: branch = develop
+      os: linux
+      scala:
+        - 2.11.12
+      install: mvn -B -DskipTests=true clean install
+      script: mvn -B -DrepoToken=$coverallsToken clean scoverage:report coveralls:report
+    -
+      if: branch = develop AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
+      os: linux
+      scala:
+        - 2.11.12
+      addons:
+        sonarcloud:
+          organization: $SONAR_ORGANIZATION
+      install: mvn -B -DskipTests=true clean install
+      script: mvn -B  -Dsonar.branch=develop scoverage:report scalastyle:check org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
+
+    - stage: Release
+      if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
+      os: linux
+      scala:
+        - 2.11.12
+      addons:
+        sonarcloud:
+          organization: $SONAR_ORGANIZATION
+      before_install:
+        - openssl aes-256-cbc -K $encrypted_60fb54548dfb_key -iv $encrypted_60fb54548dfb_iv -in deployment/acxsigningkey.asc.enc -out deployment/acxsigningkey.asc -d
+        - mvn -B versions:set -DremoveSnapshot
+      install:
+        - mvn -B -DskipTests=true clean install
+        - mvn -B -DrepoToken=$coverallsToken -Dsonar.branch=master scoverage:report scala:doc scalastyle:check coveralls:report org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
+      before_script:
+        - gpg --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
+        - gpg --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
+      script: mvn --settings deployment/release-settings.xml -B -P release -DskipTests=true -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg deploy
+      before_deploy:
+        - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
+      deploy:
+        provider: releases
+        api_key: $GITHUB_OAUTH_TOKEN
+        name: ${project_version}
+        skip_cleanup: true
+        file_glob: true
+        file:
+          - common-pipeline-steps/target/common-pipeline-steps_2.11-${project_version}.jar
+          - spark-pipeline-engine/target/spark-pipeline-engine_2.11-${project_version}.jar
+          - streaming-pipeline-drivers/target/streaming-pipeline-drivers_2.11-${project_version}.jar

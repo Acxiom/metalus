@@ -13,6 +13,7 @@ import scala.io.Source
 case class ApplicationDriverSetup(parameters: Map[String, Any]) extends DriverSetup {
   // Load the Application configuration
   private val application = loadApplication(parameters)
+  DriverUtils.validateRequiredParameters(parameters, application.requiredParameters)
   // Configure the SparkConf
   private val sparkConfOptions = if (application.sparkConf.isDefined) application.sparkConf.get else Map[String, Any]()
   private val kryoClasses = if (sparkConfOptions.contains("kryoClasses")) {

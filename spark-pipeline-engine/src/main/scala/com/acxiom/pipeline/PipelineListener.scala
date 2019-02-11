@@ -45,5 +45,7 @@ trait PipelineListener {
     None
   }
 
-  def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {}
+  def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+    // Base implementation does nothing
+  }
 }

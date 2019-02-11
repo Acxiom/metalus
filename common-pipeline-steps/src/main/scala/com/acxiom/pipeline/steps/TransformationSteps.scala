@@ -7,14 +7,14 @@ import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.apache.spark.sql.functions._
 
 @StepObject
-object MappingSteps {
+object TransformationSteps {
   private val logger = Logger.getLogger(getClass)
 
   /**
     * maps a dataframe to a destination dataframe
     * @param inputDataFrame         the dataframe that needs to be modified
     * @param destinationDataFrame   the dataframe that the new data needs to map to
-    * @param mappings               the mappings object with transform and inputAlias details
+    * @param transforms             the object with transform, alias, and filter logic details
     * @param addNewColumns          a flag to determine whether new attributes are to be added to the output
     * @return   a new dataframe that is compatible with the destination schema
     */
@@ -24,17 +24,17 @@ object MappingSteps {
     "This step maps a new dataframe to an existing dataframe to make them compatible",
     "Pipeline"
   )
-  def mapToDestinationDataFrame(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, mappings: Mappings = Mappings(List()),
+  def mapToDestinationDataFrame(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, transforms: Transformations = Transformations(List()),
                              addNewColumns: Boolean = true): DataFrame = {
     val schema = Schema(destinationDataFrame.schema.map(x => Attribute(x.name, x.dataType.toString)).toList)
-    mapDataFrameToSchema(inputDataFrame, schema, mappings, addNewColumns)
+    mapDataFrameToSchema(inputDataFrame, schema, transforms, addNewColumns)
   }
 
   /**
     * maps a dataframe to a destination schema
     * @param inputDataFrame     the dataframe that needs to be modified
     * @param destinationSchema  the schema that the new data should map to
-    * @param mappings           the mappings object with transform and inputAlias details
+    * @param transforms         the object with transform, alias, and filter logic details
     * @param addNewColumns      a flag to determine whether new attributes are to be added to the output
     * @return   a new dataframe that is compatible with the destination schema
     */
@@ -44,21 +44,28 @@ object MappingSteps {
     "This step maps a new dataframe to a pre-defined spark schema (StructType)",
     "Pipeline"
   )
-  def mapDataFrameToSchema(inputDataFrame: DataFrame, destinationSchema: Schema, mappings: Mappings = Mappings(List()),
+  def mapDataFrameToSchema(inputDataFrame: DataFrame, destinationSchema: Schema, transforms: Transformations = Transformations(List()),
                            addNewColumns: Boolean = true): DataFrame = {
-    val structType = StructType(destinationSchema.attributes.map(_.toStructField))
-    val aliasedDF = applyAliasesToInputDataFrame(inputDataFrame, mappings)
-    val transformedDF = applyTransforms(aliasedDF, mappings)
+    // create a struct type with cleaned names to pass to methods that need structtype
+    val structType = StructType(destinationSchema.attributes.map(a => {
+      if(transforms.standardizeColumnNames.getOrElse(false)) {
+        a.toStructField.copy(name=cleanColumnName(a.name))
+      } else { a.toStructField }
+    }))
+
+    val aliasedDF = applyAliasesToInputDataFrame(inputDataFrame, transforms)
+    val transformedDF = applyTransforms(aliasedDF, transforms)
     val fullDF = addMissingDestinationAttributes(transformedDF, structType)
     val typedDF = convertDataTypesToDestination(fullDF, structType)
-    orderAttributesToDestinationSchema(typedDF, structType, addNewColumns)
+    val filteredDF = if(transforms.filter.isEmpty) typedDF else applyFilter(typedDF, transforms.filter.get)
+    orderAttributesToDestinationSchema(filteredDF, structType, addNewColumns)
   }
 
   /**
     * merges two dataframes conforming to the schema of the 2nd dataframe
     * @param inputDataFrame         the first dataframe
     * @param destinationDataFrame   the second dataframe used as the driver
-    * @param mappings               the mappings object with transform and inputAlias details
+    * @param transforms             the object with transform, alias, and filter logic details
     * @param addNewColumns          a flag to determine whether new attributes are to be added to the output
     * @return   a new dataframe containing data from both input dataframes
     */
@@ -68,20 +75,20 @@ object MappingSteps {
     "This step maps a new dataframe to an existing dataframe to make them compatible",
     "Pipeline"
   )
-  def mergeDataFrames(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, mappings: Mappings = Mappings(List()),
+  def mergeDataFrames(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, transforms: Transformations = Transformations(List()),
                       addNewColumns: Boolean = true): DataFrame = {
     // map to destination dataframe
-    val mappedFromDF = mapToDestinationDataFrame(inputDataFrame, destinationDataFrame, mappings, addNewColumns)
-    // treating 2 as the driver...adding attributes from df1 that don't exist on df2
-    val finalToDF = addMissingDestinationAttributes(destinationDataFrame, mappedFromDF.schema)
+    val mappedFromDF = mapToDestinationDataFrame(inputDataFrame, destinationDataFrame, transforms, addNewColumns)
+    // treating destination as the driver...adding attributes from input that don't exist on destination
+    val finalToDF = addMissingDestinationAttributes(applyAliasesToInputDataFrame(destinationDataFrame, transforms), mappedFromDF.schema)
     // union dataframes together
     finalToDF.union(mappedFromDF)
   }
 
   /**
     * applies transform logic to override existing fields or append new fields to the end of an existing dataframe
-    * @param dataFrame  the input dataframe
-    * @param mappings list of transform object containing expressions to generate fields
+    * @param dataFrame    the input dataframe
+    * @param transforms   the object with transform, alias, and filter logic details
     * @return   an updated dataframe
     */
   @StepFunction(
@@ -90,19 +97,21 @@ object MappingSteps {
     "This step transforms existing columns and/or adds new columns to an existing dataframe using expressions provided",
     "Pipeline"
   )
-  def applyTransforms(dataFrame: DataFrame, mappings: Mappings): DataFrame = {
+  def applyTransforms(dataFrame: DataFrame, transforms: Transformations): DataFrame = {
     // pull out mappings that contain a transform
-    val mappingsWithTransforms = mappings.details.filter(_.transform.nonEmpty)
+    val mappingsWithTransforms = transforms.columnDetails.filter(_.expression.nonEmpty).map(x => {
+      if(transforms.standardizeColumnNames.getOrElse(false)) { x.copy(outputField = cleanColumnName(x.outputField)) } else x
+    })
 
     // apply any alias logic to input column names
-    val aliasedDF = applyAliasesToInputDataFrame(dataFrame, mappings)
+    val aliasedDF = applyAliasesToInputDataFrame(dataFrame, transforms)
 
     // create input dataframe with any transform overrides (preserving input order)
     val inputExprs = aliasedDF.columns.map(a => {
       val mapping = mappingsWithTransforms.find(_.outputField == a)
       if(mapping.nonEmpty) {
-        logger.info(s"adding transform for existing column '${mapping.get.outputField}', transform=${mapping.get.transform.get}")
-        expr(mapping.get.transform.get).as(mapping.get.outputField)
+        logger.info(s"adding transform for existing column '${mapping.get.outputField}', transform=${mapping.get.expression.get}")
+        expr(mapping.get.expression.get).as(mapping.get.outputField)
       } else { col(a) }
     })
 
@@ -111,13 +120,64 @@ object MappingSteps {
       if(aliasedDF.columns.contains(m.outputField)) {
         exprList
       } else {
-        logger.info(s"adding transform for new column '${m.outputField},transform=${m.transform.get}")
-        exprList :+ expr(m.transform.get).as(m.outputField)
+        logger.info(s"adding transform for new column '${m.outputField},transform=${m.expression.get}")
+        exprList :+ expr(m.expression.get).as(m.outputField)
       }
     })
 
     // return dataframe with all transforms applied
     aliasedDF.select(finalExprs: _*)
+  }
+
+  /**
+    * filters dataframe based on provided where clause
+    * @param dataFrame  the dataframe to filter
+    * @param expression the expression to apply to the dataframe to filter rows
+    * @return   a filtered dataframe
+    */
+  @StepFunction(
+    "fa0fcabb-d000-4a5e-9144-692bca618ddb",
+    "Filter a DataFrame",
+    "This step will filter a dataframe based on the where expression provided",
+    "Pipeline"
+  )
+  def applyFilter(dataFrame: DataFrame, expression: String): DataFrame = {
+    dataFrame.where(expression)
+  }
+
+  /**
+    * standardizes column names on an existing dataframe
+    * @param dataFrame  the dataframe with columns that need to be standardized
+    * @return   a new dataframe with standardized columns
+    */
+  @StepFunction(
+    "a981080d-714c-4d36-8b09-d95842ec5655",
+    "Standardize Column Names on a DataFrame",
+    "This step will standardize columns names on existing dataframe",
+    "Pipeline"
+  )
+  def standardizeColumnNames(dataFrame: DataFrame): DataFrame = {
+    val nameMap = dataFrame.columns.map(c => col(c).as(cleanColumnName(c)))
+    // TODO: handle duplicate column names after cleaning
+    dataFrame.select(nameMap: _*)
+  }
+
+  /**
+    * cleans up a column name to a common case and removes characters that are not column name friendly
+    * @param name  the column name that needs to be cleaned up
+    * @return   a cleaned up version of the column name
+    */
+  private[steps] def cleanColumnName(name: String): String = {
+    // return uppercase letters and digits only replacing everything else with an underscore
+    val rawName = name.map(c => {
+      if (c.isLetterOrDigit) c.toUpper else '_'
+    })
+      .replaceAll("_+", "_")
+      .stripPrefix("_")
+      .stripSuffix("_") // cleanup any extra _
+
+    // if it starts with a digit, add the 'c_' prefix
+    if (rawName(0).isDigit) { "C_" + rawName } else { rawName }
   }
 
   /**
@@ -197,21 +257,24 @@ object MappingSteps {
   /**
     * renames columns based on inputAliases provided in the mappings object
     * @param dataFrame  the input dataframe
-    * @param mappings   the mappings object containing the inputAliases
+    * @param transforms the transformations object containing the inputAliases
     * @return  a dataframe with updated column names
     */
-  private[steps] def applyAliasesToInputDataFrame(dataFrame: DataFrame, mappings: Mappings): DataFrame = {
+  private[steps] def applyAliasesToInputDataFrame(dataFrame: DataFrame, transforms: Transformations): DataFrame = {
     // create a map of all aliases to the output name
-    val inputAliasMap = mappings.details.flatMap(m => {
-        m.inputAliases.map(_ -> m.outputField)
+    val inputAliasMap = transforms.columnDetails.flatMap(m => {
+      m.inputAliases.map(a => {
+        if (transforms.standardizeColumnNames.getOrElse(false)) cleanColumnName(a) -> cleanColumnName(m.outputField) else a -> m.outputField
+      })
     }).toMap
 
     // create expression with aliases applied
     val finalExprs = dataFrame.columns.map(c => {
-      if(inputAliasMap.get(c).nonEmpty && inputAliasMap(c) != c) {
-        logger.info(s"mapping input column '$c' to destination column '${inputAliasMap(c)}'")
+      val colName = if(transforms.standardizeColumnNames.getOrElse(false)) cleanColumnName(c) else c
+      if(inputAliasMap.getOrElse(colName, c) != c) {
+        logger.info(s"mapping input column '$c' to destination column '${inputAliasMap.getOrElse(colName, colName)}'")
       }
-      col(c).as(inputAliasMap.getOrElse(c, c))
+      col(c).as(inputAliasMap.getOrElse(colName, colName))
     })
 
     // select expression from dataFrame and return
@@ -220,8 +283,8 @@ object MappingSteps {
 }
 
 
-case class MappingDetails(outputField: String, inputAliases: List[String] = List(), transform: Option[String] = None)
-case class Mappings(details: List[MappingDetails])
+case class ColumnDetails(outputField: String, inputAliases: List[String] = List(), expression: Option[String] = None)
+case class Transformations(columnDetails: List[ColumnDetails], filter: Option[String] = None, standardizeColumnNames: Option[Boolean] = Some(false))
 
 case class Attribute(name: String, dataType: String) {
   def toStructField: StructField = {

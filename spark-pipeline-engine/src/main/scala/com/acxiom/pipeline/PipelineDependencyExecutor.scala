@@ -63,11 +63,7 @@ object PipelineDependencyExecutor {
           val result = f.value.get.get
           // Don't do anything if the result has already been recorded
           if (!futureResultMap.resultMap.contains(result.execution.id)) {
-            val success = if (result.result.isDefined) { result.result.get.success } else { false }
-            logger.debug(s"Saving result of execution ${result.execution.id} as $success")
-            if (!success && result.error.isDefined) {
-              logger.error(s"Exception thrown from execution ${result.execution.id}", result.error.get)
-            }
+            logExecutionSuccess(result)
             // Update the results with the result of this future
             val updateResultMap = futureResultMap.resultMap + (result.execution.id -> result)
             val updatedResults = futureResultMap.copy(resultMap = updateResultMap)
@@ -95,6 +91,22 @@ object PipelineDependencyExecutor {
     // See if there is more work to do
     if (futureMap.futures.nonEmpty) {
       processFutures(futureMap.futures, futureMap.resultMap, executionGraph)
+    }
+  }
+
+  /**
+    * Helper function to log the result of an execution.
+    * @param result The FutureResult containing the result of the execution.
+    */
+  private def logExecutionSuccess(result: FutureResult): Unit = {
+    val success = if (result.result.isDefined) {
+      result.result.get.success
+    } else {
+      false
+    }
+    logger.debug(s"Saving result of execution ${result.execution.id} as $success")
+    if (!success && result.error.isDefined) {
+      logger.error(s"Exception thrown from execution ${result.execution.id}", result.error.get)
     }
   }
 

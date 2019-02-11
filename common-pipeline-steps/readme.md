@@ -8,6 +8,6 @@ Here is a list of steps provided:
 
 * [HDFSSteps](docs/hdfssteps.md)
 * [JavascriptSteps](docs/javascriptsteps.md)
+* [TransformationSteps](docs/transformationsteps.md)
 * [JDBCSteps](docs/jdbcsteps.md)
-* [MappingSteps](docs/mappingsteps.md)
 * [ScalaSteps](docs/scalascriptsteps.md)

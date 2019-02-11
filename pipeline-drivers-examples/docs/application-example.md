@@ -16,6 +16,9 @@ required components.
 
 The data file has been added in the *mock_data* directory.
 
+**Note**: Sometimes objects like Schema or Transformations are added to the globals object and other times they are added as a 
+parameter to a step. This is done to illustrate the flexibility provided.
+
 ## Application configuration
 Create a new file named *application-example.json* and place it somewhere that can be reached once the application 
 starts. The example json file exists in the *mock_data* directory of this project as a reference.
@@ -235,10 +238,10 @@ Save the pipeline json to the *pipelines* array.
 
 ## Extraction Pipelines
 Additional pipelines will be created that take the *DataFrame* generated in the *ROOT* execution
-(available as a global lookup) and perform various mapping tasks on the incoming data frame (including pulling specific fields and basic transforms).
+(available as a global lookup) and perform various transformation tasks on the incoming data frame.
 Each pipeline will generate a new *DataFrame* which will be added to the globals object of the final execution.
 
-The details for the MappingStep steps can be found in the *common-pipeline-steps* library.  The Schema and Mappings objects
+The details for the TransformationStep steps can be found in the *common-pipeline-steps* library.  The Schema and Transformations objects
 passed to the steps should be added to the *Globals* section above of the Application (details provided in each extraction
 pipeline section below).
 
@@ -264,32 +267,11 @@ This pipeline will take the *DataFrame* loaded in the first execution pipeline a
 step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROOT**. This pipeline needs to be part of 
 an execution that is dependent on the *ROOT* execution created previously.
 
-The following parameters should be added to the application globals which will be responsible for setting the column order,
-column names, and data types on output.  No aliases or transforms are required for this pipeline, so the mappings parameter
+The following pipeline should be added to the pipelines array. The second parameter of the *MAPFIELDSSTEP* step is the
+*destinationSchema*. This parameter defines the schema which will be responsible for setting the column order,
+column names, and data types on output.  No aliases or transforms are required for this pipeline, so the transforms parameter
 is left out:
-```json
-"productSchema": {
-      "className": "com.acxiom.pipeline.steps.Schema",
-      "object": {
-        "attributes": [
-          {
-            "name": "PRODUCT_NAME",
-            "dataType": "String"
-          },
-          {
-            "name": "PRODUCT_ID",
-            "dataType": "String"
-          },
-          {
-            "name": "COST",
-            "dataType": "Double"
-          }
-        ]
-      }
-    }
-```
 
-...and the following is added to the pipelines:
 ```json
 {
   "id": "PROD",
@@ -316,7 +298,23 @@ is left out:
               "type": "string",
               "name": "destinationSchema",
               "required": true,
-              "value": "!productSchema"
+              "className": "com.acxiom.pipeline.steps.Schema",
+              "value": {
+				  "attributes": [
+					{
+					  "name": "PRODUCT_NAME",
+					  "dataType": "String"
+					},
+					{
+					  "name": "PRODUCT_ID",
+					  "dataType": "String"
+					},
+					{
+					  "name": "COST",
+					  "dataType": "Double"
+					}
+				  ]
+				}
             },
             {
               "type": "boolean",
@@ -326,7 +324,7 @@ is left out:
             }
           ],
           "engineMeta": {
-            "spark": "MappingSteps.mapDataFrameToSchema"
+            "spark": "TransformationSteps.mapDataFrameToSchema"
           }
         },
         {
@@ -367,69 +365,10 @@ This pipeline will take the *DataFrame* loaded in the first execution pipeline a
 step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROOT**. This pipeline needs to be part of 
 an execution that is dependent on the *ROOT* execution created previously.
 
-The following parameters should be added to the application globals which will be responsible for setting the column order,
-column names, and data types on output.  Specifically, renaming GENDER to GENDER_CODE applying logic to only save the first
-character in upper case and adding a new field called FULL_NAME which is built from concatenating first name to laste name:
-```json
-"customerSchema": {
-      "className": "com.acxiom.pipeline.steps.Schema",
-      "object": {
-        "attributes": [
-          {
-            "name": "CUSTOMER_ID",
-            "dataType": "Integer"
-          },
-          {
-            "name": "FIRST_NAME",
-            "dataType": "String"
-          },
-          {
-            "name": "LAST_NAME",
-            "dataType": "String"
-          },
-          {
-            "name": "POSTAL_CODE",
-            "dataType": "String"
-          },
-          {
-            "name": "GENDER_CODE",
-            "dataType": "String"
-          },
-          {
-            "name": "EIN",
-            "dataType": "String"
-          },
-          {
-            "name": "EMAIL",
-            "dataType": "String"
-          },
-          {
-            "name": "FULL_NAME",
-            "dataType": "STRING"
-          }
-        ]
-      }
-    },
-    "customerMappings": {
-      "className": "com.acxiom.pipeline.steps.Mappings",
-      "object": {
-        "details": [
-          {
-            "outputField": "GENDER_CODE",
-            "inputAliases": ["GENDER"],
-            "transform": "upper(substring(GENDER_CODE,0,1))"
-          },
-          {
-            "outputField": "FULL_NAME",
-            "inputAliases": [],
-            "transform": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
-          }
-        ]
-      }
-    }
-```
+The following parameter should be added to the pipelines array which will be responsible for setting the column order,
+column names, and data types on output. Specifically, renaming GENDER to GENDER_CODE applying logic to only save the first
+character in upper case and adding a new field called FULL_NAME which is built from concatenating first name to last name:
 
-...and the following is added to the pipelines:
 ```json
 {
   "id": "CUST",
@@ -456,14 +395,64 @@ character in upper case and adding a new field called FULL_NAME which is built f
               "type": "string",
               "name": "destinationSchema",
               "required": true,
-              "value": "!customerSchema"
+              "className": "com.acxiom.pipeline.steps.Schema",
+			  "value": {
+				"attributes": [
+				  {
+					"name": "CUSTOMER_ID",
+					"dataType": "Integer"
+				  },
+				  {
+					"name": "FIRST_NAME",
+					"dataType": "String"
+				  },
+				  {
+					"name": "LAST_NAME",
+					"dataType": "String"
+				  },
+				  {
+					"name": "POSTAL_CODE",
+					"dataType": "String"
+				  },
+				  {
+					"name": "GENDER_CODE",
+					"dataType": "String"
+				  },
+				  {
+					"name": "EIN",
+					"dataType": "String"
+				  },
+				  {
+					"name": "EMAIL",
+					"dataType": "String"
+				  },
+				  {
+					"name": "FULL_NAME",
+					"dataType": "STRING"
+				  }
+				]
+			  }
             },
             {
-              "type": "string",
-              "name": "mappings",
-              "required": true,
-              "value": "!customerMappings"
-            },
+			  "type": "string",
+			  "name": "transforms",
+			  "required": true,
+			  "className": "com.acxiom.pipeline.steps.Transformations",
+			  "value": {
+				"columnDetails": [
+				  {
+					"outputField": "GENDER_CODE",
+					"inputAliases": ["GENDER"],
+					"expression": "upper(substring(GENDER_CODE,0,1))"
+				  },
+				  {
+					"outputField": "FULL_NAME",
+					"inputAliases": [],
+					"expression": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
+				  }
+				]
+			  }
+			},
             {
               "type": "boolean",
               "name": "addNewColumns",
@@ -472,7 +461,7 @@ character in upper case and adding a new field called FULL_NAME which is built f
             }
           ],
           "engineMeta": {
-            "spark": "MappingSteps.mapDataFrameToSchema"
+            "spark": "TransformationSteps.mapDataFrameToSchema"
           }
         },
         {
@@ -535,19 +524,19 @@ ACCOUNT_TYPE to uppercase:
         ]
       }
     },
-    "creditCardMappings": {
-      "className": "com.acxiom.pipeline.steps.Mappings",
+    "creditCardTransforms": {
+      "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
-        "details": [
+        "columnDetails": [
           {
             "outputField": "ACCOUNT_NUMBER",
             "inputAliases": ["CC_NUM"],
-            "transform": null
+            "expression": null
           },
           {
             "outputField": "ACCOUNT_TYPE",
             "inputAliases": ["CC_TYPE"],
-            "transform": "upper(ACCOUNT_TYPE)"
+            "expression": "upper(ACCOUNT_TYPE)"
           }
         ]
       }
@@ -585,9 +574,9 @@ ACCOUNT_TYPE to uppercase:
             },
             {
               "type": "string",
-              "name": "mappings",
+              "name": "transforms",
               "required": true,
-              "value": "!creditCardMappings"
+              "value": "!creditCardTransforms"
             },
             {
               "type": "boolean",
@@ -597,7 +586,7 @@ ACCOUNT_TYPE to uppercase:
             }
           ],
           "engineMeta": {
-            "spark": "MappingSteps.mapDataFrameToSchema"
+            "spark": "TransformationSteps.mapDataFrameToSchema"
           }
         },
         {
@@ -663,14 +652,14 @@ column names, and data types on output.  Specifically, the ORDER_NUM field will 
         ]
       }
     },
-    "orderMappings": {
-      "className": "com.acxiom.pipeline.steps.Mappings",
+    "orderTransforms": {
+      "className": "com.acxiom.pipeline.steps.Transformations",
       "object": {
-        "details": [
+        "columnDetails": [
           {
             "outputField": "ORDER_ID",
             "inputAliases": ["ORDER_NUM"],
-            "transform": null
+            "expression": null
           }
         ]
       }
@@ -708,9 +697,9 @@ column names, and data types on output.  Specifically, the ORDER_NUM field will 
             },
             {
               "type": "string",
-              "name": "mappings",
+              "name": "transforms",
               "required": true,
-              "value": "!orderMappings"
+              "value": "!orderTransforms"
             },
             {
               "type": "boolean",
@@ -720,7 +709,7 @@ column names, and data types on output.  Specifically, the ORDER_NUM field will 
             }
           ],
           "engineMeta": {
-            "spark": "MappingSteps.mapDataFrameToSchema"
+            "spark": "TransformationSteps.mapDataFrameToSchema"
           }
         },
         {

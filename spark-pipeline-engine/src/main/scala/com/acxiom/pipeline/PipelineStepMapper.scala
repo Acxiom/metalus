@@ -1,9 +1,11 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.utils.ReflectionUtils
+import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
 import org.apache.log4j.Logger
 import org.json4s.{DefaultFormats, Formats}
 import org.json4s.native.JsonMethods.parse
+import org.json4s.native.Serialization
+
 import scala.annotation.tailrec
 
 object PipelineStepMapper {
@@ -113,6 +115,10 @@ trait PipelineStepMapper {
         case i: Int => Some(i)
         case i: BigInt => Some(i.toInt)
         case l: List[_] => Some(l)
+        case m: Map[_, _] if parameter.className.isDefined && parameter.className.get.nonEmpty =>
+          implicit val formats: Formats = DefaultFormats
+          Some(DriverUtils.parseJson(Serialization.write(m), parameter.className.get))
+        case m: Map[_, _] => Some(m)
         case t => // TODO Handle other types - This function may need to be reworked to support this so that it can be overridden
           throw new RuntimeException(s"Unsupported value type ${t.getClass} for ${parameter.name.getOrElse("unknown")}!")
       }

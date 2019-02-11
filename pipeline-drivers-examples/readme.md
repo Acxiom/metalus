@@ -5,7 +5,7 @@ of coding exercise as a way of teaching the basic requirements, however using th
 or create new steps.
 
 * [Application Example](docs/application-example.md) - This example uses the *Application* framework to build the 
-example. It is the same example as the [Execution Plan Example](docs/pipeline-execution-plan-example.md), but does not
+example. It is similar to the [Execution Plan Example](docs/pipeline-execution-plan-example.md), but does not
 require building the *DriverSetup*.
 * [Basic ETL Example](docs/simple-batch-example.md) - This example demonstrates reading in data from a file, processing 
 the data and then writing the processed data back to disk. 
