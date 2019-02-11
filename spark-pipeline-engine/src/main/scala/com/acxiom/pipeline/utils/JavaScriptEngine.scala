@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.utils
 
 import com.acxiom.pipeline.PipelineContext
-import javax.script.{Bindings, Compilable, ScriptEngineManager, SimpleBindings}
+import javax.script.{Compilable, ScriptEngineManager, SimpleBindings}
 
 class JavaScriptEngine extends ScriptEngine {
 
@@ -37,7 +37,7 @@ class JavaScriptEngine extends ScriptEngine {
     * @param pipelineContext The pipelineContext containing the globals.
     * @return The result of the execution.
     */
-  def executeScript(script: String, bindings: Bindings, pipelineContext: PipelineContext): Any = {
+  def executeScript(script: String, bindings: javax.script.Bindings, pipelineContext: PipelineContext): Any = {
     // Add it to the script context
     setDefaultBindings(bindings, pipelineContext)
     engine.compile(script).eval(bindings)
@@ -64,14 +64,14 @@ class JavaScriptEngine extends ScriptEngine {
     * @param pipelineContext The pipelineContext containing the globals.
     * @return The result of the execution.
     */
-  def executeScriptWithObject(script: String, userValue: Any, bindings: Bindings, pipelineContext: PipelineContext): Any = {
+  def executeScriptWithObject(script: String, userValue: Any, bindings: javax.script.Bindings, pipelineContext: PipelineContext): Any = {
     // Add it to the script context
     setDefaultBindings(bindings, pipelineContext)
     bindings.put("userValue", userValue)
     engine.compile(script).eval(bindings)
   }
 
-  private def setDefaultBindings(bindings: Bindings, pipelineContext: PipelineContext): Unit = {
+  private def setDefaultBindings(bindings: javax.script.Bindings, pipelineContext: PipelineContext): Unit = {
     bindings.put("pipelineContext", pipelineContext)
     bindings.put("ReflectionUtils", ReflectionUtils)
   }
