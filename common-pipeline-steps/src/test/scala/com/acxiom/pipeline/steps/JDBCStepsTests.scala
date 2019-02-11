@@ -92,7 +92,7 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       )
       val df = JDBCSteps.readWithStepOptions(JDBCStepsOptions(
         url = "jdbc:derby:memory:test",
-        table = "(SELECT NAME, COLOR FROM CHICKEN)",
+        table = "(SELECT NAME, COLOR FROM CHICKEN) t1",
         connectionProperties = Some(properties)),
         pipelineContext = pipelineContext
       )
