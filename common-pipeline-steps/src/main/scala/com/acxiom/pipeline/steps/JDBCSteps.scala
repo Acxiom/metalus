@@ -33,12 +33,20 @@ object JDBCSteps {
     val map = jDBCStepsOptions.connectionProperties.getOrElse(Map[String, String]())
     val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
 
-    spark.read.jdbc(
-      url = jDBCStepsOptions.url,
-      table = jDBCStepsOptions.table,
-      predicates = jDBCStepsOptions.predicates.getOrElse(Array[String]()),
-      connectionProperties = properties
-    )
+    if (jDBCStepsOptions.predicates.isDefined) {
+      spark.read.jdbc(
+        url = jDBCStepsOptions.url,
+        table = jDBCStepsOptions.table,
+        predicates = jDBCStepsOptions.predicates.get,
+        connectionProperties = properties
+      )
+    } else {
+      spark.read.jdbc(
+        url = jDBCStepsOptions.url,
+        table = jDBCStepsOptions.table,
+        properties = properties
+      )
+    }
   }
 
   @StepFunction("dcc57409-eb91-48c0-975b-ca109ba30195",
@@ -47,14 +55,18 @@ object JDBCSteps {
     "Pipeline")
   def readWithProperties(url: String,
                          table: String,
-                         predicates: Array[String] = Array[String](),
+                         predicates: Option[Array[String]] = None,
                          connectionProperties: Option[Map[String, String]] = None,
                          pipelineContext: PipelineContext): DataFrame = {
     val spark = pipelineContext.sparkSession.get
     val map = connectionProperties.getOrElse(Map[String, String]())
     val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
 
-    spark.read.jdbc(url, table, predicates, properties)
+    if (predicates.isDefined) {
+      spark.read.jdbc(url, table, predicates.get, properties)
+    } else {
+      spark.read.jdbc(url, table, properties)
+    }
   }
 
   @StepFunction("c9fddf52-34b1-4216-a049-10c33ccd24ab",
@@ -93,12 +105,12 @@ object JDBCSteps {
   def writeWithStepOptions(dataFrame: DataFrame,
                            jDBCStepsOptions: JDBCStepsOptions,
                            saveMode: String = "Overwrite"): Unit = {
+    val map = jDBCStepsOptions.connectionProperties.getOrElse(Map[String, String]())
+    val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
+
     dataFrame.write
       .mode(saveMode)
-      .format("jdbc")
-      .option("url", jDBCStepsOptions.url)
-      .option("dbtable", jDBCStepsOptions.table)
-      .options(jDBCStepsOptions.connectionProperties.getOrElse(Map[String, String]()))
+      .jdbc(jDBCStepsOptions.url, jDBCStepsOptions.table, properties)
   }
 
 }

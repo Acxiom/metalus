@@ -8,7 +8,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.FileSystem
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
 
@@ -92,6 +92,31 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       assert(writtenData == chickens)
     }
+    it("should respect options"){
+      val spark = this.sparkSession
+      import spark.implicits._
+
+      val dataFrame = chickens.toDF("id", "chicken")
+
+      HDFSSteps.writeDataFrame(
+        dataFrame=dataFrame, format="csv",
+        properties=Some(Map[String, String]("delimiter" -> "þ")),
+        path=miniCluster.getURI + "/data/chickens.csv"
+      )
+      val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
+
+      assert(list.size == 3)
+
+      var writtenData: Seq[(String, String)] = Seq()
+      list.foreach(l => {
+        val tuple = l.split('þ')
+        writtenData = writtenData ++ Seq((tuple(0), tuple(1)))
+      })
+
+      writtenData.sortBy(t => t._1)
+
+      assert(writtenData == chickens)
+    }
   }
 
   describe("HDFS Steps - Basic Reading"){
@@ -101,6 +126,20 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       ("3", "sultan")
     )
     it("should successfully read from hdfs") {
+      val csv = "1,silkie\n2,polish\n3,sultan"
+      val path = miniCluster.getURI + "/data/chickens2.csv"
+
+      writeHDFSContext(fs, path, csv)
+
+      val dataFrame = HDFSSteps.readFromHDFS(path = path,
+        format = "csv",
+        pipelineContext = pipelineContext)
+
+      assert(dataFrame.count() == 3)
+      val result = dataFrame.take(3).map(r => (r.getString(0), r.getString(1))).toSeq
+      assert(result == chickens)
+    }
+    it("should respect options") {
       val csv = "idþchicken\n1þsilkie\n2þpolish\n3þsultan"
       val path = miniCluster.getURI + "/data/chickens2.csv"
 

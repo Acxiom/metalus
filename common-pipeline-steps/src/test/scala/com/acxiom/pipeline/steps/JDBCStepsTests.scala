@@ -78,14 +78,14 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     jDBCOptions.put("url", "jdbc:derby:memory:test")
     jDBCOptions.put("driver", "org.apache.derby.jdbc.EmbeddedDriver")
     jDBCOptions.put("user", "test_fixture")
-    jDBCOptions.put("dbtable", "CHICKEN")
+    jDBCOptions.put("dbtable", "(SELECT NAME, COLOR FROM CHICKEN) t1")
 
     it("should read a dataframe containing all records") {
       val df = JDBCSteps.readWithJDBCOptions(jdbcOptions = new JDBCOptions(jDBCOptions.toMap), pipelineContext = pipelineContext)
       val count = df.count()
       assert(count == 3)
     }
-    it("should respect properties") {
+    it("should work using JDBStepsOptions") {
       val properties = Map[String, String](
         "user" -> "test_fixture",
         "driver" -> "org.apache.derby.jdbc.EmbeddedDriver"
@@ -97,8 +97,27 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
         pipelineContext = pipelineContext
       )
 
-      val count = df.columns.length
-      assert(count == 2)
+      val columns = df.columns.length
+      val count = df.count
+      assert(columns == 2)
+      assert(count == 3)
+    }
+    it("should work using properties") {
+      val properties = Map[String, String](
+        "user" -> "test_fixture",
+        "driver" -> "org.apache.derby.jdbc.EmbeddedDriver"
+      )
+      val df = JDBCSteps.readWithProperties(
+        url = "jdbc:derby:memory:test",
+        table = "(SELECT NAME, COLOR FROM CHICKEN) t1",
+        connectionProperties = Some(properties),
+        pipelineContext = pipelineContext
+      )
+
+      val columns = df.columns.length
+      val count = df.count
+      assert(columns == 2)
+      assert(count == 3)
     }
 
   }
@@ -118,23 +137,64 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       val chickens = Seq(
         (4, "ONAGADORI", "WHITE"),
-        (5, "LEGHORN", "WHITE"),
-        (6, "APPENZELLER SPITZHAUBEN", "SILVER")
+        (5, "APPENZELLER SPITZHAUBEN", "SILVER")
       )
 
       JDBCSteps.writeWithJDBCOptions(
         dataFrame = chickens.toDF("ID", "NAME", "COLOR"),
         jdbcOptions = new JDBCOptions(jDBCOptions.toMap),
-        saveMode = "Append"
+        saveMode = "Overwrite"
+      )
+      verifyCount(count = 2)
+    }
+
+    it("should respect JDBCStepsOptions") {
+      val spark = this.sparkSession
+      import spark.implicits._
+
+      val chickens = Seq(
+        (5, "APPENZELLER SPITZHAUBEN", "SILVER")
       )
 
-      val con = DriverManager.getConnection("jdbc:derby:memory:test;user=test_fixture")
-      val st = con.createStatement()
-      val result = st.executeQuery("SELECT COUNT(*) AS CNT FROM CHICKEN")
-      result.next()
-      assert(result.getInt("CNT") == 6)
-      st.close()
-      con.close()
+      JDBCSteps.writeWithStepOptions(
+        dataFrame = chickens.toDF("ID", "NAME", "COLOR"),
+        jDBCStepsOptions = JDBCStepsOptions(
+          url = "jdbc:derby:memory:test",
+          table = "CHICKEN",
+          connectionProperties = Some(Map[String, String]("driver" -> "org.apache.derby.jdbc.EmbeddedDriver", "user" -> "test_fixture"))),
+        saveMode = "Overwrite"
+      )
+      verifyCount(count = 1)
     }
+    it("should respect properties") {
+      val spark = this.sparkSession
+      import spark.implicits._
+
+      val chickens = Seq(
+        (4, "ONAGADORI", "WHITE"),
+        (5, "APPENZELLER SPITZHAUBEN", "SILVER"),
+        (6, "ROSECOMB", "BLACK"),
+        (7, "SICILIAN BUTTERCUP", "BUFF")
+      )
+
+      JDBCSteps.writeWithProperties(
+        dataFrame = chickens.toDF("ID", "NAME", "COLOR"),
+        url = "jdbc:derby:memory:test",
+        table = "CHICKEN",
+        connectionProperties = Some(Map("driver" -> "org.apache.derby.jdbc.EmbeddedDriver", "user" -> "test_fixture")),
+        saveMode = "Overwrite"
+      )
+      verifyCount(count = 4)
+    }
+  }
+
+  private def verifyCount(count: Int): Unit = {
+    val con = DriverManager.getConnection("jdbc:derby:memory:test;user=test_fixture")
+    val st = con.createStatement()
+    val result = st.executeQuery("SELECT COUNT(*) AS CNT FROM CHICKEN")
+    result.next()
+    assert(result.getInt("CNT") == count)
+    st.close()
+    con.close()
   }
 }
