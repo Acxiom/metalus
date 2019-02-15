@@ -52,12 +52,7 @@ trait DriverSetup {
     * @return An execution plan
     */
   def refreshExecutionPlan(executionPlan: List[PipelineExecution]): List[PipelineExecution] = {
-    executionPlan.map(execution =>
-      PipelineExecution(execution.id,
-        execution.pipelines,
-        execution.initialPipelineId,
-        refreshContext(execution.pipelineContext),
-        execution.parents))
+    executionPlan
   }
 
   def setLogLevel(): Unit = {
