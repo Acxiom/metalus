@@ -3,12 +3,12 @@ package com.acxiom.pipeline.utils
 import com.acxiom.pipeline.{PipelineContext, PipelineParameters, PipelineSecurityManager, PipelineStepMapper}
 import org.scalatest.{BeforeAndAfterAll, FunSpec}
 
-class ScriptEngineTests extends FunSpec with BeforeAndAfterAll {
+class JavaScriptEngineTests extends FunSpec with BeforeAndAfterAll {
 
   var scriptEngine: ScriptEngine = _
 
   override def beforeAll(): Unit = {
-    scriptEngine = new ScriptEngine
+    scriptEngine = new JavaScriptEngine
   }
 
   describe("ScriptEngine - Simple Scripts") {
