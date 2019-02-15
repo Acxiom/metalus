@@ -6,5 +6,8 @@ provide api documentation for all functions and provide documentation with addit
 ## Steps
 Here is a list of steps provided:
 
+* [HDFSSteps](docs/hdfssteps.md)
 * [JavascriptSteps](docs/javascriptsteps.md)
 * [TransformationSteps](docs/transformationsteps.md)
+* [JDBCSteps](docs/jdbcsteps.md)
+* [ScalaSteps](docs/scalascriptsteps.md)
