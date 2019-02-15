@@ -54,7 +54,7 @@ object StepMetaDataExtractor {
     })
 
     if (stepMappings.nonEmpty) {
-      val json = Serialization.write(PipelineStepsDefintion(
+      val json = Serialization.write(PipelineStepsDefinition(
         stepMappings.foldLeft(List[String]())((pkgs, p) => if(p._2.nonEmpty) pkgs :+ p._1 else pkgs),
         stepMappings.values.foldLeft(List[StepDefinition]())((steps, stepList) => steps ::: stepList)
       ))
