@@ -55,12 +55,14 @@ object ApplicationUtils {
         generateStepMapper(execution.stepMapper, globalStepMapper).get,
         generatePipelineListener(execution.pipelineListener, globalListener),
         Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
-      PipelineExecution(execution.id.getOrElse(""), execution.pipelines.get, execution.initialPipelineId, ctx, execution.parents)
+      // Extracting pipelines
+      val pipelines = generatePipelines(execution, application)
+      PipelineExecution(execution.id.getOrElse(""), pipelines, execution.initialPipelineId, ctx, execution.parents)
     })
   }
 
   /**
-    * Utility method that resets the state on the PipeineExecution.
+    * Utility method that resets the state on the PipelineExecution.
     *
     * @param application       The Application configuration
     * @param rootGlobals       The initial set of globals
@@ -76,8 +78,17 @@ object ApplicationUtils {
     val globalPipelineParameters = generatePipelineParameters(application.pipelineParameters, Some(PipelineParameters()))
     val ctx = pipelineExecution.pipelineContext
       .copy(globals = generateGlobals(execution.globals, rootGlobals.get, defaultGlobals))
-        .copy(parameters = generatePipelineParameters(execution.pipelineParameters, globalPipelineParameters).get)
+      .copy(parameters = generatePipelineParameters(execution.pipelineParameters, globalPipelineParameters).get)
     pipelineExecution.asInstanceOf[DefaultPipelineExecution].copy(pipelineContext = ctx)
+  }
+
+  private def generatePipelines(execution: Execution, application: Application): List[Pipeline] = {
+    if (execution.pipelines.isEmpty && execution.pipelineIds.isEmpty) {
+      throw new IllegalArgumentException("Either pipelines or pipelineIds must be provided for an execution")
+    }
+    val applicationPipelines = application.pipelines.getOrElse(List[DefaultPipeline]())
+      .filter(p => execution.pipelineIds.get.contains(p.id.get))
+    execution.pipelines.getOrElse(List[DefaultPipeline]()) ++ applicationPipelines
   }
 
   private def generatePipelineListener(pipelineListenerInfo: Option[ClassInfo],
