@@ -123,7 +123,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
   }
 
   private def verifyApplication(executionPlan: List[PipelineExecution]) = {
-    assert(executionPlan.length == 2)
+    assert(executionPlan.length == 3)
     // First execution
     val execution1 = executionPlan.head
     verifyFirstExecution(execution1)
@@ -131,6 +131,59 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     // Second execution
     val execution2 = executionPlan(1)
     verifySecondExecution(execution2)
+
+    // Third Execution
+    val execution3 = executionPlan(2)
+    verifyThirdExecution(execution3)
+  }
+
+  private def verifyThirdExecution(execution3: PipelineExecution) = {
+    val ctx3 = execution3.pipelineContext
+    // Ensure the id is set properly
+    assert(execution3.id == "2")
+    // Use the global listener
+    assert(ctx3.pipelineListener.get.isInstanceOf[TestPipelineListener])
+    assert(ctx3.pipelineListener.get.asInstanceOf[TestPipelineListener].name == "Test Pipeline Listener")
+    // Use a custom security manager
+    assert(ctx3.security.asInstanceOf[TestPipelineSecurityManager].name == "Sub Security Manager")
+    // Use the global pipeline parameters
+    assert(ctx3.parameters.parameters.length == 1)
+    assert(ctx3.parameters.parameters.head.parameters.getOrElse("fred", "") == "johnson")
+    // Use the global step mapper
+    assert(ctx3.parameterMapper.asInstanceOf[TestPipelineStepMapper].name == "Test Step Mapper")
+    // Validate the correct pipelines are set
+    assert(execution3.pipelines.length == 2)
+    // Validate the correct "Pipeline2" was selected by checking for the "CHICKEN" value in the "value" param
+    assert(execution3.pipelines.filter(p => p.id.get == "Pipeline2")
+      .head.steps.get.head.params.get.filter(pa => pa.name.get == "value")
+      .head.value.get == "CHICKEN")
+    // Ensure no parents
+    assert(execution3.parents.isEmpty)
+    // Verify the globals object was properly constructed
+    val globals = ctx3.globals.get
+    assert(globals.size == 5)
+    assert(globals.contains("rootLogLevel"))
+    assert(globals.contains("rootLogLevel"))
+    assert(globals.contains("number"))
+    assert(globals("number").asInstanceOf[BigInt] == 2)
+    assert(globals.contains("float"))
+    assert(globals("float").asInstanceOf[Double] == 3.5)
+    assert(globals.contains("string"))
+    assert(globals("string").asInstanceOf[String] == "sub string")
+    assert(globals.contains("mappedObject"))
+    val subGlobalObject = globals("mappedObject").asInstanceOf[TestGlobalObject]
+    assert(subGlobalObject.name.getOrElse("") == "Execution Mapped Object")
+    assert(subGlobalObject.subObjects.isDefined)
+    assert(subGlobalObject.subObjects.get.length == 3)
+    assert(subGlobalObject.subObjects.get.head.name.getOrElse("") == "Sub Object 1a")
+    assert(subGlobalObject.subObjects.get(1).name.getOrElse("") == "Sub Object 2a")
+    assert(subGlobalObject.subObjects.get(2).name.getOrElse("") == "Sub Object 3")
+    // Verify the PipelineParameters object was set properly
+    assert(ctx3.parameters.parameters.length == 1)
+    assert(ctx3.parameters.parameters.length == 1)
+    assert(ctx3.parameters.hasPipelineParameters("Pipeline1"))
+    assert(ctx3.parameters.getParametersByPipelineId("Pipeline1").get.parameters.size == 1)
+    assert(ctx3.parameters.getParametersByPipelineId("Pipeline1").get.parameters("fred").asInstanceOf[String] == "johnson")
   }
 
   private def verifySecondExecution(execution2: PipelineExecution) = {

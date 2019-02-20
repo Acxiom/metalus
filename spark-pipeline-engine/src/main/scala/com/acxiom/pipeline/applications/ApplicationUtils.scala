@@ -86,9 +86,11 @@ object ApplicationUtils {
     if (execution.pipelines.isEmpty && execution.pipelineIds.isEmpty) {
       throw new IllegalArgumentException("Either pipelines or pipelineIds must be provided for an execution")
     }
+    val executionPipelines = execution.pipelines.getOrElse(List[DefaultPipeline]())
+    val pipelineIds = execution.pipelineIds.getOrElse(List[String]())
     val applicationPipelines = application.pipelines.getOrElse(List[DefaultPipeline]())
-      .filter(p => execution.pipelineIds.get.contains(p.id.get))
-    execution.pipelines.getOrElse(List[DefaultPipeline]()) ++ applicationPipelines
+      .filter(p => !executionPipelines.exists(e => e.id.getOrElse("") == p.id.getOrElse("")) && pipelineIds.contains(p.id.get))
+    executionPipelines ++ applicationPipelines
   }
 
   private def generatePipelineListener(pipelineListenerInfo: Option[ClassInfo],
