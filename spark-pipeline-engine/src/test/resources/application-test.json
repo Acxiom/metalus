@@ -245,7 +245,7 @@
                 "type": "text",
                 "name": "value",
                 "required": true,
-                "value": "!mappedObject"
+                "value": "!mappedObject2"
               }
             ],
             "engineMeta": {
@@ -255,6 +255,37 @@
         ]
       }],
       "pipelineIds": ["Pipeline1","Pipeline2"],
+      "securityManager": {
+        "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
+        "parameters": {
+          "name": "Sub Security Manager"
+        }
+      },
+      "globals": {
+        "number": 2,
+        "float": 3.5,
+        "string": "sub string",
+        "mappedObject": {
+          "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+          "object": {
+            "name": "Execution Mapped Object",
+            "subObjects": [
+              {
+                "name": "Sub Object 1a"
+              },
+              {
+                "name": "Sub Object 2a"
+              },
+              {
+                "name": "Sub Object 3"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "3",
       "securityManager": {
         "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
         "parameters": {
