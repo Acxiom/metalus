@@ -24,8 +24,8 @@ object JDBCSteps {
   }
 
   @StepFunction("72dbbfc8-bd1d-4ce4-ab35-28fa8385ea54",
-    "Load table as DataFrame",
-    "This step will load a table from the provided jdbc information",
+    "Load JDBC table as DataFrame",
+    "This step will load a table from the provided jdbc step options",
     "Pipeline")
   def readWithStepOptions(jDBCStepsOptions: JDBCStepsOptions,
                           pipelineContext: PipelineContext): DataFrame = {
@@ -50,7 +50,7 @@ object JDBCSteps {
   }
 
   @StepFunction("dcc57409-eb91-48c0-975b-ca109ba30195",
-    "Load table as DataFrame",
+    "Load JDBC table as DataFrame with Properties",
     "This step will load a table from the provided jdbc information",
     "Pipeline")
   def readWithProperties(url: String,
@@ -70,7 +70,7 @@ object JDBCSteps {
   }
 
   @StepFunction("c9fddf52-34b1-4216-a049-10c33ccd24ab",
-    "Write DataFrame to JDBC",
+    "Write DataFrame to JDBC table",
     "This step will write a DataFrame as a table using JDBC",
     "Pipeline")
   def writeWithJDBCOptions(dataFrame: DataFrame,
@@ -83,8 +83,8 @@ object JDBCSteps {
   }
 
   @StepFunction("77ffcd02-fbd0-4f79-9b35-ac9dc5fb7190",
-    "Write DataFrame to JDBC",
-    "This step will write a DataFrame as a table using JDBC",
+    "Write DataFrame to JDBC table with Properties",
+    "This step will write a DataFrame as a table using JDBC and provided properties",
     "Pipeline")
   def writeWithProperties(dataFrame: DataFrame,
                           url: String,
@@ -99,8 +99,8 @@ object JDBCSteps {
   }
 
   @StepFunction("3d6b77a1-52c2-49ba-99a0-7ec773dac696",
-    "Write DataFrame to JDBC",
-    "This step will write a DataFrame as a table using JDBC",
+    "Write DataFrame to JDBC table",
+    "This step will write a DataFrame as a table using JDBC using JDBCStepOptions",
     "Pipeline")
   def writeWithStepOptions(dataFrame: DataFrame,
                            jDBCStepsOptions: JDBCStepsOptions,

@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter}
 import com.acxiom.pipeline.utils.ScalaScriptEngine
 import com.acxiom.pipeline.{PipelineContext, PipelineStepResponse}
 import org.apache.log4j.Logger
@@ -10,9 +10,10 @@ object ScalaSteps {
   private val logger = Logger.getLogger(getClass)
   @StepFunction("a7e17c9d-6956-4be0-a602-5b5db4d1c08b",
     "Scala script Step",
-    "Executes a Scala script and returns the result",
+    "Executes a script and returns the result",
     "Pipeline")
-  def processScript(script: String, pipelineContext: PipelineContext): PipelineStepResponse = {
+  def processScript(@StepParameter(typeOverride = Some("script")) script: String,
+                    pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
     val result = engine.executeScript(script, pipelineContext)
     handleResult(result)
@@ -20,9 +21,11 @@ object ScalaSteps {
 
   @StepFunction("8bf8cef6-cf32-4d85-99f4-e4687a142f84",
     "Scala script Step with additional object provided",
-    "Executes a Scala script and returns the result",
+    "Executes a script with the provided object and returns the result",
     "Pipeline")
-  def processScriptWithValue(script: String, value: Any, `type`: String = "Any", pipelineContext: PipelineContext): PipelineStepResponse = {
+  def processScriptWithValue(@StepParameter(typeOverride = Some("script")) script: String,
+                             value: Any, `type`: String = "Any",
+                             pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
     val bindings = engine.createBindings("logger", logger, "org.apache.log4j.Logger")
       .setBinding("userValue", value, `type`)

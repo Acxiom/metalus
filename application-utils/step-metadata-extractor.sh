@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+usage()
+{
+	echo "step-metadata-extractor.sh [OPTIONS]"
+	echo "--step-packages -> A comma separated list of packages to scan"
+	echo "--output-file   -> A file name to write the JSON output. This parameter is optional."
+	echo "--jar-files     -> A comma separated list of jar files to scan"
+}
+
 # Parse the parameters
 while [[ "$1" != "" ]]; do
     case $1 in
@@ -17,14 +25,6 @@ while [[ "$1" != "" ]]; do
     esac
     shift
 done
-
-usage()
-{
-	echo "step-metadata-extractor.sh [OPTIONS]"
-	echo "--step-packages -> A comma separated list of packages to scan"
-	echo "--output-file   -> A file name to write the JSON output. This parameter is optional."
-	echo "--jar-files     -> A comma separated list of jar files to scan"
-}
 
 script=${BASH_SOURCE[0]}
 bindir=$(cd `dirname ${script}` && pwd)

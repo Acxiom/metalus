@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter}
 import com.acxiom.pipeline.utils.JavaScriptEngine
 import com.acxiom.pipeline.{PipelineContext, PipelineStepResponse}
 import javax.script.SimpleBindings
@@ -11,9 +11,10 @@ object JavascriptSteps {
   private val logger = Logger.getLogger(getClass)
   @StepFunction("5e0358a0-d567-5508-af61-c35a69286e4e",
     "Javascript Step",
-    "Executes a Javascript and returns the result",
+    "Executes a script and returns the result",
     "Pipeline")
-  def processScript(script: String, pipelineContext: PipelineContext): PipelineStepResponse = {
+  def processScript(@StepParameter(Some("script")) script: String,
+                    pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new JavaScriptEngine
     val bindings = new SimpleBindings()
     bindings.put("logger", logger)
@@ -23,9 +24,10 @@ object JavascriptSteps {
 
   @StepFunction("570c9a80-8bd1-5f0c-9ae0-605921fe51e2",
     "Javascript Step with additional object provided",
-    "Executes a Javascript and returns the result",
+    "Executes a script and returns the result",
     "Pipeline")
-  def processScriptWithValue(script: String, value: Any, pipelineContext: PipelineContext): PipelineStepResponse = {
+  def processScriptWithValue(@StepParameter(typeOverride = Some("script")) script: String,
+                             value: Any, pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new JavaScriptEngine
     val bindings = new SimpleBindings()
     bindings.put("logger", logger)

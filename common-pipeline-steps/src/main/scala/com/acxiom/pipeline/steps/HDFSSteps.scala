@@ -1,18 +1,18 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter}
 import org.apache.spark.sql.DataFrame
 
 @StepObject
 object HDFSSteps {
 
   @StepFunction("87db259d-606e-46eb-b723-82923349640f",
-    "Write DataFrame to HDFS",
-    "This step will write a dataFrame in a given format to HDFS",
+    "Load DataFrame from HDFS",
+    "This step will create a dataFrame in a given format from HDFS",
     "Pipeline")
   def readFromHDFS(path: String,
-                   format: String = "parquet",
+                   @StepParameter(Some("text"), Some(false), Some("parquet")) format: String = "parquet",
                    properties: Option[Map[String, String]] = None,
                    pipelineContext: PipelineContext): DataFrame = {
     val spark = pipelineContext.sparkSession.get
@@ -31,7 +31,7 @@ object HDFSSteps {
     "Pipeline")
   def writeDataFrame(dataFrame: DataFrame,
                      path: String,
-                     format: String = "parquet",
+                     @StepParameter(Some("text"), Some(false), Some("parquet")) format: String = "parquet",
                      properties: Option[Map[String, String]] = None,
                      saveMode: String = "Overwrite"): Unit = {
     if(properties.isDefined) {
