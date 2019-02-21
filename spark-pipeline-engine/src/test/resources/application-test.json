@@ -254,7 +254,7 @@
           }
         ]
       }],
-      "pipelineIds": ["Pipeline2"],
+      "pipelineIds": ["Pipeline1","Pipeline2"],
       "securityManager": {
         "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
         "parameters": {
