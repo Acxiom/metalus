@@ -107,10 +107,27 @@ object StepMetaDataExtractor {
       val parameters = if (params.nonEmpty) {
         params.foldLeft(List[StepFunctionParameter]())((stepParams, paramSymbol) => {
           if (paramSymbol.name.toString != "pipelineContext") {
-            stepParams :+ StepFunctionParameter(
-              getParameterType(paramSymbol)
-              , paramSymbol.name.toString
-            )
+            // See if the parameter has been annotated
+            val annotations = paramSymbol.annotations
+            val a1 = annotations.find(_.tree.tpe =:= ru.typeOf[StepParameter])
+            if (a1.isDefined)  {
+              val typeValue = a1.get.tree.children.tail.head.toString()
+              val requiredValue = a1.get.tree.children.tail(1).toString()
+              val defaultValue = a1.get.tree.children.tail(2).toString()
+              stepParams :+ StepFunctionParameter(
+                if (isValueSet(typeValue)) {
+                    getAnnotationValue(typeValue, stringValue = true).asInstanceOf[String]
+                  } else { getParameterType(paramSymbol) },
+                paramSymbol.name.toString,
+                if (isValueSet(requiredValue)) {
+                  getAnnotationValue(requiredValue, stringValue = false).asInstanceOf[Boolean]
+                } else { !paramSymbol.asTerm.isParamWithDefault },
+                if (isValueSet(defaultValue)) {
+                  Some(getAnnotationValue(defaultValue, stringValue = true).asInstanceOf[String])
+                } else { None })
+            } else {
+              stepParams :+ StepFunctionParameter(getParameterType(paramSymbol), paramSymbol.name.toString)
+            }
           } else {
             stepParams
           }
@@ -127,6 +144,16 @@ object StepMetaDataExtractor {
         EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}")))
     } else {
       steps
+    }
+  }
+
+  private def isValueSet(annotationValue: String) = annotationValue.startsWith("scala.Some.apply[")
+
+  private def getAnnotationValue(annotationValue: String, stringValue: Boolean): Any = {
+    if (stringValue) {
+      annotationValue.substring(annotationValue.indexOf("(\"") + 2, annotationValue.lastIndexOf("\")"))
+    } else {
+      annotationValue.substring(annotationValue.indexOf("(") + 2, annotationValue.lastIndexOf(")")) == "true"
     }
   }
 
