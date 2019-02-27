@@ -292,27 +292,10 @@
           "name": "Sub Security Manager"
         }
       },
+      "mergeGlobals": true,
       "globals": {
-        "number": 2,
-        "float": 3.5,
-        "string": "sub string",
-        "mappedObject": {
-          "className": "com.acxiom.pipeline.applications.TestGlobalObject",
-          "object": {
-            "name": "Execution Mapped Object",
-            "subObjects": [
-              {
-                "name": "Sub Object 1a"
-              },
-              {
-                "name": "Sub Object 2a"
-              },
-              {
-                "name": "Sub Object 3"
-              }
-            ]
-          }
-        }
+        "number": 5,
+        "newThing": "Chickens rule!"
       }
     }
   ]

@@ -113,6 +113,18 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       setup.pipelineContext.sparkSession.get.stop()
     }
 
+    it("Should respect the 'enableHiveSupport' parameter") {
+      val thrown = intercept[IllegalArgumentException] {
+        val setup = ApplicationDriverSetup(Map[String, Any](
+          "applicationJson" -> applicationJson,
+          "rootLogLevel" -> "OFF",
+          "enableHiveSupport" -> true
+        )
+        )
+      }
+      assert(thrown.getMessage == "Unable to instantiate SparkSession with Hive support because Hive classes are not found.")
+    }
+
     it("Should refresh an application") {
       val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "rootLogLevel" -> "DEBUG"))
       val executionPlan = setup.executionPlan.get
@@ -180,25 +192,25 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       .head.value.get == "CHICKEN")
     // Ensure no parents
     assert(execution4.parents.isEmpty)
-    // Verify the globals object was properly constructed
+    // Verify the globals object was properly merged
     val globals = ctx3.globals.get
-    assert(globals.size == 5)
+    assert(globals.size == 6)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("number"))
-    assert(globals("number").asInstanceOf[BigInt] == 2)
+    assert(globals("number").asInstanceOf[BigInt] == 5)
     assert(globals.contains("float"))
-    assert(globals("float").asInstanceOf[Double] == 3.5)
+    assert(globals("float").asInstanceOf[Double] == 1.5)
     assert(globals.contains("string"))
-    assert(globals("string").asInstanceOf[String] == "sub string")
+    assert(globals("string").asInstanceOf[String] == "some string")
+    assert(globals("newThing").asInstanceOf[String] == "Chickens rule!")
     assert(globals.contains("mappedObject"))
     val subGlobalObject = globals("mappedObject").asInstanceOf[TestGlobalObject]
-    assert(subGlobalObject.name.getOrElse("") == "Execution Mapped Object")
+    assert(subGlobalObject.name.getOrElse("") == "Global Mapped Object")
     assert(subGlobalObject.subObjects.isDefined)
-    assert(subGlobalObject.subObjects.get.length == 3)
-    assert(subGlobalObject.subObjects.get.head.name.getOrElse("") == "Sub Object 1a")
-    assert(subGlobalObject.subObjects.get(1).name.getOrElse("") == "Sub Object 2a")
-    assert(subGlobalObject.subObjects.get(2).name.getOrElse("") == "Sub Object 3")
+    assert(subGlobalObject.subObjects.get.length == 2)
+    assert(subGlobalObject.subObjects.get.head.name.getOrElse("") == "Sub Object 1")
+    assert(subGlobalObject.subObjects.get(1).name.getOrElse("") == "Sub Object 2")
     // Verify the PipelineParameters object was set properly
     assert(ctx3.parameters.parameters.length == 1)
     assert(ctx3.parameters.parameters.length == 1)

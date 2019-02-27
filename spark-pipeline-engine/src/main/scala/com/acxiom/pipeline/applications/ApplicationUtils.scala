@@ -34,9 +34,14 @@ object ApplicationUtils {
   def createExecutionPlan(application: Application,
                           globals: Option[Map[String, Any]],
                           sparkConf: SparkConf,
-                          pipelineListener: PipelineListener = DefaultPipelineListener()): List[PipelineExecution] = {
+                          pipelineListener: PipelineListener = DefaultPipelineListener(),
+                          enableHiveSupport: Boolean = false): List[PipelineExecution] = {
     // Create the SparkSession
-    val sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
+    val sparkSession = if (enableHiveSupport) {
+      SparkSession.builder().config(sparkConf).enableHiveSupport().getOrCreate()
+    } else {
+      SparkSession.builder().config(sparkConf).getOrCreate()
+    }
     // Create the default globals
     val rootGlobals = globals.getOrElse(Map[String, Any]())
     val defaultGlobals = generateGlobals(application.globals, rootGlobals, Some(rootGlobals))
@@ -48,7 +53,7 @@ object ApplicationUtils {
     application.executions.get.map(execution => {
       val ctx = PipelineContext(Some(sparkConf),
         Some(sparkSession),
-        generateGlobals(execution.globals, rootGlobals, defaultGlobals),
+        generateGlobals(execution.globals, rootGlobals, defaultGlobals, execution.mergeGlobals),
         generateSecurityManager(execution.securityManager, globalSecurityManager).get,
         generatePipelineParameters(execution.pipelineParameters, globalPipelineParameters).get,
         application.stepPackages,
@@ -143,20 +148,26 @@ object ApplicationUtils {
 
   private def generateGlobals(globals: Option[Map[String, Any]],
                               rootGlobals: Map[String, Any],
-                              defaultGlobals: Option[Map[String, Any]]): Option[Map[String, Any]] = {
+                              defaultGlobals: Option[Map[String, Any]],
+                              merge: Boolean = false): Option[Map[String, Any]] = {
     if (globals.isEmpty) {
       defaultGlobals
     } else {
       implicit val formats: Formats = DefaultFormats
       val baseGlobals = globals.get
-      Some(baseGlobals.foldLeft(rootGlobals)((rootMap, entry) => {
+      val result = baseGlobals.foldLeft(rootGlobals)((rootMap, entry) => {
         entry._2 match {
           case map: Map[String, Any] if map.contains("className") =>
             val obj = DriverUtils.parseJson(Serialization.write(map("object").asInstanceOf[Map[String, Any]]), map("className").asInstanceOf[String])
             rootMap + (entry._1 -> obj)
           case _ => rootMap + (entry._1 -> entry._2)
         }
-      }))
+      })
+      Some(if (merge) {
+        defaultGlobals.getOrElse(Map[String, Any]()) ++ result
+      } else {
+        result
+      })
     }
   }
 }

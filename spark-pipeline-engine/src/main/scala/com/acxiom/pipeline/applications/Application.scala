@@ -34,6 +34,7 @@ case class Application(executions: Option[List[Execution]],
   * @param pipelines          A list of pipelines to execute
   * @param pipelineIds        A List of pipelineIds, referencing the pipelines defined in the application
   * @param initialPipelineId  The id of the first pipeline that should be executed
+  * @param mergeGlobals       Defines whether to merge or overwrite the application globals with the local globals
   * @param globals            A default set of globals for this execution
   * @param parents            A list of parent execution ids
   * @param pipelineListener   The pipeline listener class to use while processing this execution
@@ -45,6 +46,7 @@ case class Execution(id: Option[String],
                      pipelines: Option[List[DefaultPipeline]] = None,
                      pipelineIds: Option[List[String]] = None,
                      initialPipelineId: Option[String] = None,
+                     mergeGlobals: Boolean = false,
                      globals: Option[Map[String, Any]] = None,
                      parents: Option[List[String]] = None,
                      pipelineListener: Option[ClassInfo] = None,

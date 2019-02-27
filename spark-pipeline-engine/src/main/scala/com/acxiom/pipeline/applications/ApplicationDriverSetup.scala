@@ -38,10 +38,19 @@ case class ApplicationDriverSetup(parameters: Map[String, Any]) extends DriverSe
     case "applicationJson" => false
     case "applicationConfigPath" => false
     case "applicationConfigurationLoader" => false
+    case "enableHiveSupport" => false
     case _ => true
   }
 
-  private val executions = ApplicationUtils.createExecutionPlan(application, Some(params), sparkConf)
+  // This determines whether the spark session will support hive
+  private val enableHiveSupport: Boolean = parameters.getOrElse("enableHiveSupport", false).asInstanceOf[Boolean]
+
+  private val executions = ApplicationUtils.createExecutionPlan(
+    application = application,
+    globals = Some(params),
+    sparkConf = sparkConf,
+    enableHiveSupport = enableHiveSupport
+  )
 
   /**
     * This function will return the execution plan to be used for the driver.
@@ -71,6 +80,8 @@ case class ApplicationDriverSetup(parameters: Map[String, Any]) extends DriverSe
       ApplicationUtils.refreshPipelineExecution(application, Some(params), execution, plan)
     })
   }
+
+  def isHiveSupportEnabled: Boolean = enableHiveSupport
 
   private def loadApplication(parameters: Map[String, Any]): Application = {
     val json = if (parameters.contains("applicationJson")) {
