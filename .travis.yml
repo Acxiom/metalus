@@ -48,7 +48,7 @@ jobs:
         sonarcloud:
           organization: $SONAR_ORGANIZATION
       install: mvn -B -DskipTests=true clean install
-      script: mvn -B  -Dsonar.branch=develop clean org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
+      script: mvn -B  -Dsonar.branch=develop scoverage:report scalastyle:check org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
 
     - stage: Release
       if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
@@ -77,6 +77,4 @@ jobs:
         skip_cleanup: true
         file_glob: true
         file:
-          - common-pipeline-steps/target/common-pipeline-steps_2.11-${project_version}.jar
-          - spark-pipeline-engine/target/spark-pipeline-engine_2.11-${project_version}.jar
-          - streaming-pipeline-drivers/target/streaming-pipeline-drivers_2.11-${project_version}.jar
+          - application-utils/target/application-utils_2.11-${project_version}.tar.gz

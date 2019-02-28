@@ -53,16 +53,25 @@ There are several sub-projects:
 ### [Spark Pipeline Engine](spark-pipeline-engine/readme.md)
 This project contains the core library and is the minimum requirement for any application.
 
+[Maven library](https://search.maven.org/search?q=a:spark-pipeline-engine_2.11)
+
 ### [Common Pipeline Steps](common-pipeline-steps/readme.md)
 This component contains steps that are considered generic enough to be used in any project.
+
+[Maven library](https://search.maven.org/search?q=a:common-pipeline-steps_2.11)
 
 ### [Streaming Pipeline Drivers](streaming-pipeline-drivers/readme.md)
 This component contains drivers classes that connect to various streaming technologies like [Kafka](http://kafka.apache.org/) 
 and [Kinesis](https://aws.amazon.com/kinesis/). Each class provides a basic implementation that gathers data and then 
 initiates the Spark Pipeline Engine Component for processing of the incoming data.
 
+[Maven library](https://search.maven.org/search?q=a:streaming-pipeline-drivers_2.11)
+
 ### [Pipeline Drivers Examples](pipeline-drivers-examples/readme.md)
 This project provides several examples to help demonstrate how to use the library.
+
+### [Application Utilities](application-utils/readme.md)
+This project provides utilities that help work with the project.
 
 ## Examples
 Examples of building pipelines can be found in the [pipeline-drivers-examples](pipeline-drivers-examples/readme.md) project.

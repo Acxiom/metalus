@@ -41,7 +41,7 @@ object TransformationSteps {
   @StepFunction(
     "8f9c08ea-4882-4265-bac7-2da3e942758f",
     "Map a DataFrame to a pre-defined Schema",
-    "This step maps a new dataframe to a pre-defined spark schema (StructType)",
+    "This step maps a new dataframe to a pre-defined spark schema",
     "Pipeline"
   )
   def mapDataFrameToSchema(inputDataFrame: DataFrame, destinationSchema: Schema, transforms: Transformations = Transformations(List()),
@@ -71,8 +71,8 @@ object TransformationSteps {
     */
   @StepFunction(
     "3ee74590-9131-43e1-8ee8-ad320482a592",
-    "Map a DataFrame to an existing DataFrame",
-    "This step maps a new dataframe to an existing dataframe to make them compatible",
+    "Merge a DataFrame to an existing DataFrame",
+    "This step merges two dataframes to create a single dataframe",
     "Pipeline"
   )
   def mergeDataFrames(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, transforms: Transformations = Transformations(List()),

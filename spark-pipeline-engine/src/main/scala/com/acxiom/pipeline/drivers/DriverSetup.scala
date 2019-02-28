@@ -9,17 +9,20 @@ trait DriverSetup {
   private val logger = Logger.getLogger(getClass)
   setLogLevel()
 
+  private val deprecationSuggestion = "use executionPlan"
+
   /**
     * Returns the list of pipelines to execute as part of this application.
+    *
     * @return
     */
-  @deprecated("use executionPlan", "1.1.0")
+  @deprecated(deprecationSuggestion, "1.1.0")
   def pipelines: List[Pipeline]
-  @deprecated("use executionPlan", "1.1.0")
+  @deprecated(deprecationSuggestion, "1.1.0")
   def initialPipelineId: String
-  @deprecated("use executionPlan", "1.1.0")
+  @deprecated(deprecationSuggestion, "1.1.0")
   def pipelineContext: PipelineContext
-  @deprecated("use executionPlan", "1.1.0")
+  @deprecated(deprecationSuggestion, "1.1.0")
   def refreshContext(pipelineContext: PipelineContext): PipelineContext = {
     pipelineContext
   }
@@ -49,12 +52,7 @@ trait DriverSetup {
     * @return An execution plan
     */
   def refreshExecutionPlan(executionPlan: List[PipelineExecution]): List[PipelineExecution] = {
-    executionPlan.map(execution =>
-      PipelineExecution(execution.id,
-        execution.pipelines,
-        execution.initialPipelineId,
-        refreshContext(execution.pipelineContext),
-        execution.parents))
+    executionPlan
   }
 
   def setLogLevel(): Unit = {

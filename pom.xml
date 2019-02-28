@@ -48,6 +48,10 @@
         <spark.version>2.3.2</spark.version>
         <scala.style.config>${basedir}/scalastyle_config.xml</scala.style.config>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <sonar.core.codeCoveragePlugin>scoverage</sonar.core.codeCoveragePlugin>
+        <sonar.scala.coverage.reportPaths>${project.build.directory}/scoverage.xml</sonar.scala.coverage.reportPaths>
+        <sonar.scala.scalastyle.reportPaths>${basedir}/target/checkstyle-result.xml</sonar.scala.scalastyle.reportPaths>
+        <sonar.exclusions>src/test/scala/**</sonar.exclusions>
     </properties>
 
     <modules>
@@ -55,6 +59,7 @@
         <module>common-pipeline-steps</module>
         <module>streaming-pipeline-drivers</module>
         <module>pipeline-drivers-examples</module>
+        <module>application-utils</module>
     </modules>
 
     <dependencies>
@@ -62,6 +67,12 @@
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-compiler</artifactId>
             <version>${scala.version}</version>
             <scope>provided</scope>
         </dependency>
@@ -134,7 +145,6 @@
                         </goals>
                         <configuration>
                             <args>
-                                <!--<arg>-make:transitive</arg>-->
                                 <arg>-dependencyfile</arg>
                                 <arg>${project.build.directory}/.scala_dependencies</arg>
                             </args>

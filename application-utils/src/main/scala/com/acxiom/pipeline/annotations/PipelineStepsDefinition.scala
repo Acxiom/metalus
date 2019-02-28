@@ -2,8 +2,8 @@ package com.acxiom.pipeline.annotations
 
 import com.acxiom.pipeline.EngineMeta
 
-case class PipelineStepsDefintion(pkgs: List[String],
-                                  steps: List[StepDefinition])
+case class PipelineStepsDefinition(pkgs: List[String],
+                                   steps: List[StepDefinition])
 
 case class StepDefinition(id: String,
                           displayName: String,
@@ -12,4 +12,7 @@ case class StepDefinition(id: String,
                           params: List[StepFunctionParameter],
                           engineMeta: EngineMeta)
 
-case class StepFunctionParameter(`type`: String, name: String)
+case class StepFunctionParameter(`type`: String,
+                                 name: String,
+                                 required: Boolean = false,
+                                 defaultValue: Option[String] = None)

@@ -12,6 +12,8 @@ import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.{Level, Logger}
+import org.json4s.{DefaultFormats, Formats}
+import org.json4s.native.Serialization
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
 import scala.io.Source
@@ -29,7 +31,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     it("Should create an execution plan") {
       val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
         .setMaster("local")
-      val executionPlan = ApplicationUtils.createExecutionPlan(application, Some(Map[String, Any]("root" -> true)), sparkConf)
+      val executionPlan = ApplicationUtils.createExecutionPlan(application, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf)
       verifyApplication(executionPlan)
       executionPlan.head.pipelineContext.sparkSession.get.stop()
     }
@@ -38,7 +40,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
   describe("ApplicationDriverSetup") {
     val applicationJson = Source.fromInputStream(getClass.getResourceAsStream("/application-test.json")).mkString
     it("Should load and create an Application from the parameters") {
-      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "root" -> true))
+      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "rootLogLevel" -> "OFF"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
@@ -58,7 +60,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
       val setup = ApplicationDriverSetup(Map[String, Any](
         "applicationConfigPath" -> file.getAbsolutePath,
-        "root" -> true))
+        "rootLogLevel" -> "ERROR"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
@@ -85,7 +87,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val setup = ApplicationDriverSetup(Map[String, Any](
         "applicationConfigPath" -> "application-test.json",
         "applicationConfigurationLoader" -> "com.acxiom.pipeline.utils.HDFSFileManager",
-        "root" -> true))
+        "rootLogLevel" -> "FATAL"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
@@ -97,11 +99,19 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       setup.pipelineContext.sparkSession.get.stop()
     }
 
-    it ("Should refresh an application") {
-      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "root" -> true))
+    it("Should refresh an application") {
+      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "rootLogLevel" -> "DEBUG"))
       val executionPlan = setup.executionPlan.get
       verifyApplication(setup.refreshExecutionPlan(executionPlan))
       setup.pipelineContext.sparkSession.get.stop()
+    }
+
+    it("Should detect a missing parameter") {
+      val thrown = intercept[RuntimeException] {
+        ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "logLevel" -> "TRACE"))
+      }
+      assert(thrown.getMessage.contains("Missing required parameters: rootLogLevel"))
+
     }
   }
 
@@ -139,14 +149,15 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(ctx2.parameterMapper.asInstanceOf[TestPipelineStepMapper].name == "Sub Step Mapper")
     // Validate the correct pipeline is set
     assert(execution2.pipelines.head.name.getOrElse("") == "Pipeline 2")
+    verifyMappedParameter(execution2)
     // Ensure the correct parent
     assert(execution2.parents.isDefined)
     assert(execution2.parents.get.head == "0")
     // Verify the globals object was properly constructed
     val globals1 = ctx2.globals.get
     assert(globals1.size == 5)
-    assert(globals1.contains("root"))
-    assert(globals1("root").asInstanceOf[Boolean])
+    assert(globals1.contains("rootLogLevel"))
+    assert(globals1.contains("rootLogLevel"))
     assert(globals1.contains("number"))
     assert(globals1("number").asInstanceOf[BigInt] == 1)
     assert(globals1.contains("float"))
@@ -166,6 +177,25 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(ctx2.parameters.hasPipelineParameters("Pipeline2"))
     assert(ctx2.parameters.getParametersByPipelineId("Pipeline2").get.parameters.size == 1)
     assert(ctx2.parameters.getParametersByPipelineId("Pipeline2").get.parameters("howard").asInstanceOf[String] == "johnson")
+  }
+
+  private def verifyMappedParameter(execution2: PipelineExecution) = {
+    implicit val formats: Formats = DefaultFormats
+    assert(execution2.pipelines.head.steps.isDefined)
+    assert(execution2.pipelines.head.steps.get.head.params.isDefined)
+    assert(execution2.pipelines.head.steps.get.head.params.get.length == 2)
+    assert(execution2.pipelines.head.steps.get.head.params.get(1).name.getOrElse("") == "parameterObject")
+    assert(execution2.pipelines.head.steps.get.head.params.get(1).className.getOrElse("") == "com.acxiom.pipeline.applications.TestGlobalObject")
+    assert(execution2.pipelines.head.steps.get.head.params.get(1).value.isDefined)
+    assert(execution2.pipelines.head.steps.get.head.params.get(1).value.get.isInstanceOf[Map[String, Any]])
+    val mappedParameter = DriverUtils.parseJson(
+      Serialization.write(execution2.pipelines.head.steps.get.head.params.get(1).value.get.asInstanceOf[Map[String, Any]]),
+      execution2.pipelines.head.steps.get.head.params.get(1).className.getOrElse("")).asInstanceOf[TestGlobalObject]
+    assert(mappedParameter.name.getOrElse("") == "Parameter Mapped Object")
+    assert(mappedParameter.subObjects.isDefined)
+    assert(mappedParameter.subObjects.get.length == 2)
+    assert(mappedParameter.subObjects.get.head.name.getOrElse("") == "Param Object 1")
+    assert(mappedParameter.subObjects.get(1).name.getOrElse("") == "Param Object 2")
   }
 
   private def verifyFirstExecution(execution1: PipelineExecution) = {
@@ -189,8 +219,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     // Verify the globals object was properly constructed
     val globals = ctx1.globals.get
     assert(globals.size == 5)
-    assert(globals.contains("root"))
-    assert(globals("root").asInstanceOf[Boolean])
+    assert(globals.contains("rootLogLevel"))
+    assert(globals.contains("rootLogLevel"))
     assert(globals.contains("number"))
     assert(globals("number").asInstanceOf[BigInt] == 2)
     assert(globals.contains("float"))

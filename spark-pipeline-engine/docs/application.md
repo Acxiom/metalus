@@ -47,7 +47,7 @@ spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 
 ## sparkConf
 The *sparkConf* element provides the ability to control which classes are passed to the KryoSerializer and any 
-additional settings that should be added to the configuration. 
+additional settings that should be added to the configuration.
 
 ### kryoClasses
 The *kryoClasses* array will be used to create an array of classes that are passed to the *SparkConf* function
@@ -71,6 +71,19 @@ for each element in the array.
       }
     ]
   }
+}
+```
+
+## requiredParameters
+A list of parameter names to validate are present as part of the submit command. Should any required parameter be missing,
+then the application will exit. The value is not validated, just the presence of the parameter.
+
+```json
+{
+  "requiredParameters": [
+    "param1",
+    "param2"
+  ]
 }
 ```
 
