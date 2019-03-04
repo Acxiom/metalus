@@ -160,6 +160,38 @@ This object allows specifying an initial set of *PipelineParameters*.
 }
 ```
 
+### pipelines
+A list of pipelines definitions that can be referenced in any defined execution.
+
+```json
+{
+  "pipelines": [
+    {
+      "id": "Pipeline1",
+      "name": "Pipeline 1",
+      "steps": [
+        {
+          "id": "Pipeline1Step1",
+          "displayName": "Pipeline1Step1",
+          "type": "preload",
+          "params": [
+            {
+              "type": "text",
+              "name": "value",
+              "required": true,
+              "value": "!mappedObject"
+            }
+          ],
+          "engineMeta": {
+            "spark": "ExecutionSteps.normalFunction"
+          }
+        }
+      ]
+    }
+  ]
+ }
+``` 
+
 ### globals
 The globals object will be merged with the application parameters passed to the 'spark-submit' command. All elements are
 added to the *PipelineContext* globals lookup *as-is* unless it is an object **and** contains the *className* property. 
@@ -199,7 +231,8 @@ to the lookup with the name *mappedObject*.
 The *executions* array is used to define how the application will execute. Each execution contains several settings:
 
 * **id** - This is used to uniquely identify the execution at runtime.
-* **pipelines** - An array containing one or more pipeline definitions to execute.
+* **pipelines** - An array containing one or more pipeline definitions that can override globally defined pipelines.
+* **pipelineIds** - An array of pipeline ids to execute.
 * **parents** - A list of execution *id*s upon which this execution is dependent.
 
 In addition, any of the global *PipelineContext* settings listed above may be defined which will override the global
@@ -210,6 +243,7 @@ definitions.
   "executions": [
     {
       "id": "0",
+      "pipelineIds": ["Pipeline1"],
       "pipelines": [
         {
           "id": "Pipeline1",
@@ -265,6 +299,7 @@ definitions.
     },
     {
       "id": "1",
+      "pipelineIds": ["Pipeline2"],
       "pipelines": [
         {
           "id": "Pipeline2",

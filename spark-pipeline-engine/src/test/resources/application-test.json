@@ -46,6 +46,69 @@
       }
     ]
   },
+  "pipelines": [
+    {
+      "id": "Pipeline1",
+      "name": "Pipeline 1",
+      "steps": [
+        {
+          "id": "Pipeline1Step1",
+          "displayName": "Pipeline1Step1",
+          "type": "preload",
+          "params": [
+            {
+              "type": "text",
+              "name": "value",
+              "required": true,
+              "value": "!mappedObject"
+            }
+          ],
+          "engineMeta": {
+            "spark": "ExecutionSteps.normalFunction"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Pipeline2",
+      "name": "Pipeline 2",
+      "steps": [
+        {
+          "id": "Pipeline2Step1",
+          "displayName": "Pipeline2Step1",
+          "type": "preload",
+          "params": [
+            {
+              "type": "text",
+              "name": "value",
+              "required": true,
+              "value": "CHICKEN"
+            },
+            {
+              "type": "object",
+              "name": "parameterObject",
+              "required": true,
+              "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+              "value": {
+                "name": "Parameter Mapped Object",
+                "subObjects": [
+                  {
+                    "name": "Param Object 1"
+                  },
+                  {
+                    "name": "Param Object 2"
+                  }
+                ]
+              }
+            }
+          ],
+          "engineMeta": {
+            "spark": "ExecutionSteps.normalFunction"
+          }
+        }
+      ]
+    }
+  ],
   "globals": {
     "number": 1,
     "float": 1.5,
@@ -68,30 +131,7 @@
   "executions": [
     {
       "id": "0",
-      "pipelines": [
-        {
-          "id": "Pipeline1",
-          "name": "Pipeline 1",
-          "steps": [
-            {
-              "id": "Pipeline1Step1",
-              "displayName": "Pipeline1Step1",
-              "type": "preload",
-              "params": [
-                {
-                  "type": "text",
-                  "name": "value",
-                  "required": true,
-                  "value": "!mappedObject"
-                }
-              ],
-              "engineMeta": {
-                "spark": "ExecutionSteps.normalFunction"
-              }
-            }
-          ]
-        }
-      ],
+      "pipelineIds": ["Pipeline1"],
       "securityManager": {
         "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
         "parameters": {
@@ -188,6 +228,74 @@
             }
           }
         ]
+      }
+    },
+    {
+      "id": "2",
+      "pipelines": [{
+        "id": "Pipeline1",
+        "name": "Pipeline 1",
+        "steps": [
+          {
+            "id": "Pipeline1Step1",
+            "displayName": "Pipeline1Step1",
+            "type": "preload",
+            "params": [
+              {
+                "type": "text",
+                "name": "value",
+                "required": true,
+                "value": "!mappedObject2"
+              }
+            ],
+            "engineMeta": {
+              "spark": "ExecutionSteps.normalFunction"
+            }
+          }
+        ]
+      }],
+      "pipelineIds": ["Pipeline1","Pipeline2"],
+      "securityManager": {
+        "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
+        "parameters": {
+          "name": "Sub Security Manager"
+        }
+      },
+      "globals": {
+        "number": 2,
+        "float": 3.5,
+        "string": "sub string",
+        "mappedObject": {
+          "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+          "object": {
+            "name": "Execution Mapped Object",
+            "subObjects": [
+              {
+                "name": "Sub Object 1a"
+              },
+              {
+                "name": "Sub Object 2a"
+              },
+              {
+                "name": "Sub Object 3"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "3",
+      "securityManager": {
+        "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
+        "parameters": {
+          "name": "Sub Security Manager"
+        }
+      },
+      "mergeGlobals": true,
+      "globals": {
+        "number": 5,
+        "newThing": "Chickens rule!"
       }
     }
   ]
