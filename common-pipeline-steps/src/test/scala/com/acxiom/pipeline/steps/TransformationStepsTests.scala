@@ -9,9 +9,9 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 
-class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen  {
+class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
   val MASTER = "local[2]"
-  val APPNAME = "javascript-steps-spark"
+  val APPNAME = "transformation-steps-spark"
   var sparkConf: SparkConf = _
   var sparkSession: SparkSession = _
   var pipelineContext: PipelineContext = _
@@ -47,7 +47,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
     FileUtils.deleteDirectory(sparkLocalDir.toFile)
   }
 
-  describe("TransforamtionStep Tests") {
+  describe("TransformationStep Tests") {
     it("should map/merge a dataframe to an existing schema or dataframe") {
       Given("a destination dataframe")
       val destDF = sparkSession.createDataFrame(Seq(
