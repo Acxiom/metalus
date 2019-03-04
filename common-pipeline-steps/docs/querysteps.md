@@ -23,7 +23,7 @@ In each QueryStep that accepts a query string, variable replacement can be perfo
 * VariableMap = "tableName" -> "myTable", "client_group" -> "abcd"
 * FinalQuery = "select * from myTable" where client_group = 'abcd'"
 
-#### Using the Table Name for a Previos Step
+#### Using the Table Name for a Previous Step
 * Query: "select * from ${tableName}"
 * VariableMap: "tableName" -> "@step4"  (where step for is a queryToTempView() or dataFrameToTempView() step)
 

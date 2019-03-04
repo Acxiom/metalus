@@ -20,7 +20,7 @@ object QuerySteps {
   @StepFunction(
     "541c4f7d-3524-4d53-bbd9-9f2cfd9d1bd1",
     "Save a Dataframe to a TempView",
-    "This step store an existing dataframe to a TempView to be used in future queries in the session",
+    "This step stores an existing dataframe to a TempView to be used in future queries in the session",
     "Pipeline"
   )
   def dataFrameToTempView(dataFrame: DataFrame, viewName: Option[String], pipelineContext: PipelineContext): String = {
@@ -41,7 +41,7 @@ object QuerySteps {
   @StepFunction(
     "71b71ef3-eaa7-4a1f-b3f3-603a1a54846d",
     "Create a TempView from a Query",
-    "This step runs a SQL statement against existing TempViews from this session and return a new TempView",
+    "This step runs a SQL statement against existing TempViews from this session and returns a new TempView",
     "Pipeline"
   )
   def queryToTempView(query: String, variableMap: Option[Map[String, String]], viewName: Option[String],
@@ -62,7 +62,7 @@ object QuerySteps {
   @StepFunction(
     "61378ed6-8a4f-4e6d-9c92-6863c9503a54",
     "Create a DataFrame from a Query",
-    "This step runs a SQL statement against existing TempViews from this session and return a new DataFrame",
+    "This step runs a SQL statement against existing TempViews from this session and returns a new DataFrame",
     "Pipeline"
   )
   def queryToDataFrame(query: String, variableMap: Option[Map[String, String]], pipelineContext: PipelineContext): DataFrame = {
