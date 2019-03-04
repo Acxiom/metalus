@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.StepFunction
+import com.acxiom.pipeline.annotations.{StepFunction, StepParameter}
 import org.apache.log4j.Logger
 import org.apache.spark.sql.DataFrame
 import java.util.UUID.randomUUID
@@ -65,7 +65,8 @@ object QuerySteps {
     "This step runs a SQL statement against existing TempViews from this session and returns a new DataFrame",
     "Pipeline"
   )
-  def queryToDataFrame(query: String, variableMap: Option[Map[String, String]], pipelineContext: PipelineContext): DataFrame = {
+  def queryToDataFrame(@StepParameter(typeOverride = Some("script"), language = Some("sql")) query: String,
+                       variableMap: Option[Map[String, String]], pipelineContext: PipelineContext): DataFrame = {
     val finalQuery = replaceQueryVariables(query, variableMap)
     // return the dataframe
     pipelineContext.sparkSession.get.sql(finalQuery)
@@ -77,7 +78,8 @@ object QuerySteps {
     * @param variableMap    the key value pairs that will be used in the replacement
     * @return  a new query string with all variables replaced
     */
-  private[steps] def replaceQueryVariables(query: String, variableMap: Option[Map[String, String]]): String = {
+  private[steps] def replaceQueryVariables(@StepParameter(typeOverride = Some("script")) query: String,
+                                           variableMap: Option[Map[String, String]]): String = {
     logger.debug(s"query before variable replacement")
     val finalQuery = if(variableMap.isEmpty) {
       // all variables have been replaced, now run standard replacements
