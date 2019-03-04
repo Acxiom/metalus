@@ -114,7 +114,7 @@ object QuerySteps {
     dataFrameToTempView(dataFrame, Some(inputViewName), pipelineContext)
 
     // store there results of the dataframe to a TempView
-    queryToTempView(query, variableMap, Some(inputViewName), pipelineContext)
+    queryToTempView(query, variableMap, Some(finalViewName), pipelineContext)
 
     // return the view name for the new TempView
     finalViewName
@@ -142,7 +142,6 @@ object QuerySteps {
     // run a query and return the dataframe
     queryToDataFrame(query, variableMap, pipelineContext)
   }
-
 
   /** replace runtime variables in a query string
     *
