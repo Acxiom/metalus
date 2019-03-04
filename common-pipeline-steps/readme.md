@@ -10,4 +10,5 @@ Here is a list of steps provided:
 * [JavascriptSteps](docs/javascriptsteps.md)
 * [TransformationSteps](docs/transformationsteps.md)
 * [JDBCSteps](docs/jdbcsteps.md)
+* [QuerySteps](docs/querysteps.md)
 * [ScalaSteps](docs/scalascriptsteps.md)

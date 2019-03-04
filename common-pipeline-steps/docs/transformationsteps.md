@@ -1,5 +1,5 @@
 ### TransformationSteps
-MappingSteps provides the user with steps that can help transform data into a pre-defined schema or integrate into an existing
+TransformationSteps provides the user with steps that can help transform data into a pre-defined schema or integrate into an existing
 data frame.  This includes reordering columns, adding placeholders for missing columns, applying transformations from input to output,
 standardizing column names, and converting column data types to match the destination.
 
