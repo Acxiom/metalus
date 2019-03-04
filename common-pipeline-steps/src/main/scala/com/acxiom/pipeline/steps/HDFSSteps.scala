@@ -2,47 +2,39 @@ package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter}
+import com.acxiom.pipeline.steps.util.{DataFrameReaderOptions, DataFrameWriterOptions, StepUtils}
 import org.apache.spark.sql.DataFrame
 
 @StepObject
 object HDFSSteps {
 
   @StepFunction("87db259d-606e-46eb-b723-82923349640f",
-    "Load DataFrame from HDFS",
-    "This step will create a dataFrame in a given format from HDFS",
+    "Load DataFrame from HDFS path",
+    "This step will read a dataFrame from the given HDFS path",
     "Pipeline")
-  def readFromHDFS(path: String,
-                   @StepParameter(Some("text"), Some(false), Some("parquet")) format: String = "parquet",
-                   properties: Option[Map[String, String]] = None,
+  def readFromPath(path: String,
+                   options: DataFrameReaderOptions = DataFrameReaderOptions(),
                    pipelineContext: PipelineContext): DataFrame = {
-    val spark = pipelineContext.sparkSession.get
+    IOSteps.read(options.setOption("path", path), pipelineContext)
+  }
 
-    val reader = spark.read.format(format)
-    if(properties.isDefined){
-      reader.options(properties.get).load(path)
-    } else {
-      reader.load(path)
-    }
+  @StepFunction("8daea683-ecde-44ce-988e-41630d251cb8",
+    "Load DataFrame from HDFS paths",
+    "This step will read a dataFrame from the given HDFS paths",
+    "Pipeline")
+  def readFromPaths(paths: List[String],
+                    options: DataFrameReaderOptions = DataFrameReaderOptions(),
+                    pipelineContext: PipelineContext): DataFrame = {
+    StepUtils.buildDataFrameReader(pipelineContext.sparkSession.get, options).load(paths: _*)
   }
 
   @StepFunction("0a296858-e8b7-43dd-9f55-88d00a7cd8fa",
     "Write DataFrame to HDFS",
     "This step will write a dataFrame in a given format to HDFS",
     "Pipeline")
-  def writeDataFrame(dataFrame: DataFrame,
+  def writeToPath(dataFrame: DataFrame,
                      path: String,
-                     @StepParameter(Some("text"), Some(false), Some("parquet")) format: String = "parquet",
-                     properties: Option[Map[String, String]] = None,
-                     saveMode: String = "Overwrite"): Unit = {
-    if(properties.isDefined) {
-      dataFrame.write.format(format)
-        .mode(saveMode)
-        .options(properties.get)
-        .save(path)
-    } else {
-      dataFrame.write.format(format)
-        .mode(saveMode)
-        .save(path)
-    }
+                     options: DataFrameWriterOptions = DataFrameWriterOptions()): Unit = {
+    IOSteps.write(dataFrame, options.setOption("path", path))
   }
 }

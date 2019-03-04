@@ -4,6 +4,7 @@ import java.io.{File, PrintWriter}
 import java.nio.file.{Files, Path}
 
 import com.acxiom.pipeline._
+import com.acxiom.pipeline.steps.util.{DataFrameReaderOptions, DataFrameWriterOptions}
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.FileSystem
 import org.apache.log4j.{Level, Logger}
@@ -77,7 +78,10 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       val dataFrame = chickens.toDF("id", "chicken")
 
-      HDFSSteps.writeDataFrame(dataFrame=dataFrame, format="csv", path=miniCluster.getURI + "/data/chickens.csv")
+      HDFSSteps.writeToPath(dataFrame = dataFrame,
+        path = miniCluster.getURI + "/data/chickens.csv",
+        options = DataFrameWriterOptions(format = "csv")
+      )
       val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
 
       assert(list.size == 3)
@@ -98,9 +102,9 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       val dataFrame = chickens.toDF("id", "chicken")
 
-      HDFSSteps.writeDataFrame(
-        dataFrame=dataFrame, format="csv",
-        properties=Some(Map[String, String]("delimiter" -> "þ")),
+      HDFSSteps.writeToPath(
+        dataFrame = dataFrame,
+        options = DataFrameWriterOptions(format = "csv", options = Some(Map[String, String]("delimiter" -> "þ"))),
         path=miniCluster.getURI + "/data/chickens.csv"
       )
       val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
@@ -131,8 +135,8 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       writeHDFSContext(fs, path, csv)
 
-      val dataFrame = HDFSSteps.readFromHDFS(path = path,
-        format = "csv",
+      val dataFrame = HDFSSteps.readFromPath(path = path,
+        options = DataFrameReaderOptions(format = "csv"),
         pipelineContext = pipelineContext)
 
       assert(dataFrame.count() == 3)
@@ -145,9 +149,12 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       writeHDFSContext(fs, path, csv)
 
-      val dataFrame = HDFSSteps.readFromHDFS(path = path,
-        format = "csv",
-        properties = Some(Map[String, String]("header" -> "true", "delimiter" -> "þ")),
+      val dataFrame = HDFSSteps.readFromPath(
+        path = path,
+        options = DataFrameReaderOptions(
+          format = "csv",
+          options = Some(Map[String, String]("header" -> "true", "delimiter" -> "þ"))
+        ),
         pipelineContext = pipelineContext)
 
       assert(dataFrame.count() == 3)
