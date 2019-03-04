@@ -11,4 +11,5 @@ case class StepFunction(id: String,
 
 case class StepParameter(typeOverride: Option[String] = None,
                          required: Option[Boolean] = Some(false),
-                         defaultValue: Option[String] = None) extends StaticAnnotation
+                         defaultValue: Option[String] = None,
+                         language: Option[String] = None) extends StaticAnnotation
