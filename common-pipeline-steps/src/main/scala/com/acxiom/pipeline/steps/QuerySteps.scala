@@ -73,6 +73,22 @@ object QuerySteps {
   }
 
   /**
+    * pulls an existing TempView into a DataFrame
+    * @param viewName         the name of the view to created (optional, random name will be created if not provided)
+    * @param pipelineContext  the pipeline context
+    * @return   a new DataFrame
+    */
+  @StepFunction(
+    "57b0e491-e09b-4428-aab2-cebe1f217eda",
+    "Create a DataFrame from an Existing TempView",
+    "This step pulls an existing TempView from this session into a new DataFrame",
+    "Pipeline"
+  )
+  def tempViewToDataFrame(viewName: String, pipelineContext: PipelineContext): DataFrame = {
+    pipelineContext.sparkSession.get.table(viewName)
+  }
+
+  /**
     * Run a query against a dataframe and return a TempView that can be queried in the future
     * @param dataFrame        the dataframe to query
     * @param query            the query to run (all tables referenced must exist as TempViews created in this session)
@@ -119,7 +135,7 @@ object QuerySteps {
     "This step runs a SQL statement against an existing DataFrame from this session and returns a new DataFrame",
     "Pipeline"
   )
-  def dataFrameQuerytoDataFrame(dataFrame: DataFrame, @StepParameter(typeOverride = Some("script"), language = Some("sql")) query: String,
+  def dataFrameQueryToDataFrame(dataFrame: DataFrame, @StepParameter(typeOverride = Some("script"), language = Some("sql")) query: String,
                                 variableMap: Option[Map[String, String]], inputViewName: String, pipelineContext: PipelineContext): DataFrame = {
     // store the dataframe as a TempView
     dataFrameToTempView(dataFrame, Some(inputViewName), pipelineContext)
