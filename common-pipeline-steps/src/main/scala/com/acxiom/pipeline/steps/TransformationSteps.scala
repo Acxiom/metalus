@@ -268,6 +268,7 @@ object TransformationSteps {
       })
     }).toMap
 
+    // TODO: add a check to ensure that there aren't multiple fields trying to map to the same output column due to aliasing
     // create expression with aliases applied
     val finalExprs = dataFrame.columns.map(c => {
       val colName = if(transforms.standardizeColumnNames.getOrElse(false)) cleanColumnName(c) else c
