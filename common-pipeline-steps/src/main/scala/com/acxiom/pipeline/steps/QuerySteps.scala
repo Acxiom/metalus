@@ -44,8 +44,8 @@ object QuerySteps {
     "This step runs a SQL statement against existing TempViews from this session and returns a new TempView",
     "Pipeline"
   )
-  def queryToTempView(query: String, variableMap: Option[Map[String, String]], viewName: Option[String],
-                      pipelineContext: PipelineContext): String = {
+  def queryToTempView(@StepParameter(typeOverride = Some("script"), language = Some("sql")) query: String, variableMap: Option[Map[String, String]],
+                      viewName: Option[String], pipelineContext: PipelineContext): String = {
     val outputViewName = if(viewName.isEmpty) generateTempViewName else viewName.get
     logger.info(s"storing dataframe to tempView '$outputViewName")
     queryToDataFrame(query, variableMap, pipelineContext).createOrReplaceTempView(outputViewName)
@@ -78,8 +78,7 @@ object QuerySteps {
     * @param variableMap    the key value pairs that will be used in the replacement
     * @return  a new query string with all variables replaced
     */
-  private[steps] def replaceQueryVariables(@StepParameter(typeOverride = Some("script")) query: String,
-                                           variableMap: Option[Map[String, String]]): String = {
+  private[steps] def replaceQueryVariables(query: String, variableMap: Option[Map[String, String]]): String = {
     logger.debug(s"query before variable replacement")
     val finalQuery = if(variableMap.isEmpty) {
       // all variables have been replaced, now run standard replacements
