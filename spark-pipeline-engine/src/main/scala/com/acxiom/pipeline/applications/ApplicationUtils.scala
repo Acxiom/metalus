@@ -82,7 +82,7 @@ object ApplicationUtils {
     val defaultGlobals = generateGlobals(application.globals, rootGlobals.get, rootGlobals)
     val globalPipelineParameters = generatePipelineParameters(application.pipelineParameters, Some(PipelineParameters()))
     val ctx = pipelineExecution.pipelineContext
-      .copy(globals = generateGlobals(execution.globals, rootGlobals.get, defaultGlobals))
+      .copy(globals = generateGlobals(execution.globals, rootGlobals.get, defaultGlobals, execution.mergeGlobals))
       .copy(parameters = generatePipelineParameters(execution.pipelineParameters, globalPipelineParameters).get)
     pipelineExecution.asInstanceOf[DefaultPipelineExecution].copy(pipelineContext = ctx)
   }
