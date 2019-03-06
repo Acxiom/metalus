@@ -28,7 +28,7 @@ In each QueryStep that accepts a query string, variable replacement can be perfo
 * VariableMap: "tableName" -> "@step4"  (where step for is a queryToTempView() or dataFrameToTempView() step)
 
 
-#### Available Steps
+## Available Steps
 There are multiple steps that are exposed in the QuerySteps library:  
 
 ##### dataFrameToTempView()
