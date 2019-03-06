@@ -27,3 +27,43 @@ In each QueryStep that accepts a query string, variable replacement can be perfo
 * Query: "select * from ${tableName}"
 * VariableMap: "tableName" -> "@step4"  (where step for is a queryToTempView() or dataFrameToTempView() step)
 
+
+#### Available Steps
+There are multiple steps that are exposed in the QuerySteps library:  
+
+##### dataFrameToTempView()
+Stores an existing *dataframe* as a Spark temporary view that can be accessed in future steps in the same session using
+Spark SQL queries.  If a *viewName* is provided, it will be used to name the view, otherwise a system generated unique name
+will be used.  In either case, the viewName used to store the dataframe will be returned from this step.
+
+##### queryToTempView()
+Runs the provided *query* against Spark temporary views that were made available in previous steps from this session.  A
+*variableMap* parameter can be provided to allow for variable replacement in the query provided.  If a viewName is provided,
+it will be used to name the view, otherwise a system generated unique name will be used.  In either case, the viewName 
+used to store the dataframe will be returned from this step.
+
+##### queryToDataFrame()
+Runs the provided query against Spark temporary views that were made available in previous steps from this session.  A
+*variableMap* parameter can be provided to allow for variable replacement in the query provided.  The resulting dataframe
+will be returned from this step.
+
+##### tempViewToDataFrame()
+Pulls an existing Spark temporary view (created in the current session) with the *viewName* provided into a new dataframe.
+
+##### dataFrameQueryToTempView()
+Shortcut step that allows a dataframe to be loaded, queried, and stored as a Spark temporary view for future queries.  As with previous steps,
+a *variableMap* can be provided for variable replacement inside the query.  The *inputViewName* must be provided and should
+match the name used in the *query* to reference the dataframe.  If the *outputViewName* parameter is provided, it will be
+used to name the final temporary view, otherwise the system will generate a unique name.  In either case, the final viewName
+is returned from this step.
+
+##### dataFrameQueryToDataFrame()
+Shortcut step tha allows a dataframe to be loaded, queried, and returned as a new dataframe.  As with previous steps,
+a *variableMap* can be provided for variable replacement inside the query.  The *inputViewName* must be provided and should
+match the name used in the *query* to reference the dataframe.  The dataframe created from the query is returned from this
+step.
+
+##### cacheTempView()
+This step will cache the results of an existing temporary view named with the *viewName* provided.
+
+  
