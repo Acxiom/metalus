@@ -74,7 +74,7 @@ object QuerySteps {
 
   /**
     * pulls an existing TempView into a DataFrame
-    * @param viewName         the name of the view to created (optional, random name will be created if not provided)
+    * @param viewName         the name of the view to used
     * @param pipelineContext  the pipeline context
     * @return   a new DataFrame
     */
@@ -85,6 +85,7 @@ object QuerySteps {
     "Pipeline"
   )
   def tempViewToDataFrame(viewName: String, pipelineContext: PipelineContext): DataFrame = {
+    logger.info(s"pulling TempView $viewName to a dataframe")
     pipelineContext.sparkSession.get.table(viewName)
   }
 
@@ -141,6 +142,23 @@ object QuerySteps {
     dataFrameToTempView(dataFrame, Some(inputViewName), pipelineContext)
     // run a query and return the dataframe
     queryToDataFrame(query, variableMap, pipelineContext)
+  }
+
+  /**
+    * Cache an existing TempView
+    * @param viewName         the name of the view to cached
+    * @param pipelineContext  the pipeline context
+    * @return   the cached dataframe
+    */
+  @StepFunction(
+    "c88de095-14e0-4c67-8537-0325127e2bd2",
+    "Cache an exising TempView",
+    "This step will cache an existing TempView",
+    "Pipeline"
+  )
+  def cacheTempView(viewName: String, pipelineContext: PipelineContext): DataFrame = {
+    logger.info(s"caching TempView $viewName")
+    pipelineContext.sparkSession.get.table(viewName).cache
   }
 
   /** replace runtime variables in a query string
