@@ -5,6 +5,12 @@ import org.apache.spark.sql._
 
 object StepUtils {
 
+  /**
+    *
+    * @param sparkSession The current spark session to use.
+    * @param options      A DataFrameReaderOptions object for configuring the reader.
+    * @return             A DataFrameReader based on the provided options.
+    */
   def buildDataFrameReader(sparkSession: SparkSession, options: DataFrameReaderOptions): DataFrameReader = {
     val reader = sparkSession.read
       .format(options.format)
@@ -17,6 +23,12 @@ object StepUtils {
     }
   }
 
+  /**
+    *
+    * @param dataFrame A DataFrame to write.
+    * @param options   A DataFrameWriterOptions object for configuring the writer.
+    * @return          A DataFrameWriter[Row] based on the provided options.
+    */
   def buildDataFrameWriter(dataFrame: DataFrame, options: DataFrameWriterOptions): DataFrameWriter[Row] = {
     val writer = dataFrame.write.format(options.format)
       .mode(options.saveMode)
