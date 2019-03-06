@@ -1,6 +1,7 @@
 package com.acxiom.pipeline.applications
 
 import java.io.{File, FileOutputStream, OutputStreamWriter}
+import java.lang.IllegalArgumentException
 import java.nio.file.Files
 
 import com.acxiom.pipeline.drivers.DriverSetup
@@ -34,6 +35,19 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val executionPlan = ApplicationUtils.createExecutionPlan(application, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf)
       verifyApplication(executionPlan)
       executionPlan.head.pipelineContext.sparkSession.get.stop()
+    }
+
+    it("Should throw an exception if no pipelines are provided") {
+      val thrown = intercept[IllegalArgumentException] {
+        val badApplication = ApplicationUtils.parseApplication(
+          Source.fromInputStream(getClass.getResourceAsStream("/no-pipeline-application-test.json")).mkString
+        )
+        val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
+          .setMaster("local")
+        val executionPlan = ApplicationUtils.createExecutionPlan(badApplication, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf)
+        executionPlan.head.pipelineContext.sparkSession.get.stop()
+      }
+      assert(thrown.getMessage == "Either execution pipelines, pipelineIds or application pipelines must be provided for an execution")
     }
   }
 
@@ -99,6 +113,18 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       setup.pipelineContext.sparkSession.get.stop()
     }
 
+    it("Should respect the 'enableHiveSupport' parameter") {
+      val thrown = intercept[IllegalArgumentException] {
+        val setup = ApplicationDriverSetup(Map[String, Any](
+          "applicationJson" -> applicationJson,
+          "rootLogLevel" -> "OFF",
+          "enableHiveSupport" -> true
+        )
+        )
+      }
+      assert(thrown.getMessage == "Unable to instantiate SparkSession with Hive support because Hive classes are not found.")
+    }
+
     it("Should refresh an application") {
       val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "rootLogLevel" -> "DEBUG"))
       val executionPlan = setup.executionPlan.get
@@ -123,7 +149,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
   }
 
   private def verifyApplication(executionPlan: List[PipelineExecution]) = {
-    assert(executionPlan.length == 2)
+    assert(executionPlan.length == 4)
     // First execution
     val execution1 = executionPlan.head
     verifyFirstExecution(execution1)
@@ -131,6 +157,118 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     // Second execution
     val execution2 = executionPlan(1)
     verifySecondExecution(execution2)
+
+    // Third Execution
+    val execution3 = executionPlan(2)
+    verifyThirdExecution(execution3)
+
+    // Fourth Execution
+    val execution4 = executionPlan(3)
+    verifyFourthExecution(execution4)
+  }
+
+  private def verifyFourthExecution(execution4: PipelineExecution) = {
+    val ctx3 = execution4.pipelineContext
+    // Ensure the id is set properly
+    assert(execution4.id == "3")
+    // Use the global listener
+    assert(ctx3.pipelineListener.get.isInstanceOf[TestPipelineListener])
+    assert(ctx3.pipelineListener.get.asInstanceOf[TestPipelineListener].name == "Test Pipeline Listener")
+    // Use a custom security manager
+    assert(ctx3.security.asInstanceOf[TestPipelineSecurityManager].name == "Sub Security Manager")
+    // Use the global pipeline parameters
+    assert(ctx3.parameters.parameters.length == 1)
+    assert(ctx3.parameters.parameters.head.parameters.getOrElse("fred", "") == "johnson")
+    // Use the global step mapper
+    assert(ctx3.parameterMapper.asInstanceOf[TestPipelineStepMapper].name == "Test Step Mapper")
+    // Validate the correct pipelines are set
+    assert(execution4.pipelines.length == 2)
+    // Validate correct pipeline values
+    assert(execution4.pipelines.filter(p => p.id.get == "Pipeline1")
+      .head.steps.get.head.params.get.filter(pa => pa.name.get == "value")
+      .head.value.get == "!mappedObject")
+    assert(execution4.pipelines.filter(p => p.id.get == "Pipeline2")
+      .head.steps.get.head.params.get.filter(pa => pa.name.get == "value")
+      .head.value.get == "CHICKEN")
+    // Ensure no parents
+    assert(execution4.parents.isEmpty)
+    // Verify the globals object was properly merged
+    val globals = ctx3.globals.get
+    assert(globals.size == 6)
+    assert(globals.contains("rootLogLevel"))
+    assert(globals.contains("rootLogLevel"))
+    assert(globals.contains("number"))
+    assert(globals("number").asInstanceOf[BigInt] == 5)
+    assert(globals.contains("float"))
+    assert(globals("float").asInstanceOf[Double] == 1.5)
+    assert(globals.contains("string"))
+    assert(globals("string").asInstanceOf[String] == "some string")
+    assert(globals("newThing").asInstanceOf[String] == "Chickens rule!")
+    assert(globals.contains("mappedObject"))
+    val subGlobalObject = globals("mappedObject").asInstanceOf[TestGlobalObject]
+    assert(subGlobalObject.name.getOrElse("") == "Global Mapped Object")
+    assert(subGlobalObject.subObjects.isDefined)
+    assert(subGlobalObject.subObjects.get.length == 2)
+    assert(subGlobalObject.subObjects.get.head.name.getOrElse("") == "Sub Object 1")
+    assert(subGlobalObject.subObjects.get(1).name.getOrElse("") == "Sub Object 2")
+    // Verify the PipelineParameters object was set properly
+    assert(ctx3.parameters.parameters.length == 1)
+    assert(ctx3.parameters.parameters.length == 1)
+    assert(ctx3.parameters.hasPipelineParameters("Pipeline1"))
+    assert(ctx3.parameters.getParametersByPipelineId("Pipeline1").get.parameters.size == 1)
+    assert(ctx3.parameters.getParametersByPipelineId("Pipeline1").get.parameters("fred").asInstanceOf[String] == "johnson")
+  }
+
+  private def verifyThirdExecution(execution3: PipelineExecution) = {
+    val ctx3 = execution3.pipelineContext
+    // Ensure the id is set properly
+    assert(execution3.id == "2")
+    // Use the global listener
+    assert(ctx3.pipelineListener.get.isInstanceOf[TestPipelineListener])
+    assert(ctx3.pipelineListener.get.asInstanceOf[TestPipelineListener].name == "Test Pipeline Listener")
+    // Use a custom security manager
+    assert(ctx3.security.asInstanceOf[TestPipelineSecurityManager].name == "Sub Security Manager")
+    // Use the global pipeline parameters
+    assert(ctx3.parameters.parameters.length == 1)
+    assert(ctx3.parameters.parameters.head.parameters.getOrElse("fred", "") == "johnson")
+    // Use the global step mapper
+    assert(ctx3.parameterMapper.asInstanceOf[TestPipelineStepMapper].name == "Test Step Mapper")
+    // Validate the correct pipelines are set
+    assert(execution3.pipelines.length == 2)
+    // Validate correct pipeline values
+    assert(execution3.pipelines.filter(p => p.id.get == "Pipeline1")
+      .head.steps.get.head.params.get.filter(pa => pa.name.get == "value")
+      .head.value.get == "!mappedObject2")
+    assert(execution3.pipelines.filter(p => p.id.get == "Pipeline2")
+      .head.steps.get.head.params.get.filter(pa => pa.name.get == "value")
+      .head.value.get == "CHICKEN")
+    // Ensure no parents
+    assert(execution3.parents.isEmpty)
+    // Verify the globals object was properly constructed
+    val globals = ctx3.globals.get
+    assert(globals.size == 5)
+    assert(globals.contains("rootLogLevel"))
+    assert(globals.contains("rootLogLevel"))
+    assert(globals.contains("number"))
+    assert(globals("number").asInstanceOf[BigInt] == 2)
+    assert(globals.contains("float"))
+    assert(globals("float").asInstanceOf[Double] == 3.5)
+    assert(globals.contains("string"))
+    assert(globals("string").asInstanceOf[String] == "sub string")
+    assert(globals.contains("mappedObject"))
+    val subGlobalObject = globals("mappedObject").asInstanceOf[TestGlobalObject]
+    assert(subGlobalObject.name.getOrElse("") == "Execution Mapped Object")
+    assert(subGlobalObject.subObjects.isDefined)
+    assert(subGlobalObject.subObjects.get.length == 3)
+    assert(subGlobalObject.subObjects.get.head.name.getOrElse("") == "Sub Object 1a")
+    assert(subGlobalObject.subObjects.get(1).name.getOrElse("") == "Sub Object 2a")
+    assert(subGlobalObject.subObjects.get(2).name.getOrElse("") == "Sub Object 3")
+    // Verify the PipelineParameters object was set properly
+    assert(ctx3.parameters.parameters.length == 1)
+    assert(ctx3.parameters.parameters.length == 1)
+    assert(ctx3.parameters.hasPipelineParameters("Pipeline1"))
+    assert(ctx3.parameters.getParametersByPipelineId("Pipeline1").get.parameters.size == 1)
+    assert(ctx3.parameters.getParametersByPipelineId("Pipeline1").get.parameters("fred").asInstanceOf[String] == "johnson")
   }
 
   private def verifySecondExecution(execution2: PipelineExecution) = {
