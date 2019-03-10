@@ -13,7 +13,7 @@ object JavascriptSteps {
     "Javascript Step",
     "Executes a script and returns the result",
     "Pipeline")
-  def processScript(@StepParameter(typeOverride = Some("script"), language = Some("javascript")) script: String,
+  def processScript(@StepParameter(Some("script"), Some(true), None, Some("javascript")) script: String,
                     pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new JavaScriptEngine
     val bindings = new SimpleBindings()
@@ -26,7 +26,7 @@ object JavascriptSteps {
     "Javascript Step with additional object provided",
     "Executes a script and returns the result",
     "Pipeline")
-  def processScriptWithValue(@StepParameter(typeOverride = Some("script"), language = Some("javascript")) script: String,
+  def processScriptWithValue(@StepParameter(Some("script"), Some(true), None, Some("javascript")) script: String,
                              value: Any, pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new JavaScriptEngine
     val bindings = new SimpleBindings()

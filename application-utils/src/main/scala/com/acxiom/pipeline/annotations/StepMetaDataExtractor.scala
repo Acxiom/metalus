@@ -108,25 +108,18 @@ object StepMetaDataExtractor {
         params.foldLeft(List[StepFunctionParameter]())((stepParams, paramSymbol) => {
           if (paramSymbol.name.toString != "pipelineContext") {
             // See if the parameter has been annotated
+            val caseClass = if (paramSymbol.typeSignature.typeSymbol.isClass &&
+              paramSymbol.typeSignature.typeSymbol.asClass.isCaseClass) {
+              Some(paramSymbol.typeSignature.toString)
+            } else {
+              None
+            }
             val annotations = paramSymbol.annotations
             val a1 = annotations.find(_.tree.tpe =:= ru.typeOf[StepParameter])
             if (a1.isDefined)  {
-              val typeValue = a1.get.tree.children.tail.head.toString()
-              val requiredValue = a1.get.tree.children.tail(1).toString()
-              val defaultValue = a1.get.tree.children.tail(2).toString()
-              stepParams :+ StepFunctionParameter(
-                if (isValueSet(typeValue)) {
-                    getAnnotationValue(typeValue, stringValue = true).asInstanceOf[String]
-                  } else { getParameterType(paramSymbol) },
-                paramSymbol.name.toString,
-                if (isValueSet(requiredValue)) {
-                  getAnnotationValue(requiredValue, stringValue = false).asInstanceOf[Boolean]
-                } else { !paramSymbol.asTerm.isParamWithDefault },
-                if (isValueSet(defaultValue)) {
-                  Some(getAnnotationValue(defaultValue, stringValue = true).asInstanceOf[String])
-                } else { None })
+              stepParams :+ annotationToStepFunctionParameter(a1.get, paramSymbol).copy(className = caseClass)
             } else {
-              stepParams :+ StepFunctionParameter(getParameterType(paramSymbol), paramSymbol.name.toString)
+              stepParams :+ StepFunctionParameter(getParameterType(paramSymbol), paramSymbol.name.toString, className = caseClass)
             }
           } else {
             stepParams
@@ -145,6 +138,42 @@ object StepMetaDataExtractor {
     } else {
       steps
     }
+  }
+
+  /**
+    * This function converts the step parameter annotation into a StepFunctionParameter.
+    * @param annotation The annotation to convert
+    * @param paramSymbol The parameter information
+    * @return
+    */
+  private def annotationToStepFunctionParameter(annotation: ru.Annotation, paramSymbol: ru.Symbol): StepFunctionParameter = {
+    val typeValue = annotation.tree.children.tail.head.toString()
+    val requiredValue = annotation.tree.children.tail(1).toString()
+    val defaultValue = annotation.tree.children.tail(2).toString()
+    val language = annotation.tree.children.tail(3).toString()
+    StepFunctionParameter(
+      if (isValueSet(typeValue)) {
+        getAnnotationValue(typeValue, stringValue = true).asInstanceOf[String]
+      } else {
+        getParameterType(paramSymbol)
+      },
+      paramSymbol.name.toString,
+      if (isValueSet(requiredValue)) {
+        getAnnotationValue(requiredValue, stringValue = false).asInstanceOf[Boolean]
+      } else {
+        !paramSymbol.asTerm.isParamWithDefault
+      },
+      if (isValueSet(defaultValue)) {
+        Some(getAnnotationValue(defaultValue, stringValue = true).asInstanceOf[String])
+      } else {
+        None
+      },
+      if (isValueSet(language)) {
+        Some(getAnnotationValue(language, stringValue = true).asInstanceOf[String])
+      } else {
+        None
+      },
+      None)
   }
 
   private def isValueSet(annotationValue: String) = annotationValue.startsWith("scala.Some.apply[")

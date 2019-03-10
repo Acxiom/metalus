@@ -44,7 +44,7 @@ object QuerySteps {
     "This step runs a SQL statement against existing TempViews from this session and returns a new TempView",
     "Pipeline"
   )
-  def queryToTempView(@StepParameter(typeOverride = Some("script"), language = Some("sql")) query: String, variableMap: Option[Map[String, String]],
+  def queryToTempView(@StepParameter(Some("script"), Some(true), None, Some("sql")) query: String, variableMap: Option[Map[String, String]],
                       viewName: Option[String], pipelineContext: PipelineContext): String = {
     val outputViewName = if(viewName.isEmpty) generateTempViewName else viewName.get
     logger.info(s"storing dataframe to tempView '$outputViewName")
@@ -65,7 +65,7 @@ object QuerySteps {
     "This step runs a SQL statement against existing TempViews from this session and returns a new DataFrame",
     "Pipeline"
   )
-  def queryToDataFrame(@StepParameter(typeOverride = Some("script"), language = Some("sql")) query: String,
+  def queryToDataFrame(@StepParameter(Some("script"), Some(true), None, Some("sql")) query: String,
                        variableMap: Option[Map[String, String]], pipelineContext: PipelineContext): DataFrame = {
     val finalQuery = replaceQueryVariables(query, variableMap)
     // return the dataframe
@@ -105,7 +105,7 @@ object QuerySteps {
     "This step runs a SQL statement against an existing DataFrame from this session and returns a new TempView",
     "Pipeline"
   )
-  def dataFrameQueryToTempView(dataFrame: DataFrame, @StepParameter(typeOverride = Some("script"), language = Some("sql")) query: String,
+  def dataFrameQueryToTempView(dataFrame: DataFrame, @StepParameter(Some("script"), Some(true), None, Some("sql")) query: String,
                                variableMap: Option[Map[String, String]], inputViewName: String, outputViewName: Option[String],
                                pipelineContext: PipelineContext): String = {
     val finalViewName = if(outputViewName.isEmpty) generateTempViewName else outputViewName.get
@@ -136,7 +136,7 @@ object QuerySteps {
     "This step runs a SQL statement against an existing DataFrame from this session and returns a new DataFrame",
     "Pipeline"
   )
-  def dataFrameQueryToDataFrame(dataFrame: DataFrame, @StepParameter(typeOverride = Some("script"), language = Some("sql")) query: String,
+  def dataFrameQueryToDataFrame(dataFrame: DataFrame, @StepParameter(Some("script"), Some(true), None, Some("sql")) query: String,
                                 variableMap: Option[Map[String, String]], inputViewName: String, pipelineContext: PipelineContext): DataFrame = {
     // store the dataframe as a TempView
     dataFrameToTempView(dataFrame, Some(inputViewName), pipelineContext)

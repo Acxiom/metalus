@@ -15,4 +15,6 @@ case class StepDefinition(id: String,
 case class StepFunctionParameter(`type`: String,
                                  name: String,
                                  required: Boolean = false,
-                                 defaultValue: Option[String] = None)
+                                 defaultValue: Option[String] = None,
+                                 language: Option[String] = None,
+                                 className: Option[String] = None)

@@ -12,7 +12,7 @@ object ScalaSteps {
     "Scala script Step",
     "Executes a script and returns the result",
     "Pipeline")
-  def processScript(@StepParameter(typeOverride = Some("script"), language = Some("scala")) script: String,
+  def processScript(@StepParameter(Some("script"), Some(true), None, Some("scala")) script: String,
                     pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
     val result = engine.executeScript(script, pipelineContext)
@@ -23,7 +23,7 @@ object ScalaSteps {
     "Scala script Step with additional object provided",
     "Executes a script with the provided object and returns the result",
     "Pipeline")
-  def processScriptWithValue(@StepParameter(typeOverride = Some("script"), language = Some("scala")) script: String,
+  def processScriptWithValue(@StepParameter(Some("script"), Some(true), None, Some("scala")) script: String,
                              value: Any, `type`: String = "Any",
                              pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
