@@ -47,25 +47,25 @@ class QueryStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
     FileUtils.deleteDirectory(sparkLocalDir.toFile)
   }
 
-  describe("Query Step Tests") {
+  describe("Test Query Steps") {
     it("should allow queries to be run on existing dataframes") {
-      Given("a destination dataframe")
-      val destDF = sparkSession.createDataFrame(Seq(
+      Given("a dataframe")
+      val inputDF = sparkSession.createDataFrame(Seq(
         (1, "buster", "dawg", 29483, 23.44, 4),
         (2, "rascal", "dawg", 29483, -10.41, 4),
         (3, "fluffy", "cat", 72034, -10.41, 4)
       )).toDF("id", "first_name", "last_name", "zip", "amount", "age")
 
-      val inputDFCount = destDF.count
+      val inputDFCount = inputDF.count
 
       Then("store a dataframe as a TempView with a provided name")
-      val viewName1 = QuerySteps.dataFrameToTempView(destDF, Some("test_view_1"), this.pipelineContext)
+      val viewName1 = QuerySteps.dataFrameToTempView(inputDF, Some("test_view_1"), this.pipelineContext)
       And("expect a tempview to exist with the name provided with the same count as the original")
       assert(viewName1 == "test_view_1")
       assert(sparkSession.sql("select * from test_view_1").count == inputDFCount)
 
       Then("store a dataframe as a TempView without providing a name")
-      val viewName2 = QuerySteps.dataFrameToTempView(destDF, None, this.pipelineContext)
+      val viewName2 = QuerySteps.dataFrameToTempView(inputDF, None, this.pipelineContext)
       And("expect a TempView to exist with the random name provided")
       assert(sparkSession.sql(s"select * from $viewName2").count == inputDFCount)
 
@@ -109,6 +109,37 @@ class QueryStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
         Then(s"expect test '${test.desc}' to return the expected results")
         assert(QuerySteps.replaceQueryVariables(test.query, test.variableMap) == test.expected)
       })
+    }
+
+    it("should query dataframes in a single step") {
+      Given("a dataframe")
+      val inputDF = sparkSession.createDataFrame(Seq(
+        (1, "buster", "dawg", 29483, 23.44, 4),
+        (2, "rascal", "dawg", 29483, -10.41, 4),
+        (3, "fluffy", "cat", 72034, -10.41, 4)
+      )).toDF("id", "first_name", "last_name", "zip", "amount", "age")
+
+      Then("create a dataframe from a query on the new dataframe (using basic variable replacement)")
+      val newDF1 = QuerySteps.dataFrameQueryToDataFrame(inputDF, "select * from myTable where last_name='${lastName}'",
+        Some(Map("lastName" -> "dawg")), "myTable", this.pipelineContext)
+      And("expect the dataframe to contain the rows expected")
+      assert(newDF1.count == newDF1.where("last_name = 'dawg'").count)
+
+      Then("create a TempView from a query on a dataframe using a system generated name")
+      val newViewName = QuerySteps.dataFrameQueryToTempView(inputDF, "select * from myTable2 where last_name='${lastName}'",
+        Some(Map("lastName" -> "cat")), "myTable2", None, this.pipelineContext)
+      Then("pull the new TempView to a dataframe")
+      val newDF2 = QuerySteps.tempViewToDataFrame(newViewName, this.pipelineContext)
+      And("expect the dataframe to contain the rows expected")
+      assert(newDF2.count == newDF2.where("last_name = 'cat'").count)
+
+      Then("create a TempView from a query on a dataframe using a user provided name")
+      QuerySteps.dataFrameQueryToTempView(inputDF, "select * from myTable3 where ${amountFilter}",
+        Some(Map("amountFilter" -> "amount < 0")), "myTable3", Some("userTableName"), this.pipelineContext)
+      Then("pull the new TempView to a dataframe")
+      val newDF3 = QuerySteps.tempViewToDataFrame("userTableName", this.pipelineContext)
+      And("expect the dataframe to contain the rows expected")
+      assert(newDF3.count == newDF3.where("amount < 0").count)
     }
   }
 }
