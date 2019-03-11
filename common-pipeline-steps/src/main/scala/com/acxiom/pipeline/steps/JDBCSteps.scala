@@ -16,32 +16,28 @@ object JDBCSteps {
     "Pipeline")
   def readWithJDBCOptions(jdbcOptions: JDBCOptions,
                           pipelineContext: PipelineContext): DataFrame = {
-    val spark = pipelineContext.sparkSession.get
-
-    spark.read.format("jdbc")
-      .options(jdbcOptions.asProperties.toMap)
-      .load()
+    val options = DataFrameReaderOptions("jdbc", Some(jdbcOptions.asProperties.toMap))
+    DataFrameSteps.getDataFrameReader(options, pipelineContext).load()
   }
 
   @StepFunction("72dbbfc8-bd1d-4ce4-ab35-28fa8385ea54",
     "Load JDBC table as DataFrame",
     "This step will load a table from the provided jdbc step options",
     "Pipeline")
-  def readWithStepOptions(jDBCStepsOptions: JDBCStepsOptions,
+  def readWithStepOptions(jDBCStepsOptions: JDBCDataFrameReaderOptions,
                           pipelineContext: PipelineContext): DataFrame = {
-    val spark = pipelineContext.sparkSession.get
-    val map = jDBCStepsOptions.connectionProperties.getOrElse(Map[String, String]())
+    val map = jDBCStepsOptions.readerOptions.options.getOrElse(Map[String, String]())
     val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
-
+    val reader = DataFrameSteps.getDataFrameReader(jDBCStepsOptions.readerOptions, pipelineContext)
     if (jDBCStepsOptions.predicates.isDefined) {
-      spark.read.jdbc(
+      reader.jdbc(
         url = jDBCStepsOptions.url,
         table = jDBCStepsOptions.table,
         predicates = jDBCStepsOptions.predicates.get,
         connectionProperties = properties
       )
     } else {
-      spark.read.jdbc(
+      reader.jdbc(
         url = jDBCStepsOptions.url,
         table = jDBCStepsOptions.table,
         properties = properties
@@ -76,10 +72,8 @@ object JDBCSteps {
   def writeWithJDBCOptions(dataFrame: DataFrame,
                            jdbcOptions: JDBCOptions,
                            saveMode: String = "Overwrite"): Unit = {
-    dataFrame.write.format("jdbc")
-      .mode(saveMode)
-      .options(jdbcOptions.asProperties.toMap)
-      .save()
+    val options = DataFrameWriterOptions("jdbc", saveMode, Some(jdbcOptions.asProperties.toMap))
+    DataFrameSteps.getDataFrameWriter(dataFrame, options).save()
   }
 
   @StepFunction("77ffcd02-fbd0-4f79-9b35-ac9dc5fb7190",
@@ -103,26 +97,18 @@ object JDBCSteps {
     "This step will write a DataFrame as a table using JDBC using JDBCStepOptions",
     "Pipeline")
   def writeWithStepOptions(dataFrame: DataFrame,
-                           jDBCStepsOptions: JDBCStepsOptions,
-                           saveMode: String = "Overwrite"): Unit = {
-    val map = jDBCStepsOptions.connectionProperties.getOrElse(Map[String, String]())
+                           options: JDBCDataFrameWriterOptions): Unit = {
+    val map = options.writerOptions.options.getOrElse(Map[String, String]())
     val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
-
-    dataFrame.write
-      .mode(saveMode)
-      .jdbc(jDBCStepsOptions.url, jDBCStepsOptions.table, properties)
+    DataFrameSteps.getDataFrameWriter(dataFrame, options.writerOptions).jdbc(options.url, options.table, properties)
   }
-
 }
 
-/**
-  *
-  * @param url                  A valid jdbc url.
-  * @param table                A table name or subquery.
-  * @param predicates           Optional predicate used for partitioning.
-  * @param connectionProperties Optional JDBC properties.
-  */
-case class JDBCStepsOptions(url: String,
-                            table: String,
-                            predicates: Option[Array[String]] = None,
-                            connectionProperties: Option[Map[String, String]] = None)
+case class JDBCDataFrameReaderOptions(url: String,
+                                      table: String,
+                                      predicates: Option[Array[String]] = None,
+                                      readerOptions: DataFrameReaderOptions = DataFrameReaderOptions("jdbc"))
+
+case class JDBCDataFrameWriterOptions(url: String,
+                                      table: String,
+                                      writerOptions: DataFrameWriterOptions = DataFrameWriterOptions("jdbc"))

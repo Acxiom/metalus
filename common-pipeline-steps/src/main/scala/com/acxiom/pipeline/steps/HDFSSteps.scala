@@ -2,7 +2,6 @@ package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter}
-import com.acxiom.pipeline.steps.util.{DataFrameReaderOptions, DataFrameWriterOptions, StepUtils}
 import org.apache.spark.sql.DataFrame
 
 @StepObject
@@ -15,7 +14,7 @@ object HDFSSteps {
   def readFromPath(path: String,
                    options: DataFrameReaderOptions = DataFrameReaderOptions(),
                    pipelineContext: PipelineContext): DataFrame = {
-    IOSteps.read(options.setOption("path", path), pipelineContext)
+    DataFrameSteps.getDataFrameReader(options, pipelineContext).load(path)
   }
 
   @StepFunction("8daea683-ecde-44ce-988e-41630d251cb8",
@@ -25,7 +24,7 @@ object HDFSSteps {
   def readFromPaths(paths: List[String],
                     options: DataFrameReaderOptions = DataFrameReaderOptions(),
                     pipelineContext: PipelineContext): DataFrame = {
-    StepUtils.buildDataFrameReader(pipelineContext.sparkSession.get, options).load(paths: _*)
+    DataFrameSteps.getDataFrameReader(options, pipelineContext).load(paths: _*)
   }
 
   @StepFunction("0a296858-e8b7-43dd-9f55-88d00a7cd8fa",
@@ -35,6 +34,6 @@ object HDFSSteps {
   def writeToPath(dataFrame: DataFrame,
                      path: String,
                      options: DataFrameWriterOptions = DataFrameWriterOptions()): Unit = {
-    IOSteps.write(dataFrame, options.setOption("path", path))
+    DataFrameSteps.getDataFrameWriter(dataFrame, options).save(path)
   }
 }

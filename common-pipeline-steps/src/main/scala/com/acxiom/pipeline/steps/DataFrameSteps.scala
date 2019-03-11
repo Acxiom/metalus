@@ -1,9 +1,30 @@
-package com.acxiom.pipeline.steps.util
+package com.acxiom.pipeline.steps
 
-import org.apache.spark.sql.types.StructType
+import com.acxiom.pipeline.PipelineContext
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import org.apache.spark.sql._
+import org.apache.spark.sql.types.StructType
 
-object StepUtils {
+@StepObject
+object DataFrameSteps {
+
+  @StepFunction("22fcc0e7-0190-461c-a999-9116b77d5919",
+    "Load a DataFrame",
+    "This step will read a dataFrame using a DataFrameReaderOptions object",
+    "Pipeline")
+  def getDataFrameReader(dataFrameReaderOptions: DataFrameReaderOptions,
+           pipelineContext: PipelineContext): DataFrameReader ={
+    buildDataFrameReader(pipelineContext.sparkSession.get, dataFrameReaderOptions)
+  }
+
+  @StepFunction("e023fc14-6cb7-44cb-afce-7de01d5cdf00",
+    "Write a DataFrame",
+    "This step will write a dataFrame using a DataFrameWriterOptions object",
+    "Pipeline")
+  def getDataFrameWriter(dataFrame: DataFrame,
+                     options: DataFrameWriterOptions): DataFrameWriter[Row] = {
+    buildDataFrameWriter(dataFrame, options)
+  }
 
   /**
     *
@@ -11,13 +32,13 @@ object StepUtils {
     * @param options      A DataFrameReaderOptions object for configuring the reader.
     * @return             A DataFrameReader based on the provided options.
     */
-  def buildDataFrameReader(sparkSession: SparkSession, options: DataFrameReaderOptions): DataFrameReader = {
+  private def buildDataFrameReader(sparkSession: SparkSession, options: DataFrameReaderOptions): DataFrameReader = {
     val reader = sparkSession.read
       .format(options.format)
       .options(options.options.getOrElse(Map[String, String]()))
 
     if (options.schema.isDefined) {
-      reader.schema(options.schema.get)
+      reader.schema(options.schema.get.toStructType())
     } else {
       reader
     }
@@ -29,7 +50,7 @@ object StepUtils {
     * @param options   A DataFrameWriterOptions object for configuring the writer.
     * @return          A DataFrameWriter[Row] based on the provided options.
     */
-  def buildDataFrameWriter(dataFrame: DataFrame, options: DataFrameWriterOptions): DataFrameWriter[Row] = {
+  private def buildDataFrameWriter(dataFrame: DataFrame, options: DataFrameWriterOptions): DataFrameWriter[Row] = {
     val writer = dataFrame.write.format(options.format)
       .mode(options.saveMode)
       .options(options.options.getOrElse(Map[String, String]()))
@@ -51,7 +72,6 @@ object StepUtils {
       w2
     }
   }
-
 }
 
 /**
@@ -61,7 +81,7 @@ object StepUtils {
   */
 case class DataFrameReaderOptions(format: String = "parquet",
                                   options: Option[Map[String, String]] = None,
-                                  schema: Option[StructType] = None) {
+                                  schema: Option[Schema] = None) {
 
   def setOption(key: String, value: String): DataFrameReaderOptions = {
     this.copy(options = Some(this.options.getOrElse(Map()) + (key -> value)))

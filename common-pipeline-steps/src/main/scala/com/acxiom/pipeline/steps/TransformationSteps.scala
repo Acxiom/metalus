@@ -283,21 +283,3 @@ object TransformationSteps {
   }
 }
 
-
-case class ColumnDetails(outputField: String, inputAliases: List[String] = List(), expression: Option[String] = None)
-case class Transformations(columnDetails: List[ColumnDetails], filter: Option[String] = None, standardizeColumnNames: Option[Boolean] = Some(false))
-
-case class Attribute(name: String, dataType: String) {
-  def toStructField: StructField = {
-    val dataType = this.dataType.toLowerCase match {
-      case "string" => DataTypes.StringType
-      case "double" => DataTypes.DoubleType
-      case "integer" => DataTypes.IntegerType
-      case "timestamp" => DataTypes.TimestampType
-      case _ => DataTypes.StringType
-    }
-    StructField(this.name, dataType)
-  }
-}
-case class Schema(attributes: Seq[Attribute])
-

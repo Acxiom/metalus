@@ -4,7 +4,6 @@ import java.io.{File, PrintWriter}
 import java.nio.file.{Files, Path}
 
 import com.acxiom.pipeline._
-import com.acxiom.pipeline.steps.util.{DataFrameReaderOptions, DataFrameWriterOptions}
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.FileSystem
 import org.apache.log4j.{Level, Logger}

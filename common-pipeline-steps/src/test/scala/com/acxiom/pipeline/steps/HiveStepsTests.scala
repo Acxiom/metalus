@@ -3,7 +3,6 @@ package com.acxiom.pipeline.steps
 import java.nio.file.{Files, Path}
 
 import com.acxiom.pipeline._
-import com.acxiom.pipeline.steps.util.{DataFrameReaderOptions, DataFrameWriterOptions}
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
