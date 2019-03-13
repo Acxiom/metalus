@@ -47,11 +47,7 @@ object TransformationSteps {
   def mapDataFrameToSchema(inputDataFrame: DataFrame, destinationSchema: Schema, transforms: Transformations = Transformations(List()),
                            addNewColumns: Boolean = true): DataFrame = {
     // create a struct type with cleaned names to pass to methods that need structtype
-    val structType = StructType(destinationSchema.attributes.map(a => {
-      if(transforms.standardizeColumnNames.getOrElse(false)) {
-        a.toStructField.copy(name=cleanColumnName(a.name))
-      } else { a.toStructField }
-    }))
+    val structType = destinationSchema.toStructType(transforms)
 
     val aliasedDF = applyAliasesToInputDataFrame(inputDataFrame, transforms)
     val transformedDF = applyTransforms(aliasedDF, transforms)
