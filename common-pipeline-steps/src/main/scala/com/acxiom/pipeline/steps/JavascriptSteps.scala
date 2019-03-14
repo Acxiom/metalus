@@ -12,7 +12,8 @@ object JavascriptSteps {
   @StepFunction("5e0358a0-d567-5508-af61-c35a69286e4e",
     "Javascript Step",
     "Executes a script and returns the result",
-    "Pipeline")
+    "Pipeline",
+    "Scripting")
   def processScript(@StepParameter(Some("script"), Some(true), None, Some("javascript")) script: String,
                     pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new JavaScriptEngine
@@ -25,7 +26,8 @@ object JavascriptSteps {
   @StepFunction("570c9a80-8bd1-5f0c-9ae0-605921fe51e2",
     "Javascript Step with additional object provided",
     "Executes a script and returns the result",
-    "Pipeline")
+    "Pipeline",
+    "Scripting")
   def processScriptWithValue(@StepParameter(Some("script"), Some(true), None, Some("javascript")) script: String,
                              value: Any, pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new JavaScriptEngine

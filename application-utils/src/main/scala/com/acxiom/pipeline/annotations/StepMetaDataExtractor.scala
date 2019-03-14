@@ -133,6 +133,7 @@ object StepMetaDataExtractor {
         ann.get.tree.children.tail(1).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(2).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(3).toString().replaceAll("\"", ""),
+        ann.get.tree.children.tail(4).toString().replaceAll("\"", ""),
         parameters,
         EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}")))
     } else {

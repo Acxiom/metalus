@@ -11,7 +11,8 @@ object ScalaSteps {
   @StepFunction("a7e17c9d-6956-4be0-a602-5b5db4d1c08b",
     "Scala script Step",
     "Executes a script and returns the result",
-    "Pipeline")
+    "Pipeline",
+    "Scripting")
   def processScript(@StepParameter(Some("script"), Some(true), None, Some("scala")) script: String,
                     pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
@@ -22,7 +23,8 @@ object ScalaSteps {
   @StepFunction("8bf8cef6-cf32-4d85-99f4-e4687a142f84",
     "Scala script Step with additional object provided",
     "Executes a script with the provided object and returns the result",
-    "Pipeline")
+    "Pipeline",
+    "Scripting")
   def processScriptWithValue(@StepParameter(Some("script"), Some(true), None, Some("scala")) script: String,
                              value: Any, `type`: String = "Any",
                              pipelineContext: PipelineContext): PipelineStepResponse = {
