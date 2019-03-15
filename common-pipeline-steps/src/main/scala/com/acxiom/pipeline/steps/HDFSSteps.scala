@@ -10,7 +10,8 @@ object HDFSSteps {
   @StepFunction("87db259d-606e-46eb-b723-82923349640f",
     "Load DataFrame from HDFS",
     "This step will create a dataFrame in a given format from HDFS",
-    "Pipeline")
+    "Pipeline",
+  "InputOutput")
   def readFromHDFS(path: String,
                    @StepParameter(Some("text"), Some(false), Some("parquet")) format: String = "parquet",
                    properties: Option[Map[String, String]] = None,
@@ -28,7 +29,8 @@ object HDFSSteps {
   @StepFunction("0a296858-e8b7-43dd-9f55-88d00a7cd8fa",
     "Write DataFrame to HDFS",
     "This step will write a dataFrame in a given format to HDFS",
-    "Pipeline")
+    "Pipeline",
+    "InputOutput")
   def writeDataFrame(dataFrame: DataFrame,
                      path: String,
                      @StepParameter(Some("text"), Some(false), Some("parquet")) format: String = "parquet",

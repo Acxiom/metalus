@@ -22,8 +22,8 @@ object TransformationSteps {
     "219c787a-f502-4efc-b15d-5beeff661fc0",
     "Map a DataFrame to an existing DataFrame",
     "This step maps a new dataframe to an existing dataframe to make them compatible",
-    "Pipeline"
-  )
+    "Pipeline",
+    "Transforms")
   def mapToDestinationDataFrame(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, transforms: Transformations = Transformations(List()),
                              addNewColumns: Boolean = true): DataFrame = {
     val schema = Schema(destinationDataFrame.schema.map(x => Attribute(x.name, x.dataType.toString)).toList)
@@ -42,8 +42,8 @@ object TransformationSteps {
     "8f9c08ea-4882-4265-bac7-2da3e942758f",
     "Map a DataFrame to a pre-defined Schema",
     "This step maps a new dataframe to a pre-defined spark schema",
-    "Pipeline"
-  )
+    "Pipeline",
+    "Transforms")
   def mapDataFrameToSchema(inputDataFrame: DataFrame, destinationSchema: Schema, transforms: Transformations = Transformations(List()),
                            addNewColumns: Boolean = true): DataFrame = {
     // create a struct type with cleaned names to pass to methods that need structtype
@@ -73,8 +73,8 @@ object TransformationSteps {
     "3ee74590-9131-43e1-8ee8-ad320482a592",
     "Merge a DataFrame to an existing DataFrame",
     "This step merges two dataframes to create a single dataframe",
-    "Pipeline"
-  )
+    "Pipeline",
+    "Transforms")
   def mergeDataFrames(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, transforms: Transformations = Transformations(List()),
                       addNewColumns: Boolean = true): DataFrame = {
     // map to destination dataframe
@@ -95,8 +95,8 @@ object TransformationSteps {
     "ac3dafe4-e6ee-45c9-8fc6-fa7f918cf4f2",
     "Modify or Create Columns using Transforms Provided",
     "This step transforms existing columns and/or adds new columns to an existing dataframe using expressions provided",
-    "Pipeline"
-  )
+    "Pipeline",
+    "Transforms")
   def applyTransforms(dataFrame: DataFrame, transforms: Transformations): DataFrame = {
     // pull out mappings that contain a transform
     val mappingsWithTransforms = transforms.columnDetails.filter(_.expression.nonEmpty).map(x => {
@@ -139,8 +139,8 @@ object TransformationSteps {
     "fa0fcabb-d000-4a5e-9144-692bca618ddb",
     "Filter a DataFrame",
     "This step will filter a dataframe based on the where expression provided",
-    "Pipeline"
-  )
+    "Pipeline",
+    "Transforms")
   def applyFilter(dataFrame: DataFrame, expression: String): DataFrame = {
     dataFrame.where(expression)
   }
@@ -154,8 +154,8 @@ object TransformationSteps {
     "a981080d-714c-4d36-8b09-d95842ec5655",
     "Standardize Column Names on a DataFrame",
     "This step will standardize columns names on existing dataframe",
-    "Pipeline"
-  )
+    "Pipeline",
+    "Transforms")
   def standardizeColumnNames(dataFrame: DataFrame): DataFrame = {
     val nameMap = dataFrame.columns.map(c => col(c).as(cleanColumnName(c)))
     // TODO: handle duplicate column names after cleaning

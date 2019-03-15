@@ -13,7 +13,8 @@ object JDBCSteps {
   @StepFunction("cdb332e3-9ea4-4c96-8b29-c1d74287656c",
     "Load table as DataFrame",
     "This step will load a table from the provided jdbc information",
-    "Pipeline")
+    "Pipeline",
+    "InputOutput")
   def readWithJDBCOptions(jdbcOptions: JDBCOptions,
                           pipelineContext: PipelineContext): DataFrame = {
     val spark = pipelineContext.sparkSession.get
@@ -26,7 +27,8 @@ object JDBCSteps {
   @StepFunction("72dbbfc8-bd1d-4ce4-ab35-28fa8385ea54",
     "Load JDBC table as DataFrame",
     "This step will load a table from the provided jdbc step options",
-    "Pipeline")
+    "Pipeline",
+    "InputOutput")
   def readWithStepOptions(jDBCStepsOptions: JDBCStepsOptions,
                           pipelineContext: PipelineContext): DataFrame = {
     val spark = pipelineContext.sparkSession.get
@@ -52,7 +54,8 @@ object JDBCSteps {
   @StepFunction("dcc57409-eb91-48c0-975b-ca109ba30195",
     "Load JDBC table as DataFrame with Properties",
     "This step will load a table from the provided jdbc information",
-    "Pipeline")
+    "Pipeline",
+    "InputOutput")
   def readWithProperties(url: String,
                          table: String,
                          predicates: Option[Array[String]] = None,
@@ -72,7 +75,8 @@ object JDBCSteps {
   @StepFunction("c9fddf52-34b1-4216-a049-10c33ccd24ab",
     "Write DataFrame to JDBC table",
     "This step will write a DataFrame as a table using JDBC",
-    "Pipeline")
+    "Pipeline",
+    "InputOutput")
   def writeWithJDBCOptions(dataFrame: DataFrame,
                            jdbcOptions: JDBCOptions,
                            saveMode: String = "Overwrite"): Unit = {
@@ -85,7 +89,8 @@ object JDBCSteps {
   @StepFunction("77ffcd02-fbd0-4f79-9b35-ac9dc5fb7190",
     "Write DataFrame to JDBC table with Properties",
     "This step will write a DataFrame as a table using JDBC and provided properties",
-    "Pipeline")
+    "Pipeline",
+    "InputOutput")
   def writeWithProperties(dataFrame: DataFrame,
                           url: String,
                           table: String,
@@ -101,7 +106,8 @@ object JDBCSteps {
   @StepFunction("3d6b77a1-52c2-49ba-99a0-7ec773dac696",
     "Write DataFrame to JDBC table",
     "This step will write a DataFrame as a table using JDBC using JDBCStepOptions",
-    "Pipeline")
+    "Pipeline",
+    "InputOutput")
   def writeWithStepOptions(dataFrame: DataFrame,
                            jDBCStepsOptions: JDBCStepsOptions,
                            saveMode: String = "Overwrite"): Unit = {
