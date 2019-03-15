@@ -54,23 +54,16 @@ object DataFrameSteps {
     val writer = dataFrame.write.format(options.format)
       .mode(options.saveMode)
       .options(options.options.getOrElse(Map[String, String]()))
-    val w1 = if (options.bucketingOptions.isDefined) {
-      val bucketingOptions = options.bucketingOptions.get
-      writer.bucketBy(bucketingOptions.numBuckets, bucketingOptions.columns.head, bucketingOptions.columns.drop(1): _*)
-    } else {
-      writer
-    }
-    val w2 = if (options.partitionBy.isDefined) {
-      w1.partitionBy(options.partitionBy.get: _*)
-    } else {
-      w1
-    }
-    if (options.sortBy.isDefined) {
-      val sortBy = options.sortBy.get
-      w2.sortBy(sortBy.head, sortBy.drop(1): _*)
-    } else {
-      w2
-    }
+
+    List(options.bucketingOptions, options.sortBy, options.partitionBy).foldLeft(writer)((dfWriter, option) => {
+      option match {
+        case b: Option[BucketingOptions] if b.isDefined =>
+          dfWriter.bucketBy(b.get.numBuckets, b.get.columns.head, b.get.columns.drop(1): _*)
+        case p: Option[List[String]] if p.isDefined => dfWriter.partitionBy(p.get: _*)
+        case s: Option[List[String]] if s.isDefined => dfWriter.sortBy(s.get.head, s.get.drop(1): _*)
+        case _ => dfWriter
+      }
+    })
   }
 }
 
