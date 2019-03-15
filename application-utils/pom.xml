@@ -23,11 +23,6 @@
             <artifactId>spark-pipeline-engine_${scala.compat.version}</artifactId>
             <version>${parent.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.acxiom</groupId>
-            <artifactId>common-pipeline-steps_2.11</artifactId>
-            <version>${parent.version}</version>
-        </dependency>
     </dependencies>
 
     <build>
