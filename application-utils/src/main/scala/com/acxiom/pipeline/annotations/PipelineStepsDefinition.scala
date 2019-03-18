@@ -9,10 +9,13 @@ case class StepDefinition(id: String,
                           displayName: String,
                           description: String,
                           `type`: String,
+                          category: String,
                           params: List[StepFunctionParameter],
                           engineMeta: EngineMeta)
 
 case class StepFunctionParameter(`type`: String,
                                  name: String,
                                  required: Boolean = false,
-                                 defaultValue: Option[String] = None)
+                                 defaultValue: Option[String] = None,
+                                 language: Option[String] = None,
+                                 className: Option[String] = None)
