@@ -3,7 +3,6 @@ package com.acxiom.pipeline.steps
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import org.apache.spark.sql._
-import org.apache.spark.sql.types.StructType
 
 @StepObject
 object DataFrameSteps {
