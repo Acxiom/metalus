@@ -81,8 +81,6 @@ case class ApplicationDriverSetup(parameters: Map[String, Any]) extends DriverSe
     })
   }
 
-  def isHiveSupportEnabled: Boolean = enableHiveSupport
-
   private def loadApplication(parameters: Map[String, Any]): Application = {
     val json = if (parameters.contains("applicationJson")) {
       parameters("applicationJson").asInstanceOf[String]

@@ -1,16 +1,4 @@
 {
-  "sparkConf": {
-    "kryoClasses": [
-      "org.apache.hadoop.io.LongWritable",
-      "org.apache.http.client.entity.UrlEncodedFormEntity"
-    ],
-    "setOptions": [
-      {
-        "name": "spark.hadoop.io.compression.codecs",
-        "value": "org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec,hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec,org.apache.hadoop.io.compress.GzipCodec"
-      }
-    ]
-  },
   "requiredParameters": [
     "rootLogLevel"
   ],

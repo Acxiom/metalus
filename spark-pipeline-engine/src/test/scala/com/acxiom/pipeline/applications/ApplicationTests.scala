@@ -1,7 +1,6 @@
 package com.acxiom.pipeline.applications
 
 import java.io.{File, FileOutputStream, OutputStreamWriter}
-import java.lang.IllegalArgumentException
 import java.nio.file.Files
 
 import com.acxiom.pipeline.drivers.DriverSetup
@@ -115,11 +114,9 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
     it("Should respect the 'enableHiveSupport' parameter") {
       val thrown = intercept[IllegalArgumentException] {
-        val setup = ApplicationDriverSetup(Map[String, Any](
-          "applicationJson" -> applicationJson,
+        ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson,
           "rootLogLevel" -> "OFF",
-          "enableHiveSupport" -> true
-        )
+          "enableHiveSupport" -> true)
         )
       }
       assert(thrown.getMessage == "Unable to instantiate SparkSession with Hive support because Hive classes are not found.")
@@ -138,6 +135,14 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       }
       assert(thrown.getMessage.contains("Missing required parameters: rootLogLevel"))
 
+    }
+
+    it("Should fail when config information is not present") {
+      val thrown = intercept[RuntimeException] {
+        ApplicationDriverSetup(Map[String, Any]("rootLogLevel" -> "DEBUG"))
+      }
+      assert(Option(thrown).isDefined)
+      assert(thrown.getMessage == "Either the applicationJson or the applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
     }
   }
 
