@@ -1,12 +1,13 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.{StepFunction, StepParameter}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter}
 import org.apache.log4j.Logger
 import org.apache.spark.sql.DataFrame
 import java.util.UUID.randomUUID
 
 import com.acxiom.pipeline.PipelineContext
 
+@StepObject
 object QuerySteps {
   private val logger = Logger.getLogger(getClass)
 
