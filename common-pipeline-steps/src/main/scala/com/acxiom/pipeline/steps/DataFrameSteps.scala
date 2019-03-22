@@ -10,7 +10,8 @@ object DataFrameSteps {
   @StepFunction("22fcc0e7-0190-461c-a999-9116b77d5919",
     "Load a DataFrame",
     "This step will read a dataFrame using a DataFrameReaderOptions object",
-    "Pipeline")
+    "Pipeline",
+    "InputOutput")
   def getDataFrameReader(dataFrameReaderOptions: DataFrameReaderOptions,
            pipelineContext: PipelineContext): DataFrameReader ={
     buildDataFrameReader(pipelineContext.sparkSession.get, dataFrameReaderOptions)
@@ -19,7 +20,8 @@ object DataFrameSteps {
   @StepFunction("e023fc14-6cb7-44cb-afce-7de01d5cdf00",
     "Write a DataFrame",
     "This step will write a dataFrame using a DataFrameWriterOptions object",
-    "Pipeline")
+    "Pipeline",
+    "InputOutput")
   def getDataFrameWriter(dataFrame: DataFrame,
                      options: DataFrameWriterOptions): DataFrameWriter[Row] = {
     buildDataFrameWriter(dataFrame, options)
@@ -54,15 +56,23 @@ object DataFrameSteps {
       .mode(options.saveMode)
       .options(options.options.getOrElse(Map[String, String]()))
 
-    List(options.bucketingOptions, options.sortBy, options.partitionBy).foldLeft(writer)((dfWriter, option) => {
-      option match {
-        case b: Option[BucketingOptions] if b.isDefined =>
-          dfWriter.bucketBy(b.get.numBuckets, b.get.columns.head, b.get.columns.drop(1): _*)
-        case p: Option[List[String]] if p.isDefined => dfWriter.partitionBy(p.get: _*)
-        case s: Option[List[String]] if s.isDefined => dfWriter.sortBy(s.get.head, s.get.drop(1): _*)
-        case _ => dfWriter
-      }
-    })
+    val w1 = if (options.bucketingOptions.isDefined) {
+      val bucketingOptions = options.bucketingOptions.get
+      writer.bucketBy(bucketingOptions.numBuckets, bucketingOptions.columns.head, bucketingOptions.columns.drop(1): _*)
+    } else {
+      writer
+    }
+    val w2 = if (options.partitionBy.isDefined) {
+      w1.partitionBy(options.partitionBy.get: _*)
+    } else {
+      w1
+    }
+    if (options.sortBy.isDefined) {
+      val sortBy = options.sortBy.get
+      w2.sortBy(sortBy.head, sortBy.drop(1): _*)
+    } else {
+      w2
+    }
   }
 }
 

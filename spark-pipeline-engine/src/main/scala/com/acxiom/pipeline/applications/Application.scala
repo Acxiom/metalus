@@ -19,6 +19,7 @@ import com.acxiom.pipeline.{DefaultPipeline, PipelineParameters}
 case class Application(executions: Option[List[Execution]],
                        stepPackages: Option[List[String]],
                        globals: Option[Map[String, Any]],
+                       applicationProperties: Option[Map[String, Any]] = None,
                        pipelines: Option[List[DefaultPipeline]] = None,
                        pipelineListener: Option[ClassInfo] = None,
                        securityManager: Option[ClassInfo] = None,
