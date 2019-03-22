@@ -135,7 +135,7 @@ object DriverUtils {
       execution.parents))
   }
 
-  def loadJsonFromFile(path: String, className: String = "com.acxiom.pipeline.utils.LocalFileManager"): String = {
+  def loadJsonFromFile(path: String, fileLoaderClassName: String = "com.acxiom.pipeline.utils.LocalFileManager"): String = {
     val tempConf = new SparkConf()
     // Handle test scenarios where the master was not set
     val sparkConf = if (!tempConf.contains("spark.master")) {
@@ -144,7 +144,7 @@ object DriverUtils {
       tempConf
     }
     val sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
-    val fileManager = ReflectionUtils.loadClass(className,
+    val fileManager = ReflectionUtils.loadClass(fileLoaderClassName,
       Some(Map("sparkSession" -> sparkSession))).asInstanceOf[FileManager]
     val json = Source.fromInputStream(fileManager.getInputStream(path)).mkString
     sparkSession.stop()
