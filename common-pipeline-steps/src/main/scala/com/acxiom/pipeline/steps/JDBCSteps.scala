@@ -39,7 +39,7 @@ object JDBCSteps {
       spark.read.jdbc(
         url = jDBCStepsOptions.url,
         table = jDBCStepsOptions.table,
-        predicates = jDBCStepsOptions.predicates.get,
+        predicates = jDBCStepsOptions.predicates.get.toArray,
         connectionProperties = properties
       )
     } else {
@@ -130,5 +130,5 @@ object JDBCSteps {
   */
 case class JDBCStepsOptions(url: String,
                             table: String,
-                            predicates: Option[Array[String]] = None,
+                            predicates: Option[List[String]] = None,
                             connectionProperties: Option[Map[String, String]] = None)
