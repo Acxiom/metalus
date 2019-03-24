@@ -12,6 +12,7 @@ import scala.collection.JavaConversions._
 import scala.reflect.runtime.{universe => ru}
 import scala.util.{Failure, Success, Try}
 
+
 /**
   * This class will scan the provided stepPackages for annotated step objects and step functions. The output will be
   * JSON.
@@ -23,43 +24,57 @@ object StepMetaDataExtractor {
   implicit val formats: Formats = DefaultFormats
 
   def main(args: Array[String]): Unit = {
+    args.toList.foreach(println)
     val parameters = DriverUtils.extractParameters(args, Some(List("step-packages", "jar-files")))
     val stepPackages = parameters("step-packages").asInstanceOf[String].split(",").toList
     val jarFiles = parameters("jar-files").asInstanceOf[String].split(",").toList
-    val stepMappings = jarFiles.foldLeft(Map[String, List[StepDefinition]]())((packageDefinitions, file) => {
+    val stepMappingsAndClasses = jarFiles.foldLeft((Map[String, List[StepDefinition]](), Set[String]()))((packageDefinitions, file) => {
       stepPackages.foldLeft(packageDefinitions)((definitions, packageName) => {
         val pack = packageName.replaceAll("\\.", "/")
         val classFiles = new JarFile(new File(file)).entries().toList.filter(e => {
           e.getName.substring(0, e.getName.lastIndexOf("/")) == pack && e.getName.indexOf(".") != -1
         })
-        val jarSteps = classFiles.foldLeft(packageDefinitions.getOrElse(packageName, List[StepDefinition]()))((stepDefinitions, cf) => {
+        val jarStepsAndClasses = classFiles.foldLeft(
+          (packageDefinitions._1.getOrElse(packageName, List[StepDefinition]()), definitions._2))((stepDefinitions, cf) => {
           val stepPath = s"${cf.getName.substring(0, cf.getName.indexOf(".")).replaceAll("/", "\\.")}"
           if (!stepPath.contains("$")) {
-            val steps = findStepDefinitions(stepPath)
-            if (steps.isDefined) {
-              stepDefinitions ::: steps.get
-            } else {
-              stepDefinitions
-            }
-          } else {
-            stepDefinitions
-          }
+            val stepsAndClasses = findStepDefinitions(stepPath)
+            val steps = if (stepsAndClasses.nonEmpty) Some(stepsAndClasses.get._1) else None
+            val classes = if (stepsAndClasses.nonEmpty) Some(stepsAndClasses.get._2) else None
+            val updatedCaseClasses = if (classes.isDefined) stepDefinitions._2 ++ classes.get else stepDefinitions._2
+            val updatedSteps = if (steps.isDefined) stepDefinitions._1 ::: steps.get else stepDefinitions._1
+            (updatedSteps, updatedCaseClasses)
+          } else { stepDefinitions }
         })
-        if (definitions.contains(packageName)) {
-          definitions + (packageName -> (definitions(packageName) ::: jarSteps))
+        val jarSteps = jarStepsAndClasses._1
+        val jarCaseClasses = jarStepsAndClasses._2
+        val lastDefinitions = if (definitions._1.contains(packageName)) {
+          definitions._1 + (packageName -> (definitions._1(packageName) ::: jarSteps))
         } else {
-          definitions + (packageName -> jarSteps)
+          definitions._1 + (packageName -> jarSteps)
         }
+
+        (lastDefinitions, jarCaseClasses)
       })
     })
 
+    val outputFile = if(parameters.contains("output-file")) Some(parameters("output-file").asInstanceOf[String]) else None
+    val packageObjects = buildPackageObjects(stepMappingsAndClasses._2)
+    writeStepMappings(stepMappingsAndClasses._1, packageObjects, outputFile)
+  }
+
+  private def writeStepMappings(stepMappings: Map[String, List[StepDefinition]], packageObjects: List[PackageObject],
+                                outputFile: Option[String] = None): Unit = {
     if (stepMappings.nonEmpty) {
-      val json = Serialization.write(PipelineStepsDefinition(
-        stepMappings.foldLeft(List[String]())((pkgs, p) => if(p._2.nonEmpty) pkgs :+ p._1 else pkgs),
-        stepMappings.values.foldLeft(List[StepDefinition]())((steps, stepList) => steps ::: stepList)
-      ))
-      if (parameters.contains("output-file")) {
-        val file = new File(parameters("output-file").asInstanceOf[String])
+      val json = Serialization.write(
+        PipelineStepsDefinition(
+          stepMappings.foldLeft(List[String]())((pkgs, p) => if(p._2.nonEmpty) pkgs :+ p._1 else pkgs),
+          stepMappings.values.foldLeft(List[StepDefinition]())((steps, stepList) => steps ::: stepList),
+          packageObjects
+        )
+      )
+      if (outputFile.nonEmpty) {
+        val file = new File(outputFile.get)
         val writer = new FileWriter(file)
         writer.write(json)
         writer.flush()
@@ -72,6 +87,30 @@ object StepMetaDataExtractor {
     }
   }
 
+  private def buildPackageObjects(caseClasses: Set[String]): List[PackageObject] = {
+    import scala.reflect.runtime.currentMirror
+    import scala.tools.reflect.ToolBox
+    caseClasses.map(x => {
+      val script =
+        s"""
+           |import com.github.andyglow.json.JsonFormatter
+           |import com.github.andyglow.jsonschema.AsValue
+           |import json.Json
+           |
+        |val schema: json.Schema[$x] = Json.schema[$x]
+           |JsonFormatter.format(AsValue.schema(schema))
+      """.stripMargin
+
+      val tree = currentMirror.mkToolBox().parse(script)
+      val schemaJson = currentMirror.mkToolBox().compile(tree)().asInstanceOf[String]
+        .replaceFirst("draft-04", "draft-07")
+        .replaceAll("\n", "")
+        .replaceAll(" +", "")
+
+      PackageObject(x, schemaJson)
+    }).toList
+  }
+
   /**
     * Helper function that will load an object and check for step functions. Use the @StepObject and @StepFunction
     * annotations to identify which objects and functions should be included.
@@ -79,7 +118,7 @@ object StepMetaDataExtractor {
     * @param stepObjectPath The fully qualified class name.
     * @return A list of step definitions.
     */
-  private def findStepDefinitions(stepObjectPath: String): Option[List[StepDefinition]] = {
+  private def findStepDefinitions(stepObjectPath: String): Option[(List[StepDefinition], Set[String])] = {
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     Try(mirror.staticModule(stepObjectPath)) match {
       case Success(_) =>
@@ -87,9 +126,9 @@ object StepMetaDataExtractor {
         val im = mirror.reflectModule(module)
         val annotation = im.symbol.annotations.find(_.tree.tpe =:= ru.typeOf[StepObject])
         if (annotation.isDefined) {
-          Some(im.symbol.info.decls.foldLeft(List[StepDefinition]())((steps, symbol) => {
+          Some(im.symbol.info.decls.foldLeft((List[StepDefinition](), Set[String]()))((stepsAndClasses, symbol) => {
             val ann = symbol.annotations.find(_.tree.tpe =:= ru.typeOf[StepFunction])
-            generateStepDefinitionList(im, steps, symbol, ann)
+            generateStepDefinitionList(im, stepsAndClasses._1, stepsAndClasses._2, symbol, ann)
           }))
         } else {
           None
@@ -100,12 +139,14 @@ object StepMetaDataExtractor {
 
   private def generateStepDefinitionList(im: ru.ModuleMirror,
                                          steps: List[StepDefinition],
+                                         caseClasses: Set[String],
                                          symbol: ru.Symbol,
-                                         ann: Option[ru.Annotation]): List[StepDefinition] = {
+                                         ann: Option[ru.Annotation]): (List[StepDefinition], Set[String]) = {
     if (ann.isDefined) {
       val params = symbol.asMethod.paramLists.head
       val parameters = if (params.nonEmpty) {
-        params.foldLeft(List[StepFunctionParameter]())((stepParams, paramSymbol) => {
+        params.foldLeft(List[StepFunctionParameter](), caseClasses)((paramsAndClasses, paramSymbol) => {
+          val stepParams = paramsAndClasses._1
           if (paramSymbol.name.toString != "pipelineContext") {
             // See if the parameter has been annotated
             val caseClass = if (paramSymbol.typeSignature.typeSymbol.isClass &&
@@ -116,28 +157,32 @@ object StepMetaDataExtractor {
             }
             val annotations = paramSymbol.annotations
             val a1 = annotations.find(_.tree.tpe =:= ru.typeOf[StepParameter])
-            if (a1.isDefined)  {
+            val updatedStepParams = if (a1.isDefined)  {
               stepParams :+ annotationToStepFunctionParameter(a1.get, paramSymbol).copy(className = caseClass)
             } else {
               stepParams :+ StepFunctionParameter(getParameterType(paramSymbol), paramSymbol.name.toString, className = caseClass)
             }
+            val updatedCaseClassSet = if(caseClass.nonEmpty) paramsAndClasses._2 + caseClass.get else paramsAndClasses._2
+            (updatedStepParams, updatedCaseClassSet)
           } else {
-            stepParams
+            paramsAndClasses
           }
         })
       } else {
-        List[StepFunctionParameter]()
+        (List[StepFunctionParameter](), caseClasses)
       }
-      steps :+ StepDefinition(
+      val newSteps = steps :+ StepDefinition(
         ann.get.tree.children.tail.head.toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(1).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(2).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(3).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(4).toString().replaceAll("\"", ""),
-        parameters,
+        parameters._1,
         EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}")))
+
+      (newSteps, parameters._2)
     } else {
-      steps
+      (steps, caseClasses)
     }
   }
 
