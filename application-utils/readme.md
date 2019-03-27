@@ -4,8 +4,9 @@ Application utilities are provided as a way to make working with the project eas
 ## Step Metadata Extractor
 This utility will scan jar files that contain steps and produce a JSON representation. The tool takes a list of packages
 and identifies objects with the annotation *StepObject*. Next the tool will look for any function annotated with the
-*StepFunction* annotation. The output will contain the *pkgs* array with all of the packages that contained steps and the
-*steps* array that contains the metadata generated for each step.
+*StepFunction* annotation. The output will contain the *pkgs* array with all of the packages that contained steps, the
+*steps* array that contains the metadata generated for each step, and the *pkgObjs* array that contains schemas for all 
+of the case classes used as parameters in each step.
 
 ### Running
 The script parameters are:
@@ -248,6 +249,24 @@ Installation:
       "engineMeta": {
         "spark": "JavascriptSteps.processScriptWithValue"
       }
+    }
+  ],
+  "pkgObjs": [
+    {
+      "name": "com.acxiom.pipeline.steps.HiveStepsOptions",
+      "schema": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"format\":{\"type\":\"string\"},\"partitionBy\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"sortBy\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"bucketingOptions\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"numBuckets\":{\"type\":\"integer\"},\"columns\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}},\"required\":[\"numBuckets\",\"columns\"]},\"options\":{\"type\":\"object\",\"patternProperties\":{\"^.*$\":{\"type\":\"string\"}}},\"saveMode\":{\"type\":\"string\"},\"table\":{\"type\":\"string\"}},\"required\":[\"table\"]}"
+    },
+    {
+      "name": "com.acxiom.pipeline.steps.JDBCStepsOptions",
+      "schema": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"url\":{\"type\":\"string\"},\"table\":{\"type\":\"string\"},\"predicates\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"connectionProperties\":{\"type\":\"object\",\"patternProperties\":{\"^.*$\":{\"type\":\"string\"}}}},\"required\":[\"url\",\"table\"]}"
+    },
+    {
+      "name": "com.acxiom.pipeline.steps.Transformations",
+      "schema": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"columnDetails\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"outputField\":{\"type\":\"string\"},\"inputAliases\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"expression\":{\"type\":\"string\"}},\"required\":[\"outputField\"]}},\"filter\":{\"type\":\"string\"},\"standardizeColumnNames\":{\"type\":\"boolean\"}},\"required\":[\"columnDetails\"]}"
+    },
+    {
+      "name": "com.acxiom.pipeline.steps.Schema",
+      "schema": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"attributes\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"name\":{\"type\":\"string\"},\"dataType\":{\"type\":\"string\"}},\"required\":[\"name\",\"dataType\"]}}},\"required\":[\"attributes\"]}"
     }
   ]
 }

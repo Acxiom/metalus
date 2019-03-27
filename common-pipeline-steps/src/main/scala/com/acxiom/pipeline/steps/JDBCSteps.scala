@@ -108,13 +108,27 @@ object JDBCSteps {
     val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
     DataFrameSteps.getDataFrameWriter(dataFrame, options.writerOptions).jdbc(options.url, options.table, properties)
   }
+
 }
 
+/**
+  *
+  * @param url                  A valid jdbc url.
+  * @param table                A table name or subquery.
+  * @param predicates           Optional predicate used for partitioning.
+  * @param readerOptions        Optional DataFrameReader properties
+  */
 case class JDBCDataFrameReaderOptions(url: String,
                                       table: String,
                                       predicates: Option[Array[String]] = None,
                                       readerOptions: DataFrameReaderOptions = DataFrameReaderOptions("jdbc"))
 
+/**
+  *
+  * @param url                  A valid jdbc url.
+  * @param table                A table name or subquery.
+  * @param writerOptions        Optional DataFrameWriter properties
+  */
 case class JDBCDataFrameWriterOptions(url: String,
                                       table: String,
                                       writerOptions: DataFrameWriterOptions = DataFrameWriterOptions("jdbc"))

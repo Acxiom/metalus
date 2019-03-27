@@ -23,6 +23,27 @@
             <artifactId>spark-pipeline-engine_${scala.compat.version}</artifactId>
             <version>${parent.version}</version>
         </dependency>
+        <!--<dependency>-->
+            <!--<groupId>com.acxiom</groupId>-->
+            <!--<artifactId>common-pipeline-steps_${scala.compat.version}</artifactId>-->
+            <!--<version>${parent.version}</version>-->
+        <!--</dependency>-->
+        <!-- https://mvnrepository.com/artifact/com.github.andyglow/scala-jsonschema-core -->
+        <dependency>
+            <groupId>com.github.andyglow</groupId>
+            <artifactId>scala-jsonschema-core_2.11</artifactId>
+            <version>0.0.8</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.andyglow</groupId>
+            <artifactId>scala-jsonschema-macros_2.11</artifactId>
+            <version>0.0.8</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.andyglow</groupId>
+            <artifactId>scala-jsonschema-api_2.11</artifactId>
+            <version>0.0.8</version>
+        </dependency>
     </dependencies>
 
     <build>
