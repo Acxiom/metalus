@@ -18,6 +18,11 @@
             <artifactId>spark-pipeline-engine_${scala.compat.version}</artifactId>
             <version>${parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.hierynomus</groupId>
+            <artifactId>sshj</artifactId>
+            <version>0.27.0</version>
+        </dependency>
         <!-- Test -->
         <dependency>
             <groupId>org.apache.derby</groupId>
