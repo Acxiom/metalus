@@ -157,7 +157,7 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       JDBCSteps.writeWithStepOptions(
         dataFrame = chickens.toDF("ID", "NAME", "COLOR"),
-        options = JDBCDataFrameWriterOptions(
+        jDBCStepsOptions = JDBCDataFrameWriterOptions(
           url = "jdbc:derby:memory:test",
           table = "CHICKEN",
           writerOptions = DataFrameWriterOptions(
