@@ -142,6 +142,24 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       val result = dataFrame.take(3).map(r => (r.getString(0), r.getString(1))).toSeq
       assert(result == chickens)
     }
+    it("should successfully load multiple files") {
+      val csv1 = "id,chicken\n1,silkie\n2,polish"
+      val csv2 = "id,chicken\n3,sultan"
+      val p1 = miniCluster.getURI + "/data/c1.csv"
+      val p2 = miniCluster.getURI + "/data/c2.csv"
+      writeHDFSContext(fs, p1, csv1)
+      writeHDFSContext(fs, p2, csv2)
+
+      val dataFrame = HDFSSteps.readFromPaths(
+        List(p1, p2),
+        DataFrameReaderOptions(
+          format = "csv",
+          options = Some(Map[String, String]("header" -> "true"))),
+        pipelineContext)
+      assert(dataFrame.count() == 3)
+      val result = dataFrame.take(3).map(r => (r.getString(0), r.getString(1))).toSeq.sortBy(t => t._1)
+      assert(result == chickens)
+    }
     it("should respect options") {
       val csv = "idþchicken\n1þsilkie\n2þpolish\n3þsultan"
       val path = miniCluster.getURI + "/data/chickens2.csv"
