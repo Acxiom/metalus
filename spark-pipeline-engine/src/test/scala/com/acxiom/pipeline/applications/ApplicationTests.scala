@@ -114,10 +114,11 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
     it("Should respect the 'enableHiveSupport' parameter") {
       val thrown = intercept[IllegalArgumentException] {
-        ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson,
+        val ads = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson,
           "rootLogLevel" -> "OFF",
           "enableHiveSupport" -> true)
         )
+        ads.executionPlan
       }
       assert(thrown.getMessage == "Unable to instantiate SparkSession with Hive support because Hive classes are not found.")
     }
@@ -131,7 +132,9 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
     it("Should detect a missing parameter") {
       val thrown = intercept[RuntimeException] {
-        ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "logLevel" -> "TRACE"))
+        val ads = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "logLevel" -> "TRACE"))
+        ads.executionPlan
+
       }
       assert(thrown.getMessage.contains("Missing required parameters: rootLogLevel"))
 
@@ -139,7 +142,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
     it("Should fail when config information is not present") {
       val thrown = intercept[RuntimeException] {
-        ApplicationDriverSetup(Map[String, Any]("rootLogLevel" -> "DEBUG"))
+        val ads = ApplicationDriverSetup(Map[String, Any]("rootLogLevel" -> "DEBUG"))
+        ads.executionPlan
       }
       assert(Option(thrown).isDefined)
       assert(thrown.getMessage == "Either the applicationJson or the applicationConfigPath/applicationConfigurationLoader parameters must be provided!")

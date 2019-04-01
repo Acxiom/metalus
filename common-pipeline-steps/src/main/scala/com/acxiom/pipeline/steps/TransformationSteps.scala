@@ -47,11 +47,7 @@ object TransformationSteps {
   def mapDataFrameToSchema(inputDataFrame: DataFrame, destinationSchema: Schema, transforms: Transformations = Transformations(List()),
                            addNewColumns: Boolean = true): DataFrame = {
     // create a struct type with cleaned names to pass to methods that need structtype
-    val structType = StructType(destinationSchema.attributes.map(a => {
-      if(transforms.standardizeColumnNames.getOrElse(false)) {
-        a.toStructField.copy(name=cleanColumnName(a.name))
-      } else { a.toStructField }
-    }))
+    val structType = destinationSchema.toStructType(transforms)
 
     val aliasedDF = applyAliasesToInputDataFrame(inputDataFrame, transforms)
     val transformedDF = applyTransforms(aliasedDF, transforms)
@@ -282,22 +278,4 @@ object TransformationSteps {
     dataFrame.select(finalExprs: _*)
   }
 }
-
-
-case class ColumnDetails(outputField: String, inputAliases: List[String] = List(), expression: Option[String] = None)
-case class Transformations(columnDetails: List[ColumnDetails], filter: Option[String] = None, standardizeColumnNames: Option[Boolean] = Some(false))
-
-case class Attribute(name: String, dataType: String) {
-  def toStructField: StructField = {
-    val dataType = this.dataType.toLowerCase match {
-      case "string" => DataTypes.StringType
-      case "double" => DataTypes.DoubleType
-      case "integer" => DataTypes.IntegerType
-      case "timestamp" => DataTypes.TimestampType
-      case _ => DataTypes.StringType
-    }
-    StructField(this.name, dataType)
-  }
-}
-case class Schema(attributes: Seq[Attribute])
 
