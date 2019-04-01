@@ -8,8 +8,7 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
-import java.sql.{DriverManager, ResultSet}
-import java.util.Properties
+import java.sql.DriverManager
 
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
 
@@ -90,10 +89,10 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
         "user" -> "test_fixture",
         "driver" -> "org.apache.derby.jdbc.EmbeddedDriver"
       )
-      val df = JDBCSteps.readWithStepOptions(JDBCStepsOptions(
+      val df = JDBCSteps.readWithStepOptions(JDBCDataFrameReaderOptions(
         url = "jdbc:derby:memory:test",
         table = "(SELECT NAME, COLOR FROM CHICKEN) t1",
-        connectionProperties = Some(properties)),
+        readerOptions = DataFrameReaderOptions("jdbc", Some(properties))),
         pipelineContext = pipelineContext
       )
 
@@ -158,11 +157,14 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       JDBCSteps.writeWithStepOptions(
         dataFrame = chickens.toDF("ID", "NAME", "COLOR"),
-        jDBCStepsOptions = JDBCStepsOptions(
+        jDBCStepsOptions = JDBCDataFrameWriterOptions(
           url = "jdbc:derby:memory:test",
           table = "CHICKEN",
-          connectionProperties = Some(Map[String, String]("driver" -> "org.apache.derby.jdbc.EmbeddedDriver", "user" -> "test_fixture"))),
-        saveMode = "Overwrite"
+          writerOptions = DataFrameWriterOptions(
+            "jdbc",
+            "Overwrite",
+            Some(Map[String, String]("driver" -> "org.apache.derby.jdbc.EmbeddedDriver", "user" -> "test_fixture")))
+        )
       )
       verifyCount(count = 1)
     }

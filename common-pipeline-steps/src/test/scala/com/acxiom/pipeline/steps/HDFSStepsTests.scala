@@ -77,7 +77,10 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       val dataFrame = chickens.toDF("id", "chicken")
 
-      HDFSSteps.writeDataFrame(dataFrame=dataFrame, format="csv", path=miniCluster.getURI + "/data/chickens.csv")
+      HDFSSteps.writeToPath(dataFrame = dataFrame,
+        path = miniCluster.getURI + "/data/chickens.csv",
+        options = DataFrameWriterOptions(format = "csv")
+      )
       val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
 
       assert(list.size == 3)
@@ -98,9 +101,9 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       val dataFrame = chickens.toDF("id", "chicken")
 
-      HDFSSteps.writeDataFrame(
-        dataFrame=dataFrame, format="csv",
-        properties=Some(Map[String, String]("delimiter" -> "þ")),
+      HDFSSteps.writeToPath(
+        dataFrame = dataFrame,
+        options = DataFrameWriterOptions(format = "csv", options = Some(Map[String, String]("delimiter" -> "þ"))),
         path=miniCluster.getURI + "/data/chickens.csv"
       )
       val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
@@ -131,12 +134,30 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       writeHDFSContext(fs, path, csv)
 
-      val dataFrame = HDFSSteps.readFromHDFS(path = path,
-        format = "csv",
+      val dataFrame = HDFSSteps.readFromPath(path = path,
+        options = DataFrameReaderOptions(format = "csv"),
         pipelineContext = pipelineContext)
 
       assert(dataFrame.count() == 3)
       val result = dataFrame.take(3).map(r => (r.getString(0), r.getString(1))).toSeq
+      assert(result == chickens)
+    }
+    it("should successfully load multiple files") {
+      val csv1 = "id,chicken\n1,silkie\n2,polish"
+      val csv2 = "id,chicken\n3,sultan"
+      val p1 = miniCluster.getURI + "/data/c1.csv"
+      val p2 = miniCluster.getURI + "/data/c2.csv"
+      writeHDFSContext(fs, p1, csv1)
+      writeHDFSContext(fs, p2, csv2)
+
+      val dataFrame = HDFSSteps.readFromPaths(
+        List(p1, p2),
+        DataFrameReaderOptions(
+          format = "csv",
+          options = Some(Map[String, String]("header" -> "true"))),
+        pipelineContext)
+      assert(dataFrame.count() == 3)
+      val result = dataFrame.take(3).map(r => (r.getString(0), r.getString(1))).toSeq.sortBy(t => t._1)
       assert(result == chickens)
     }
     it("should respect options") {
@@ -145,9 +166,12 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       writeHDFSContext(fs, path, csv)
 
-      val dataFrame = HDFSSteps.readFromHDFS(path = path,
-        format = "csv",
-        properties = Some(Map[String, String]("header" -> "true", "delimiter" -> "þ")),
+      val dataFrame = HDFSSteps.readFromPath(
+        path = path,
+        options = DataFrameReaderOptions(
+          format = "csv",
+          options = Some(Map[String, String]("header" -> "true", "delimiter" -> "þ"))
+        ),
         pipelineContext = pipelineContext)
 
       assert(dataFrame.count() == 3)

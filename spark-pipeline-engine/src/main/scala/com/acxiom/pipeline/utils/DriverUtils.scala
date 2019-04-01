@@ -7,10 +7,12 @@ import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.json4s.native.JsonMethods.parse
 import org.json4s.reflect.Reflector
 import org.json4s.{DefaultFormats, Extraction, Formats}
+
+import scala.io.Source
 
 object DriverUtils {
 
@@ -131,5 +133,21 @@ object DriverUtils {
       execution.initialPipelineId,
       execution.pipelineContext.setGlobal("initialDataFrame", initialDataFrame),
       execution.parents))
+  }
+
+  def loadJsonFromFile(path: String, fileLoaderClassName: String = "com.acxiom.pipeline.utils.LocalFileManager"): String = {
+    val tempConf = new SparkConf()
+    // Handle test scenarios where the master was not set
+    val sparkConf = if (!tempConf.contains("spark.master")) {
+      tempConf.setMaster("local")
+    } else {
+      tempConf
+    }
+    val sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
+    val fileManager = ReflectionUtils.loadClass(fileLoaderClassName,
+      Some(Map("sparkSession" -> sparkSession))).asInstanceOf[FileManager]
+    val json = Source.fromInputStream(fileManager.getInputStream(path)).mkString
+    sparkSession.stop()
+    json
   }
 }
