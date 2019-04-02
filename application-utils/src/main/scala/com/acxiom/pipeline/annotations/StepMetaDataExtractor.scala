@@ -17,14 +17,14 @@ import scala.util.{Failure, Success, Try}
   * This class will scan the provided stepPackages for annotated step objects and step functions. The output will be
   * JSON.
   *
-  * --stepPackages - required package(s) to scan. Can be a comma separated string to scan multiple packages.
-  * --outputFile - optional file path to write the JSON. Otherwise, output will be to the console.
+  * --step-packages - required package(s) to scan. Can be a comma separated string to scan multiple packages.
+  * --jar-files - comma separated list of jar files to scan
+  * --output-file - optional file path to write the JSON. Otherwise, output will be to the console.
   */
 object StepMetaDataExtractor {
   implicit val formats: Formats = DefaultFormats
 
   def main(args: Array[String]): Unit = {
-    args.toList.foreach(println)
     val parameters = DriverUtils.extractParameters(args, Some(List("step-packages", "jar-files")))
     val stepPackages = parameters("step-packages").asInstanceOf[String].split(",").toList
     val jarFiles = parameters("jar-files").asInstanceOf[String].split(",").toList
