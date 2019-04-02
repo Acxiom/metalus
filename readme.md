@@ -1,7 +1,7 @@
 |Branch|Build|Coverage|Quality|
 -------|-----|---------|-------|
 |Develop|[![Develop Build](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=develop)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=develop)|[![Develop Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/develop.svg)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=develop)|[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=com.acxiom%3Aspark-pipeline-driver%3Adevelop&metric=alert_status)](https://sonarcloud.io/dashboard?id=com.acxiom%3Aspark-pipeline-driver%3Adevelop)|
-|Master|[![Master Status](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=master)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=master)|[![Master Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/master.svg)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=master)||
+|Master|[![Master Status](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=master)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=master)|[![Master Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/master.svg)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=master)|[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=com.acxiom%3Aspark-pipeline-driver%3Amaster&metric=alert_status)](https://sonarcloud.io/dashboard?id=com.acxiom%3Aspark-pipeline-driver%3Amaster)|
 
 # Spark Pipeline Driver
 The goal of this project is to make writing [Spark](http://spark.apache.org) applications easier by abstracting the logic
