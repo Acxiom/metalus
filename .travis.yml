@@ -23,14 +23,14 @@ jobs:
         - 2.11.12
       install: true
       script: mvn -B clean install
-    -
-      os: windows
-      language: shell
-      install: true
-      before_script:
-        - choco install jdk8
-        - choco install maven
-      script: mvn -B clean install
+    #    -
+    #      os: windows
+    #      language: shell
+    #      install: true
+    #      before_script:
+    #        - choco install jdk8
+    #        - choco install maven
+    #      script: mvn -B clean install
 
     - stage: Code Quality
       if: branch = develop
@@ -48,7 +48,7 @@ jobs:
         sonarcloud:
           organization: $SONAR_ORGANIZATION
       install: mvn -B -DskipTests=true clean install
-      script: mvn -B  -Dsonar.branch=develop scoverage:report scalastyle:check org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
+      script: mvn -B -Dsonar.projectKey=Acxiom_spark-pipeline-driver -Dsonar.host.url=https://sonarcloud.io scoverage:report scalastyle:check org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
 
     - stage: Release
       if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
@@ -63,18 +63,18 @@ jobs:
         - mvn -B versions:set -DremoveSnapshot
       install:
         - mvn -B -DskipTests=true clean install
-        - mvn -B -DrepoToken=$coverallsToken scoverage:report scala:doc scalastyle:check coveralls:report
-      before_script:
-        - gpg --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
-        - gpg --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
-      script: mvn --settings deployment/release-settings.xml -B -P release -DskipTests=true -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg deploy
-      before_deploy:
-        - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
-      deploy:
-        provider: releases
-        api_key: $GITHUB_OAUTH_TOKEN
-        name: ${project_version}
-        skip_cleanup: true
-        file_glob: true
-        file:
-          - application-utils/target/application-utils_2.11-${project_version}.tar.gz
+        - mvn -B -DrepoToken=$coverallsToken -Dsonar.projectKey=Acxiom_spark-pipeline-driver -Dsonar.host.url=https://sonarcloud.io scoverage:report scala:doc scalastyle:check coveralls:report org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
+#      before_script:
+#        - gpg --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
+#        - gpg --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
+#      script: mvn --settings deployment/release-settings.xml -B -P release -DskipTests=true -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg deploy
+#      before_deploy:
+#        - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
+#      deploy:
+#        provider: releases
+#        api_key: $GITHUB_OAUTH_TOKEN
+#        name: ${project_version}
+#        skip_cleanup: true
+#        file_glob: true
+#        file:
+#          - application-utils/target/application-utils_2.11-${project_version}.tar.gz
