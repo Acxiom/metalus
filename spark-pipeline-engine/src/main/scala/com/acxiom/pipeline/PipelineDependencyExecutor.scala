@@ -63,11 +63,7 @@ object PipelineDependencyExecutor {
           val result = f.value.get.get
           // Don't do anything if the result has already been recorded
           if (!futureResultMap.resultMap.contains(result.execution.id)) {
-            val success = if (result.result.isDefined) { result.result.get.success } else { false }
-            logger.debug(s"Saving result of execution ${result.execution.id} as $success")
-            if (!success && result.error.isDefined) {
-              logger.error(s"Exception thrown from execution ${result.execution.id}", result.error.get)
-            }
+            logExecutionSuccess(result)
             // Update the results with the result of this future
             val updateResultMap = futureResultMap.resultMap + (result.execution.id -> result)
             val updatedResults = futureResultMap.copy(resultMap = updateResultMap)
@@ -99,6 +95,22 @@ object PipelineDependencyExecutor {
   }
 
   /**
+    * Helper function to log the result of an execution.
+    * @param result The FutureResult containing the result of the execution.
+    */
+  private def logExecutionSuccess(result: FutureResult): Unit = {
+    val success = if (result.result.isDefined) {
+      result.result.get.success
+    } else {
+      false
+    }
+    logger.debug(s"Saving result of execution ${result.execution.id} as $success")
+    if (!success && result.error.isDefined) {
+      logger.error(s"Exception thrown from execution ${result.execution.id}", result.error.get)
+    }
+  }
+
+  /**
     * Determines if this execution may be started based on the results of any parents.
     *
     * @param execution The execution information to use when starting the job
@@ -112,8 +124,8 @@ object PipelineDependencyExecutor {
       val parents = execution.parents.get.filter(id => {
         results.contains(id) &&
           results(id).result.isDefined &&
-          (results(id).result.get.success ||
-            results(id).result.get.pipelineContext.stepMessages.isEmpty ||
+          results(id).result.get.success &&
+          (results(id).result.get.pipelineContext.stepMessages.isEmpty ||
             results(id).result.get.pipelineContext.stepMessages.get.value.isEmpty ||
             !results(id).result.get.pipelineContext.stepMessages.get.value.asScala.exists(p => {
               p.messageType == PipelineStepMessageType.error || p.messageType == PipelineStepMessageType.pause

@@ -1,7 +1,7 @@
-|Branch|Build|Coverage|
--------|-----|---------
-|Develop|[![Develop Build](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=develop)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=develop)|[![Develop Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/develop.svg)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=develop)|
-|Master|[![Master Status](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=master)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=master)|[![Master Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/master.svg)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=master)|
+|Branch|Build|Coverage|Quality|
+-------|-----|---------|-------|
+|Develop|[![Develop Build](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=develop)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=develop)|[![Develop Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/develop.svg)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=develop)|[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=com.acxiom%3Aspark-pipeline-driver%3Adevelop&metric=alert_status)](https://sonarcloud.io/dashboard?id=com.acxiom%3Aspark-pipeline-driver%3Adevelop)|
+|Master|[![Master Status](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=master)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=master)|[![Master Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/master.svg)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=master)|[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=com.acxiom%3Aspark-pipeline-driver%3Amaster&metric=alert_status)](https://sonarcloud.io/dashboard?id=com.acxiom%3Aspark-pipeline-driver%3Amaster)|
 
 # Spark Pipeline Driver
 The goal of this project is to make writing [Spark](http://spark.apache.org) applications easier by abstracting the logic
@@ -26,10 +26,14 @@ A pipeline is a collection of steps that should be executed in a predefined orde
 more pipelines as part of an application and are useful when there may be a need to restart processing in an application
 without needing to run all of the same logic again.
 
+![Pipeline Overview](docs/images/Pipeline_Overview.png "Pipeline Overview")
+
 ### Execution Plan
-An execution plan allows control over how pipelines are executed. An application may choose to only have a single 
-execution that runs one or more pipelines or several executions that run pipelines in parallel or based on a dependency
-structure.
+An execution plan allows control over how pipelines are executed. An [application](spark-pipeline-engine/docs/application.md) 
+may choose to only have a single execution that runs one or more pipelines or several executions that run pipelines in 
+parallel or based on a dependency structure.
+
+![Execution Overview](docs/images/Execution_Overview.png "Execution Overview")
 
 ### Drivers
 Drivers are the entry point into the application. The driver is responsible for processing the input parameters and
@@ -42,22 +46,38 @@ class name as a command line parameter. The driver will then call the different 
 
 ![Driver Initialization](docs/images/DefaultPipelineDriver.png "Default Pipeline Driver Flow")
 
+### [Application](spark-pipeline-engine/docs/application.md)
+The *Application* framework is a configuration based method of describing the Spark application. This includes defining 
+the execution plan, pipelines, pipeline context overrides (*pipeline listener*, *security manager*, *step mapper*) and 
+global values.
+
+![Application Overview](docs/images/Application_Overview.png "Application Overview")
+
 ## Projects
 There are several sub-projects:
 
 ### [Spark Pipeline Engine](spark-pipeline-engine/readme.md)
 This project contains the core library and is the minimum requirement for any application.
 
+[Maven library](https://search.maven.org/search?q=a:spark-pipeline-engine_2.11)
+
 ### [Common Pipeline Steps](common-pipeline-steps/readme.md)
 This component contains steps that are considered generic enough to be used in any project.
+
+[Maven library](https://search.maven.org/search?q=a:common-pipeline-steps_2.11)
 
 ### [Streaming Pipeline Drivers](streaming-pipeline-drivers/readme.md)
 This component contains drivers classes that connect to various streaming technologies like [Kafka](http://kafka.apache.org/) 
 and [Kinesis](https://aws.amazon.com/kinesis/). Each class provides a basic implementation that gathers data and then 
 initiates the Spark Pipeline Engine Component for processing of the incoming data.
 
+[Maven library](https://search.maven.org/search?q=a:streaming-pipeline-drivers_2.11)
+
 ### [Pipeline Drivers Examples](pipeline-drivers-examples/readme.md)
 This project provides several examples to help demonstrate how to use the library.
+
+### [Application Utilities](application-utils/readme.md)
+This project provides utilities that help work with the project.
 
 ## Examples
 Examples of building pipelines can be found in the [pipeline-drivers-examples](pipeline-drivers-examples/readme.md) project.
@@ -74,5 +94,9 @@ To build the project run:
 Tests are part of the main build.
 
 ## Contributing
-To contribute back changes, fork the main github repository. Once the changes are ready, create a pull request against
-the main develop branch.
+* Start by forking the main GutHub [repository](https://github.com/Acxiom/spark-pipeline-driver).
+* Commit all changes to the develop branch.
+* Create proper scaladoc comments for any new or changed functions.
+* Provide a thorough unit test for the change.
+* Provide any additional documentation required by individual projects.
+

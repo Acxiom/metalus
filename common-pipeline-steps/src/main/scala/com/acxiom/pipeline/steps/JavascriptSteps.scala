@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
-import com.acxiom.pipeline.utils.ScriptEngine
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter}
+import com.acxiom.pipeline.utils.JavaScriptEngine
 import com.acxiom.pipeline.{PipelineContext, PipelineStepResponse}
 import javax.script.SimpleBindings
 import org.apache.log4j.Logger
@@ -11,10 +11,12 @@ object JavascriptSteps {
   private val logger = Logger.getLogger(getClass)
   @StepFunction("5e0358a0-d567-5508-af61-c35a69286e4e",
     "Javascript Step",
-    "Executes a Javascript and returns the result",
-    "Pipeline")
-  def processScript(script: String, pipelineContext: PipelineContext): PipelineStepResponse = {
-    val engine = new ScriptEngine
+    "Executes a script and returns the result",
+    "Pipeline",
+    "Scripting")
+  def processScript(@StepParameter(Some("script"), Some(true), None, Some("javascript")) script: String,
+                    pipelineContext: PipelineContext): PipelineStepResponse = {
+    val engine = new JavaScriptEngine
     val bindings = new SimpleBindings()
     bindings.put("logger", logger)
     val result = engine.executeScript(script, bindings, pipelineContext)
@@ -23,10 +25,12 @@ object JavascriptSteps {
 
   @StepFunction("570c9a80-8bd1-5f0c-9ae0-605921fe51e2",
     "Javascript Step with additional object provided",
-    "Executes a Javascript and returns the result",
-    "Pipeline")
-  def processScriptWithValue(script: String, value: Any, pipelineContext: PipelineContext): PipelineStepResponse = {
-    val engine = new ScriptEngine
+    "Executes a script and returns the result",
+    "Pipeline",
+    "Scripting")
+  def processScriptWithValue(@StepParameter(Some("script"), Some(true), None, Some("javascript")) script: String,
+                             value: Any, pipelineContext: PipelineContext): PipelineStepResponse = {
+    val engine = new JavaScriptEngine
     val bindings = new SimpleBindings()
     bindings.put("logger", logger)
     val result = engine.executeScriptWithObject(script, value, bindings, pipelineContext)

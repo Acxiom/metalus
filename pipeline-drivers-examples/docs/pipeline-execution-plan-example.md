@@ -3,11 +3,11 @@ This example will demonstrate how to use an execution plan to create pipeline de
 as execute pipelines in parallel.
 
 There will be six pipelines that are executed:
-* **ROOT** - This is the first pipeline and is responsible for reading in the source file
-* **PROD** - This pipeline will extract the product data from the **ROOT** DataFrame and group by the product id
-* **CUST** - This pipeline will extract the customer data from the **ROOT** DataFrame and group by the customer id
-* **CC** - This pipeline will extract the credit card data from the **ROOT** DataFrame and group by the customer id
-* **ORD** - This pipeline will extract the order data from the **ROOT** DataFrame and group by the order num
+* **ROOT** - This is the first pipeline and is responsible for reading in the source file.
+* **PROD** - This pipeline will extract the product data from the **ROOT** DataFrame and group by the product id.
+* **CUST** - This pipeline will extract the customer data from the **ROOT** DataFrame and group by the customer id.
+* **CC** - This pipeline will extract the credit card data from the **ROOT** DataFrame and group by the customer id.
+* **ORD** - This pipeline will extract the order data from the **ROOT** DataFrame and group by the order num.
 * **SAVE** - This pipeline will write the data from the **PROD**, **CUST**, **CC** and **ORD** DataFrames into Mongo.
 
 ## Example Code
@@ -22,7 +22,7 @@ The first pipeline will be responsible for the following actions:
 * Create schema
 * Load orders.csv
 
-Three new steps are required to perform this process:
+Three new steps are required to perform this process and will be added to the *InputOutputSteps* object:
 
 **Note**: The readHeader step will only work with local files.
 
@@ -198,7 +198,7 @@ a new *DataFrame* which will be added to the globals object of the final executi
 
 Two new steps are required to perform this process:
 
-* Create a new object in the *com.acxiom.pipeline.steps* package named [**MappingSteps**](src/main/scala/com/acxiom/pipeline/steps/MappingSteps.scala)
+* Create a new object in the *com.acxiom.pipeline.steps* package named [**SplitSteps**](src/main/scala/com/acxiom/pipeline/steps/SplitSteps.scala)
 * Create a function named *selectFields* and declare two parameters:
 	* dataFrame: DataFrame
 	* fieldNames: List[String]
@@ -255,7 +255,7 @@ step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROO
 				  }
                 ],
                 "engineMeta": {
-                  "spark": "MappingSteps.selectFields"
+                  "spark": "SplitSteps.selectFields"
                 }
               },
               {
@@ -323,7 +323,7 @@ step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROO
 				  }
                 ],
                 "engineMeta": {
-                  "spark": "MappingSteps.selectFields"
+                  "spark": "SplitSteps.selectFields"
                 }
               },
               {
@@ -387,7 +387,7 @@ step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROO
 				  }
                 ],
                 "engineMeta": {
-                  "spark": "MappingSteps.selectFields"
+                  "spark": "SplitSteps.selectFields"
                 }
               },
               {
@@ -452,7 +452,7 @@ step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROO
 				  }
                 ],
                 "engineMeta": {
-                  "spark": "MappingSteps.selectFields"
+                  "spark": "SplitSteps.selectFields"
                 }
               },
               {
@@ -484,7 +484,7 @@ step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROO
 
 ## Final Pipeline
 Now that the data has been loaded and processed into different forms, a final pipeline will be responsible for writing 
-the data to a data store. This pipeline is only here to show a multi-parent dependency relationship. It would probably 
+the data to a Mongo data store. This pipeline is only here to show a multi-parent dependency relationship. It would probably 
 be more optimal to have each of the other pipelines write as a last step.
 
 A new library (mongo connector) and a new step will be required.
@@ -713,7 +713,7 @@ override def pipelines: List[Pipeline] = List()
 override def pipelineContext: PipelineContext = ctx
 ```
 
-* Override the *executionPlan* function to return an list containing six executions:
+* Override the *executionPlan* function to return a list containing six executions:
 
 ```scala
 override def executionPlan: Option[List[PipelineExecution]] = Some(executionPlan)
@@ -725,7 +725,7 @@ that contains all of the dependencies. Once this is done, place the jar in a loc
 
 Submit a job:
 
-```
+```bash
 spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 --master spark://localhost:7077 \
 --deploy-mode client \

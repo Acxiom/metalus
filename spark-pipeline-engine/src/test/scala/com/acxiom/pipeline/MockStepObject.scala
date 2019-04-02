@@ -7,6 +7,10 @@ object MockStepObject {
     PipelineStepResponse(Some(string), Some(Map[String, Any]("boolean" -> boolean)))
   }
 
+  def mockStepFunction(string: String, boolean: Boolean, opt: Option[String]): PipelineStepResponse = {
+    PipelineStepResponse(Some(string), Some(Map[String, Any]("boolean" -> boolean, "option" -> opt)))
+  }
+
   def mockStepFunctionAnyResponse(string: String): String = {
     string
   }

@@ -71,7 +71,6 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     */
   def getGlobalString(globalName: String): Option[String] = {
     if (this.globals.isDefined && this.globals.get.contains(globalName)) {
-      // TODO Expand to support other types
       this.globals.get(globalName) match {
         case str: String =>
           Some(str)
@@ -128,6 +127,15 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     */
   def setGlobal(globalName: String, globalValue: Any): PipelineContext =
     this.copy(globals = Some(this.globals.getOrElse(Map[String, Any]()) + (globalName -> globalValue)))
+
+  /**
+    * This function will merge an existing Map[String, Any] into the globals map
+    *
+    * @param globals A Map[String, Any] of global properties.
+    * @return A new PipelineContext with an updated globals map.
+    */
+  def setGlobals(globals: Map[String, Any]): PipelineContext =
+    this.copy(globals = Some(if(this.globals.isDefined) this.globals.get ++ globals else globals))
 
   /**
     * Adds a new PipelineStepMessage to the context

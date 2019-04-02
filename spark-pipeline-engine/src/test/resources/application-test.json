@@ -1,0 +1,302 @@
+{
+  "sparkConf": {
+    "kryoClasses": [
+      "org.apache.hadoop.io.LongWritable",
+      "org.apache.http.client.entity.UrlEncodedFormEntity"
+    ],
+    "setOptions": [
+      {
+        "name": "spark.hadoop.io.compression.codecs",
+        "value": "org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec,hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec,org.apache.hadoop.io.compress.GzipCodec"
+      }
+    ]
+  },
+  "requiredParameters": [
+    "rootLogLevel"
+  ],
+  "stepPackages": [
+    "com.acxiom.pipeline.steps",
+    "com.acxiom.pipeline"
+  ],
+  "pipelineListener": {
+    "className": "com.acxiom.pipeline.applications.TestPipelineListener",
+    "parameters": {
+      "name": "Test Pipeline Listener"
+    }
+  },
+  "securityManager": {
+    "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
+    "parameters": {
+      "name": "Test Security Manager"
+    }
+  },
+  "stepMapper": {
+    "className": "com.acxiom.pipeline.applications.TestPipelineStepMapper",
+    "parameters": {
+      "name": "Test Step Mapper"
+    }
+  },
+  "pipelineParameters": {
+    "parameters":[
+      {
+        "pipelineId": "Pipeline1",
+        "parameters": {
+          "fred": "johnson"
+        }
+      }
+    ]
+  },
+  "pipelines": [
+    {
+      "id": "Pipeline1",
+      "name": "Pipeline 1",
+      "steps": [
+        {
+          "id": "Pipeline1Step1",
+          "displayName": "Pipeline1Step1",
+          "type": "preload",
+          "params": [
+            {
+              "type": "text",
+              "name": "value",
+              "required": true,
+              "value": "!mappedObject"
+            }
+          ],
+          "engineMeta": {
+            "spark": "ExecutionSteps.normalFunction"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Pipeline2",
+      "name": "Pipeline 2",
+      "steps": [
+        {
+          "id": "Pipeline2Step1",
+          "displayName": "Pipeline2Step1",
+          "type": "preload",
+          "params": [
+            {
+              "type": "text",
+              "name": "value",
+              "required": true,
+              "value": "CHICKEN"
+            },
+            {
+              "type": "object",
+              "name": "parameterObject",
+              "required": true,
+              "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+              "value": {
+                "name": "Parameter Mapped Object",
+                "subObjects": [
+                  {
+                    "name": "Param Object 1"
+                  },
+                  {
+                    "name": "Param Object 2"
+                  }
+                ]
+              }
+            }
+          ],
+          "engineMeta": {
+            "spark": "ExecutionSteps.normalFunction"
+          }
+        }
+      ]
+    }
+  ],
+  "globals": {
+    "number": 1,
+    "float": 1.5,
+    "string": "some string",
+    "mappedObject": {
+      "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+      "object": {
+        "name": "Global Mapped Object",
+        "subObjects": [
+          {
+            "name": "Sub Object 1"
+          },
+          {
+            "name": "Sub Object 2"
+          }
+        ]
+      }
+    }
+  },
+  "executions": [
+    {
+      "id": "0",
+      "pipelineIds": ["Pipeline1"],
+      "securityManager": {
+        "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
+        "parameters": {
+          "name": "Sub Security Manager"
+        }
+      },
+      "globals": {
+        "number": 2,
+        "float": 3.5,
+        "string": "sub string",
+        "mappedObject": {
+          "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+          "object": {
+            "name": "Execution Mapped Object",
+            "subObjects": [
+              {
+                "name": "Sub Object 1a"
+              },
+              {
+                "name": "Sub Object 2a"
+              },
+              {
+                "name": "Sub Object 3"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "1",
+      "pipelines": [
+        {
+          "id": "Pipeline2",
+          "name": "Pipeline 2",
+          "steps": [
+            {
+              "id": "Pipeline2Step1",
+              "displayName": "Pipeline2Step1",
+              "type": "preload",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!0.pipelineParameters.Pipeline1.Pipeline1Step1.primaryReturn"
+                },
+                {
+                  "type": "object",
+                  "name": "parameterObject",
+                  "required": true,
+                  "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+                  "value": {
+                    "name": "Parameter Mapped Object",
+                    "subObjects": [
+                      {
+                        "name": "Param Object 1"
+                      },
+                      {
+                        "name": "Param Object 2"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "0"
+      ],
+      "pipelineListener": {
+        "className": "com.acxiom.pipeline.applications.TestPipelineListener",
+        "parameters": {
+          "name": "Sub Pipeline Listener"
+        }
+      },
+      "stepMapper": {
+        "className": "com.acxiom.pipeline.applications.TestPipelineStepMapper",
+        "parameters": {
+          "name": "Sub Step Mapper"
+        }
+      },
+      "pipelineParameters": {
+        "parameters":[
+          {
+            "pipelineId": "Pipeline2",
+            "parameters": {
+              "howard": "johnson"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "2",
+      "pipelines": [{
+        "id": "Pipeline1",
+        "name": "Pipeline 1",
+        "steps": [
+          {
+            "id": "Pipeline1Step1",
+            "displayName": "Pipeline1Step1",
+            "type": "preload",
+            "params": [
+              {
+                "type": "text",
+                "name": "value",
+                "required": true,
+                "value": "!mappedObject2"
+              }
+            ],
+            "engineMeta": {
+              "spark": "ExecutionSteps.normalFunction"
+            }
+          }
+        ]
+      }],
+      "pipelineIds": ["Pipeline1","Pipeline2"],
+      "securityManager": {
+        "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
+        "parameters": {
+          "name": "Sub Security Manager"
+        }
+      },
+      "globals": {
+        "number": 2,
+        "float": 3.5,
+        "string": "sub string",
+        "mappedObject": {
+          "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+          "object": {
+            "name": "Execution Mapped Object",
+            "subObjects": [
+              {
+                "name": "Sub Object 1a"
+              },
+              {
+                "name": "Sub Object 2a"
+              },
+              {
+                "name": "Sub Object 3"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "3",
+      "securityManager": {
+        "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
+        "parameters": {
+          "name": "Sub Security Manager"
+        }
+      },
+      "mergeGlobals": true,
+      "globals": {
+        "number": 5,
+        "newThing": "Chickens rule!"
+      }
+    }
+  ]
+}

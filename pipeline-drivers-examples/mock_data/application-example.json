@@ -1,0 +1,690 @@
+{
+  "sparkConf": {
+    "kryoClasses": [
+      "org.apache.hadoop.io.LongWritable",
+      "org.apache.http.client.entity.UrlEncodedFormEntity"
+    ],
+    "setOptions": [
+      {
+        "name": "spark.hadoop.io.compression.codecs",
+        "value": "org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec,org.apache.hadoop.io.compress.SnappyCodec,org.apache.hadoop.io.compress.GzipCodec"
+      }
+    ]
+  },
+  "stepPackages": [
+    "com.acxiom.pipeline.steps",
+    "com.acxiom.pipeline"
+  ],
+  "globals": {
+    "creditCardSchema": {
+      "className": "com.acxiom.pipeline.steps.Schema",
+      "object": {
+        "attributes": [
+          {
+            "name": "CUSTOMER_ID",
+            "dataType": "Integer"
+          },
+          {
+            "name": "ACCOUNT_NUMBER",
+            "dataType": "String"
+          },
+          {
+            "name": "ACCOUNT_TYPE",
+            "dataType": "String"
+          }
+        ]
+      }
+    },
+    "creditCardTransforms": {
+      "className": "com.acxiom.pipeline.steps.Transformations",
+      "object": {
+        "columnDetails": [
+          {
+            "outputField": "ACCOUNT_NUMBER",
+            "inputAliases": ["CC_NUM"],
+            "expression": null
+          },
+          {
+            "outputField": "ACCOUNT_TYPE",
+            "inputAliases": ["CC_TYPE"],
+            "expression": "upper(ACCOUNT_TYPE)"
+          }
+        ]
+      }
+    },
+    "orderSchema": {
+      "className": "com.acxiom.pipeline.steps.Schema",
+      "object": {
+        "attributes": [
+          {
+            "name": "ORDER_ID",
+            "dataType": "String"
+          },
+          {
+            "name": "CUSTOMER_ID",
+            "dataType": "Integer"
+          },
+          {
+            "name": "PRODUCT_ID",
+            "dataType": "String"
+          },
+          {
+            "name": "UNITS",
+            "dataType": "Integer"
+          }
+        ]
+      }
+    },
+    "orderTransforms": {
+      "className": "com.acxiom.pipeline.steps.Transformations",
+      "object": {
+        "columnDetails": [
+          {
+            "outputField": "ORDER_ID",
+            "inputAliases": ["ORDER_NUM"],
+            "expression": null
+          }
+        ]
+      }
+    }
+  },
+  "executions": [
+    {
+      "id": "ROOT",
+      "pipelines": [
+        {
+          "id": "LOAD_DATA_PIPELINE",
+          "name": "Load Data Pipeline",
+          "steps": [
+            {
+              "id": "READHEADERSTEP",
+              "stepId": "100b2c7d-c1fb-5fe2-b9d1-dd9fff103272",
+              "displayName": "Read header from a file",
+              "description": "This step will load the first line of a file and parse it into column names",
+              "type": "Pipeline",
+              "nextStepId": "CREATESCHEMASTEP",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "url",
+                  "required": true,
+                  "value": "!input_url"
+                },
+                {
+                  "type": "string",
+                  "name": "format",
+                  "required": true,
+                  "value": "!input_format"
+                },
+                {
+                  "type": "string",
+                  "name": "separator",
+                  "required": true,
+                  "value": "!input_separator"
+                }
+              ],
+              "engineMeta": {
+                "spark": "InputOutputSteps.readHeader"
+              }
+            },
+            {
+              "id": "CREATESCHEMASTEP",
+              "stepId": "61f8c038-e632-5cad-b1c6-9da6034dce5c",
+              "displayName": "Create a DataFrame schema",
+              "description": "This step will create a DataFrame schema from a list of column names",
+              "type": "Pipeline",
+              "nextStepId": "LOADFILESTEP",
+              "params": [
+                {
+                  "type": "list",
+                  "name": "columnNames",
+                  "required": true,
+                  "value": "@READHEADERSTEP"
+                }
+              ],
+              "engineMeta": {
+                "spark": "InputOutputSteps.createSchema"
+              }
+            },
+            {
+              "id": "LOADFILESTEP",
+              "stepId": "cba8a6d8-88b6-50ef-a073-afa6cba7ca1e",
+              "displayName": "Load File as Data Frame with schema",
+              "description": "This step will load a file from the provided URL using the provided schema",
+              "type": "Pipeline",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "url",
+                  "required": true,
+                  "value": "!input_url"
+                },
+                {
+                  "type": "string",
+                  "name": "format",
+                  "required": true,
+                  "value": "!input_format"
+                },
+                {
+                  "type": "string",
+                  "name": "separator",
+                  "required": true,
+                  "value": "!input_separator"
+                },
+                {
+                  "type": "string",
+                  "name": "schema",
+                  "required": true,
+                  "value": "@CREATESCHEMASTEP"
+                }
+              ],
+              "engineMeta": {
+                "spark": "InputOutputSteps.loadFileWithSchema"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PROD",
+      "pipelines": [
+        {
+          "id": "EXTRACT_PRODUCT_DATA_PIPELINE",
+          "name": "Extract Product Data Pipeline",
+          "steps": [
+            {
+              "id": "MAPFIELDSSTEP",
+              "stepId": "8f9c08ea-4882-4265-bac7-2da3e942758f",
+              "displayName": "Maps new data to a common schema",
+              "description": "Creates a new DataFrame mapped to an existing schema",
+              "type": "Pipeline",
+              "nextStepId": "GROUPDATASTEP",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "inputDataFrame",
+                  "required": true,
+                  "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
+                },
+                {
+                  "type": "string",
+                  "name": "destinationSchema",
+                  "required": true,
+                  "className": "com.acxiom.pipeline.steps.Schema",
+                  "value": {
+                    "attributes": [
+                      {
+                        "name": "PRODUCT_NAME",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "PRODUCT_ID",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "COST",
+                        "dataType": "Double"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "boolean",
+                  "name": "addNewColumns",
+                  "required": true,
+                  "value": false
+                }
+              ],
+              "engineMeta": {
+                "spark": "TransformationSteps.mapDataFrameToSchema"
+              }
+            },
+            {
+              "id": "GROUPDATASTEP",
+              "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
+              "displayName": "Performs a grouping and aggregation of the data",
+              "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
+              "type": "Pipeline",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "dataFrame",
+                  "required": true,
+                  "value": "@MAPFIELDSSTEP"
+                },
+                {
+                  "type": "string",
+                  "name": "groupByField",
+                  "required": true,
+                  "value": "PRODUCT_ID"
+                }
+              ],
+              "engineMeta": {
+                "spark": "GroupingSteps.groupByField"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "ROOT"
+      ]
+    },
+    {
+      "id": "CUST",
+      "pipelines": [
+        {
+          "id": "EXTRACT_CUSTOMER_DATA_PIPELINE",
+          "name": "Extract Customer Data Pipeline",
+          "steps": [
+            {
+              "id": "MAPFIELDSSTEP",
+              "stepId": "8f9c08ea-4882-4265-bac7-2da3e942758f",
+              "displayName": "Maps new data to a common schema",
+              "description": "Creates a new DataFrame mapped to an existing schema",
+              "type": "Pipeline",
+              "nextStepId": "GROUPDATASTEP",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "inputDataFrame",
+                  "required": true,
+                  "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
+                },
+                {
+                  "type": "string",
+                  "name": "destinationSchema",
+                  "required": true,
+                  "className": "com.acxiom.pipeline.steps.Schema",
+                  "value": {
+                    "attributes": [
+                      {
+                        "name": "CUSTOMER_ID",
+                        "dataType": "Integer"
+                      },
+                      {
+                        "name": "FIRST_NAME",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "LAST_NAME",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "POSTAL_CODE",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "GENDER_CODE",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "EIN",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "EMAIL",
+                        "dataType": "String"
+                      },
+                      {
+                        "name": "FULL_NAME",
+                        "dataType": "STRING"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "string",
+                  "name": "transforms",
+                  "required": true,
+                  "className": "com.acxiom.pipeline.steps.Transformations",
+                  "value": {
+                    "columnDetails": [
+                      {
+                        "outputField": "GENDER_CODE",
+                        "inputAliases": ["GENDER"],
+                        "expression": "upper(substring(GENDER_CODE,0,1))"
+                      },
+                      {
+                        "outputField": "FULL_NAME",
+                        "inputAliases": [],
+                        "expression": "concat(initcap(FIRST_NAME), ' ', initcap(LAST_NAME))"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "boolean",
+                  "name": "addNewColumns",
+                  "required": true,
+                  "value": false
+                }
+              ],
+              "engineMeta": {
+                "spark": "TransformationSteps.mapDataFrameToSchema"
+              }
+            },
+            {
+              "id": "GROUPDATASTEP",
+              "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
+              "displayName": "Performs a grouping and aggregation of the data",
+              "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
+              "type": "Pipeline",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "dataFrame",
+                  "required": true,
+                  "value": "@MAPFIELDSSTEP"
+                },
+                {
+                  "type": "string",
+                  "name": "groupByField",
+                  "required": true,
+                  "value": "CUSTOMER_ID"
+                }
+              ],
+              "engineMeta": {
+                "spark": "GroupingSteps.groupByField"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "ROOT"
+      ]
+    },
+    {
+      "id": "CC",
+      "pipelines": [
+        {
+          "id": "EXTRACT_CREDIT_CARD_DATA_PIPELINE",
+          "name": "Extract Credit Card Data Pipeline",
+          "steps": [
+            {
+              "id": "MAPFIELDSSTEP",
+              "stepId": "8f9c08ea-4882-4265-bac7-2da3e942758f",
+              "displayName": "Maps new data to a common schema",
+              "description": "Creates a new DataFrame mapped to an existing schema",
+              "type": "Pipeline",
+              "nextStepId": "GROUPDATASTEP",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "inputDataFrame",
+                  "required": true,
+                  "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
+                },
+                {
+                  "type": "string",
+                  "name": "destinationSchema",
+                  "required": true,
+                  "value": "!creditCardSchema"
+                },
+                {
+                  "type": "string",
+                  "name": "transforms",
+                  "required": true,
+                  "value": "!creditCardTransforms"
+                },
+                {
+                  "type": "boolean",
+                  "name": "addNewColumns",
+                  "required": true,
+                  "value": false
+                }
+              ],
+              "engineMeta": {
+                "spark": "TransformationSteps.mapDataFrameToSchema"
+              }
+            },
+            {
+              "id": "GROUPDATASTEP",
+              "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
+              "displayName": "Performs a grouping and aggregation of the data",
+              "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
+              "type": "Pipeline",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "dataFrame",
+                  "required": true,
+                  "value": "@MAPFIELDSSTEP"
+                },
+                {
+                  "type": "string",
+                  "name": "groupByField",
+                  "required": true,
+                  "value": "CUSTOMER_ID"
+                }
+              ],
+              "engineMeta": {
+                "spark": "GroupingSteps.groupByField"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "ROOT"
+      ]
+    },
+    {
+      "id": "ORD",
+      "pipelines": [
+        {
+          "id": "EXTRACT_ORDER_DATA_PIPELINE",
+          "name": "Extract Order Data Pipeline",
+          "steps": [
+            {
+              "id": "MAPFIELDSSTEP",
+              "stepId": "8f9c08ea-4882-4265-bac7-2da3e942758f",
+              "displayName": "Maps new data to a common schema",
+              "description": "Creates a new DataFrame mapped to an existing schema",
+              "type": "Pipeline",
+              "nextStepId": "GROUPDATASTEP",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "inputDataFrame",
+                  "required": true,
+                  "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
+                },
+                {
+                  "type": "string",
+                  "name": "destinationSchema",
+                  "required": true,
+                  "value": "!orderSchema"
+                },
+                {
+                  "type": "string",
+                  "name": "transforms",
+                  "required": true,
+                  "value": "!orderTransforms"
+                },
+                {
+                  "type": "boolean",
+                  "name": "addNewColumns",
+                  "required": true,
+                  "value": false
+                }
+              ],
+              "engineMeta": {
+                "spark": "TransformationSteps.mapDataFrameToSchema"
+              }
+            },
+            {
+              "id": "GROUPDATASTEP",
+              "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
+              "displayName": "Performs a grouping and aggregation of the data",
+              "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
+              "type": "Pipeline",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "dataFrame",
+                  "required": true,
+                  "value": "@MAPFIELDSSTEP"
+                },
+                {
+                  "type": "string",
+                  "name": "groupByField",
+                  "required": true,
+                  "value": "ORDER_ID"
+                }
+              ],
+              "engineMeta": {
+                "spark": "GroupingSteps.groupByField"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "ROOT"
+      ]
+    },
+    {
+      "id": "SAVE",
+      "pipelines": [
+        {
+          "id": "WRITE_DATA_PIPELINE",
+          "name": "Write Data Pipeline",
+          "steps": [
+            {
+              "id": "PRODWRITESTEP",
+              "stepId": "6b9db56d-bed7-5838-9ed4-7b5e216617c4",
+              "displayName": "Writes a DataFrame to a Mongo database",
+              "description": "This step will write the contents of a DataFrame to the Mongo database and collection specified",
+              "type": "Pipeline",
+              "nextStepId": "CUSTWRITESTEP",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "dataFrame",
+                  "required": true,
+                  "value": "!PROD.pipelineParameters.EXTRACT_PRODUCT_DATA_PIPELINE.GROUPDATASTEP.primaryReturn"
+                },
+                {
+                  "type": "string",
+                  "name": "uri",
+                  "required": true,
+                  "value": "!mongoURI"
+                },
+                {
+                  "type": "string",
+                  "name": "collectionName",
+                  "required": true,
+                  "value": "products"
+                }
+              ],
+              "engineMeta": {
+                "spark": "InputOutputSteps.writeDataFrameToMongo"
+              }
+            },
+            {
+              "id": "CUSTWRITESTEP",
+              "stepId": "6b9db56d-bed7-5838-9ed4-7b5e216617c4",
+              "displayName": "Writes a DataFrame to a Mongo database",
+              "description": "This step will write the contents of a DataFrame to the Mongo database and collection specified",
+              "type": "Pipeline",
+              "nextStepId": "CCWRITESTEP",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "dataFrame",
+                  "required": true,
+                  "value": "!CUST.pipelineParameters.EXTRACT_CUSTOMER_DATA_PIPELINE.GROUPDATASTEP.primaryReturn"
+                },
+                {
+                  "type": "string",
+                  "name": "uri",
+                  "required": true,
+                  "value": "!mongoURI"
+                },
+                {
+                  "type": "string",
+                  "name": "collectionName",
+                  "required": true,
+                  "value": "customers"
+                }
+              ],
+              "engineMeta": {
+                "spark": "InputOutputSteps.writeDataFrameToMongo"
+              }
+            },
+            {
+              "id": "CCWRITESTEP",
+              "stepId": "6b9db56d-bed7-5838-9ed4-7b5e216617c4",
+              "displayName": "Writes a DataFrame to a Mongo database",
+              "description": "This step will write the contents of a DataFrame to the Mongo database and collection specified",
+              "type": "Pipeline",
+              "nextStepId": "ORDWRITESTEP",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "dataFrame",
+                  "required": true,
+                  "value": "!CC.pipelineParameters.EXTRACT_CREDIT_CARD_DATA_PIPELINE.GROUPDATASTEP.primaryReturn"
+                },
+                {
+                  "type": "string",
+                  "name": "uri",
+                  "required": true,
+                  "value": "!mongoURI"
+                },
+                {
+                  "type": "string",
+                  "name": "collectionName",
+                  "required": true,
+                  "value": "creditCards"
+                }
+              ],
+              "engineMeta": {
+                "spark": "InputOutputSteps.writeDataFrameToMongo"
+              }
+            },
+            {
+              "id": "ORDWRITESTEP",
+              "stepId": "6b9db56d-bed7-5838-9ed4-7b5e216617c4",
+              "displayName": "Writes a DataFrame to a Mongo database",
+              "description": "This step will write the contents of a DataFrame to the Mongo database and collection specified",
+              "type": "Pipeline",
+              "params": [
+                {
+                  "type": "string",
+                  "name": "dataFrame",
+                  "required": true,
+                  "value": "!ORD.pipelineParameters.EXTRACT_ORDER_DATA_PIPELINE.GROUPDATASTEP.primaryReturn"
+                },
+                {
+                  "type": "string",
+                  "name": "uri",
+                  "required": true,
+                  "value": "!mongoURI"
+                },
+                {
+                  "type": "string",
+                  "name": "collectionName",
+                  "required": true,
+                  "value": "orders"
+                }
+              ],
+              "engineMeta": {
+                "spark": "InputOutputSteps.writeDataFrameToMongo"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "PROD",
+        "CUST",
+        "CC",
+        "ORD"
+      ]
+    }
+  ]
+}

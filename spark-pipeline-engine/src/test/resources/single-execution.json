@@ -1,0 +1,35 @@
+{
+  "stepPackages": [
+    "com.acxiom.pipeline.steps",
+    "com.acxiom.pipeline"
+  ],
+  "executions": [
+    {
+      "id": "0",
+      "pipelines": [
+        {
+          "id": "Pipeline1",
+          "name": "Pipeline 1",
+          "steps": [
+            {
+              "id": "Pipeline1Step1",
+              "displayName": "Pipeline1Step1",
+              "type": "preload",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "Fred"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

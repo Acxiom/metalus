@@ -7,9 +7,12 @@ import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.json4s.native.JsonMethods.parse
-import org.json4s.{DefaultFormats, Formats, ShortTypeHints, TypeHints}
+import org.json4s.reflect.Reflector
+import org.json4s.{DefaultFormats, Extraction, Formats}
+
+import scala.io.Source
 
 object DriverUtils {
 
@@ -25,23 +28,30 @@ object DriverUtils {
     */
   def createSparkConf(kryoClasses: Array[Class[_]]): SparkConf = {
     // Create the spark conf.
-    val sparkConf = new SparkConf()
+    val tempConf = new SparkConf()
       // This is required to ensure that certain classes can be serialized across the nodes
       .registerKryoClasses(kryoClasses)
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
 
+    // Handle test scenarios where the master was not set
+    val sparkConf = if (!tempConf.contains("spark.master")) {
+      tempConf.setMaster("local")
+    } else {
+      tempConf
+    }
+
     // These properties are required when running the driver on the cluster so the executors
     // will be able to communicate back to the driver.
-    val deployMode = sparkConf.get("spark.submit.deployMode")
-    val master = sparkConf.get("spark.master")
+    val deployMode = sparkConf.get("spark.submit.deployMode", "client")
+    val master = sparkConf.get("spark.master", "local")
     if (deployMode == "cluster" || master == "yarn") {
       logger.debug("Configuring driver to run against a cluster")
       sparkConf
         .set("spark.local.ip", java.net.InetAddress.getLocalHost.getHostAddress)
         .set("spark.driver.host", java.net.InetAddress.getLocalHost.getHostAddress)
+    } else {
+      sparkConf
     }
-
-    sparkConf
   }
 
   /**
@@ -62,6 +72,16 @@ object DriverUtils {
           }
       }
     })
+    validateRequiredParameters(parameters, requiredParameters)
+    parameters
+  }
+
+  /**
+    * Given a map of parameters and a list of required parameter names, verifies that all are present.
+    * @param parameters Parameter map to validate
+    * @param requiredParameters List of parameter names that are required
+    */
+  def validateRequiredParameters(parameters: Map[String, Any], requiredParameters: Option[List[String]]): Unit = {
     if (requiredParameters.isDefined) {
       val missingParams = requiredParameters.get.filter(p => !parameters.contains(p))
 
@@ -69,7 +89,6 @@ object DriverUtils {
         throw new RuntimeException(s"Missing required parameters: ${missingParams.mkString(",")}")
       }
     }
-    parameters
   }
 
   /**
@@ -88,24 +107,17 @@ object DriverUtils {
   }
 
   /**
-    * This function will take a JSON string containing a pipeline definition. It is expected that the definition will be
-    * a JSON array. This function also let's the caller specifiy the pipeline class type. The provided type should extend
-    * JsonPipeline and override the typeClass attribute. When calling this function, use classOf[CustomPipeline] for the
-    * pipelineType parameter.
+    * Parse the provided JSON string into an object of the provided class name.
     *
-    * @param pipelineJson The JSON string containing the Pipeline metadata
-    * @param pipelineType The class definition of the custom Pipeline
-    * @return A List of Pipeline objects
+    * @param json The JSON string to parse.
+    * @param className The fully qualified name of the class.
+    * @return An instantiation of the class from the provided JSON.
     */
-  def parsePipelineJson(pipelineJson: String, pipelineType: Class[_]): Option[List[Pipeline]] = {
-    implicit val formats: DefaultFormats = new DefaultFormats {
-      override val typeHintFieldName: String = "typeClass"
-      override val typeHints: TypeHints = ShortTypeHints(List(pipelineType))
-    }
-    if (pipelineJson.trim()(0) != '[') {
-      throw new ParseException(pipelineJson, 0)
-    }
-    parse(pipelineJson).extractOpt[List[Pipeline]]
+  def parseJson(json: String, className: String): Any = {
+    implicit val formats: Formats = DefaultFormats
+    val clazz = Class.forName(className)
+    val scalaType = Reflector.scalaTypeOf(clazz)
+    Extraction.extract(parse(json), scalaType)
   }
 
   /**
@@ -121,5 +133,21 @@ object DriverUtils {
       execution.initialPipelineId,
       execution.pipelineContext.setGlobal("initialDataFrame", initialDataFrame),
       execution.parents))
+  }
+
+  def loadJsonFromFile(path: String, fileLoaderClassName: String = "com.acxiom.pipeline.utils.LocalFileManager"): String = {
+    val tempConf = new SparkConf()
+    // Handle test scenarios where the master was not set
+    val sparkConf = if (!tempConf.contains("spark.master")) {
+      tempConf.setMaster("local")
+    } else {
+      tempConf
+    }
+    val sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
+    val fileManager = ReflectionUtils.loadClass(fileLoaderClassName,
+      Some(Map("sparkSession" -> sparkSession))).asInstanceOf[FileManager]
+    val json = Source.fromInputStream(fileManager.getInputStream(path)).mkString
+    sparkSession.stop()
+    json
   }
 }

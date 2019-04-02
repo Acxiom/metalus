@@ -121,7 +121,7 @@
           }
         ],
         "engineMeta": {
-          "spark": "MappingSteps.selectFields"
+          "spark": "SplitSteps.selectFields"
         }
       },
       {
@@ -184,7 +184,7 @@
           }
         ],
         "engineMeta": {
-          "spark": "MappingSteps.selectFields"
+          "spark": "SplitSteps.selectFields"
         }
       },
       {
@@ -243,7 +243,7 @@
           }
         ],
         "engineMeta": {
-          "spark": "MappingSteps.selectFields"
+          "spark": "SplitSteps.selectFields"
         }
       },
       {
@@ -303,7 +303,7 @@
           }
         ],
         "engineMeta": {
-          "spark": "MappingSteps.selectFields"
+          "spark": "SplitSteps.selectFields"
         }
       },
       {
