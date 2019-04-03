@@ -78,3 +78,4 @@ jobs:
         file_glob: true
         file:
           - application-utils/target/application-utils_2.11-${project_version}.tar.gz
+          - common-steps-application_2.11-${project_version}.jar
