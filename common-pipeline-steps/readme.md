@@ -14,3 +14,8 @@ Here is a list of steps provided:
 * [QuerySteps](docs/querysteps.md)
 * [ScalaSteps](docs/scalascriptsteps.md)
 * [TransformationSteps](docs/transformationsteps.md)
+
+## Application Jar
+In order to make running jobs easier, an uber jar is provided that can be deployed. This jar contains all of the steps
+in this project as well as the library code. The jar will be part of the release or can be built locally. The jar name
+follows the pattern: **common-steps-application_${scala.compat.version}-${version}.jar**
