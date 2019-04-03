@@ -27,4 +27,49 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.4.3</version>
+                <configuration>
+                    <finalName>common-steps-application_${scala.compat.version}-${version}</finalName>
+                    <artifactSet>
+                        <excludes>
+                            <exclude>classworlds:classworlds</exclude>
+                            <exclude>junit:junit</exclude>
+                            <exclude>jmock:*</exclude>
+                            <exclude>*:xml-apis</exclude>
+                            <exclude>org.apache.maven:lib:tests</exclude>
+                            <exclude>log4j:log4j:jar:</exclude>
+                            <exclude>org.scala-lang:*:jar:</exclude>
+                            <exclude>org.scala-lang.modules:*:jar:</exclude>
+                            <exclude>org.apache.spark:spark-core_${scala.compat.version}</exclude>
+                            <exclude>org.apache.spark:spark-sql_${scala.compat.version}</exclude>
+                            <exclude>org.scalamock:jar:</exclude>
+                            <exclude>org.scalatest:jar:</exclude>
+                        </excludes>
+                    </artifactSet>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.apache.http</pattern>
+                                    <shadedPattern>shaded.org.apache.http</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>
