@@ -6,9 +6,11 @@ provide api documentation for all functions and provide documentation with addit
 ## Steps
 Here is a list of steps provided:
 
+* [DataFrameSteps](docs/dataframesteps.md)
 * [HDFSSteps](docs/hdfssteps.md)
+* [HiveSteps](docs/hivesteps.md)
 * [JavascriptSteps](docs/javascriptsteps.md)
-* [TransformationSteps](docs/transformationsteps.md)
 * [JDBCSteps](docs/jdbcsteps.md)
 * [QuerySteps](docs/querysteps.md)
 * [ScalaSteps](docs/scalascriptsteps.md)
+* [TransformationSteps](docs/transformationsteps.md)
