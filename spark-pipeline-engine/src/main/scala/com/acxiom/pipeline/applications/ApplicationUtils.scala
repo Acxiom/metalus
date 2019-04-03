@@ -53,7 +53,7 @@ object ApplicationUtils {
     application.executions.get.map(execution => {
       val ctx = PipelineContext(Some(sparkConf),
         Some(sparkSession),
-        generateGlobals(execution.globals, rootGlobals, defaultGlobals, execution.mergeGlobals),
+        generateGlobals(execution.globals, rootGlobals, defaultGlobals, execution.mergeGlobals.getOrElse(false)),
         generateSecurityManager(execution.securityManager, globalSecurityManager).get,
         generatePipelineParameters(execution.pipelineParameters, globalPipelineParameters).get,
         application.stepPackages,
@@ -82,7 +82,7 @@ object ApplicationUtils {
     val defaultGlobals = generateGlobals(application.globals, rootGlobals.get, rootGlobals)
     val globalPipelineParameters = generatePipelineParameters(application.pipelineParameters, Some(PipelineParameters()))
     val ctx = pipelineExecution.pipelineContext
-      .copy(globals = generateGlobals(execution.globals, rootGlobals.get, defaultGlobals, execution.mergeGlobals))
+      .copy(globals = generateGlobals(execution.globals, rootGlobals.get, defaultGlobals, execution.mergeGlobals.getOrElse(false)))
       .copy(parameters = generatePipelineParameters(execution.pipelineParameters, globalPipelineParameters).get)
     pipelineExecution.asInstanceOf[DefaultPipelineExecution].copy(pipelineContext = ctx)
   }
