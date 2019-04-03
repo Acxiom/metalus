@@ -107,7 +107,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
       }
       val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/single-execution.json")).mkString)
       PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
-      results.validate()
+      results.validate(1)
     }
 
     it("Should execute a simple dependency graph of two pipeline chains") {
