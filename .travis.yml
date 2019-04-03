@@ -63,7 +63,7 @@ jobs:
         - mvn -B versions:set -DremoveSnapshot
       install:
         - mvn -B -DskipTests=true clean install
-        - mvn -B -DrepoToken=$coverallsToken -Dsonar.host.url=https://sonarcloud.io scoverage:report scala:doc scalastyle:check coveralls:report org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
+        - mvn -B -DrepoToken=$coverallsToken -Dsonar.projectKey=Acxiom_spark-pipeline-driver -Dsonar.host.url=https://sonarcloud.io scoverage:report scala:doc scalastyle:check coveralls:report org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
 #      before_script:
 #        - gpg --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
 #        - gpg --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
