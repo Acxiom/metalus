@@ -158,9 +158,9 @@ object StepMetaDataExtractor {
             val annotations = paramSymbol.annotations
             val a1 = annotations.find(_.tree.tpe =:= ru.typeOf[StepParameter])
             val updatedStepParams = if (a1.isDefined)  {
-              stepParams :+ annotationToStepFunctionParameter(a1.get, paramSymbol).copy(className = caseClass)
+              stepParams :+ annotationToStepFunctionParameter(a1.get, paramSymbol, caseClass.isDefined).copy(className = caseClass)
             } else {
-              stepParams :+ StepFunctionParameter(getParameterType(paramSymbol), paramSymbol.name.toString, className = caseClass)
+              stepParams :+ StepFunctionParameter(getParameterType(paramSymbol, caseClass.isDefined), paramSymbol.name.toString, className = caseClass)
             }
             val updatedCaseClassSet = if(caseClass.nonEmpty) paramsAndClasses._2 + caseClass.get else paramsAndClasses._2
             (updatedStepParams, updatedCaseClassSet)
@@ -192,7 +192,7 @@ object StepMetaDataExtractor {
     * @param paramSymbol The parameter information
     * @return
     */
-  private def annotationToStepFunctionParameter(annotation: ru.Annotation, paramSymbol: ru.Symbol): StepFunctionParameter = {
+  private def annotationToStepFunctionParameter(annotation: ru.Annotation, paramSymbol: ru.Symbol, caseClass: Boolean = false): StepFunctionParameter = {
     val typeValue = annotation.tree.children.tail.head.toString()
     val requiredValue = annotation.tree.children.tail(1).toString()
     val defaultValue = annotation.tree.children.tail(2).toString()
@@ -201,7 +201,7 @@ object StepMetaDataExtractor {
       if (isValueSet(typeValue)) {
         getAnnotationValue(typeValue, stringValue = true).asInstanceOf[String]
       } else {
-        getParameterType(paramSymbol)
+        getParameterType(paramSymbol, caseClass)
       },
       paramSymbol.name.toString,
       if (isValueSet(requiredValue)) {
@@ -232,12 +232,12 @@ object StepMetaDataExtractor {
     }
   }
 
-  private def getParameterType(paramSymbol: ru.Symbol) = {
+  private def getParameterType(paramSymbol: ru.Symbol, caseClass: Boolean = false) = {
     try {
       paramSymbol.typeSignature.toString match {
         case "Integer" => "number"
         case "scala.Boolean" => "boolean"
-        case _ => "text"
+        case _ => if (caseClass) { "object" } else { "text" }
       }
     } catch {
       case _: Throwable => "text"
