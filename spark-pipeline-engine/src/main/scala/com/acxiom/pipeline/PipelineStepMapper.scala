@@ -213,25 +213,12 @@ trait PipelineStepMapper {
   private def getPathValues(value: String, pipelineContext: PipelineContext): PipelinePath = {
     if (value.contains('.')) {
       // Check for the special character
-      val special = if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!") || value.startsWith("#")) {
-        value.substring(0, 1)
-      } else {
-        ""
-      }
+      val special = getSpecialCharacter(value)
       val pipelineId = value.substring(0, value.indexOf('.')).substring(1)
       val paths = value.split('.')
       if (pipelineContext.parameters.hasPipelineParameters(pipelineId)) {
-        val mainPath = if (special != "") {
-          s"$special${paths(1)}"
-        } else {
-          paths(1)
-        }
-        val extraPath = if (paths.length > 2) {
-          Some(paths.toList.slice(2, paths.length).mkString("."))
-        } else {
-          None
-        }
-        PipelinePath(Some(pipelineId), mainPath, extraPath)
+        val extraPath = getExtraPath(paths)
+        PipelinePath(Some(pipelineId), s"$special${paths(1)}", extraPath)
       } else {
         PipelinePath(None, paths.head, if (paths.lengthCompare(1) == 0) {
          None
@@ -241,6 +228,22 @@ trait PipelineStepMapper {
       }
     } else {
       PipelinePath(None, value, None)
+    }
+  }
+
+  private def getSpecialCharacter(value: String): String = {
+    if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!") || value.startsWith("#")) {
+      value.substring(0, 1)
+    } else {
+      ""
+    }
+  }
+
+  private def getExtraPath(paths: Array[String]): Option[String] = {
+    if (paths.length > 2) {
+      Some(paths.toList.slice(2, paths.length).mkString("."))
+    } else {
+      None
     }
   }
 
