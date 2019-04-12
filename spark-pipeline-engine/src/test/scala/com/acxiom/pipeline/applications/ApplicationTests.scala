@@ -80,6 +80,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
 
+      setup.pipelineContext.sparkSession.get.stop()
       file.delete()
       FileUtils.deleteDirectory(testDirectory.toFile)
     }
@@ -101,15 +102,18 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
       // Create the JSON file on HDFS
       implicit val formats: Formats = DefaultFormats
-      val outputStream = new OutputStreamWriter(fs.create(new Path("application-test.json")))
+      val applicationJSONPath = new Path("hdfs:///application-test.json")
+      val outputStream = new OutputStreamWriter(fs.create(applicationJSONPath))
       outputStream.write(Serialization.write(application.copy(sparkConf = Some(conf))))
       outputStream.flush()
       outputStream.close()
 
+      assert(fs.exists(applicationJSONPath))
       val setup = ApplicationDriverSetup(Map[String, Any](
-        "applicationConfigPath" -> "application-test.json",
+        "applicationConfigPath" -> "hdfs:///application-test.json",
         "applicationConfigurationLoader" -> "com.acxiom.pipeline.fs.HDFSFileManager",
-        "rootLogLevel" -> "FATAL"))
+        "dfs-cluster" -> miniCluster.getFileSystem().getUri.toString,
+        "rootLogLevel" -> "INFO"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
@@ -146,7 +150,6 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
       }
       assert(thrown.getMessage.contains("Missing required parameters: rootLogLevel"))
-
     }
 
     it("Should fail when config information is not present") {

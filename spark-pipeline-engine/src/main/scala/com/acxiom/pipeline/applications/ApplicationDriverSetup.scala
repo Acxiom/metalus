@@ -18,6 +18,7 @@ trait ApplicationDriverSetup extends DriverSetup {
     case "applicationConfigPath" => false
     case "applicationConfigurationLoader" => false
     case "enableHiveSupport" => false
+    case "dfs-cluster" => false
     case _ => true
   }
 
@@ -100,7 +101,7 @@ case class DefaultApplicationDriverSetup(parameters: Map[String, Any]) extends A
     } else if (parameters.contains("applicationConfigPath")) {
       val className = parameters.getOrElse("applicationConfigurationLoader", "com.acxiom.pipeline.fs.LocalFileManager").asInstanceOf[String]
       val path = parameters("applicationConfigPath").toString
-      DriverUtils.loadJsonFromFile(path, className)
+      DriverUtils.loadJsonFromFile(path, className, parameters)
     } else {
       throw new RuntimeException("Either the applicationJson or the applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
     }

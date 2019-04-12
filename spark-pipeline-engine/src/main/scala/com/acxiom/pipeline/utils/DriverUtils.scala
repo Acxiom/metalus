@@ -138,11 +138,17 @@ object DriverUtils {
       execution.parents))
   }
 
-  def loadJsonFromFile(path: String, fileLoaderClassName: String = "com.acxiom.pipeline.fs.LocalFileManager"): String = {
+  def loadJsonFromFile(path: String,
+                       fileLoaderClassName: String = "com.acxiom.pipeline.fs.LocalFileManager",
+                       parameters: Map[String, Any] = Map[String, Any]()): String = {
     val tempConf = new SparkConf()
     // Handle test scenarios where the master was not set
     val sparkConf = if (!tempConf.contains(SPARK_MASTER)) {
-      tempConf.setMaster("local")
+      if (parameters.contains("dfs-cluster")) {
+        tempConf.setMaster("local").set("spark.hadoop.fs.defaultFS", parameters("dfs-cluster").asInstanceOf[String])
+      } else {
+        tempConf.setMaster("local")
+      }
     } else {
       tempConf
     }
