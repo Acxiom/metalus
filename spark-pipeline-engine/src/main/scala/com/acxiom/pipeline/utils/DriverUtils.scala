@@ -2,6 +2,7 @@ package com.acxiom.pipeline.utils
 
 import java.text.ParseException
 
+import com.acxiom.pipeline.fs.FileManager
 import com.acxiom.pipeline.{DefaultPipeline, Pipeline, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
@@ -137,7 +138,7 @@ object DriverUtils {
       execution.parents))
   }
 
-  def loadJsonFromFile(path: String, fileLoaderClassName: String = "com.acxiom.pipeline.utils.LocalFileManager"): String = {
+  def loadJsonFromFile(path: String, fileLoaderClassName: String = "com.acxiom.pipeline.fs.LocalFileManager"): String = {
     val tempConf = new SparkConf()
     // Handle test scenarios where the master was not set
     val sparkConf = if (!tempConf.contains(SPARK_MASTER)) {

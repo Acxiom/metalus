@@ -36,12 +36,17 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     config = new HdfsConfiguration()
     config.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, file.getAbsolutePath)
     miniCluster = new MiniDFSCluster.Builder(config).build()
-    fs = FileSystem.get(config)
+    miniCluster.waitActive()
+    // Only pull the fs object from the mini cluster
+    fs = miniCluster.getFileSystem
 
     sparkConf = new SparkConf()
       .setMaster(MASTER)
       .setAppName(APPNAME)
       .set("spark.local.dir", sparkLocalDir.toFile.getAbsolutePath)
+      // Force Spark to use the HDFS cluster
+      .set("spark.hadoop.fs.defaultFS", miniCluster.getFileSystem().getUri.toString)
+    // Create the session
     sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
 
     pipelineContext = PipelineContext(Some(sparkConf), Some(sparkSession), Some(Map[String, Any]()),

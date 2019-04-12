@@ -1,14 +1,11 @@
 package com.acxiom.pipeline.applications
 
 import com.acxiom.pipeline.drivers.DriverSetup
-import com.acxiom.pipeline.utils.{DriverUtils, FileManager, ReflectionUtils}
+import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline.{Pipeline, PipelineContext, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.SparkSession
-
-import scala.io.Source
 
 trait ApplicationDriverSetup extends DriverSetup {
 
@@ -101,7 +98,7 @@ case class DefaultApplicationDriverSetup(parameters: Map[String, Any]) extends A
     val json = if (parameters.contains("applicationJson")) {
       parameters("applicationJson").asInstanceOf[String]
     } else if (parameters.contains("applicationConfigPath")) {
-      val className = parameters.getOrElse("applicationConfigurationLoader", "com.acxiom.pipeline.utils.LocalFileManager").asInstanceOf[String]
+      val className = parameters.getOrElse("applicationConfigurationLoader", "com.acxiom.pipeline.fs.LocalFileManager").asInstanceOf[String]
       val path = parameters("applicationConfigPath").toString
       DriverUtils.loadJsonFromFile(path, className)
     } else {

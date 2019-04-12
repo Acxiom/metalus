@@ -7,13 +7,13 @@ import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline.{PipelineExecution, PipelineListener, PipelineSecurityManager, PipelineStepMapper}
 import org.apache.commons.io.FileUtils
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.{Level, Logger}
-import org.json4s.{DefaultFormats, Formats}
 import org.json4s.native.Serialization
+import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
 import scala.io.Source
@@ -88,18 +88,27 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val testDirectory = Files.createTempDirectory("hdfsApplicationTests")
       val config = new HdfsConfiguration()
       config.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, testDirectory.toFile.getAbsolutePath)
-      val fs = FileSystem.get(config)
       val miniCluster = new MiniDFSCluster.Builder(config).build()
+      miniCluster.waitActive()
+      val fs = miniCluster.getFileSystem
+
+      // Update the application JSON so Spark uses the HDFS cluster
+      val application = ApplicationUtils.parseApplication(applicationJson)
+      val options =
+        Map[String, String]("name" -> "spark.hadoop.fs.defaultFS",
+          "value" -> miniCluster.getFileSystem().getUri.toString) :: application.sparkConf.get("setOptions").asInstanceOf[List[Map[String, String]]]
+      val conf = application.sparkConf.get + ("setOption" -> options)
 
       // Create the JSON file on HDFS
+      implicit val formats: Formats = DefaultFormats
       val outputStream = new OutputStreamWriter(fs.create(new Path("application-test.json")))
-      outputStream.write(applicationJson)
+      outputStream.write(Serialization.write(application.copy(sparkConf = Some(conf))))
       outputStream.flush()
       outputStream.close()
 
       val setup = ApplicationDriverSetup(Map[String, Any](
         "applicationConfigPath" -> "application-test.json",
-        "applicationConfigurationLoader" -> "com.acxiom.pipeline.utils.HDFSFileManager",
+        "applicationConfigurationLoader" -> "com.acxiom.pipeline.fs.HDFSFileManager",
         "rootLogLevel" -> "FATAL"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
