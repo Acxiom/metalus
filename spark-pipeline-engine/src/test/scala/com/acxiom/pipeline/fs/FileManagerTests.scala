@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.fs
 
-import java.io.{File, FileNotFoundException, OutputStreamWriter}
+import java.io._
 import java.nio.file.Files
 
 import org.apache.commons.io.FileUtils
@@ -70,6 +70,18 @@ class FileManagerTests extends FunSpec with Suite {
       assert(testDirectory.toFile.exists())
       assert(fileManager.deleteFile(testDirectory.toFile.getAbsolutePath))
       assert(!testDirectory.toFile.exists())
+    }
+
+    it("Should copy data from an input stream to an output stream") {
+      val data = "Some string that isn't very large"
+      val defaultBufferSizeOutput = new ByteArrayOutputStream()
+      assert(FileManager().copy(new ByteArrayInputStream(data.getBytes), defaultBufferSizeOutput))
+      assert(defaultBufferSizeOutput.toString == data)
+      val specificBufferSizeOutput = new ByteArrayOutputStream()
+      assert(FileManager().copy(new ByteArrayInputStream(data.getBytes), specificBufferSizeOutput, FileManager.DEFAULT_BUFFER_SIZE / 2))
+      assert(specificBufferSizeOutput.toString == data)
+      // Should fail to copy
+      assert(!FileManager().copy(new ByteArrayInputStream(data.getBytes), specificBufferSizeOutput, -1))
     }
   }
 

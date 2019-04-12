@@ -16,7 +16,7 @@ case class HDFSFileManager(sparkSession: SparkSession) extends FileManager {
 
   override def exists(path: String): Boolean = fileSystem.exists(new Path(path))
 
-  override def getInputStream(path: String, bufferSize: Int = DEFAULT_BUFFER_SIZE): InputStream = {
+  override def getInputStream(path: String, bufferSize: Int = FileManager.DEFAULT_BUFFER_SIZE): InputStream = {
     val hdfsPath = new Path(path)
     if (!fileSystem.getFileStatus(hdfsPath).isDirectory) {
       fileSystem.open(new Path(path), bufferSize)
@@ -26,7 +26,7 @@ case class HDFSFileManager(sparkSession: SparkSession) extends FileManager {
   }
 
   // TODO Look into better error handling
-  override def getOutputStream(path: String, append: Boolean = true, bufferSize: Int = DEFAULT_BUFFER_SIZE): OutputStream =
+  override def getOutputStream(path: String, append: Boolean = true, bufferSize: Int = FileManager.DEFAULT_BUFFER_SIZE): OutputStream =
     fileSystem.create(new Path(path), append, bufferSize)
 
   override def rename(path: String, destPath: String): Boolean = fileSystem.rename(new Path(path), new Path(destPath))

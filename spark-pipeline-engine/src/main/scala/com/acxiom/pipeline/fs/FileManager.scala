@@ -3,8 +3,10 @@ package com.acxiom.pipeline.fs
 import java.io._
 
 import org.apache.commons.io.FileUtils
+import org.apache.log4j.Logger
 
 object FileManager {
+  val DEFAULT_BUFFER_SIZE: Int = 4096
   def apply(): FileManager = new LocalFileManager
 }
 
@@ -13,7 +15,7 @@ object FileManager {
   * as HDFS or local.
   */
 trait FileManager {
-  val DEFAULT_BUFFER_SIZE: Int = 4096
+  private val logger = Logger.getLogger(getClass)
   /**
     * Connect to the file system
     */
@@ -33,7 +35,7 @@ trait FileManager {
     * @param bufferSize The buffer size to apply to the stream
     * @return A buffered input stream
     */
-  def getInputStream(path: String, bufferSize: Int = DEFAULT_BUFFER_SIZE): InputStream
+  def getInputStream(path: String, bufferSize: Int = FileManager.DEFAULT_BUFFER_SIZE): InputStream
 
   /**
     * Creates a buffered output stream for the provided path.
@@ -43,7 +45,7 @@ trait FileManager {
     * @param bufferSize The buffer size to apply to the stream
     * @return
     */
-  def getOutputStream(path: String, append: Boolean = true, bufferSize: Int = DEFAULT_BUFFER_SIZE): OutputStream
+  def getOutputStream(path: String, append: Boolean = true, bufferSize: Int = FileManager.DEFAULT_BUFFER_SIZE): OutputStream
 
   /**
     * Will attempt to rename the provided path to the destination path.
@@ -80,6 +82,37 @@ trait FileManager {
     * Disconnect from the file system
     */
   def disconnect(): Unit
+
+  /**
+    * Copies all of the contents of the input stream to the output stream.
+    * @param input The input contents to copy
+    * @param output The output to copy to
+    * @return True if the copy was successful
+    */
+  def copy(input: InputStream, output: OutputStream): Boolean = {
+    copy(input, output, FileManager.DEFAULT_BUFFER_SIZE)
+  }
+
+  /**
+    * Copies all of the contents of the input stream to the output stream.
+    * @param input The input contents to copy
+    * @param output The output to copy to
+    * @param copyBufferSize The size in bytes of the copy buffer
+    * @return True if the copy was successful
+    */
+  def copy(input: InputStream, output: OutputStream, copyBufferSize: Int): Boolean = {
+    try {
+      val buffer = new Array[Byte](copyBufferSize)
+      Stream.continually(input.read(buffer)).takeWhile(_ != -1).foreach(count => {
+        output.write(buffer, 0, count)
+      })
+      true
+    } catch {
+      case t: Throwable =>
+        logger.error("Unable to perform copy operation", t)
+        false
+    }
+  }
 }
 
 case class FileInfo(fileName: String, size: Long)
@@ -90,9 +123,10 @@ case class FileInfo(fileName: String, size: Long)
 class LocalFileManager extends FileManager {
   override def exists(path: String): Boolean = new File(path).exists()
 
-  override def getInputStream(path: String, bufferSize: Int = DEFAULT_BUFFER_SIZE): InputStream = new BufferedInputStream(new FileInputStream(new File(path)))
+  override def getInputStream(path: String, bufferSize: Int = FileManager.DEFAULT_BUFFER_SIZE): InputStream =
+    new BufferedInputStream(new FileInputStream(new File(path)))
 
-  override def getOutputStream(path: String, append: Boolean = true, bufferSize: Int = DEFAULT_BUFFER_SIZE): OutputStream = {
+  override def getOutputStream(path: String, append: Boolean = true, bufferSize: Int = FileManager.DEFAULT_BUFFER_SIZE): OutputStream = {
     new BufferedOutputStream(new FileOutputStream(new File(path), append), bufferSize)
   }
 
