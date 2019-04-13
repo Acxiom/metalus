@@ -17,6 +17,8 @@ class DefaultPipelineStepMapper extends PipelineStepMapper
 trait PipelineStepMapper {
   val logger: Logger = Logger.getLogger(getClass)
 
+  private val specialCharacters = List('@', '#', '$', '!')
+
   /**
     * This function is called prior to executing a PipelineStep generating a map of values to be passed to the step
     * function.
@@ -102,7 +104,7 @@ trait PipelineStepMapper {
     val returnValue = if (value.isDefined) {
       value.get match {
         case s: String =>
-          // TODO Add support for javascript so that we can have complex interactions - @Step1 + '_my_table_name'
+          // Add support for javascript so that we can have complex interactions - @Step1 + '_my_table_name'
           // If the parameter type is 'script', return the value as is
           if (parameter.`type`.getOrElse("none") == "script") {
             Some(s)
@@ -115,11 +117,11 @@ trait PipelineStepMapper {
         case i: Int => Some(i)
         case i: BigInt => Some(i.toInt)
         case l: List[_] => Some(l)
-        case m: Map[_, _] if parameter.className.isDefined && parameter.className.get.nonEmpty =>
+        case m: Map[String, Any] if parameter.className.isDefined && parameter.className.get.nonEmpty =>
           implicit val formats: Formats = DefaultFormats
-          Some(DriverUtils.parseJson(Serialization.write(m), parameter.className.get))
+          Some(DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(m, pipelineContext)), parameter.className.get))
         case m: Map[_, _] => Some(m)
-        case t => // TODO Handle other types - This function may need to be reworked to support this so that it can be overridden
+        case t => // Handle other types - This function may need to be reworked to support this so that it can be overridden
           throw new RuntimeException(s"Unsupported value type ${t.getClass} for ${parameter.name.getOrElse("unknown")}!")
       }
     } else {
@@ -133,6 +135,24 @@ trait PipelineStepMapper {
       // use mapByType when no valid values are returned
       mapByType(None, parameter)
     }
+  }
+
+  /**
+    * Iterates a map prior to converting to a case class and substitutes values marked with special characters: @,#,$,!
+    * @param classMap The object map
+    * @param pipelineContext The pipelineContext
+    * @return A map with substituted values
+    */
+  private def mapEmbeddedVariables(classMap: Map[String, Any], pipelineContext: PipelineContext): Map[String, Any] = {
+    classMap.foldLeft(classMap)((map, entry) => {
+      entry._2 match {
+        case s: String if specialCharacters.contains(s.headOption.getOrElse("")) =>
+          map + (entry._1 -> returnBestValue(s, Parameter(), pipelineContext))
+        case m:  Map[_, _] =>
+          map + (entry._1 -> mapEmbeddedVariables(m.asInstanceOf[Map[String, Any]], pipelineContext))
+        case _ => map
+      }
+    })
   }
 
   @tailrec

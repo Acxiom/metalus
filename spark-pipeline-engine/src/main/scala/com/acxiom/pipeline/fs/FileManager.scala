@@ -106,6 +106,7 @@ trait FileManager {
       Stream.continually(input.read(buffer)).takeWhile(_ != -1).foreach(count => {
         output.write(buffer, 0, count)
       })
+      output.flush()
       true
     } catch {
       case t: Throwable =>
