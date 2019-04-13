@@ -117,10 +117,10 @@ trait PipelineStepMapper {
         case i: Int => Some(i)
         case i: BigInt => Some(i.toInt)
         case l: List[_] => Some(l)
-        case m: Map[String, Any] if parameter.className.isDefined && parameter.className.get.nonEmpty =>
+        case m: Map[_, _] if parameter.className.isDefined && parameter.className.get.nonEmpty =>
           implicit val formats: Formats = DefaultFormats
-          Some(DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(m, pipelineContext)), parameter.className.get))
-        case m: Map[_, _] => Some(m)
+          Some(DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(m.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get))
+        case m: Map[_, _] => Some(mapEmbeddedVariables(m.asInstanceOf[Map[String, Any]], pipelineContext))
         case t => // Handle other types - This function may need to be reworked to support this so that it can be overridden
           throw new RuntimeException(s"Unsupported value type ${t.getClass} for ${parameter.name.getOrElse("unknown")}!")
       }

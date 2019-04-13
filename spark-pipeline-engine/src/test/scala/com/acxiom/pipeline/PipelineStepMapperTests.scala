@@ -175,6 +175,14 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       assert(nestedCaseClass == NestedCaseClassTest(ParameterTest(Some("globalValue1"), Some(FIVE)),
         TestObject(2, "namedValue1", boolField = true, Map("globalTestKey1" -> "rawValue1"))))
     }
+
+    it("Should replace variables in a map") {
+      val objectMap = Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger")
+      val objectParameter = Parameter(value=Some(objectMap))
+      val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
+      assert(parameterValue.asInstanceOf[Map[String, Any]]("string").asInstanceOf[Option[String]].contains("globalValue1"))
+      assert(parameterValue.asInstanceOf[Map[String, Any]]("num").asInstanceOf[Option[Int]].contains(FIVE))
+    }
   }
 }
 
