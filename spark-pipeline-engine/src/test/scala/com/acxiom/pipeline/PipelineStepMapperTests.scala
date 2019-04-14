@@ -183,6 +183,39 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       assert(parameterValue.asInstanceOf[Map[String, Any]]("string").asInstanceOf[Option[String]].contains("globalValue1"))
       assert(parameterValue.asInstanceOf[Map[String, Any]]("num").asInstanceOf[Option[Int]].contains(FIVE))
     }
+
+    it("Should create a list of objects") {
+      val objects = List(Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger"),
+        Map[String, Any]("string" -> "secondObject", "num" -> (FIVE + FIVE)))
+      val objectParameter = Parameter(value=Some(objects), className = Some("com.acxiom.pipeline.ParameterTest"))
+      val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
+      val list = parameterValue.asInstanceOf[List[ParameterTest]]
+      assert(list.length == 2)
+      assert(list.head == ParameterTest(Some("globalValue1"), Some(FIVE)))
+      assert(list(1) == ParameterTest(Some("secondObject"), Some(FIVE + FIVE)))
+    }
+
+    it("Should create a list of maps") {
+      val objects = List(Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger"),
+        Map[String, Any]("string" -> "secondObject", "num" -> (FIVE + FIVE)))
+      val objectParameter = Parameter(value=Some(objects))
+      val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
+      val list = parameterValue.asInstanceOf[List[Map[String, Any]]]
+      assert(list.length == 2)
+      assert(list.head("string").asInstanceOf[Option[String]].contains("globalValue1"))
+      assert(list.head("num").asInstanceOf[Option[Int]].contains(FIVE))
+      assert(list(1)("string").asInstanceOf[String] == "secondObject")
+      assert(list(1)("num").asInstanceOf[Int] == (FIVE + FIVE))
+    }
+
+    it("Should return a list of items") {
+      val objectParameter = Parameter(value=Some(List("string", FIVE)))
+      val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
+      val list = parameterValue.asInstanceOf[List[Any]]
+      assert(list.length == 2)
+      assert(list.head == "string")
+      assert(list(1) == FIVE)
+    }
   }
 }
 

@@ -116,11 +116,8 @@ trait PipelineStepMapper {
         case b: Boolean => Some(b)
         case i: Int => Some(i)
         case i: BigInt => Some(i.toInt)
-        case l: List[_] => Some(l)
-        case m: Map[_, _] if parameter.className.isDefined && parameter.className.get.nonEmpty =>
-          implicit val formats: Formats = DefaultFormats
-          Some(DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(m.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get))
-        case m: Map[_, _] => Some(mapEmbeddedVariables(m.asInstanceOf[Map[String, Any]], pipelineContext))
+        case l: List[_] => handleListParameter(l, parameter, pipelineContext)
+        case m: Map[_, _] => handleMapParameter(m, parameter, pipelineContext)
         case t => // Handle other types - This function may need to be reworked to support this so that it can be overridden
           throw new RuntimeException(s"Unsupported value type ${t.getClass} for ${parameter.name.getOrElse("unknown")}!")
       }
@@ -135,6 +132,44 @@ trait PipelineStepMapper {
       // use mapByType when no valid values are returned
       mapByType(None, parameter)
     }
+  }
+
+  /**
+    * Provides variable mapping when a map is discovered. Case classes will be initialized if the className attribute
+    * has been provided.
+    * @param map The map of values to parse and expand.
+    * @param parameter The step parameter.
+    * @param pipelineContext The pipeline context containing the globals and runtime parameters.
+    * @return A expanded map or initialized case class.
+    */
+  private def handleMapParameter(map: Map[_, _], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
+    Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
+      implicit val formats: Formats = DefaultFormats
+      DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(map.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get)
+    } else {
+      mapEmbeddedVariables(map.asInstanceOf[Map[String, Any]], pipelineContext)
+    })
+  }
+
+  /**
+    * Provides variable mapping and case class intialization for list containing maps. Case class initialization is supported
+    * if the className attribute is present.
+    *
+    * @param list      The list to expand.
+    * @param parameter The step parameter.
+    * @param pipelineContext The pipeline context containing the globals and runtime parameters.
+    * @return An expanded list
+    */
+  private def handleListParameter(list: List[_], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
+    Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
+      implicit val formats: Formats = DefaultFormats
+      list.map(value =>
+        DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get))
+    } else if (list.head.isInstanceOf[Map[_, _]]) {
+      list.map(value => mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext))
+    } else {
+      list
+    })
   }
 
   /**
