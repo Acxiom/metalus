@@ -7,13 +7,13 @@ import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline.{PipelineExecution, PipelineListener, PipelineSecurityManager, PipelineStepMapper}
 import org.apache.commons.io.FileUtils
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.{Level, Logger}
-import org.json4s.{DefaultFormats, Formats}
 import org.json4s.native.Serialization
+import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
 import scala.io.Source
@@ -80,6 +80,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
 
+      setup.pipelineContext.sparkSession.get.stop()
       file.delete()
       FileUtils.deleteDirectory(testDirectory.toFile)
     }
@@ -88,19 +89,31 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val testDirectory = Files.createTempDirectory("hdfsApplicationTests")
       val config = new HdfsConfiguration()
       config.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, testDirectory.toFile.getAbsolutePath)
-      val fs = FileSystem.get(config)
       val miniCluster = new MiniDFSCluster.Builder(config).build()
+      miniCluster.waitActive()
+      val fs = miniCluster.getFileSystem
+
+      // Update the application JSON so Spark uses the HDFS cluster
+      val application = ApplicationUtils.parseApplication(applicationJson)
+      val options =
+        Map[String, String]("name" -> "spark.hadoop.fs.defaultFS",
+          "value" -> miniCluster.getFileSystem().getUri.toString) :: application.sparkConf.get("setOptions").asInstanceOf[List[Map[String, String]]]
+      val conf = application.sparkConf.get + ("setOption" -> options)
 
       // Create the JSON file on HDFS
-      val outputStream = new OutputStreamWriter(fs.create(new Path("application-test.json")))
-      outputStream.write(applicationJson)
+      implicit val formats: Formats = DefaultFormats
+      val applicationJSONPath = new Path("hdfs:///application-test.json")
+      val outputStream = new OutputStreamWriter(fs.create(applicationJSONPath))
+      outputStream.write(Serialization.write(application.copy(sparkConf = Some(conf))))
       outputStream.flush()
       outputStream.close()
 
+      assert(fs.exists(applicationJSONPath))
       val setup = ApplicationDriverSetup(Map[String, Any](
-        "applicationConfigPath" -> "application-test.json",
-        "applicationConfigurationLoader" -> "com.acxiom.pipeline.utils.HDFSFileManager",
-        "rootLogLevel" -> "FATAL"))
+        "applicationConfigPath" -> "hdfs:///application-test.json",
+        "applicationConfigurationLoader" -> "com.acxiom.pipeline.fs.HDFSFileManager",
+        "dfs-cluster" -> miniCluster.getFileSystem().getUri.toString,
+        "rootLogLevel" -> "INFO"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
@@ -137,7 +150,6 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
       }
       assert(thrown.getMessage.contains("Missing required parameters: rootLogLevel"))
-
     }
 
     it("Should fail when config information is not present") {

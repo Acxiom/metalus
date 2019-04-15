@@ -182,6 +182,58 @@ Here is the object descried as JSON:
 		}
 	} 
 
+JSON object values may also be embedded as a pipeline step value. Two attributes must be provided in the JSON, 
+*className* and *object*. The *className* must be the fully qualified name of the case class to initialize and
+it must be on the classpath. *object* is the JSON object to use to initialize the case class. 
+
+Below is the syntax:
+
+```json
+"className": "com.acxiom.pipeleine.ParameterTest",
+"object": {
+	"string": "some string",
+	"num": 5
+}
+```
+
+List values may be embedded as a pipeline step value. Support for variable expansion is available for maps and objects 
+if the *className* property has been set.
+
+Syntax for a list of objects:
+
+```json
+{
+	"className": "com.acxiom.pipeleine.ParameterTest",
+	"value": [
+		{
+			"string": "some string",
+			"num": 5
+		},
+		{
+        	"string": "some other string",
+        	"num": 10
+        }
+	]
+}
+```
+
+Syntax for a list of maps:
+
+```json
+{
+	"value": [
+		{
+			"string": "some string",
+			"num": 5
+		},
+		{
+        	"string": "some other string",
+        	"num": 10
+        }
+	]
+}
+```
+
 ### PipelineStep
 The PipelineStep describes the step functions that need to be called including how data is passed between steps. When 
 creating a PipelineStep, these values need to be populated:

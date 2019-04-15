@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import org.apache.spark.sql.DataFrame
 
 @StepObject
