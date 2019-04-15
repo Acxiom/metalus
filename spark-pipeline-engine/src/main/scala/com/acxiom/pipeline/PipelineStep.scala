@@ -45,8 +45,9 @@ case class Parameter(`type`: Option[String] = None,
   * This class contains the execution information for a Step
   *
   * @param spark The execution instruction for the Spark engine.
+  * @param pkg An optional package location
   */
-case class EngineMeta(spark: Option[String] = None)
+case class EngineMeta(spark: Option[String] = None, pkg: Option[String] = None)
 
 /**
   * Trait that defines the minimum properties required by an exception thrown by a PipelineStep
