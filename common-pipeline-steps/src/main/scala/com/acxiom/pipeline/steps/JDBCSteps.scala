@@ -47,7 +47,7 @@ object JDBCSteps {
       reader.jdbc(
         url = jDBCStepsOptions.url,
         table = jDBCStepsOptions.table,
-        predicates = jDBCStepsOptions.predicates.get,
+        predicates = jDBCStepsOptions.predicates.get.toArray,
         connectionProperties = properties
       )
     } else {
@@ -162,7 +162,7 @@ object JDBCSteps {
   */
 case class JDBCDataFrameReaderOptions(url: String,
                                       table: String,
-                                      predicates: Option[Array[String]] = None,
+                                      predicates: Option[List[String]] = None,
                                       readerOptions: DataFrameReaderOptions = DataFrameReaderOptions("jdbc"))
 
 /**

@@ -5,6 +5,7 @@ import java.util.jar.JarFile
 
 import com.acxiom.pipeline.EngineMeta
 import com.acxiom.pipeline.utils.DriverUtils
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 
@@ -24,7 +25,6 @@ object StepMetaDataExtractor {
   implicit val formats: Formats = DefaultFormats
 
   def main(args: Array[String]): Unit = {
-    args.toList.foreach(println)
     val parameters = DriverUtils.extractParameters(args, Some(List("step-packages", "jar-files")))
     val stepPackages = parameters("step-packages").asInstanceOf[String].split(",").toList
     val jarFiles = parameters("jar-files").asInstanceOf[String].split(",").toList
@@ -88,26 +88,20 @@ object StepMetaDataExtractor {
   }
 
   private def buildPackageObjects(caseClasses: Set[String]): List[PackageObject] = {
-    import scala.reflect.runtime.currentMirror
-    import scala.tools.reflect.ToolBox
+    import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator
+    import com.fasterxml.jackson.databind.ObjectMapper
+    import com.fasterxml.jackson.databind.JsonNode
+
     caseClasses.map(x => {
-      val script =
-        s"""
-           |import com.github.andyglow.json.JsonFormatter
-           |import com.github.andyglow.jsonschema.AsValue
-           |import json.Json
-           |
-        |val schema: json.Schema[$x] = Json.schema[$x]
-           |JsonFormatter.format(AsValue.schema(schema))
-      """.stripMargin
-
-      val tree = currentMirror.mkToolBox().parse(script)
-      val schemaJson = currentMirror.mkToolBox().compile(tree)().asInstanceOf[String]
-        .replaceFirst("draft-04", "draft-07")
-        .replaceAll("\n", "")
-        .replaceAll(" +", "")
-
-      PackageObject(x, schemaJson)
+      val xClass = Class.forName(x)
+      val objectMapper = new ObjectMapper
+      objectMapper.registerModule(new DefaultScalaModule)
+      import com.kjetland.jackson.jsonSchema.JsonSchemaConfig
+      val config = JsonSchemaConfig.vanillaJsonSchemaDraft4
+      val jsonSchemaGenerator = new JsonSchemaGenerator(objectMapper, debug=true, config)
+      val jsonSchema: JsonNode = jsonSchemaGenerator.generateJsonSchema(xClass)
+      val schema = objectMapper.writeValueAsString(jsonSchema).replaceFirst("draft-04", "draft-07")
+       PackageObject(x, schema)
     }).toList
   }
 
@@ -162,7 +156,10 @@ object StepMetaDataExtractor {
             } else {
               stepParams :+ StepFunctionParameter(getParameterType(paramSymbol), paramSymbol.name.toString, className = caseClass)
             }
-            val updatedCaseClassSet = if(caseClass.nonEmpty) paramsAndClasses._2 + caseClass.get else paramsAndClasses._2
+            // only add non-private case classes to the case class set
+            val updatedCaseClassSet = if(caseClass.nonEmpty && !annotations.exists(_.tree.tpe =:= ru.typeOf[PrivateObject])) {
+              paramsAndClasses._2 + caseClass.get
+            } else { paramsAndClasses._2 }
             (updatedStepParams, updatedCaseClassSet)
           } else {
             paramsAndClasses
