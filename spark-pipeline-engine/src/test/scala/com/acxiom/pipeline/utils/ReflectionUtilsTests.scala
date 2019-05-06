@@ -41,6 +41,16 @@ class ReflectionUtilsTests extends FunSpec {
       assert(response.asInstanceOf[PipelineStepResponse].namedReturns.isDefined)
       assert(response.asInstanceOf[PipelineStepResponse].namedReturns.get("option").asInstanceOf[Option[String]].getOrElse("") == "Option")
     }
+
+    it("Should return an informative error if a step function is not found") {
+      val step = PipelineStep(None, None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.typo"))))
+      val thrown = intercept[PipelineException]{
+        val response = ReflectionUtils.processStep(step, Map[String, Any](), pipelineContext)
+      }
+      assert(thrown.message.get == "Unable to find step: MockStepObject.typo")
+    }
+
   }
 
   describe("ReflectionUtils - loadClass") {
