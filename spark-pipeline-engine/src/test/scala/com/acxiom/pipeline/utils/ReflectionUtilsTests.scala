@@ -45,10 +45,10 @@ class ReflectionUtilsTests extends FunSpec {
     it("Should return an informative error if a step function is not found") {
       val step = PipelineStep(None, None, None, None, None,
         Some(EngineMeta(Some("MockStepObject.typo"))))
-      val thrown = intercept[PipelineException]{
+      val thrown = intercept[IllegalArgumentException]{
         val response = ReflectionUtils.processStep(step, Map[String, Any](), pipelineContext)
       }
-      assert(thrown.message.get == "Unable to find step: MockStepObject.typo")
+      assert(thrown.getMessage == "typo is not a valid function!")
     }
 
   }
