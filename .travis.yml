@@ -1,4 +1,4 @@
-language: java
+language: scala
 
 env:
   global:
@@ -12,6 +12,7 @@ jobs:
   include:
     - stage: Build
       os: linux
+      dist: trusty
       scala:
         - 2.11.12
       jdk:
@@ -37,6 +38,7 @@ jobs:
     - stage: Code Quality
       if: branch = develop
       os: linux
+      dist: trusty
       scala:
         - 2.11.12
       jdk:
@@ -46,6 +48,7 @@ jobs:
     -
       if: branch = develop AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
       os: linux
+      dist: trusty
       scala:
         - 2.11.12
       jdk:
@@ -56,6 +59,7 @@ jobs:
     - stage: Release
       if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
       os: linux
+      dist: trusty
       scala:
         - 2.11.12
       jdk:
