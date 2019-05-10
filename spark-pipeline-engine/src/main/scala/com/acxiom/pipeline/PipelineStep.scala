@@ -98,6 +98,36 @@ case class PipelineException(errorType: Option[String] = Some("pipelineException
   extends Exception(message.getOrElse(""), cause)
     with PipelineStepException
 
+/**
+  * This Exception represents one or more exceptions that may have been received during a fork step execution.
+  *
+  * @param errorType  The type of exception. The default is forkStepException
+  * @param dateTime   The date and time of the exception
+  * @param message    The base message to detailing the reason
+  * @param exceptions A list of exceptions to use when building the message
+  */
+case class ForkedPipelineStepException(errorType: Option[String] = Some("forkStepException"),
+                                       dateTime: Option[String] = Some(new Date().toString),
+                                       message: Option[String] = Some(""),
+                                       exceptions: List[Throwable] = List())
+  extends Exception(message.getOrElse(""))
+    with PipelineStepException {
+  /**
+    * Adds an new exception to the internal list and returns a new ForkedPipelineStepException
+    * @param t The exception to throw
+    * @return A new ForkedPipelineStepException
+    */
+  def addException(t: Throwable): ForkedPipelineStepException = {
+    this.copy(exceptions = this.exceptions :+ t)
+  }
+
+  override def getMessage: String = {
+    exceptions.foldLeft(message.get)((mess, e) => {
+      s"$mess${e.getMessage}\n"
+    })
+  }
+}
+
 trait PipelineStepMessage {
   val stepId: String
   val pipelineId: String
@@ -117,6 +147,12 @@ object PipelineStepMessage {
 
 case class DefaultPipelineStepMessage(message: String, stepId: String, pipelineId: String, messageType: PipelineStepMessageType)
   extends PipelineStepMessage
+
+case class ForkedPipelineStepMessage(message: String,
+                                     stepId: String,
+                                     pipelineId: String,
+                                     messageType: PipelineStepMessageType,
+                                     executionId: Option[Int]) extends PipelineStepMessage
 
 /**
   * Trait that defines the object that should be returned by a PipelineStep function.

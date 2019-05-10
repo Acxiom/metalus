@@ -14,7 +14,7 @@ This section will attempt to provide a high level idea of how the framework achi
 
 There are several concepts that help achieve the project goal:
 
-### Steps
+### [Steps](spark-pipeline-engine/docs/steps.md)
 The step is the smallest unit of work in the application. A step is a single reusable code function that can be executed
 by a pipeline. There are two parts to a step, the actual function and the *PipelineStep* metadata. The function should 
 define the parameters that are required to execute properly and the metadata is used by the pipeline to define how those

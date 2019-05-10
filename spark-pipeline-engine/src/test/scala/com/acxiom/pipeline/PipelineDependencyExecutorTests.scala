@@ -9,12 +9,12 @@ import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
-import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen, Suite}
+import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
 import scala.collection.mutable
 import scala.io.Source
 
-class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen with Suite {
+class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll with Suite {
 
   override def beforeAll() {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)

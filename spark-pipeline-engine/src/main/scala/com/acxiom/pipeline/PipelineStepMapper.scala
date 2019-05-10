@@ -53,10 +53,8 @@ trait PipelineStepMapper {
   final def isValidOption(value: Option[Any]): Boolean = {
     if (value.isDefined) {
       value.get match {
-        case option: Option[_] =>
-          isValidOption(option)
-        case _ =>
-          true
+        case option: Option[_] => isValidOption(option)
+        case _ => true
       }
     } else {
       false
