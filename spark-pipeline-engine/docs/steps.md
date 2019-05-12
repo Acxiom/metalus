@@ -26,7 +26,9 @@ The branch type step provides a decision point in the flow of a pipeline. This s
 that is used to determine the **nextStepId**.
 
 ## Fork
-A fork type step allows running a set of steps against a list of data simulating looping behavior.
+A fork type step allows running a set of steps against a list of data simulating looping behavior. There are two ways
+to process the data: *serial* or *parallel*. Serial process the data one entry at a time, but all values will be processed
+regardless of errors.
 
 ## Join
 A join type step is used to *join* the executions of the fork step to continue processing in a linear manner. This step 

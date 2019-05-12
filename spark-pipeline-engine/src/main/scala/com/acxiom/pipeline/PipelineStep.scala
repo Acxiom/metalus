@@ -109,21 +109,22 @@ case class PipelineException(errorType: Option[String] = Some("pipelineException
 case class ForkedPipelineStepException(errorType: Option[String] = Some("forkStepException"),
                                        dateTime: Option[String] = Some(new Date().toString),
                                        message: Option[String] = Some(""),
-                                       exceptions: List[Throwable] = List())
+                                       exceptions: Map[Int, Throwable] = Map())
   extends Exception(message.getOrElse(""))
     with PipelineStepException {
   /**
     * Adds an new exception to the internal list and returns a new ForkedPipelineStepException
     * @param t The exception to throw
+    * @param executionId The id of the execution for this exception
     * @return A new ForkedPipelineStepException
     */
-  def addException(t: Throwable): ForkedPipelineStepException = {
-    this.copy(exceptions = this.exceptions :+ t)
+  def addException(t: Throwable, executionId: Int): ForkedPipelineStepException = {
+    this.copy(exceptions = this.exceptions + (executionId -> t))
   }
 
   override def getMessage: String = {
     exceptions.foldLeft(message.get)((mess, e) => {
-      s"$mess${e.getMessage}\n"
+      s"$mess Execution ${e._1}: ${e._2.getMessage}\n"
     })
   }
 }

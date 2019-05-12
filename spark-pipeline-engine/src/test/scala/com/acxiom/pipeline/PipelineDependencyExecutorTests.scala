@@ -44,23 +44,6 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
     FileUtils.deleteDirectory(new File("user-warehouse"))
   }
 
-  private def generatePipelineContext(): PipelineContext = {
-    val parameters = Map[String, Any]()
-    PipelineContext(Some(SparkTestHelper.sparkConf), Some(SparkTestHelper.sparkSession), Some(parameters),
-      PipelineSecurityManager(),
-      PipelineParameters(),
-      Some(if (parameters.contains("stepPackages")) {
-        parameters("stepPackages").asInstanceOf[String]
-          .split(",").toList
-      }
-      else {
-        List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")
-      }),
-      PipelineStepMapper(),
-      Some(SparkTestHelper.pipelineListener),
-      Some(SparkTestHelper.sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
-  }
-
   private val pipelineJson =
     """
     |[
@@ -310,7 +293,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
       }
       PipelineDependencyExecutor.executePlan(List(PipelineExecution("Fred",
         DriverUtils.parsePipelineJson(pipelineJson.replace("$value", "Fred")).get,
-        None, generatePipelineContext(), Some(List("meeso")))))
+        None, SparkTestHelper.generatePipelineContext(), Some(List("meeso")))))
       assert(!processExecuted)
     }
   }

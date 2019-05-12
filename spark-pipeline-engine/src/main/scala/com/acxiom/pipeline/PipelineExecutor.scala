@@ -172,6 +172,15 @@ object PipelineExecutor {
     ex
   }
 
+  /**
+    * Special handling of fork steps.
+    * @param step The fork step
+    * @param pipeline The pipeline being executed
+    * @param steps The step lookup
+    * @param parameterValues The parameterValues for this step
+    * @param pipelineContext The current pipeline context
+    * @return The result of processing the forked steps.
+    */
   private def processForkStep(step: PipelineStep,
                               pipeline: Pipeline,
                               steps: Map[String, PipelineStep],
@@ -183,18 +192,13 @@ object PipelineExecutor {
     val newSteps = getForkSteps(firstStep, pipeline, steps, List())
     // Identify the join steps and verify that only one is present
     val joinSteps = newSteps.filter(_.`type`.getOrElse("") == "join")
-    if (joinSteps.length > 1) {
-      throw PipelineException(message = Some("Only one join step is allowed for each fork step!"),
-        pipelineId = pipeline.id,
-        stepId = step.id)
-    }
     val newStepLookup = newSteps.foldLeft(Map[String, PipelineStep]())((map, s) => map + (s.id.get -> s))
     // See if the forks should be executed in threads or a loop
     val forkByValues = parameterValues("forkByValues").asInstanceOf[List[Any]]
     val results = if (parameterValues("forkMethod").asInstanceOf[String] == "parallel") {
-      processForkStepsParallel(forkByValues, firstStep, pipeline, newStepLookup, pipelineContext)
+      processForkStepsParallel(forkByValues, firstStep, step.id.get, pipeline, newStepLookup, pipelineContext)
     } else { // "serial"
-      processForkStepsSerial(forkByValues, firstStep, pipeline, newStepLookup, pipelineContext)
+      processForkStepsSerial(forkByValues, firstStep, step.id.get, pipeline, newStepLookup, pipelineContext)
     }
     // Gather the results and create a list
     val finalResult = results.sortBy(_.index).foldLeft(ForkStepExecutionResult(-1, Some(pipelineContext), None))((combinedResult, result) => {
@@ -204,22 +208,22 @@ object PipelineExecutor {
         combinedResult.copy(result = Some(mergeResponses(combinedResult.result.get, ctx, pipeline.id.getOrElse(""), newSteps, result.index)))
       } else if (result.error.isDefined) {
         if (combinedResult.error.isDefined) {
-          combinedResult.copy(error = Some(combinedResult.error.get.asInstanceOf[ForkedPipelineStepException].addException(result.error.get)))
+          combinedResult.copy(error = Some(combinedResult.error.get.asInstanceOf[ForkedPipelineStepException].addException(result.error.get, result.index)))
         } else {
           combinedResult.copy(error =
             Some(ForkedPipelineStepException(message = Some("One or more errors has occurred while processing fork step"),
-              exceptions = List(result.error.get))))
+              exceptions = Map(result.index -> result.error.get))))
         }
       } else { // This should never happen
         combinedResult
       }
     })
-    if (finalResult.result.isDefined) {
+    if (finalResult.error.isDefined) {
+      throw finalResult.error.get
+    } else {
       ForkStepResult(if (joinSteps.nonEmpty) {
         joinSteps.head.nextStepId
       } else { None }, finalResult.result.get)
-    } else {
-      throw finalResult.error.get
     }
   }
 
@@ -276,7 +280,7 @@ object PipelineExecutor {
         val r = sourceParameters(step.id.getOrElse(""))
         val stepResponse = r match {
           case a: PipelineStepResponse => a
-          case option: Option[PipelineStepResponse] if option.isDefined => option.get
+          case option: Option[_] if option.isDefined && option.get.isInstanceOf[PipelineStepResponse] => option.get.asInstanceOf[PipelineStepResponse]
           case option: Option[_] if option.isDefined => PipelineStepResponse(option, None)
           case any => PipelineStepResponse(Some(any), None)
         }
@@ -340,6 +344,7 @@ object PipelineExecutor {
     * Processes a set of forked steps in serial. All values will be processed regardless of individual failures.
     * @param forkByValues The values to fork
     * @param firstStep The first step to process
+    * @param forkStepId The id of the fork step used to store this value
     * @param pipeline The pipeline being processed/
     * @param steps The step lookup for the forked steps.
     * @param pipelineContext The pipeline context to clone while processing.
@@ -347,6 +352,7 @@ object PipelineExecutor {
     */
   private def processForkStepsSerial(forkByValues: Seq[Any],
                                      firstStep: PipelineStep,
+                                     forkStepId: String,
                                      pipeline: Pipeline,
                                      steps: Map[String, PipelineStep],
                                      pipelineContext: PipelineContext): List[ForkStepExecutionResult] = {
@@ -355,7 +361,7 @@ object PipelineExecutor {
         ForkStepExecutionResult(value._2,
           Some(executeStep(firstStep, pipeline, steps,
             createForkPipelineContext(pipelineContext).setParameterByPipelineId(pipeline.id.get,
-              firstStep.id.getOrElse(""), value._1))), None)
+              forkStepId, PipelineStepResponse(Some(value._1 ), None)))), None)
       } catch {
         case t: Throwable => ForkStepExecutionResult(value._2, None, Some(t))
       }
@@ -366,6 +372,7 @@ object PipelineExecutor {
     * Processes a set of forked steps in parallel. All values will be processed regardless of individual failures.
     * @param forkByValues The values to fork
     * @param firstStep The first step to process
+    * @param forkStepId The id of the fork step used to store this value
     * @param pipeline The pipeline being processed/
     * @param steps The step lookup for the forked steps.
     * @param pipelineContext The pipeline context to clone while processing.
@@ -373,6 +380,7 @@ object PipelineExecutor {
     */
   private def processForkStepsParallel(forkByValues: Seq[Any],
                                       firstStep: PipelineStep,
+                                      forkStepId: String,
                                       pipeline: Pipeline,
                                       steps: Map[String, PipelineStep],
                                       pipelineContext: PipelineContext): List[ForkStepExecutionResult] = {
@@ -382,7 +390,7 @@ object PipelineExecutor {
           ForkStepExecutionResult(value._2,
             Some(executeStep(firstStep, pipeline, steps,
             createForkPipelineContext(pipelineContext).setParameterByPipelineId(pipeline.id.get,
-              firstStep.id.getOrElse(""), value._1))), None)
+              forkStepId, PipelineStepResponse(Some(value._1 ), None)))), None)
         } catch {
           case t: Throwable => ForkStepExecutionResult(value._2, None, Some(t))
         }
@@ -417,8 +425,7 @@ object PipelineExecutor {
                            forkSteps: List[PipelineStep]): List[PipelineStep] = {
     step.`type`.getOrElse("") match {
       case "fork" => throw PipelineException(message = Some("fork steps may not be embedded other fork steps!"),
-        pipelineId = pipeline.id,
-        stepId = step.id)
+        pipelineId = pipeline.id, stepId = step.id)
       case "branch" =>
         step.params.get.foldLeft(conditionallyAddStepToList(step, forkSteps))((stepList, param) => {
           if (param.`type`.getOrElse("") == "result") {
@@ -428,6 +435,7 @@ object PipelineExecutor {
           }
         })
       case "join" => conditionallyAddStepToList(step, forkSteps)
+      case _ if !steps.contains(step.nextStepId.getOrElse("")) => conditionallyAddStepToList(step, forkSteps)
       case _ => getForkSteps(steps(step.nextStepId.getOrElse("")), pipeline, steps, conditionallyAddStepToList(step, forkSteps))
     }
   }
