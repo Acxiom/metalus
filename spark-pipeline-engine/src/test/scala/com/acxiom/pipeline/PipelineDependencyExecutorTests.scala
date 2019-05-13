@@ -9,12 +9,12 @@ import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
-import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen, Suite}
+import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
 import scala.collection.mutable
 import scala.io.Source
 
-class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen with Suite {
+class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll with Suite {
 
   override def beforeAll() {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
@@ -42,23 +42,6 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
     // cleanup spark-warehouse and user-warehouse directories
     FileUtils.deleteDirectory(new File("spark-warehouse"))
     FileUtils.deleteDirectory(new File("user-warehouse"))
-  }
-
-  private def generatePipelineContext(): PipelineContext = {
-    val parameters = Map[String, Any]()
-    PipelineContext(Some(SparkTestHelper.sparkConf), Some(SparkTestHelper.sparkSession), Some(parameters),
-      PipelineSecurityManager(),
-      PipelineParameters(),
-      Some(if (parameters.contains("stepPackages")) {
-        parameters("stepPackages").asInstanceOf[String]
-          .split(",").toList
-      }
-      else {
-        List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")
-      }),
-      PipelineStepMapper(),
-      Some(SparkTestHelper.pipelineListener),
-      Some(SparkTestHelper.sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
   }
 
   private val pipelineJson =
@@ -310,7 +293,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
       }
       PipelineDependencyExecutor.executePlan(List(PipelineExecution("Fred",
         DriverUtils.parsePipelineJson(pipelineJson.replace("$value", "Fred")).get,
-        None, generatePipelineContext(), Some(List("meeso")))))
+        None, SparkTestHelper.generatePipelineContext(), Some(List("meeso")))))
       assert(!processExecuted)
     }
   }

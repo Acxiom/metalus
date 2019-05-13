@@ -243,6 +243,23 @@ object SparkTestHelper {
   var sparkConf: SparkConf = _
   var sparkSession: SparkSession = _
   var pipelineListener: PipelineListener = _
+
+  def generatePipelineContext(): PipelineContext = {
+    val parameters = Map[String, Any]()
+    PipelineContext(Some(SparkTestHelper.sparkConf), Some(SparkTestHelper.sparkSession), Some(parameters),
+      PipelineSecurityManager(),
+      PipelineParameters(),
+      Some(if (parameters.contains("stepPackages")) {
+        parameters("stepPackages").asInstanceOf[String]
+          .split(",").toList
+      }
+      else {
+        List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")
+      }),
+      PipelineStepMapper(),
+      Some(SparkTestHelper.pipelineListener),
+      Some(SparkTestHelper.sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
+  }
 }
 
 case class SparkTestDriverSetup(parameters: Map[String, Any]) extends DriverSetup {
