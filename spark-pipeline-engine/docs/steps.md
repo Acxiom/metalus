@@ -38,7 +38,7 @@ joining the results back for further processing.
 A fork type step allows running a set of steps against a list of data simulating looping behavior. There are two ways
 to process the data: *serial* or *parallel*. Serial will process the data one entry at a time, but all values will be 
 processed regardless of errors. Parallel will attempt to run each value at the same time depending on the available 
-resources. Fork steps may not be embedded in side other fork steps, but multiple fork steps are allowed as long as a
+resources. Fork steps may not be embedded inside other fork steps, but multiple fork steps are allowed as long as a
 join step provides separation. Fork steps perform no logic, so the "engineMeta" attribute will be ignored. The required 
 parameters are:
 
@@ -58,11 +58,12 @@ type requires a fork step. A join step is not required if all of the remaining s
 process each value in the list. Without a join step, the driver will automatically join the step values and then complete
 processing.
 
-Each step that is used for fork processing will have the results merged back into a list. This means that if the result 
-of any step used for fork processing, the *primaryReturn* will be a list of *Option* elements which may be *None*. The 
-values will be in the same index position as the original values in the list provided to the fork step. The secondary 
-named results will return a single map, but the values in the map will be lists which are built identical to the main 
-response.
+Once a join step is encountered, the individual results of the previous steps used for fork processing will be combined 
+into a list. The list will wrap the results as options and if there is not a result, *None* will be used. As an example,
+if the fork is processing a list containing three elements and the first step returns a boolean based on some criteria, 
+then the *primaryReturn* for that step would be a list containing either *None* or *Option[Boolean]*. Each response will 
+be stored in the same list position (index) as the data in the original list. The secondary named results will return a 
+single map, but the values in the map will be lists which are built identical to the main response.
 
 The join step only requires two parameters:
 *  **id** - The id of this step in the pipeline
