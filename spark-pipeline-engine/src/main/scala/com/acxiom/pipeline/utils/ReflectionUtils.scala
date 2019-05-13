@@ -224,6 +224,9 @@ object ReflectionUtils {
 
   private def getMethod(funcName: String, im: ru.ModuleMirror, parameterValues: Map[String, Any]): ru.MethodSymbol = {
     val symbol = im.symbol.info.decl(ru.TermName(funcName))
+    if (!symbol.isTerm) {
+      throw new IllegalArgumentException(s"$funcName is not a valid function!")
+    }
     getMethodBySymbol(symbol, parameterValues)
   }
 
