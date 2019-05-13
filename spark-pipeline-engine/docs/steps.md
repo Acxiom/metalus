@@ -30,7 +30,11 @@ then the output of the branch step, must be either "One", "Two" or "Three" in or
 is no match, then processing for that pipeline will stop normally. When defining this type of step, the type should
 be "branch".
 
-## Fork
+## Fork/Join
+The fork and join step types are simple constructs that allow processing a list of data in a loop like construct and then 
+joining the results back for further processing.
+
+### Fork
 A fork type step allows running a set of steps against a list of data simulating looping behavior. There are two ways
 to process the data: *serial* or *parallel*. Serial will process the data one entry at a time, but all values will be 
 processed regardless of errors. Parallel will attempt to run each value at the same time depending on the available 
@@ -39,7 +43,7 @@ join step provides separation. Fork steps perform no logic, so the "engineMeta" 
 parameters are:
 
 * **id** - The id of this step in the pipeline
-* **type** - This should always be fork
+* **type** - This should always be "fork"
 * **params** - Two parameters are required:
   * **forkByValues** - should contain a reference to the list of data to process
   * **forkMethod** - must be either *serial* or *parallel*
@@ -48,7 +52,7 @@ parameters are:
 The first step in the set to be used during fork processing should reference the *id* of the fork step to access the 
 data from the list.
 
-## Join
+### Join
 A join type step is used to **join** the executions of the fork step to continue processing in a linear manner. This step 
 type requires a fork step. A join step is not required if all of the remaining steps in the pipeline are to be used to 
 process each value in the list. Without a join step, the driver will automatically join the step values and then complete
@@ -59,6 +63,10 @@ of any step used for fork processing, the *primaryReturn* will be a list of *Opt
 values will be in the same index position as the original values in the list provided to the fork step. The secondary 
 named results will return a single map, but the values in the map will be lists which are built identical to the main 
 response.
+
+The join step only requires two parameters:
+*  **id** - The id of this step in the pipeline
+* **type** - This should always be "join"
 
 Example of a fork/join operation:
 
