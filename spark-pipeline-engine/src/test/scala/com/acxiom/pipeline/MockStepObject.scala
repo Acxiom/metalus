@@ -18,6 +18,10 @@ object MockStepObject {
   def mockStringListStepFunction(listSize: Int): PipelineStepResponse = {
     PipelineStepResponse(Some(List.tabulate(listSize)(_.toString)), None)
   }
+
+  def mockExceptionStepFunction(string: String): PipelineStepResponse = {
+    throw new IllegalArgumentException(s"exception thrown for string value ($string)")
+  }
 }
 
 case class MockClass(string: String)

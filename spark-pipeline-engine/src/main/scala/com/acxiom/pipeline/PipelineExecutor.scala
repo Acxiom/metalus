@@ -211,7 +211,7 @@ object PipelineExecutor {
           combinedResult.copy(error = Some(combinedResult.error.get.asInstanceOf[ForkedPipelineStepException].addException(result.error.get, result.index)))
         } else {
           combinedResult.copy(error =
-            Some(ForkedPipelineStepException(message = Some("One or more errors has occurred while processing fork step"),
+            Some(ForkedPipelineStepException(message = Some("One or more errors has occurred while processing fork step:\n"),
               exceptions = Map(result.index -> result.error.get))))
         }
       } else { // This should never happen
@@ -429,7 +429,7 @@ object PipelineExecutor {
       case "branch" =>
         step.params.get.foldLeft(conditionallyAddStepToList(step, forkSteps))((stepList, param) => {
           if (param.`type`.getOrElse("") == "result") {
-            getForkSteps(steps(param.value.getOrElse("").asInstanceOf[String]), pipeline, steps, forkSteps)
+            getForkSteps(steps(param.value.getOrElse("").asInstanceOf[String]), pipeline, steps, stepList)
           } else {
             stepList
           }
