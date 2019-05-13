@@ -19,27 +19,46 @@ currently only works against classes and not against jars.
 The library provides several step types to make building applications easier.
 
 ## Pipeline
-This is the most common step type used to perform work in the pipeline.
+This is the most common step type used to perform work in the pipeline. When defining this type of step, the type should
+be "Pipeline".
 
 ## Branch
 The branch type step provides a **decision** point in the flow of a pipeline. This step adds a new parameter type of **result**
 that is used to determine the **nextStepId**. The logic in the step function must return a value that may be matched to 
 one of the parameters by name. As an example, if there are three *result* type parameters defined ("One", "Two", "Three"),
 then the output of the branch step, must be either "One", "Two" or "Three" in order to keep processing. In the case there 
-is no match, then processing for that pipeline will stop normally.
+is no match, then processing for that pipeline will stop normally. When defining this type of step, the type should
+be "branch".
 
 ## Fork
 A fork type step allows running a set of steps against a list of data simulating looping behavior. There are two ways
 to process the data: *serial* or *parallel*. Serial will process the data one entry at a time, but all values will be 
 processed regardless of errors. Parallel will attempt to run each value at the same time depending on the available 
 resources. Fork steps may not be embedded in side other fork steps, but multiple fork steps are allowed as long as a
-join step provides separation.
+join step provides separation. Fork steps perform no logic, so the "engineMeta" attribute will be ignored. The required 
+parameters are:
+
+* **id** - The id of this step in the pipeline
+* **type** - This should always be fork
+* **params** - Two parameters are required:
+  * **forkByValues** - should contain a reference to the list of data to process
+  * **forkMethod** - must be either *serial* or *parallel*
+* **nextStepId** - This should point to the first step to be used when processing each value.
+
+The first step in the set to be used during fork processing should reference the *id* of the fork step to access the 
+data from the list.
 
 ## Join
 A join type step is used to **join** the executions of the fork step to continue processing in a linear manner. This step 
 type requires a fork step. A join step is not required if all of the remaining steps in the pipeline are to be used to 
 process each value in the list. Without a join step, the driver will automatically join the step values and then complete
 processing.
+
+Each step that is used for fork processing will have the results merged back into a list. This means that if the result 
+of any step used for fork processing, the *primaryReturn* will be a list of *Option* elements which may be *None*. The 
+values will be in the same index position as the original values in the list provided to the fork step. The secondary 
+named results will return a single map, but the values in the map will be lists which are built identical to the main 
+response.
 
 Example of a fork/join operation:
 
