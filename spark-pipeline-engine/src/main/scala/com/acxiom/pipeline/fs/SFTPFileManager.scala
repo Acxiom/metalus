@@ -17,6 +17,9 @@ class SFTPFileManager(user: String,
                       config: Option[Map[String, String]] = None
                      ) extends FileManager {
   private val jsch = new JSch()
+  if (knownHosts.isDefined) {
+    jsch.setKnownHosts(knownHosts.get)
+  }
   private lazy val session = {
     val ses = jsch.getSession(user, hostName, port)
     if (password.isDefined) {
