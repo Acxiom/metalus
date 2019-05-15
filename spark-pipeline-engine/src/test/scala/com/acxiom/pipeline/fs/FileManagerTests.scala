@@ -4,7 +4,7 @@ import java.io._
 import java.nio.file.Files
 import java.util.Properties
 
-import com.jcraft.jsch.{ChannelSftp, JSch}
+import com.jcraft.jsch.{ChannelSftp, JSch, SftpException}
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
@@ -178,26 +178,42 @@ class FileManagerTests extends FunSpec with Suite {
   }
 
   describe("FileManager - SFTP") {
+    it("Should be able to write") {
+      val server = new MockSftpServer(PORT)
+      val contents = "Chickens Rule!"
+      val sftp = new SFTPFileManager("tester",
+        "localhost", PORT, Some("testing"), None,
+        config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
+      sftp.connect()
+      val pw = new PrintWriter(sftp.getOutputStream("/newChicken.txt"))
+      pw.println(contents)
+      pw.flush()
+      pw.close()
+      assert(Source.fromInputStream(new FileInputStream(s"${server.getBaseDirectory}/newChicken.txt")).getLines().mkString == contents)
+      sftp.disconnect()
+      server.stop()
+    }
+
     it("Should be able to read") {
       val server = new MockSftpServer(PORT)
       val contents = "Chickens Rule!"
-      writeRemoteFile("/chicken.txt", contents)
+      writeRemoteFile(s"${server.getBaseDirectory}/chicken.txt", contents)
       val sftp = new SFTPFileManager("tester",
         "localhost", PORT, Some("testing"), None,
-        Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
+        config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
       assert(Source.fromInputStream(sftp.getInputStream("/chicken.txt")).getLines().mkString == contents)
       sftp.disconnect()
       server.stop()
     }
 
-    it("Should check for file existence"){
+    it("Should check for file existence") {
       val server = new MockSftpServer(PORT)
       val contents = "Chickens Rule!"
-      writeRemoteFile("chicken2.txt", contents)
+      writeRemoteFile(s"${server.getBaseDirectory}/chicken2.txt", contents)
       val sftp = new SFTPFileManager("tester",
         "localhost", PORT, Some("testing"), None,
-        Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
+        config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
 
       assert(sftp.exists("/chicken2.txt"))
@@ -206,37 +222,66 @@ class FileManagerTests extends FunSpec with Suite {
       server.stop()
     }
 
-    it("Should be able to delete files"){
+    it("Should be able to delete files") {
       val server = new MockSftpServer(PORT)
-      writeRemoteFile("/chicken3.txt", "moo")
+      writeRemoteFile(s"${server.getBaseDirectory}/chicken3.txt", "moo")
       val sftp = new SFTPFileManager("tester",
         "localhost", PORT, Some("testing"), None,
-        Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
+        config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
       assert(sftp.deleteFile("/chicken3.txt"))
       assert(!sftp.deleteFile("nothing.txt"))
       sftp.disconnect()
       server.stop()
     }
+
+    it("Should be able to rename files") {
+      val server = new MockSftpServer(PORT)
+      writeRemoteFile(s"${server.getBaseDirectory}/chcken.txt", "moo")
+      val sftp = new SFTPFileManager("tester",
+        "localhost", PORT, Some("testing"), None,
+        config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
+      sftp.connect()
+      assert(sftp.rename("/chcken.txt", "/newName.txt"))
+      assert(sftp.exists("newName.txt"))
+      sftp.disconnect()
+      server.stop()
+    }
+
+    it("Should be able to get file sizes") {
+      val server = new MockSftpServer(PORT)
+      writeRemoteFile(s"${server.getBaseDirectory}/chicken4.txt", "moo")
+      val sftp = new SFTPFileManager("tester",
+        "localhost", PORT, Some("testing"), None,
+        config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
+      sftp.connect()
+      assert(sftp.getSize("/chicken4.txt") == 3)
+      intercept[SftpException] {
+        sftp.getSize("notHere")
+      }
+      sftp.disconnect()
+      server.stop()
+    }
+
+    it("Should be able to get file listings") {
+      val server = new MockSftpServer(PORT)
+      writeRemoteFile(s"${server.getBaseDirectory}/chicken5.txt", "moo")
+      val sftp = new SFTPFileManager("tester",
+        "localhost", PORT, Some("testing"), None,
+        config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
+      sftp.connect()
+      val listings = sftp.getFileListing("/")
+      assert(listings.size == 2)
+      assert(listings(1).fileName == "chicken5.txt")
+      sftp.disconnect()
+      server.stop()
+    }
   }
 
-  private def writeRemoteFile(path: String, contents: String): Unit ={
-    val jsch = new JSch()
-    val session = jsch.getSession("tester","localhost", PORT)
-    session.setPassword("testing")
-    val config = new Properties()
-    config.put("StrictHostKeyChecking", "no")
-    session.setConfig(config)
-    session.connect()
-    val channel = session.openChannel("sftp").asInstanceOf[ChannelSftp]
-    channel.connect()
-    val pw = new PrintWriter(channel.put(path, ChannelSftp.OVERWRITE))
-    pw.println(contents)
-    pw.flush()
-    pw.close()
-    session.disconnect()
-    if (channel.isConnected) {
-      channel.disconnect()
-    }
+  private def writeRemoteFile(path: String, contents: String): Unit = {
+    val out = new FileOutputStream(path)
+    out.write(contents.getBytes)
+    out.flush()
+    out.close()
   }
 }

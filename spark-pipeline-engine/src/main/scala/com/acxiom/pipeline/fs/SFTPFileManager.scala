@@ -7,6 +7,10 @@ import com.jcraft.jsch.{ChannelSftp, JSch, SftpException}
 
 object SFTPFileManager {
   val DEFAULT_PORT = 22
+  val DEFAULT_BULK_REQUESTS = 128
+  val DEFAULT_TRANSFER_BUFFER = 32768
+  val DEFAULT_INPUT_BUFFER = 65536
+  val DEFAULT_OUTPUT_BUFFER = 65536
 }
 
 class SFTPFileManager(user: String,
@@ -14,6 +18,7 @@ class SFTPFileManager(user: String,
                       port: Int = SFTPFileManager.DEFAULT_PORT,
                       password: Option[String] = None,
                       knownHosts: Option[String] = None,
+                      bulkRequests: Int = SFTPFileManager.DEFAULT_BULK_REQUESTS,
                       config: Option[Map[String, String]] = None
                      ) extends FileManager {
   private val jsch = new JSch()
@@ -33,7 +38,9 @@ class SFTPFileManager(user: String,
 
   private lazy val channel: ChannelSftp = {
     session.connect()
-    session.openChannel("sftp").asInstanceOf[ChannelSftp]
+    val chan = session.openChannel("sftp").asInstanceOf[ChannelSftp]
+    chan.setBulkRequests(bulkRequests)
+    chan
   }
 
   /**
@@ -60,7 +67,7 @@ class SFTPFileManager(user: String,
     * @param bufferSize The buffer size to apply to the stream
     * @return A buffered input stream
     */
-  override def getInputStream(path: String, bufferSize: Int): InputStream = {
+  override def getInputStream(path: String, bufferSize: Int = SFTPFileManager.DEFAULT_INPUT_BUFFER): InputStream = {
     new BufferedInputStream(channel.get(path), bufferSize)
   }
 
@@ -72,7 +79,7 @@ class SFTPFileManager(user: String,
     * @param bufferSize The buffer size to apply to the stream
     * @return
     */
-  override def getOutputStream(path: String, append: Boolean, bufferSize: Int): OutputStream = {
+  override def getOutputStream(path: String, append: Boolean, bufferSize: Int = SFTPFileManager.DEFAULT_OUTPUT_BUFFER): OutputStream = {
     new BufferedOutputStream(channel.put(path, if (append) ChannelSftp.APPEND else ChannelSftp.OVERWRITE), bufferSize)
   }
 
@@ -130,6 +137,16 @@ class SFTPFileManager(user: String,
     if (session.isConnected) {
       session.disconnect()
     }
+  }
+
+  /**
+    * Copies all of the contents of the input stream to the output stream.
+    * @param input The input contents to copy
+    * @param output The output to copy to
+    * @return True if the copy was successful
+    */
+  override def copy(input: InputStream, output: OutputStream): Boolean = {
+    super.copy(input, output, SFTPFileManager.DEFAULT_TRANSFER_BUFFER)
   }
 
   /**
