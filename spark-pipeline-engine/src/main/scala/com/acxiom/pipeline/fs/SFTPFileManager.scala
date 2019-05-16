@@ -47,7 +47,9 @@ class SFTPFileManager(user: String,
     * Connect to the file system
     */
   override def connect(): Unit = {
-    channel.connect()
+    if(!channel.isConnected) {
+      channel.connect()
+    }
   }
 
   /**

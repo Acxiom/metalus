@@ -276,6 +276,18 @@ class FileManagerTests extends FunSpec with Suite {
       sftp.disconnect()
       server.stop()
     }
+
+    it("Should be able to copy") {
+      val server = new MockSftpServer(PORT)
+      writeRemoteFile(s"${server.getBaseDirectory}/chicken6.txt", "moo")
+      val sftp = new SFTPFileManager("tester",
+        "localhost", PORT, Some("testing"), None,
+        config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
+      sftp.connect()
+      sftp.copy(sftp.getInputStream("/chicken6.txt"), sftp.getOutputStream("/chicken7.txt"))
+      assert(Source.fromInputStream(new FileInputStream(s"${server.getBaseDirectory}/chicken7.txt")).getLines().mkString == "moo")
+      server.stop()
+    }
   }
 
   private def writeRemoteFile(path: String, contents: String): Unit = {
