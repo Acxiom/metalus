@@ -11,6 +11,10 @@ object MockStepObject {
     PipelineStepResponse(Some(string), Some(Map[String, Any]("boolean" -> boolean, "string" -> string, "option" -> opt)))
   }
 
+  def mockStepFunctionWithDefaultValue(string: String, default: Option[String] = Some("chicken")): Option[String] = {
+    default
+  }
+
   def mockStepFunctionAnyResponse(string: String): String = {
     string
   }
