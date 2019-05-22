@@ -17,6 +17,8 @@ class DefaultPipelineStepMapper extends PipelineStepMapper
 trait PipelineStepMapper {
   val logger: Logger = Logger.getLogger(getClass)
 
+  private val specialCharacters = List('@', '#', '$', '!')
+
   /**
     * This function is called prior to executing a PipelineStep generating a map of values to be passed to the step
     * function.
@@ -51,10 +53,8 @@ trait PipelineStepMapper {
   final def isValidOption(value: Option[Any]): Boolean = {
     if (value.isDefined) {
       value.get match {
-        case option: Option[_] =>
-          isValidOption(option)
-        case _ =>
-          true
+        case option: Option[_] => isValidOption(option)
+        case _ => true
       }
     } else {
       false
@@ -102,7 +102,7 @@ trait PipelineStepMapper {
     val returnValue = if (value.isDefined) {
       value.get match {
         case s: String =>
-          // TODO Add support for javascript so that we can have complex interactions - @Step1 + '_my_table_name'
+          // Add support for javascript so that we can have complex interactions - @Step1 + '_my_table_name'
           // If the parameter type is 'script', return the value as is
           if (parameter.`type`.getOrElse("none") == "script") {
             Some(s)
@@ -114,12 +114,9 @@ trait PipelineStepMapper {
         case b: Boolean => Some(b)
         case i: Int => Some(i)
         case i: BigInt => Some(i.toInt)
-        case l: List[_] => Some(l)
-        case m: Map[_, _] if parameter.className.isDefined && parameter.className.get.nonEmpty =>
-          implicit val formats: Formats = DefaultFormats
-          Some(DriverUtils.parseJson(Serialization.write(m), parameter.className.get))
-        case m: Map[_, _] => Some(m)
-        case t => // TODO Handle other types - This function may need to be reworked to support this so that it can be overridden
+        case l: List[_] => handleListParameter(l, parameter, pipelineContext)
+        case m: Map[_, _] => handleMapParameter(m, parameter, pipelineContext)
+        case t => // Handle other types - This function may need to be reworked to support this so that it can be overridden
           throw new RuntimeException(s"Unsupported value type ${t.getClass} for ${parameter.name.getOrElse("unknown")}!")
       }
     } else {
@@ -133,6 +130,62 @@ trait PipelineStepMapper {
       // use mapByType when no valid values are returned
       mapByType(None, parameter)
     }
+  }
+
+  /**
+    * Provides variable mapping when a map is discovered. Case classes will be initialized if the className attribute
+    * has been provided.
+    * @param map The map of values to parse and expand.
+    * @param parameter The step parameter.
+    * @param pipelineContext The pipeline context containing the globals and runtime parameters.
+    * @return A expanded map or initialized case class.
+    */
+  private def handleMapParameter(map: Map[_, _], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
+    Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
+      implicit val formats: Formats = DefaultFormats
+      DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(map.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get)
+    } else {
+      mapEmbeddedVariables(map.asInstanceOf[Map[String, Any]], pipelineContext)
+    })
+  }
+
+  /**
+    * Provides variable mapping and case class intialization for list containing maps. Case class initialization is supported
+    * if the className attribute is present.
+    *
+    * @param list      The list to expand.
+    * @param parameter The step parameter.
+    * @param pipelineContext The pipeline context containing the globals and runtime parameters.
+    * @return An expanded list
+    */
+  private def handleListParameter(list: List[_], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
+    Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
+      implicit val formats: Formats = DefaultFormats
+      list.map(value =>
+        DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get))
+    } else if (list.head.isInstanceOf[Map[_, _]]) {
+      list.map(value => mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext))
+    } else {
+      list
+    })
+  }
+
+  /**
+    * Iterates a map prior to converting to a case class and substitutes values marked with special characters: @,#,$,!
+    * @param classMap The object map
+    * @param pipelineContext The pipelineContext
+    * @return A map with substituted values
+    */
+  private def mapEmbeddedVariables(classMap: Map[String, Any], pipelineContext: PipelineContext): Map[String, Any] = {
+    classMap.foldLeft(classMap)((map, entry) => {
+      entry._2 match {
+        case s: String if specialCharacters.contains(s.headOption.getOrElse("")) =>
+          map + (entry._1 -> returnBestValue(s, Parameter(), pipelineContext))
+        case m:  Map[_, _] =>
+          map + (entry._1 -> mapEmbeddedVariables(m.asInstanceOf[Map[String, Any]], pipelineContext))
+        case _ => map
+      }
+    })
   }
 
   @tailrec
@@ -213,25 +266,12 @@ trait PipelineStepMapper {
   private def getPathValues(value: String, pipelineContext: PipelineContext): PipelinePath = {
     if (value.contains('.')) {
       // Check for the special character
-      val special = if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!") || value.startsWith("#")) {
-        value.substring(0, 1)
-      } else {
-        ""
-      }
+      val special = getSpecialCharacter(value)
       val pipelineId = value.substring(0, value.indexOf('.')).substring(1)
       val paths = value.split('.')
       if (pipelineContext.parameters.hasPipelineParameters(pipelineId)) {
-        val mainPath = if (special != "") {
-          s"$special${paths(1)}"
-        } else {
-          paths(1)
-        }
-        val extraPath = if (paths.length > 2) {
-          Some(paths.toList.slice(2, paths.length).mkString("."))
-        } else {
-          None
-        }
-        PipelinePath(Some(pipelineId), mainPath, extraPath)
+        val extraPath = getExtraPath(paths)
+        PipelinePath(Some(pipelineId), s"$special${paths(1)}", extraPath)
       } else {
         PipelinePath(None, paths.head, if (paths.lengthCompare(1) == 0) {
          None
@@ -241,6 +281,22 @@ trait PipelineStepMapper {
       }
     } else {
       PipelinePath(None, value, None)
+    }
+  }
+
+  private def getSpecialCharacter(value: String): String = {
+    if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!") || value.startsWith("#")) {
+      value.substring(0, 1)
+    } else {
+      ""
+    }
+  }
+
+  private def getExtraPath(paths: Array[String]): Option[String] = {
+    if (paths.length > 2) {
+      Some(paths.toList.slice(2, paths.length).mkString("."))
+    } else {
+      None
     }
   }
 

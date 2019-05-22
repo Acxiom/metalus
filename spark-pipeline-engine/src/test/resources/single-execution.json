@@ -6,6 +6,7 @@
   "executions": [
     {
       "id": "0",
+      "parents": [],
       "pipelines": [
         {
           "id": "Pipeline1",

@@ -9,6 +9,7 @@ import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite, GivenWhenThen}
 
 class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen with Suite {
+  private val FIVE = 5
   override def beforeAll() {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
@@ -65,7 +66,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         Some(Map("namedKey" -> "namedValue")))))
     ))
 
-    val globalParameters = Map("pipelineId" -> "pipeline-id-3", "globalString" -> "globalValue1", "globalInteger" -> 3,
+    val globalParameters = Map("pipelineId" -> "pipeline-id-3", "globalString" -> "globalValue1", "globalInteger" -> FIVE,
       "globalBoolean" -> true, "globalTestObject" -> globalTestObject)
 
     val pipelineContext = PipelineContext(
@@ -87,7 +88,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("default value", Parameter(name = Some("fred"), defaultValue=Some("default value"),`type`=Some("string")), "default value"),
         ("string from global", Parameter(value=Some("!globalString"),`type`=Some("string")), "globalValue1"),
         ("boolean from global", Parameter(value=Some("!globalBoolean"),`type`=Some("boolean")), true),
-        ("integer from global", Parameter(value=Some("!globalInteger"),`type`=Some("integer")), 3),
+        ("integer from global", Parameter(value=Some("!globalInteger"),`type`=Some("integer")), FIVE),
         ("test object from global", Parameter(value=Some("!globalTestObject"),`type`=Some("string")), globalTestObject),
         ("child object from global", Parameter(value=Some("!globalTestObject.intField"),`type`=Some("integer")), globalTestObject.intField),
         ("non-step value from pipeline", Parameter(value=Some("$pipeline-id-1.rawKey1"),`type`=Some("string")), "rawValue1"),
@@ -151,8 +152,73 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       assert(parameterMap("Three").asInstanceOf[Option[_]].isEmpty)
       assert(parameterMap("Four").asInstanceOf[String] == "Four default")
     }
+
+    it("Should create object with variables") {
+      val objectMap = Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger")
+      val objectParameter = Parameter(value=Some(objectMap), className = Some("com.acxiom.pipeline.ParameterTest"))
+      val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
+      assert(parameterValue == ParameterTest(Some("globalValue1"), Some(FIVE)))
+
+      val ctx = pipelineContext.setGlobal("pipelineId", "pipeline-id-1")
+      val nestedObjectMap = Map[String, Any](
+        "parameterTest" -> Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger"),
+        "testObject" -> Map[String, Any](
+          "intField" -> "@step1.primaryKey1Map.childKey1Integer", // Should be 2
+          "stringField" -> "#step1.namedKey1String", // Should be namedValue1
+          "boolField" -> "#step1.namedKey1Boolean", // Should be true
+          "mapField" -> Map("globalTestKey1" -> "$rawKey1") // Should be rawValue1
+        )
+      )
+      val nestedCaseClass = ctx.parameterMapper.mapParameter(
+        Parameter(value=Some(nestedObjectMap),
+          className = Some("com.acxiom.pipeline.NestedCaseClassTest")), ctx)
+      assert(nestedCaseClass == NestedCaseClassTest(ParameterTest(Some("globalValue1"), Some(FIVE)),
+        TestObject(2, "namedValue1", boolField = true, Map("globalTestKey1" -> "rawValue1"))))
+    }
+
+    it("Should replace variables in a map") {
+      val objectMap = Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger")
+      val objectParameter = Parameter(value=Some(objectMap))
+      val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
+      assert(parameterValue.asInstanceOf[Map[String, Any]]("string").asInstanceOf[Option[String]].contains("globalValue1"))
+      assert(parameterValue.asInstanceOf[Map[String, Any]]("num").asInstanceOf[Option[Int]].contains(FIVE))
+    }
+
+    it("Should create a list of objects") {
+      val objects = List(Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger"),
+        Map[String, Any]("string" -> "secondObject", "num" -> (FIVE + FIVE)))
+      val objectParameter = Parameter(value=Some(objects), className = Some("com.acxiom.pipeline.ParameterTest"))
+      val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
+      val list = parameterValue.asInstanceOf[List[ParameterTest]]
+      assert(list.length == 2)
+      assert(list.head == ParameterTest(Some("globalValue1"), Some(FIVE)))
+      assert(list(1) == ParameterTest(Some("secondObject"), Some(FIVE + FIVE)))
+    }
+
+    it("Should create a list of maps") {
+      val objects = List(Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger"),
+        Map[String, Any]("string" -> "secondObject", "num" -> (FIVE + FIVE)))
+      val objectParameter = Parameter(value=Some(objects))
+      val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
+      val list = parameterValue.asInstanceOf[List[Map[String, Any]]]
+      assert(list.length == 2)
+      assert(list.head("string").asInstanceOf[Option[String]].contains("globalValue1"))
+      assert(list.head("num").asInstanceOf[Option[Int]].contains(FIVE))
+      assert(list(1)("string").asInstanceOf[String] == "secondObject")
+      assert(list(1)("num").asInstanceOf[Int] == (FIVE + FIVE))
+    }
+
+    it("Should return a list of items") {
+      val objectParameter = Parameter(value=Some(List("string", FIVE)))
+      val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
+      val list = parameterValue.asInstanceOf[List[Any]]
+      assert(list.length == 2)
+      assert(list.head == "string")
+      assert(list(1) == FIVE)
+    }
   }
 }
 
+case class NestedCaseClassTest(parameterTest: ParameterTest, testObject: TestObject)
 case class ParameterTest(string: Option[String], num: Option[Int])
 case class TestObject(intField: Integer, stringField: String, boolField: Boolean, mapField: Map[String, Any])

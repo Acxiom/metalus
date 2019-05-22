@@ -2,6 +2,7 @@ package com.acxiom.pipeline.utils
 
 import java.text.ParseException
 
+import com.acxiom.pipeline.fs.FileManager
 import com.acxiom.pipeline.{DefaultPipeline, Pipeline, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
@@ -20,6 +21,8 @@ object DriverUtils {
 
   val DEFAULT_KRYO_CLASSES = Array(classOf[LongWritable], classOf[UrlEncodedFormEntity])
 
+  private val SPARK_MASTER = "spark.master"
+
   /**
     * Creates a SparkConf with the provided class array. This function will also set properties required to run on a cluster.
     *
@@ -34,7 +37,7 @@ object DriverUtils {
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
 
     // Handle test scenarios where the master was not set
-    val sparkConf = if (!tempConf.contains("spark.master")) {
+    val sparkConf = if (!tempConf.contains(SPARK_MASTER)) {
       tempConf.setMaster("local")
     } else {
       tempConf
@@ -43,7 +46,7 @@ object DriverUtils {
     // These properties are required when running the driver on the cluster so the executors
     // will be able to communicate back to the driver.
     val deployMode = sparkConf.get("spark.submit.deployMode", "client")
-    val master = sparkConf.get("spark.master", "local")
+    val master = sparkConf.get(SPARK_MASTER, "local")
     if (deployMode == "cluster" || master == "yarn") {
       logger.debug("Configuring driver to run against a cluster")
       sparkConf
@@ -135,11 +138,17 @@ object DriverUtils {
       execution.parents))
   }
 
-  def loadJsonFromFile(path: String, fileLoaderClassName: String = "com.acxiom.pipeline.utils.LocalFileManager"): String = {
+  def loadJsonFromFile(path: String,
+                       fileLoaderClassName: String = "com.acxiom.pipeline.fs.LocalFileManager",
+                       parameters: Map[String, Any] = Map[String, Any]()): String = {
     val tempConf = new SparkConf()
     // Handle test scenarios where the master was not set
-    val sparkConf = if (!tempConf.contains("spark.master")) {
-      tempConf.setMaster("local")
+    val sparkConf = if (!tempConf.contains(SPARK_MASTER)) {
+      if (parameters.contains("dfs-cluster")) {
+        tempConf.setMaster("local").set("spark.hadoop.fs.defaultFS", parameters("dfs-cluster").asInstanceOf[String])
+      } else {
+        tempConf.setMaster("local")
+      }
     } else {
       tempConf
     }

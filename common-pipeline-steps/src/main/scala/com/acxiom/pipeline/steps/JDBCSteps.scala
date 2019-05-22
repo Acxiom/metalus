@@ -75,7 +75,7 @@ object JDBCSteps {
     "InputOutput")
   def readWithProperties(url: String,
                          table: String,
-                         predicates: Option[Array[String]] = None,
+                         predicates: Option[List[String]] = None,
                          connectionProperties: Option[Map[String, String]] = None,
                          pipelineContext: PipelineContext): DataFrame = {
     val spark = pipelineContext.sparkSession.get
@@ -83,7 +83,7 @@ object JDBCSteps {
     val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
 
     if (predicates.isDefined) {
-      spark.read.jdbc(url, table, predicates.get, properties)
+      spark.read.jdbc(url, table, predicates.get.toArray, properties)
     } else {
       spark.read.jdbc(url, table, properties)
     }

@@ -12,8 +12,11 @@ jobs:
   include:
     - stage: Build
       os: linux
+      dist: trusty
       scala:
         - 2.11.12
+      jdk:
+        - oraclejdk8
       install: true
       script: mvn -B clean install
     -
@@ -23,47 +26,50 @@ jobs:
         - 2.11.12
       install: true
       script: mvn -B clean install
-    -
-      os: windows
-      language: shell
-      install: true
-      before_script:
-        - choco install jdk8
-        - choco install maven
-      script: mvn -B clean install
+    #    -
+    #      os: windows
+    #      language: shell
+    #      install: true
+    #      before_script:
+    #        - choco install jdk8
+    #        - choco install maven
+    #      script: mvn -B clean install
 
     - stage: Code Quality
       if: branch = develop
       os: linux
+      dist: trusty
       scala:
         - 2.11.12
+      jdk:
+        - oraclejdk8
       install: mvn -B -DskipTests=true clean install
       script: mvn -B -DrepoToken=$coverallsToken clean scoverage:report coveralls:report
     -
       if: branch = develop AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
       os: linux
+      dist: trusty
       scala:
         - 2.11.12
-      addons:
-        sonarcloud:
-          organization: $SONAR_ORGANIZATION
+      jdk:
+        - oraclejdk8
       install: mvn -B -DskipTests=true clean install
-      script: mvn -B  -Dsonar.branch=develop scoverage:report scalastyle:check org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
+      script: mvn -B -Dsonar.organization=$SONAR_ORGANIZATION -Dsonar.login=$SONAR_TOKEN -Dsonar.projectKey=Acxiom_spark-pipeline-driver-develop -Dsonar.host.url=https://sonarcloud.io scoverage:report scalastyle:check org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
 
     - stage: Release
       if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
       os: linux
+      dist: trusty
       scala:
         - 2.11.12
-      addons:
-        sonarcloud:
-          organization: $SONAR_ORGANIZATION
+      jdk:
+        - oraclejdk8
       before_install:
         - openssl aes-256-cbc -K $encrypted_60fb54548dfb_key -iv $encrypted_60fb54548dfb_iv -in deployment/acxsigningkey.asc.enc -out deployment/acxsigningkey.asc -d
         - mvn -B versions:set -DremoveSnapshot
       install:
         - mvn -B -DskipTests=true clean install
-        - mvn -B -DrepoToken=$coverallsToken -Dsonar.branch=master scoverage:report scala:doc scalastyle:check coveralls:report org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
+        - mvn -B -DrepoToken=$coverallsToken -Dsonar.organization=$SONAR_ORGANIZATION -Dsonar.login=$SONAR_TOKEN -Dsonar.projectKey=Acxiom_spark-pipeline-driver-release -Dsonar.host.url=https://sonarcloud.io scoverage:report scala:doc scalastyle:check coveralls:report org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
       before_script:
         - gpg --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
         - gpg --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
@@ -78,3 +84,4 @@ jobs:
         file_glob: true
         file:
           - application-utils/target/application-utils_2.11-${project_version}.tar.gz
+          - common-steps-application_2.11-${project_version}.jar

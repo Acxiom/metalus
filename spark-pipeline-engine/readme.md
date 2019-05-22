@@ -26,22 +26,8 @@ configuration file and specifying the *ApplicationDriverSetup* during the call t
 Visit the [Application](docs/application.md) document for more information.
 
 ### Steps
-The first task when preparing an application to use this project is to ensure that the reusable steps are available. A
-project containing common steps is available, but most developers will have requirements to integrate with existing 
-libraries and APIs. The application developer should start by creating a project to house these steps. As new 
-functionality is identified, a new step function/object will need to be created.
-
-Creating a step is a simple process. A scala object is used to house one or more steps as a logical grouping. Public
-functions are then created that act as the step. Function parameters should be defined that will be mapped at runtime 
-using the *pipeline* configuration. Care should be taken to ensure that the step function is made as generic as possible
-to ensure reusability. The complexity of the step function is at the discretion of the application developer. An additional
-function parameter may be added that does not need to be mapped called *pipelineContext: PipelineContext*. This object
-will be injected at runtime and contains information about the current pipeline execution.
-
-Finally, the application developer may choose to add the *StepObject* annotation to the object and the *StepFunction*
-annotation to the step function as a way to describe the usage of the step. The *id* should be something unique like a 
-GUID. Using the *StepMetaDataExtractor* object, it is possible to convert all known steps to JSON metadata. This feature
-currently only works against classes and not against jars.
+[Steps](docs/steps.md) are the basic building blocks of a pipeline. More detailed documentation is available
+[here](docs/steps.md).
 
 ### DriverSetup
 The next task an application developer must do is create one or more *DriverSetup* implementations. The *DriverSetup*
@@ -181,6 +167,62 @@ Here is the object descried as JSON:
 			"name": "Spark"
 		}
 	} 
+
+JSON object values may also be embedded as a pipeline step value. Two attributes must be provided in the JSON, 
+*className* and *object*. The *className* must be the fully qualified name of the case class to initialize and
+it must be on the classpath. *object* is the JSON object to use to initialize the case class. 
+
+Below is the syntax:
+
+```json
+"className": "com.acxiom.pipeleine.ParameterTest",
+"object": {
+	"string": "some string",
+	"num": 5
+}
+```
+
+List values may be embedded as a pipeline step value. Support for variable expansion is available for maps and objects 
+if the *className* property has been set.
+
+Syntax for a list of objects:
+
+```json
+{
+	"className": "com.acxiom.pipeleine.ParameterTest",
+	"value": [
+		{
+			"string": "some string",
+			"num": 5
+		},
+		{
+        	"string": "some other string",
+        	"num": 10
+        }
+	]
+}
+```
+
+Syntax for a list of maps:
+
+```json
+{
+	"value": [
+		{
+			"string": "some string",
+			"num": 5
+		},
+		{
+        	"string": "some other string",
+        	"num": 10
+        }
+	]
+}
+```
+
+JSON objects, maps and list of maps/objects can use the special characters defined above. This allows referencing dynamic 
+values in predefined objects. Using the application framework, note that globals cannot use *@* or *#* since steps will 
+not have values prior to initialization.
 
 ### PipelineStep
 The PipelineStep describes the step functions that need to be called including how data is passed between steps. When 

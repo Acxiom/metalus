@@ -77,9 +77,9 @@ object DataFrameSteps {
 }
 
 /**
-  * @param format
-  * @param options
-  * @param schema
+  * @param format  The file format to use. Defaulted to "parquet"
+  * @param options Optional properties for the DataFrameReader
+  * @param schema  Optional schema used when reading.
   */
 case class DataFrameReaderOptions(format: String = "parquet",
                                   options: Option[Map[String, String]] = None,
@@ -95,12 +95,12 @@ case class DataFrameReaderOptions(format: String = "parquet",
 }
 
 /**
-  * @param format
-  * @param saveMode
-  * @param options
-  * @param bucketingOptions
-  * @param partitionBy
-  * @param sortBy
+  * @param format           The file format to use. Defaulted to "parquet"
+  * @param saveMode         The mode when writing a DataFrame. Defaulted to "Overwrite"
+  * @param options          Optional properties for the DataFrameWriter
+  * @param bucketingOptions Optional BucketingOptions object for configuring Bucketing
+  * @param partitionBy      Optional list of columns for partitioning.
+  * @param sortBy           Optional list of columns for sorting.
   */
 case class DataFrameWriterOptions(format: String = "parquet",
                                   saveMode: String = "Overwrite",

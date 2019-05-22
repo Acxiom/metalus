@@ -4,12 +4,18 @@ provides two implementations, local and HDFS.
 
 ## Functions
 
+* **connect()** - Connects to the remote file system.
 * **exists(path)** - Returns a boolean flag if the provided path exists
-* **getInputStream(path)** - Returns an InputStream for the path. The path must be a file.
-* **getOutputStream(path, append)** - Returns an OutputStream for the path. The path must be a file. The append option is
+* **getInputStream(path, bufferSize)** - Returns an InputStream for the path. The path must be a file.
+* **getOutputStream(path, append, bufferSize)** - Returns an OutputStream for the path. The path must be a file. The append option is
 used to indicate whether the file should be overwritten or appended.
 * **rename(path, destPath)** - Renames the provided *path* to the *destPath*.
 * **deleteFile(path)** - Deletes the path.
+* **getSize(path)** - Returns the size in bytes of the remote file
+* **getFileListing(path)** - Returns a list of files on the remote path.
+* **disconnect()** - Disconnects from the remote file system and releases any resources.
+* **copy(input, output, copyBufferSize)** - Copies the contents from the input to the output. This function
+does not close the stream.
 
 ## Implementations
 

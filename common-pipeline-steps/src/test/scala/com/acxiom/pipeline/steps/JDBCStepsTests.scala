@@ -22,7 +22,7 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
   var sparkSession: SparkSession = _
   var pipelineContext: PipelineContext = _
   val sparkLocalDir: Path = Files.createTempDirectory("sparkLocal")
-
+  val FOUR = 4
 
   override def beforeAll(): Unit = {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
@@ -141,8 +141,7 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       JDBCSteps.writeWithJDBCOptions(
         dataFrame = chickens.toDF("ID", "NAME", "COLOR"),
-        jdbcOptions = new JDBCOptions(jDBCOptions.toMap),
-        saveMode = "Overwrite"
+        jdbcOptions = new JDBCOptions(jDBCOptions.toMap)
       )
       verifyCount(count = 2)
     }
@@ -160,10 +159,8 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
         jDBCStepsOptions = JDBCDataFrameWriterOptions(
           url = "jdbc:derby:memory:test",
           table = "CHICKEN",
-          writerOptions = DataFrameWriterOptions(
-            "jdbc",
-            "Overwrite",
-            Some(Map[String, String]("driver" -> "org.apache.derby.jdbc.EmbeddedDriver", "user" -> "test_fixture")))
+          writerOptions = DataFrameWriterOptions("jdbc").setOptions(
+            Map[String, String]("driver" -> "org.apache.derby.jdbc.EmbeddedDriver", "user" -> "test_fixture"))
         )
       )
       verifyCount(count = 1)
@@ -183,10 +180,9 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
         dataFrame = chickens.toDF("ID", "NAME", "COLOR"),
         url = "jdbc:derby:memory:test",
         table = "CHICKEN",
-        connectionProperties = Some(Map("driver" -> "org.apache.derby.jdbc.EmbeddedDriver", "user" -> "test_fixture")),
-        saveMode = "Overwrite"
+        connectionProperties = Some(Map("driver" -> "org.apache.derby.jdbc.EmbeddedDriver", "user" -> "test_fixture"))
       )
-      verifyCount(count = 4)
+      verifyCount(FOUR)
     }
   }
 
