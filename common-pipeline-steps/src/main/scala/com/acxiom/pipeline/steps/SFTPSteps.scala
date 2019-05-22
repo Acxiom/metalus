@@ -8,10 +8,11 @@ import com.acxiom.pipeline.fs.SFTPFileManager
 object SFTPSteps {
   /**
     * Simple function to generate the HDFSFileManager for the local HDFS file system.
-    * @param hostName The name of the host to connect
-    * @param username The username used for connection
-    * @param password The password used for connection
-    * @param port The optional port if other than 22
+    *
+    * @param hostName        The name of the host to connect
+    * @param username        The username used for connection
+    * @param password        The password used for connection
+    * @param port            The optional port if other than 22
     * @param pipelineContext The current pipeline context containing the Spark session
     * @return A FileManager if the spark session is set, otherwise None.
     */
@@ -25,7 +26,15 @@ object SFTPSteps {
                         username: String,
                         password: String,
                         port: Int = SFTPFileManager.DEFAULT_PORT,
+                        strictHostChecking: Option[Boolean] = Some(true),
                         pipelineContext: PipelineContext): Option[SFTPFileManager] = {
-    Some(new SFTPFileManager(user = username, password = Some(password), hostName = hostName))
+    val hostChecking = if (strictHostChecking.getOrElse(true)) {
+      "yes"
+    } else {
+      "no"
+    }
+    Some(new SFTPFileManager(user = username, password = Some(password), hostName = hostName,
+      port = port,
+      config = Some(Map[String, String]("StrictHostKeyChecking" -> hostChecking))))
   }
 }

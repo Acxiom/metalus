@@ -22,7 +22,12 @@ object FileManagerSteps {
   def copy(srcFS: FileManager, srcPath: String, destFS: FileManager, destPath: String): Boolean = {
     srcFS.connect()
     destFS.connect()
-    destFS.copy(srcFS.getInputStream(srcPath), destFS.getOutputStream(destPath))
+    val inputStream = srcFS.getInputStream(srcPath)
+    val outputStream = destFS.getOutputStream(destPath)
+    val copied = destFS.copy(inputStream, outputStream)
+    inputStream.close()
+    outputStream.close()
+    copied
   }
 
   /**
