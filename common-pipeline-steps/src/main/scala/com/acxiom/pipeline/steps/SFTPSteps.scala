@@ -18,7 +18,7 @@ object SFTPSteps {
     */
   @StepFunction("e4dad367-a506-5afd-86c0-82c2cf5cd15c",
     "Create SFTP FileManager",
-    "Simple function to generate the HDFSFileManager for the local HDFS file system",
+    "Simple function to generate the SFTPFileManager for the remote SFTP file system",
     "Pipeline",
     "InputOutput"
   )
