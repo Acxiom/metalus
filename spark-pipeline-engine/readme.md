@@ -220,6 +220,10 @@ Syntax for a list of maps:
 }
 ```
 
+JSON objects, maps and list of maps/objects can use the special characters defined above. This allows referencing dynamic 
+values in predefined objects. Using the application framework, note that globals cannot use *@* or *#* since steps will 
+not have values prior to initialization.
+
 ### PipelineStep
 The PipelineStep describes the step functions that need to be called including how data is passed between steps. When 
 creating a PipelineStep, these values need to be populated:

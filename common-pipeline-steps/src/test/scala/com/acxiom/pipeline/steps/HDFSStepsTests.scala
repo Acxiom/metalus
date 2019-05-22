@@ -183,6 +183,12 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     }
   }
 
+  describe("HDFS Steps - Validations") {
+    it("Should return None when missing spark session") {
+      assert(HDFSSteps.createFileManager(pipelineContext.copy(sparkSession = None)).isEmpty)
+    }
+  }
+
   private def readHDFSContent(fs: FileSystem, path: String): List[String] = {
     assert(fs.exists(new org.apache.hadoop.fs.Path(path)))
 
@@ -195,6 +201,5 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     val pw = new PrintWriter(fs.create(new org.apache.hadoop.fs.Path(path)))
     pw.print(content)
     pw.close()
-
   }
 }
