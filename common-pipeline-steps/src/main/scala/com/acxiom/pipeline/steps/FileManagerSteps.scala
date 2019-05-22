@@ -40,11 +40,33 @@ object FileManagerSteps {
     "Pipeline",
     "InputOutput")
   def copy(srcFS: FileManager, srcPath: String, destFS: FileManager, destPath: String, inputBufferSize: Int, outputBufferSize: Int): Boolean = {
+    copy(srcFS, srcPath, destFS, destPath, inputBufferSize, outputBufferSize, FileManager.DEFAULT_COPY_BUFFER_SIZE)
+  }
+
+  /**
+    * Copy the contents of the source path to the destination path. This function will call connect on both FileManagers.
+    *
+    * @param srcFS    FileManager for the source file system
+    * @param srcPath  Source path
+    * @param destFS   FileManager for the destination file system
+    * @param destPath Destination path
+    * @param inputBufferSize The size of the buffer for the input stream
+    * @param outputBufferSize The size of the buffer for the output stream
+    * @param copyBufferSize The size of the buffer used to transfer from input to output
+    * @return True if the contents were copied.
+    */
+  @StepFunction("c40169a3-1e77-51ab-9e0a-3f24fb98beef",
+    "Copy source contents to destination with buffering",
+    "Copy the contents of the source path to the destination path. This function will call connect on both FileManagers.",
+    "Pipeline",
+    "InputOutput")
+  def copy(srcFS: FileManager, srcPath: String, destFS: FileManager, destPath: String,
+           inputBufferSize: Int, outputBufferSize: Int, copyBufferSize: Int): Boolean = {
     srcFS.connect()
     destFS.connect()
     val inputStream = srcFS.getInputStream(srcPath, inputBufferSize)
     val outputStream = destFS.getOutputStream(destPath, bufferSize = outputBufferSize)
-    val copied = destFS.copy(inputStream, outputStream)
+    val copied = destFS.copy(inputStream, outputStream, copyBufferSize)
     inputStream.close()
     outputStream.close()
     copied
