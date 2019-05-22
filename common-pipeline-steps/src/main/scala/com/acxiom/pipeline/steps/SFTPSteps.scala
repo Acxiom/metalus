@@ -17,7 +17,7 @@ object SFTPSteps {
     * @return A FileManager if the spark session is set, otherwise None.
     */
   @StepFunction("e4dad367-a506-5afd-86c0-82c2cf5cd15c",
-    "Create HDFS FileManager",
+    "Create SFTP FileManager",
     "Simple function to generate the HDFSFileManager for the local HDFS file system",
     "Pipeline",
     "InputOutput"
