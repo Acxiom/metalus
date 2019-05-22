@@ -27,12 +27,12 @@ object ReflectionUtils {
     val module = mirror.staticModule(className)
     val classMirror = mirror.reflectClass(moduleClass)
     // Get constructor
-    val symbol = classMirror.symbol.info.decls.find(s => s.isConstructor)
-    if (symbol.isDefined) {
-      val method = getMethodBySymbol(symbol.get, parameters.getOrElse(Map[String, Any]()))
+    val symbols = classMirror.symbol.info.decls.filter(s => s.isConstructor).toList
+    if (symbols.nonEmpty) {
+      val method = getMethodBySymbol(symbols.head, parameters.getOrElse(Map[String, Any]()), Some(symbols))
       classMirror.reflectConstructor(method)
       classMirror.reflectConstructor(method)(mapMethodParameters(method.paramLists.head, parameters.getOrElse(Map[String, Any]()),
-        mirror.reflect(mirror.reflectModule(module)), symbol.get.asTerm.fullName, method.typeSignature, None)
+        mirror.reflect(mirror.reflectModule(module)), symbols.head.asTerm.fullName, method.typeSignature, None)
         : _*)
     }
   }
@@ -230,8 +230,12 @@ object ReflectionUtils {
     getMethodBySymbol(symbol, parameterValues)
   }
 
-  private def getMethodBySymbol(symbol: ru.Symbol, parameterValues: Map[String, Any]): ru.MethodSymbol = {
-    val alternatives = symbol.asTerm.alternatives
+  private def getMethodBySymbol(symbol: ru.Symbol, parameterValues: Map[String, Any], alternativeList: Option[List[ru.Symbol]] = None): ru.MethodSymbol = {
+    val alternatives = if (alternativeList.isDefined) {
+      alternativeList.get
+    } else {
+      symbol.asTerm.alternatives
+    }
 
     // See if more than one method has the same name and use the parameters to determine which to use
     if (alternatives.lengthCompare(1) > 0) {

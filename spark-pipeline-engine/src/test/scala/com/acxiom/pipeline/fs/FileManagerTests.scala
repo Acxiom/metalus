@@ -2,16 +2,14 @@ package com.acxiom.pipeline.fs
 
 import java.io._
 import java.nio.file.Files
-import java.util.Properties
 
-import com.jcraft.jsch.{ChannelSftp, JSch, SftpException}
+import com.jcraft.jsch.SftpException
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{FunSpec, Suite}
-import software.sham.sftp
 import software.sham.sftp.MockSftpServer
 
 import scala.io.Source
