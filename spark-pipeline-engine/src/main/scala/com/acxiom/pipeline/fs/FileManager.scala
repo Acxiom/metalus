@@ -6,7 +6,8 @@ import org.apache.commons.io.FileUtils
 import org.apache.log4j.Logger
 
 object FileManager {
-  val DEFAULT_BUFFER_SIZE: Int = 4096
+  val DEFAULT_BUFFER_SIZE: Int = 65536
+  val DEFAULT_COPY_BUFFER_SIZE: Int = 32768
   def apply(): FileManager = new LocalFileManager
 }
 
@@ -90,7 +91,7 @@ trait FileManager {
     * @return True if the copy was successful
     */
   def copy(input: InputStream, output: OutputStream): Boolean = {
-    copy(input, output, FileManager.DEFAULT_BUFFER_SIZE)
+    copy(input, output, FileManager.DEFAULT_COPY_BUFFER_SIZE)
   }
 
   /**
