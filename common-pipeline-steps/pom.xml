@@ -14,11 +14,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.kjetland</groupId>
-            <artifactId>mbknor-jackson-jsonschema_${scala.compat.version}</artifactId>
-            <version>1.0.34</version>
-        </dependency>
-        <dependency>
             <groupId>com.acxiom</groupId>
             <artifactId>spark-pipeline-engine_${scala.compat.version}</artifactId>
             <version>${parent.version}</version>
@@ -56,8 +51,7 @@
                             <exclude>log4j:log4j:jar:</exclude>
                             <exclude>org.scala-lang:*:jar:</exclude>
                             <exclude>org.scala-lang.modules:*:jar:</exclude>
-                            <exclude>org.apache.spark:spark-core_${scala.compat.version}</exclude>
-                            <exclude>org.apache.spark:spark-sql_${scala.compat.version}</exclude>
+                            <exclude>org.apache.spark:jar:</exclude>
                             <exclude>org.scalamock:jar:</exclude>
                             <exclude>org.scalatest:jar:</exclude>
                         </excludes>
@@ -75,10 +69,17 @@
                                     <pattern>org.apache.http</pattern>
                                     <shadedPattern>shaded.org.apache.http</shadedPattern>
                                 </relocation>
+                                <!--force our jcraft library to be used over cloudera's-->
+                                <relocation>
+                                    <pattern>com.jcraft</pattern>
+                                    <shadedPattern>shaded.com.jcraft</shadedPattern>
+                                </relocation>
                             </relocations>
                         </configuration>
+
                     </execution>
                 </executions>
+
             </plugin>
         </plugins>
     </build>
