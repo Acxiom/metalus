@@ -185,10 +185,9 @@ object ReflectionUtils {
                                   pipelineContext: Option[PipelineContext]) = {
     parameters.zipWithIndex.map { case (param, pos) =>
       val name = param.name.toString
-      logger.debug(s"Mapping parameter name to method: $name")
+      logger.debug(s"Mapping parameter $name")
       val optionType = param.asTerm.typeSignature.toString.contains("Option[")
       val value = if (parameterValues.contains(name)) {
-        logger.debug("Mapping parameter from parameterValues")
         parameterValues(name)
       } else if (param.asTerm.isParamWithDefault) {
         logger.debug("Mapping parameter from function default parameter value")
@@ -204,11 +203,20 @@ object ReflectionUtils {
         }
       }
 
-      if (pipelineContext.isDefined) {
+      val finalValue = if (pipelineContext.isDefined) {
         pipelineContext.get.security.secureParameter(getFinalValue(optionType, value))
       } else {
         getFinalValue(optionType, value)
       }
+
+      val finalValueType = finalValue match {
+        case v: Option[_] => s"Some(${v.asInstanceOf[Option[_]].get.getClass.getSimpleName})"
+        case _ => finalValue.getClass.getSimpleName
+      }
+
+      logger.debug(s"Mapping parameter to method $funcName,paramName=$name,paramType=${param.typeSignature}," +
+        s"valueType=$finalValueType,value=$finalValue")
+      finalValue
     }
   }
 
