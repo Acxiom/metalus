@@ -70,6 +70,11 @@
                                     <pattern>org.apache.http</pattern>
                                     <shadedPattern>shaded.org.apache.http</shadedPattern>
                                 </relocation>
+                                <!-- This is required to prevent certain distributions from overriding with an older version -->
+                                <relocation>
+                                    <pattern>com.jcraft</pattern>
+                                    <shadedPattern>shaded.com.jcraft</shadedPattern>
+                                </relocation>
                             </relocations>
                         </configuration>
                     </execution>
