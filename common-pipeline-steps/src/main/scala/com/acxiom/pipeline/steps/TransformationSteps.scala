@@ -1,7 +1,6 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
-import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaInject
 import org.apache.log4j.Logger
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
