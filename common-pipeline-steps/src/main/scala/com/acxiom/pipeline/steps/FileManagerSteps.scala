@@ -1,7 +1,6 @@
 package com.acxiom.pipeline.steps
 
 import java.util.Date
-
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import com.acxiom.pipeline.fs.FileManager
 import org.apache.log4j.Logger
