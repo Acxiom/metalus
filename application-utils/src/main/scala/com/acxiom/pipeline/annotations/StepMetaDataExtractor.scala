@@ -161,7 +161,7 @@ object StepMetaDataExtractor {
             val annotations = paramSymbol.annotations
             val a1 = annotations.find(_.tree.tpe =:= ru.typeOf[StepParameter])
             val updatedStepParams = if (a1.isDefined)  {
-              stepParams :+ annotationToStepFunctionParameter(a1.get, paramSymbol, caseClass.isDefined).copy(className = caseClass)
+              stepParams :+ annotationToStepFunctionParameter(a1.get, paramSymbol, caseClass)
             } else {
               stepParams :+ StepFunctionParameter(getParameterType(paramSymbol, caseClass.isDefined), paramSymbol.name.toString, className = caseClass)
             }
@@ -195,16 +195,17 @@ object StepMetaDataExtractor {
     * @param paramSymbol The parameter information
     * @return
     */
-  private def annotationToStepFunctionParameter(annotation: ru.Annotation, paramSymbol: ru.Symbol, caseClass: Boolean = false): StepFunctionParameter = {
+  private def annotationToStepFunctionParameter(annotation: ru.Annotation, paramSymbol: ru.Symbol, caseClass: Option[String] = None): StepFunctionParameter = {
     val typeValue = annotation.tree.children.tail.head.toString()
     val requiredValue = annotation.tree.children.tail(1).toString()
     val defaultValue = annotation.tree.children.tail(2).toString()
     val language = annotation.tree.children.tail(3).toString()
+    val className = annotation.tree.children.tail(3 + 1).toString()
     StepFunctionParameter(
       if (isValueSet(typeValue)) {
         getAnnotationValue(typeValue, stringValue = true).asInstanceOf[String]
       } else {
-        getParameterType(paramSymbol, caseClass)
+        getParameterType(paramSymbol, caseClass.isDefined)
       },
       paramSymbol.name.toString,
       if (isValueSet(requiredValue)) {
@@ -222,7 +223,11 @@ object StepMetaDataExtractor {
       } else {
         None
       },
-      None)
+      if (isValueSet(className)) {
+        Some(getAnnotationValue(className, stringValue = true).asInstanceOf[String])
+      } else {
+        caseClass
+      })
   }
 
   private def isValueSet(annotationValue: String) = annotationValue.startsWith("scala.Some.apply[")
