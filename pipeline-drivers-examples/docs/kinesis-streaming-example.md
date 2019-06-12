@@ -13,13 +13,12 @@ One extra grouping step was added that simply returns the number of records in a
 The code will need to be packaged as an 'uber-jar' (the example project does this automatically when package is called) 
 that contains all of the dependencies. Once this is done, place the jar in a location that can be read by Spark.
 
-Submit a job:
+Submit a job locally:
 
 ```
 spark-submit --class com.acxiom.pipeline.drivers.KinesisPipelineDriver \
 --master spark://localhost:7077 \
 --deploy-mode client \
---jars <jar_path/spark-pipeline-engine_2.11-<VERSION>.jar,<jar_path/streaming-pipeline-drivers_2.11-<VERSION>.jar <jar_path>/pipeline-drivers-examples_2.11-<VERSION>.jar \
 --driverSetupClass com.acxiom.pipeline.SimpleKinesisDriverSetup \
 --appName <Application name> \
 	--streamName <Stream name> \
