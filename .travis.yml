@@ -26,6 +26,22 @@ jobs:
         - 2.11.12
       install: true
       script: mvn -B clean install
+    -
+      name: Spark 2.4 Linux Build
+      os: linux
+      dist: trusty
+      scala:
+        - 2.11.12
+      install: true
+      script: mvn -B -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.2 clean install
+    -
+      name: Spark 2.4 OSX Build
+      os: osx
+      osx_image: xcode9.3
+      scala:
+        - 2.11.12
+      install: true
+      script: mvn -B -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.2 clean install
     #    -
     #      os: windows
     #      language: shell
