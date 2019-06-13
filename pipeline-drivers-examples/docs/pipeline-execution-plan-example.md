@@ -729,7 +729,7 @@ Submit a job locally:
 spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 --master spark://localhost:7077 \
 --deploy-mode client \
-<jar_path>/pipeline-drivers-examples_2.11-<VERSION>.jar \
+<jar_path>/pipeline-drivers-examples_<SCALA-COMPAT-VERSION>-spark_<SPARK-COMPAT-VERSION>-<VERSION>.jar \
 --driverSetupClass com.acxiom.pipeline.ExecutionPlanDataDriverSetup \
 --input_url <location of input file> \
 --input_format <csv, parquet, etc...> \

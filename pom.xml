@@ -118,13 +118,13 @@
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.compat.version}</artifactId>
-            <version>3.0.1</version>
+            <version>3.0.8</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.scalamock</groupId>
             <artifactId>scalamock-scalatest-support_${scala.compat.version}</artifactId>
-            <version>3.3.0</version>
+            <version>3.6.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

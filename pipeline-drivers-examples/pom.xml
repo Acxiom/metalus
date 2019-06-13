@@ -1,7 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>pipeline-drivers-examples_${scala.compat.version}</artifactId>
+    <artifactId>pipeline-drivers-examples_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
     <name>${project.artifactId}</name>
     <description>Spark Pipeline Drivers Examples</description>
     <inceptionYear>2018</inceptionYear>
@@ -20,28 +20,28 @@
     <dependencies>
         <dependency>
             <groupId>com.acxiom</groupId>
-            <artifactId>spark-pipeline-engine_${scala.compat.version}</artifactId>
+            <artifactId>spark-pipeline-engine_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
             <version>${parent.version}</version>
         </dependency>
         <dependency>
             <groupId>com.acxiom</groupId>
-            <artifactId>streaming-pipeline-drivers_${scala.compat.version}</artifactId>
+            <artifactId>streaming-pipeline-drivers_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
             <version>${parent.version}</version>
         </dependency>
         <dependency>
             <groupId>com.acxiom</groupId>
-            <artifactId>common-pipeline-steps_${scala.compat.version}</artifactId>
+            <artifactId>common-pipeline-steps_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
             <version>${parent.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming-kinesis-asl_${scala.compat.version}</artifactId>
-            <version>2.1.0</version>
+            <version>${spark.version}</version>
         </dependency>
         <dependency>
             <groupId>org.mongodb.spark</groupId>
             <artifactId>mongo-spark-connector_${scala.compat.version}</artifactId>
-            <version>2.3.1</version>
+            <version>2.4.1</version>
         </dependency>
     </dependencies>
 

@@ -19,6 +19,7 @@ Submit a job locally:
 spark-submit --class com.acxiom.pipeline.drivers.KinesisPipelineDriver \
 --master spark://localhost:7077 \
 --deploy-mode client \
+<jar_path>/pipeline-drivers-examples_<SCALA-COMPAT-VERSION>-spark_<SPARK-COMPAT-VERSION>-<VERSION>.jar \
 --driverSetupClass com.acxiom.pipeline.SimpleKinesisDriverSetup \
 --appName <Application name> \
 	--streamName <Stream name> \
