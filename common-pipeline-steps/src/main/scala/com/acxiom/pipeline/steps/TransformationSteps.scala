@@ -158,28 +158,6 @@ object TransformationSteps {
     dataFrame.select(nameMap: _*)
   }
 
-
-//  import com.acxiom.pipeline.steps.TransformationSteps.MyType.MyType
-//  case class MyCaseClass(myField: String, myEnum: MyType)
-//
-//  @JsonSchemaInject(json = "{\"JsonSchemaInjectOnEnum\":true}")
-//  object MyType extends Enumeration {
-//    type MyType = Value
-//    val CAT, DOG, MOUSE = Value
-//  }
-//
-//  @StepFunction(
-//    "b981080d-714c-4d36-8b09-d95842ec5655",
-//    "Bogus",
-//    "bugus",
-//    "Pipeline",
-//    "Transforms")
-//  def bogusMethod(myCaseClass: MyCaseClass): Unit = {
-//    "done"
-//  }
-//
-
-
   /**
     * cleans up a column name to a common case and removes characters that are not column name friendly
     * @param name  the column name that needs to be cleaned up

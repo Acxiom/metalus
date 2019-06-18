@@ -5,7 +5,7 @@ import java.nio.file.Files
 
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.DriverUtils
-import com.acxiom.pipeline.{PipelineExecution, PipelineListener, PipelineSecurityManager, PipelineStepMapper}
+import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
@@ -31,7 +31,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     it("Should create an execution plan") {
       val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
         .setMaster("local")
-      val executionPlan = ApplicationUtils.createExecutionPlan(application, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf)
+      val executionPlan = ApplicationUtils.createExecutionPlan(application, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf,
+        DefaultPipelineListener())
       verifyApplication(executionPlan)
       executionPlan.head.pipelineContext.sparkSession.get.stop()
     }
