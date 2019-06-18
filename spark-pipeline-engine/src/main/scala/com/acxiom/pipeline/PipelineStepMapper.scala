@@ -211,18 +211,12 @@ trait PipelineStepMapper {
     // TODO Figure out how to walk the pipeline chain looking for values when pipelineId is not present and value is not part of current pipeline.
     val pipelinePath = getPathValues(value, pipelineContext)
     // TODO The first two cases need to call mapByType after the value has been returned
-    val rawValue = pipelinePath.mainValue match {
+    pipelinePath.mainValue match {
       case p if List('@', '#').contains(p.headOption.getOrElse("")) => getPipelineParameterValue(pipelinePath, pipelineContext)
       case r if r.startsWith("$") => mapRuntimeParameter(pipelinePath, parameter, pipelineContext)
       case g if g.startsWith("!") => getGlobalParameterValue(g, pipelinePath.extraPath.getOrElse(""), pipelineContext)
       case o if o.nonEmpty => Some(mapByType(Some(o), parameter))
       case _ => None
-    }
-
-    // convert common types
-    rawValue.getOrElse("") match {
-      case i: BigInt => Some(i.toInt)
-      case _ => rawValue
     }
   }
 

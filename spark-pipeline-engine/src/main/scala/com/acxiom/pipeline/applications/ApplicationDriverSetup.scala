@@ -50,7 +50,7 @@ trait ApplicationDriverSetup extends DriverSetup {
     globals = Some(params),
     sparkConf = sparkConf,
     enableHiveSupport = parameters.getOrElse("enableHiveSupport", false).asInstanceOf[Boolean],
-      parquetDictionaryEnabled = parameters.getOrElse("parquetDictionaryEnabled", true).asInstanceOf[Boolean]
+    parquetDictionaryEnabled = parameters.getOrElse("parquetDictionaryEnabled", true).asInstanceOf[Boolean]
   )}
 
   /**
