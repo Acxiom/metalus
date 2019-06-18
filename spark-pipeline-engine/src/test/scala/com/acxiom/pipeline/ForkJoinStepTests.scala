@@ -188,6 +188,7 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
   private def verifySimpleForkSteps(pipeline: Pipeline, executionResult: PipelineExecutionResult, extraStep: Boolean = false) = {
     assert(executionResult.success)
     val ctx = executionResult.pipelineContext
+    assert(ctx.getGlobalString("forkId").isEmpty)
     val parameters = ctx.parameters.getParametersByPipelineId(pipeline.id.get).get
     assert(parameters.parameters.contains("GENERATE_DATA"))
     assert(parameters.parameters.contains("PROCESS_VALUE"))

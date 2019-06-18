@@ -923,15 +923,14 @@ Since the configuration is completely configuration based, there is no need to c
 The code will need to be packaged as an 'uber-jar' (the example project does this automatically when package is called) 
 that contains all of the dependencies. Once this is done, place the jar in a location that can be read by Spark.
 
-Submit a job:
+Submit a job locally:
 
 ```bash
 spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 --master spark://localhost:7077 \
 --deploy-mode client \
---jars <jar_path>/spark-pipeline-engine_2.11-<VERSION>.jar,<jar_path>/streaming-pipeline-drivers_2.11-<VERSION>.jar \
-<jar_path>/pipeline-drivers-examples_2.11-<VERSION>.jar \
---driverSetupClass com.acxiom.pipeline.applications.ApplicationDriverSetup \
+<jar_path>/pipeline-drivers-examples_<SCALA-COMPAT-VERSION>-spark_<SPARK-COMPAT-VERSION>-<VERSION>.jar \
+--driverSetupClass com.acxiom.pipeline.applications.DefaultApplicationDriverSetup \
 --applicationConfigPath <location of application-example.json> \
 --input_url <location of input file> \
 --input_format <csv, parquet, etc...> \

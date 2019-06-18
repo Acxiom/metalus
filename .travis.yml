@@ -11,6 +11,7 @@ jobs:
     - os: windows
   include:
     - stage: Build
+      name: Spark 2.3 Scala 2.11 Linux Build
       os: linux
       dist: trusty
       scala:
@@ -20,20 +21,46 @@ jobs:
       install: true
       script: mvn -B clean install
     -
+      name: Spark 2.3 Scala 2.11 OSX Build
       os: osx
       osx_image: xcode9.3
       scala:
         - 2.11.12
       install: true
       script: mvn -B clean install
-    #    -
-    #      os: windows
-    #      language: shell
-    #      install: true
-    #      before_script:
-    #        - choco install jdk8
-    #        - choco install maven
-    #      script: mvn -B clean install
+    -
+      name: Spark 2.4 Scala 2.11 Linux Build
+      os: linux
+      dist: trusty
+      scala:
+        - 2.11.12
+      install: true
+      script: mvn -B -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.2 clean install
+    -
+      name: Spark 2.4 Scala 2.11 OSX Build
+      os: osx
+      osx_image: xcode9.3
+      scala:
+        - 2.11.12
+      install: true
+      script: mvn -B -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.2 clean install
+    -
+      name: Spark 2.4 Scala 2.12 Linux Build
+      os: linux
+      dist: trusty
+      scala:
+        - 2.12.8
+      jdk:
+        - oraclejdk8
+      install: true
+      script: mvn -B -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.2 -Dscala.compat.version=2.12 -Dscala.version=2.12.8 clean install
+    - name: Spark 2.4 Scala 2.12 OSX Build
+      os: osx
+      osx_image: xcode9.3
+      scala:
+        - 2.12.8
+      install: true
+      script: mvn -B -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.2 -Dscala.compat.version=2.12 -Dscala.version=2.12.8 clean install
 
     - stage: Code Quality
       if: branch = develop
@@ -58,6 +85,7 @@ jobs:
 
     - stage: Release
       if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
+      name: Spark 2.3 Scala 2.11 Build
       os: linux
       dist: trusty
       scala:
@@ -79,9 +107,66 @@ jobs:
       deploy:
         provider: releases
         api_key: $GITHUB_OAUTH_TOKEN
-        name: ${project_version}
+        name: PipelineDriver-Spark_2.3-Scala_2.11-${project_version}
         skip_cleanup: true
         file_glob: true
         file:
-          - application-utils/target/application-utils_2.11-${project_version}.tar.gz
-          - common-steps-application_2.11-${project_version}.jar
+          - application-utils/target/application-utils_2.11-spark_2.3-${project_version}.tar.gz
+          - common-steps-application_2.11-spark_2.3-${project_version}.jar
+    -
+      if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
+      name: Spark 2.4 Scala 2.11 Build
+      os: linux
+      dist: trusty
+      scala:
+        - 2.11.12
+      jdk:
+        - oraclejdk8
+      before_install:
+        - openssl aes-256-cbc -K $encrypted_60fb54548dfb_key -iv $encrypted_60fb54548dfb_iv -in deployment/acxsigningkey.asc.enc -out deployment/acxsigningkey.asc -d
+        - mvn -B versions:set -DremoveSnapshot
+      install:
+        - mvn -B -DskipTests=true -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.2 clean install
+      before_script:
+        - gpg --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
+        - gpg --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
+      script: mvn --settings deployment/release-settings.xml -B -P release -DskipTests=true -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.2 -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg deploy
+      before_deploy:
+        - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
+      deploy:
+        provider: releases
+        api_key: $GITHUB_OAUTH_TOKEN
+        name: PipelineDriver-Spark_2.4-Scala_2.11-${project_version}
+        skip_cleanup: true
+        file_glob: true
+        file:
+          - application-utils/target/application-utils_2.11-spark_2.4-${project_version}.tar.gz
+          - common-steps-application_2.11-spark_2.4-${project_version}.jar
+    - if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
+      name: Spark 2.4 Scala 2.12 Build
+      os: linux
+      dist: trusty
+      scala:
+        - 2.12.8
+      jdk:
+        - oraclejdk8
+      before_install:
+        - openssl aes-256-cbc -K $encrypted_60fb54548dfb_key -iv $encrypted_60fb54548dfb_iv -in deployment/acxsigningkey.asc.enc -out deployment/acxsigningkey.asc -d
+        - mvn -B versions:set -DremoveSnapshot
+      install:
+        - mvn -B -DskipTests=true -Dscala.compat.version=2.12 -Dscala.version=2.12.8 -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.3 clean install
+      before_script:
+        - gpg --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
+        - gpg --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
+      script: mvn --settings deployment/release-settings.xml -B -P release -DskipTests=true -Dscala.compat.version=2.12 -Dscala.version=2.12.8 -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.3 -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg deploy
+      before_deploy:
+        - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
+      deploy:
+        provider: releases
+        api_key: $GITHUB_OAUTH_TOKEN
+        name: PipelineDriver-Spark_2.4-Scala_2.12-${project_version}
+        skip_cleanup: true
+        file_glob: true
+        file:
+          - application-utils/target/application-utils_2.12-spark_2.4-${project_version}.tar.gz
+          - common-steps-application_2.12-spark_2.4-${project_version}.jar
