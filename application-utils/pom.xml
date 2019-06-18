@@ -23,21 +23,16 @@
             <artifactId>spark-pipeline-engine_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
             <version>${parent.version}</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.github.andyglow/scala-jsonschema-core -->
+
         <dependency>
-            <groupId>com.github.andyglow</groupId>
-            <artifactId>scala-jsonschema-core_2.11</artifactId>
-            <version>0.0.8</version>
+            <groupId>com.kjetland</groupId>
+            <artifactId>mbknor-jackson-jsonschema_${scala.compat.version}</artifactId>
+            <version>1.0.34</version>
         </dependency>
         <dependency>
-            <groupId>com.github.andyglow</groupId>
-            <artifactId>scala-jsonschema-macros_2.11</artifactId>
-            <version>0.0.8</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.andyglow</groupId>
-            <artifactId>scala-jsonschema-api_2.11</artifactId>
-            <version>0.0.8</version>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-scala_${scala.compat.version}</artifactId>
+            <version>2.9.8</version>
         </dependency>
     </dependencies>
 

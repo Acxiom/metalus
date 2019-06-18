@@ -2,6 +2,7 @@ package com.acxiom.pipeline.applications
 
 import com.acxiom.pipeline._
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
+import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.json4s.native.Serialization
@@ -11,6 +12,7 @@ import org.json4s.{DefaultFormats, Formats}
   * Provides a set of utility functions for working with Application metadata
   */
 object ApplicationUtils {
+  private val logger = Logger.getLogger(getClass)
   /**
     * This function will parse an Application from the provided JSON.
     *
@@ -35,13 +37,18 @@ object ApplicationUtils {
                           globals: Option[Map[String, Any]],
                           sparkConf: SparkConf,
                           pipelineListener: PipelineListener = DefaultPipelineListener(),
-                          enableHiveSupport: Boolean = false): List[PipelineExecution] = {
+                          enableHiveSupport: Boolean = false,
+                          parquetDictionaryEnabled: Boolean = true): List[PipelineExecution] = {
     // Create the SparkSession
     val sparkSession = if (enableHiveSupport) {
       SparkSession.builder().config(sparkConf).enableHiveSupport().getOrCreate()
     } else {
       SparkSession.builder().config(sparkConf).getOrCreate()
     }
+
+    logger.info(s"setting parquet dictionary enabled to ${parquetDictionaryEnabled.toString}")
+    sparkSession.sparkContext.hadoopConfiguration.set("parquet.enable.dictionary", parquetDictionaryEnabled.toString)
+
     // Create the default globals
     val rootGlobals = globals.getOrElse(Map[String, Any]())
     val defaultGlobals = generateGlobals(application.globals, rootGlobals, Some(rootGlobals))

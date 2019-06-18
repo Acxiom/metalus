@@ -8,8 +8,8 @@ import org.apache.spark.sql._
 object DataFrameSteps {
 
   @StepFunction("22fcc0e7-0190-461c-a999-9116b77d5919",
-    "Load a DataFrame",
-    "This step will read a dataFrame using a DataFrameReaderOptions object",
+    "Build a DataFrameReader Object",
+    "This step will build a DataFrameReader object that can be used to read a file into a dataframe",
     "Pipeline",
     "InputOutput")
   def getDataFrameReader(dataFrameReaderOptions: DataFrameReaderOptions,
@@ -18,8 +18,8 @@ object DataFrameSteps {
   }
 
   @StepFunction("e023fc14-6cb7-44cb-afce-7de01d5cdf00",
-    "Write a DataFrame",
-    "This step will write a dataFrame using a DataFrameWriterOptions object",
+    "Build a DataFrameWriter Object",
+    "This step will build a DataFrameWriter object that can be used to write a file into a dataframe",
     "Pipeline",
     "InputOutput")
   def getDataFrameWriter(dataFrame: DataFrame,

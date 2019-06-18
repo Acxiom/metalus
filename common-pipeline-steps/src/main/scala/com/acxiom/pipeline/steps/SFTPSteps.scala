@@ -16,7 +16,7 @@ object SFTPSteps {
     * @param pipelineContext The current pipeline context containing the Spark session
     * @return A FileManager if the spark session is set, otherwise None.
     */
-  @StepFunction("e4dad367-a506-5afd-86c0-82c2cf5cd15c",
+  @StepFunction("9d467cb0-8b3d-40a0-9ccd-9cf8c5b6cb38",
     "Create SFTP FileManager",
     "Simple function to generate the SFTPFileManager for the remote SFTP file system",
     "Pipeline",
