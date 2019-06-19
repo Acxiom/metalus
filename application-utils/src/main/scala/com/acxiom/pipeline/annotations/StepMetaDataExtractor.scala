@@ -26,6 +26,7 @@ object StepMetaDataExtractor {
   implicit val formats: Formats = DefaultFormats
 
   private val FOUR = 4
+  private val SEVEN = 7
 
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("step-packages", "jar-files")))
@@ -147,6 +148,8 @@ object StepMetaDataExtractor {
             val caseClass = if (paramSymbol.typeSignature.typeSymbol.isClass &&
               paramSymbol.typeSignature.typeSymbol.asClass.isCaseClass) {
               Some(paramSymbol.typeSignature.toString)
+            } else if (paramSymbol.typeSignature.toString.startsWith("Option[")) {
+              extractCaseClassFromOption(paramSymbol)
             } else { None }
             val annotations = paramSymbol.annotations
             val a1 = annotations.find(_.tree.tpe =:= ru.typeOf[StepParameter])
@@ -169,9 +172,51 @@ object StepMetaDataExtractor {
         ann.get.tree.children.tail(2).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(3).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(FOUR).toString().replaceAll("\"", ""),
-        parameters._1, EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName)))
+        getBranchResults(parameters._1, symbol), EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName)))
       (newSteps, parameters._2)
     } else { (steps, caseClasses) }
+  }
+
+  /**
+    * Determine if the BranchResults annotation exists and add the results to the parameters.
+    * @param parameters The existing step parameters
+    * @param symbol The step symbol
+    * @return A list of parameters that may include result type parameters.
+    */
+  private def getBranchResults(parameters: List[StepFunctionParameter], symbol: ru.Symbol): List[StepFunctionParameter] = {
+    val ann = symbol.annotations.find(_.tree.tpe =:= ru.typeOf[BranchResults])
+    if (ann.isDefined) {
+      ann.get.tree.children.tail.head.children.zipWithIndex.foldLeft(parameters)((params, child) => {
+        if (child._2 > 0) {
+          params :+ StepFunctionParameter("result", child._1.toString().replaceAll("\"", ""))
+        } else {
+          params
+        }
+      })
+    } else {
+      parameters
+    }
+  }
+
+  /**
+    * This function will inspect the Option type to determine if a case class is embedded.
+    * @param paramSymbol The parameter symbol
+    * @return The case class name or None.
+    */
+  private def extractCaseClassFromOption(paramSymbol: ru.Symbol): Option[String] = {
+    val optionString = paramSymbol.typeSignature.toString
+    val className = optionString.substring(SEVEN, optionString.length - 1)
+    val mirror = ru.runtimeMirror(getClass.getClassLoader)
+    try {
+      val moduleClass = mirror.staticClass(className)
+      if (moduleClass.isCaseClass) {
+        Some(className)
+      } else {
+        None
+      }
+    } catch {
+      case _: Throwable => None
+    }
   }
 
   /**
