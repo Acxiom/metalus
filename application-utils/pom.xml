@@ -24,6 +24,12 @@
             <version>${parent.version}</version>
         </dependency>
 
+        <!--<dependency>-->
+            <!--<groupId>com.acxiom</groupId>-->
+            <!--<artifactId>common-pipeline-steps_${scala.compat.version}-spark_${spark.compat.version}</artifactId>-->
+            <!--<version>${parent.version}</version>-->
+        <!--</dependency>-->
+
         <dependency>
             <groupId>com.kjetland</groupId>
             <artifactId>mbknor-jackson-jsonschema_${scala.compat.version}</artifactId>
