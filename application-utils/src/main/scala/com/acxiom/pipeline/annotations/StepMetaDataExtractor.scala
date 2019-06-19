@@ -134,11 +134,8 @@ object StepMetaDataExtractor {
     }
   }
 
-  private def generateStepDefinitionList(im: ru.ModuleMirror,
-                                         steps: List[StepDefinition],
-                                         caseClasses: Set[String],
-                                         symbol: ru.Symbol,
-                                         ann: Option[ru.Annotation],
+  private def generateStepDefinitionList(im: ru.ModuleMirror, steps: List[StepDefinition], caseClasses: Set[String],
+                                         symbol: ru.Symbol, ann: Option[ru.Annotation],
                                          packageName: String): (List[StepDefinition], Set[String]) = {
     if (ann.isDefined) {
       val params = symbol.asMethod.paramLists.head
@@ -150,9 +147,7 @@ object StepMetaDataExtractor {
             val caseClass = if (paramSymbol.typeSignature.typeSymbol.isClass &&
               paramSymbol.typeSignature.typeSymbol.asClass.isCaseClass) {
               Some(paramSymbol.typeSignature.toString)
-            } else {
-              None
-            }
+            } else { None }
             val annotations = paramSymbol.annotations
             val a1 = annotations.find(_.tree.tpe =:= ru.typeOf[StepParameter])
             val updatedStepParams = if (a1.isDefined)  {
@@ -165,26 +160,18 @@ object StepMetaDataExtractor {
               paramsAndClasses._2 + caseClass.get
             } else { paramsAndClasses._2 }
             (updatedStepParams, updatedCaseClassSet)
-          } else {
-            paramsAndClasses
-          }
+          } else { paramsAndClasses }
         })
-      } else {
-        (List[StepFunctionParameter](), caseClasses)
-      }
+      } else { (List[StepFunctionParameter](), caseClasses) }
       val newSteps = steps :+ StepDefinition(
         ann.get.tree.children.tail.head.toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(1).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(2).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(3).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(FOUR).toString().replaceAll("\"", ""),
-        parameters._1,
-        EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName)))
-
+        parameters._1, EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName)))
       (newSteps, parameters._2)
-    } else {
-      (steps, caseClasses)
-    }
+    } else { (steps, caseClasses) }
   }
 
   /**
@@ -241,8 +228,11 @@ object StepMetaDataExtractor {
   private def getParameterType(paramSymbol: ru.Symbol, caseClass: Boolean = false) = {
     try {
       paramSymbol.typeSignature.toString match {
-        case "Integer" => "number"
+        case "Integer" => "integer"
         case "scala.Boolean" => "boolean"
+        case "Option[Int]" => "integer"
+        case "Option[Boolean]" => "boolean"
+        case "Boolean" => "boolean"
         case _ => if (caseClass) { "object" } else { "text" }
       }
     } catch {
