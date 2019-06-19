@@ -17,3 +17,5 @@ case class StepParameter(typeOverride: Option[String] = None,
                          className: Option[String] = None) extends StaticAnnotation
 
 case class PrivateObject() extends StaticAnnotation
+
+case class BranchResults(names: List[String]) extends StaticAnnotation
