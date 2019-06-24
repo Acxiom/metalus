@@ -27,7 +27,10 @@ object PipelineExecutor {
       val ctx = executingPipelines.foldLeft(esContext)((accCtx, pipeline) => {
         val psCtx = handleEvent(accCtx, "pipelineStarted", List(pipeline, accCtx))
         // Map the steps for easier lookup during execution
-        val stepLookup = pipeline.steps.get.map(step => step.id.get -> step).toMap
+        val stepLookup = pipeline.steps.get.map(step => {
+          validateStep(step, pipeline)
+          step.id.get -> step
+        }).toMap
         // Set the pipelineId in the global lookup
         val updatedCtx = psCtx
           .setGlobal("pipelineId", pipeline.id)
@@ -116,6 +119,66 @@ object PipelineExecutor {
         pipelineId = Some(sfContext.getGlobalString("pipelineId").getOrElse("")), stepId = nextStepId)
     } else {
       sfContext
+    }
+  }
+
+  @throws(classOf[PipelineException])
+  private def validateStep(step: PipelineStep, pipeline: Pipeline): Unit = {
+    if(step.id.getOrElse("") == ""){
+      throw PipelineException(
+        message = Some(s"Step is missing id in pipeline [${pipeline.id.get}]."),
+        pipelineId = pipeline.id,
+        stepId = step.id)
+    }
+    step.`type`.getOrElse("").toLowerCase match {
+      case s if s == "pipeline" || s == "branch" =>
+        if(step.engineMeta.isEmpty || step.engineMeta.get.spark.getOrElse("") == "") {
+          throw PipelineException(
+            message = Some(s"EngineMeta is required for [${step.`type`.get}] step [${step.id.get}] in pipeline [${pipeline.id.get}]"),
+            pipelineId = pipeline.id,
+            stepId = step.id)
+        }
+      case "fork" => validateForkStep(step, pipeline)
+      case "join" =>
+      case "" =>
+        throw PipelineException(
+          message = Some(s"[type] is required for step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+          pipelineId = pipeline.id,
+          stepId = step.id)
+      case unknown => throw PipelineException(message = Some(s"Unknown pipeline type: [$unknown] for step [${step.id.get}] in pipeline [${pipeline.id.get}]."), pipelineId = pipeline.id, stepId = step.id)
+    }
+  }
+
+  @throws(classOf[PipelineException])
+  private def validateForkStep(step: PipelineStep, pipeline: Pipeline): Unit ={
+    if(step.params.isEmpty) {
+      throw PipelineException(
+        message = Some(s"Parameters [forkByValues] and [forkMethod] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+        pipelineId = pipeline.id,
+        stepId = step.id)
+    }
+    val forkMethod = step.params.get.find(p => p.name.getOrElse("") == "forkMethod")
+    if(forkMethod.isDefined && forkMethod.get.value.nonEmpty){
+      val method = forkMethod.get.value.get.asInstanceOf[String]
+      if(!(method == "serial" || method == "parallel")){
+        throw PipelineException(
+          message = Some(s"Unknown value [$method] for parameter [forkMethod]." +
+          s" Value must be either [serial] or [parallel] for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+          pipelineId = pipeline.id,
+          stepId = step.id)
+      }
+    } else {
+      throw PipelineException(
+        message = Some(s"Parameter [forkMethod] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+        pipelineId = pipeline.id,
+        stepId = step.id)
+    }
+    val forkByValues = step.params.get.find(p => p.name.getOrElse("") == "forkByValues")
+    if(forkByValues.isEmpty || forkByValues.get.value.isEmpty){
+      throw PipelineException(
+        message = Some(s"Parameter [forkByValues] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+        pipelineId = pipeline.id,
+        stepId = step.id)
     }
   }
 

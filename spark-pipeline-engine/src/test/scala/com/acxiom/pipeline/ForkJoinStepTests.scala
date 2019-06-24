@@ -134,6 +134,40 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
       assert(!executionResult.success)
     }
+
+    it("Should fail if forkMethod is not populated correctly"){
+      val pipelineStepsWithoutForkMethod = List(
+        generateDataStep,
+        simpleForkSerialStep.copy(params = Some(List(Parameter(Some("text"), Some("forkByValues"), value = Some("@GENERATE_DATA"))))),
+        processValueStep,
+        joinStep)
+      val pipelineWithoutForkMethod = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineStepsWithoutForkMethod))
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val executionResultWithoutForkMethod = PipelineExecutor.executePipelines(List(pipelineWithoutForkMethod), None, SparkTestHelper.generatePipelineContext())
+      assert(!executionResultWithoutForkMethod.success)
+      val pipelineStepsWithTypo = List(
+        generateDataStep,
+        simpleForkSerialStep.copy(params = Some(List(Parameter(Some("text"), Some("forkByValues"), value = Some("@GENERATE_DATA")),
+          Parameter(Some("text"), Some("forkMethod"), value = Some("seiral"))))),
+        processValueStep,
+        joinStep)
+      val pipelineWithTypo = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineStepsWithTypo))
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val executionResultWithTypo = PipelineExecutor.executePipelines(List(pipelineWithTypo), None, SparkTestHelper.generatePipelineContext())
+      assert(!executionResultWithTypo.success)
+    }
+
+    it("Should fail if forkByValues is not populated"){
+      val pipelineStepsWithoutForkMethod = List(
+        generateDataStep,
+        simpleForkSerialStep.copy(params = Some(List(Parameter(Some("text"), Some("forkMethod"), value = Some("serial"))))),
+        processValueStep,
+        joinStep)
+      val pipelineWithoutForkMethod = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineStepsWithoutForkMethod))
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val executionResultWithoutForkMethod = PipelineExecutor.executePipelines(List(pipelineWithoutForkMethod), None, SparkTestHelper.generatePipelineContext())
+      assert(!executionResultWithoutForkMethod.success)
+    }
   }
 
   describe("Verify Exception Handling") {
