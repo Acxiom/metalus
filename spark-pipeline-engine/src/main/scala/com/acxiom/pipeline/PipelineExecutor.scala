@@ -27,7 +27,10 @@ object PipelineExecutor {
       val ctx = executingPipelines.foldLeft(esContext)((accCtx, pipeline) => {
         val psCtx = handleEvent(accCtx, "pipelineStarted", List(pipeline, accCtx))
         // Map the steps for easier lookup during execution
-        val stepLookup = pipeline.steps.get.map(step => step.id.get -> step).toMap
+        val stepLookup = pipeline.steps.get.map(step => {
+          validateStep(step, pipeline)
+          step.id.get -> step
+        }).toMap
         // Set the pipelineId in the global lookup
         val updatedCtx = psCtx
           .setGlobal("pipelineId", pipeline.id)
@@ -75,7 +78,6 @@ object PipelineExecutor {
   @tailrec
   private def executeStep(step: PipelineStep, pipeline: Pipeline, steps: Map[String, PipelineStep],
                           pipelineContext: PipelineContext): PipelineContext = {
-    validateStep(step, pipeline)
     logger.debug(s"Executing Step (${step.id.getOrElse("")}) ${step.displayName.getOrElse("")}")
     val ssContext = handleEvent(pipelineContext, "pipelineStepStarted", List(pipeline, step, pipelineContext))
     // Create a map of values for each defined parameter
@@ -120,25 +122,36 @@ object PipelineExecutor {
     }
   }
 
-  private def validateStep(step: PipelineStep, pipeline: Pipeline): Unit ={
+  private def validateStep(step: PipelineStep, pipeline: Pipeline): Unit = {
+    if(step.id.getOrElse("") == ""){
+      throw PipelineException(
+        message = Some(s"""Step id is required in pipeline [${pipeline.id.get}]."""),
+        pipelineId = pipeline.id,
+        stepId = step.id)
+    }
     step.`type`.getOrElse("").toLowerCase match {
       case s if s == "pipeline" || s == "branch" =>
-        if(step.engineMeta.isEmpty) {
+        if(step.engineMeta.isEmpty || step.engineMeta.get.spark.getOrElse("") != "") {
           throw PipelineException(
-            message = Some(s"""EngineMeta is not defined for [${step.`type`.get}] step [${step.id.get}]"""),
+            message = Some(s"EngineMeta is required for [${step.`type`.get}] step [${step.id.get}] in pipeline [${pipeline.id.get}]"),
             pipelineId = pipeline.id,
             stepId = step.id)
         }
       case "fork" => validateForkStep(step, pipeline)
-      //case "" => throw PipelineException(message = Some(s"\"type\" is required for pipeline step: [${step.displayName}]"), pipelineId = pipeline.id, stepId = step.id)
-      case unknown => throw PipelineException(message = Some(s"Unknown pipeline type: [$unknown]"), pipelineId = pipeline.id, stepId = step.id)
+      case "join" =>
+      case "" =>
+        throw PipelineException(
+          message = Some(s"[type] is required for step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+          pipelineId = pipeline.id,
+          stepId = step.id)
+      case unknown => throw PipelineException(message = Some(s"Unknown pipeline type: [$unknown] for step [${step.id.get}] in pipeline [${pipeline.id.get}]."), pipelineId = pipeline.id, stepId = step.id)
     }
   }
 
   private def validateForkStep(step: PipelineStep, pipeline: Pipeline): Unit ={
     if(step.params.isEmpty) {
       throw PipelineException(
-        message = Some("Parameters [forkByValues] and [forkMethod] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+        message = Some(s"Parameters [forkByValues] and [forkMethod] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
         pipelineId = pipeline.id,
         stepId = step.id)
     }
