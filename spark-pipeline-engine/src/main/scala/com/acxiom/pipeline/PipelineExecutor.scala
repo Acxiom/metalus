@@ -125,7 +125,7 @@ object PipelineExecutor {
   private def validateStep(step: PipelineStep, pipeline: Pipeline): Unit = {
     if(step.id.getOrElse("") == ""){
       throw PipelineException(
-        message = Some(s"""Step id is required in pipeline [${pipeline.id.get}]."""),
+        message = Some(s"Step id is required in pipeline [${pipeline.id.get}]."),
         pipelineId = pipeline.id,
         stepId = step.id)
     }
