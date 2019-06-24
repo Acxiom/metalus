@@ -122,10 +122,11 @@ object PipelineExecutor {
     }
   }
 
+  @throws(classOf[PipelineException])
   private def validateStep(step: PipelineStep, pipeline: Pipeline): Unit = {
     if(step.id.getOrElse("") == ""){
       throw PipelineException(
-        message = Some(s"Step id is required in pipeline [${pipeline.id.get}]."),
+        message = Some(s"Step is missing id in pipeline [${pipeline.id.get}]."),
         pipelineId = pipeline.id,
         stepId = step.id)
     }
@@ -148,6 +149,7 @@ object PipelineExecutor {
     }
   }
 
+  @throws(classOf[PipelineException])
   private def validateForkStep(step: PipelineStep, pipeline: Pipeline): Unit ={
     if(step.params.isEmpty) {
       throw PipelineException(
@@ -156,7 +158,7 @@ object PipelineExecutor {
         stepId = step.id)
     }
     val forkMethod = step.params.get.find(p => p.name.getOrElse("") == "forkMethod")
-    if(forkMethod.isDefined && forkMethod.get.value.isDefined){
+    if(forkMethod.isDefined && forkMethod.get.value.nonEmpty){
       val method = forkMethod.get.value.get.asInstanceOf[String]
       if(!(method == "serial" || method == "parallel")){
         throw PipelineException(
