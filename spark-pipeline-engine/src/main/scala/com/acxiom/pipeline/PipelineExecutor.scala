@@ -75,6 +75,7 @@ object PipelineExecutor {
   @tailrec
   private def executeStep(step: PipelineStep, pipeline: Pipeline, steps: Map[String, PipelineStep],
                           pipelineContext: PipelineContext): PipelineContext = {
+    validateStep(step, pipeline)
     logger.debug(s"Executing Step (${step.id.getOrElse("")}) ${step.displayName.getOrElse("")}")
     val ssContext = handleEvent(pipelineContext, "pipelineStepStarted", List(pipeline, step, pipelineContext))
     // Create a map of values for each defined parameter
@@ -116,6 +117,53 @@ object PipelineExecutor {
         pipelineId = Some(sfContext.getGlobalString("pipelineId").getOrElse("")), stepId = nextStepId)
     } else {
       sfContext
+    }
+  }
+
+  private def validateStep(step: PipelineStep, pipeline: Pipeline): Unit ={
+    step.`type`.getOrElse("").toLowerCase match {
+      case s if s == "pipeline" || s == "branch" =>
+        if(step.engineMeta.isEmpty) {
+          throw PipelineException(
+            message = Some(s"""EngineMeta is not defined for [${step.`type`.get}] step [${step.id.get}]"""),
+            pipelineId = pipeline.id,
+            stepId = step.id)
+        }
+      case "fork" => validateForkStep(step, pipeline)
+      //case "" => throw PipelineException(message = Some(s"\"type\" is required for pipeline step: [${step.displayName}]"), pipelineId = pipeline.id, stepId = step.id)
+      case unknown => throw PipelineException(message = Some(s"Unknown pipeline type: [$unknown]"), pipelineId = pipeline.id, stepId = step.id)
+    }
+  }
+
+  private def validateForkStep(step: PipelineStep, pipeline: Pipeline): Unit ={
+    if(step.params.isEmpty) {
+      throw PipelineException(
+        message = Some("Parameters [forkByValues] and [forkMethod] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+        pipelineId = pipeline.id,
+        stepId = step.id)
+    }
+    val forkMethod = step.params.get.find(p => p.name.getOrElse("") == "forkMethod")
+    if(forkMethod.isDefined && forkMethod.get.value.isDefined){
+      val method = forkMethod.get.value.get.asInstanceOf[String]
+      if(!(method == "serial" || method == "parallel")){
+        throw PipelineException(
+          message = Some(s"Unknown value [$method] for parameter [forkMethod]." +
+          s" Value must be either [serial] or [parallel] for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+          pipelineId = pipeline.id,
+          stepId = step.id)
+      }
+    } else {
+      throw PipelineException(
+        message = Some(s"Parameter [forkMethod] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+        pipelineId = pipeline.id,
+        stepId = step.id)
+    }
+    val forkByValues = step.params.get.find(p => p.name.getOrElse("") == "forkByValues")
+    if(forkByValues.isEmpty || forkByValues.get.value.isEmpty){
+      throw PipelineException(
+        message = Some(s"Parameter [forkByValues] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+        pipelineId = pipeline.id,
+        stepId = step.id)
     }
   }
 

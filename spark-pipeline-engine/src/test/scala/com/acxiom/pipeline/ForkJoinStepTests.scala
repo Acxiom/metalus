@@ -134,6 +134,19 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
       assert(!executionResult.success)
     }
+
+    it("moo"){
+      val pipelineSteps = List(
+        generateDataStep,
+        simpleForkSerialStep.copy(id = None, params = Some(List(Parameter(Some("text"), Some("forkByValues"), value = Some("@GENERATE_DATA")),
+        Parameter(Some("text"), Some("forkMetho"), value = Some("serial"))))),
+        processValueStep,
+        joinStep)
+      val pipeline = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineSteps))
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      assert(!executionResult.success)
+    }
   }
 
   describe("Verify Exception Handling") {
