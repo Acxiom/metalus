@@ -132,7 +132,7 @@ object PipelineExecutor {
     }
     step.`type`.getOrElse("").toLowerCase match {
       case s if s == "pipeline" || s == "branch" =>
-        if(step.engineMeta.isEmpty || step.engineMeta.get.spark.getOrElse("") != "") {
+        if(step.engineMeta.isEmpty || step.engineMeta.get.spark.getOrElse("") == "") {
           throw PipelineException(
             message = Some(s"EngineMeta is required for [${step.`type`.get}] step [${step.id.get}] in pipeline [${pipeline.id.get}]"),
             pipelineId = pipeline.id,
