@@ -4,9 +4,20 @@ Application utilities are provided as a way to make working with the project eas
 ## Step Metadata Extractor
 This utility will scan jar files that contain steps and produce a JSON representation. The tool takes a list of packages
 and identifies objects with the annotation *StepObject*. Next the tool will look for any function annotated with the
-*StepFunction* annotation. The output will contain the *pkgs* array with all of the packages that contained steps, the
-*steps* array that contains the metadata generated for each step, and the *pkgObjs* array that contains schemas for all 
-of the case classes used as parameters in each step.
+*StepFunction* annotation. Once a function has been identified, the parameters will be inspected to produce the **params**
+array. One additional annotation named *StepParameter* may be used to provide overrides:
+
+* type - This allows setting the type to **script** or **object** when the parser may miss it because the parameter is an option or string
+* required - Override the required parsing
+* defaultValue - Set a default value
+* language - This is only useful if the type is overridden to be **script**
+* className - Only set this if the case class type is wrapped in an Option. Do not override for any other types such as List.
+
+The output will contain the *pkgs* array with all of the packages that contained steps, the*steps* array that contains 
+the metadata generated for each step, and the *pkgObjs* array that contains schemas for all of the case classes used as 
+parameters in each step.
+
+**Note:** When using annotations, all parameters must be supplied. Named parameters will not work.
 
 ### Running
 The script parameters are:

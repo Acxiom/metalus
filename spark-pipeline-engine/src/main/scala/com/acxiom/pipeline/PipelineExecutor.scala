@@ -408,7 +408,7 @@ object PipelineExecutor {
       try {
         ForkStepExecutionResult(value._2,
           Some(executeStep(firstStep, pipeline, steps,
-            createForkPipelineContext(pipelineContext).setParameterByPipelineId(pipeline.id.get,
+            createForkPipelineContext(pipelineContext, value._2).setParameterByPipelineId(pipeline.id.get,
               forkStepId, PipelineStepResponse(Some(value._1 ), None)))), None)
       } catch {
         case t: Throwable => ForkStepExecutionResult(value._2, None, Some(t))
@@ -437,7 +437,8 @@ object PipelineExecutor {
         try {
           ForkStepExecutionResult(value._2,
             Some(executeStep(firstStep, pipeline, steps,
-            createForkPipelineContext(pipelineContext).setParameterByPipelineId(pipeline.id.get,
+            createForkPipelineContext(pipelineContext, value._2)
+              .setParameterByPipelineId(pipeline.id.get,
               forkStepId, PipelineStepResponse(Some(value._1 ), None)))), None)
         } catch {
           case t: Throwable => ForkStepExecutionResult(value._2, None, Some(t))
@@ -453,11 +454,13 @@ object PipelineExecutor {
   /**
     * This function will create a new PipelineContext from the provided that includes new StepMessages
     * @param pipelineContext The PipelineContext to be cloned.
+    * @param forkId The id of the fork process
     * @return A cloned PipelineContext
     */
-  private def createForkPipelineContext(pipelineContext: PipelineContext): PipelineContext = {
+  private def createForkPipelineContext(pipelineContext: PipelineContext, forkId: Int): PipelineContext = {
     pipelineContext.copy(stepMessages =
       Some(pipelineContext.sparkSession.get.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
+      .setGlobal("forkId", forkId)
   }
 
   /**

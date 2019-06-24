@@ -45,7 +45,9 @@
         <encoding>UTF-8</encoding>
         <scala.version>2.11.12</scala.version>
         <scala.compat.version>2.11</scala.compat.version>
-        <spark.version>2.3.2</spark.version>
+        <spark.compat.version>2.3</spark.compat.version>
+        <spark.version>2.3.3</spark.version>
+        <json4s.version>3.2.11</json4s.version>
         <scala.style.config>${basedir}/scalastyle_config.xml</scala.style.config>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <sonar.core.codeCoveragePlugin>scoverage</sonar.core.codeCoveragePlugin>
@@ -80,12 +82,12 @@
         <dependency>
             <groupId>org.json4s</groupId>
             <artifactId>json4s-native_${scala.compat.version}</artifactId>
-            <version>3.2.11</version>
+            <version>${json4s.version}</version>
         </dependency>
         <dependency>
             <groupId>org.json4s</groupId>
             <artifactId>json4s-ext_${scala.compat.version}</artifactId>
-            <version>3.2.11</version>
+            <version>${json4s.version}</version>
         </dependency>
         <!-- Spark Libraries -->
         <dependency>
@@ -116,13 +118,13 @@
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.compat.version}</artifactId>
-            <version>3.0.1</version>
+            <version>3.0.8</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.scalamock</groupId>
             <artifactId>scalamock-scalatest-support_${scala.compat.version}</artifactId>
-            <version>3.3.0</version>
+            <version>3.6.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
