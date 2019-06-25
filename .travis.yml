@@ -81,7 +81,7 @@ jobs:
       jdk:
         - oraclejdk8
       install: mvn -B -DskipTests=true clean install
-      script: mvn -B -Dsonar.projectKey=Acxiom_spark-pipeline-driver-develop -Dsonar.host.url=https://sonarcloud.io scoverage:report scalastyle:check org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
+      script: mvn -B -Dsonar.organization=$SONAR_ORGANIZATION -Dsonar.login=$SONAR_TOKEN -Dsonar.projectKey=Acxiom_spark-pipeline-driver-develop -Dsonar.host.url=https://sonarcloud.io scoverage:report scalastyle:check org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
 
     - stage: Release
       if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
