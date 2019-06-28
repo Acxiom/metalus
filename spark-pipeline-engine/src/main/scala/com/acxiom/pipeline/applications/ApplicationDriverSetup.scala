@@ -1,14 +1,11 @@
 package com.acxiom.pipeline.applications
 
 import com.acxiom.pipeline.drivers.DriverSetup
-import com.acxiom.pipeline.utils.{DriverUtils, FileManager, ReflectionUtils}
+import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline.{Pipeline, PipelineContext, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.SparkSession
-
-import scala.io.Source
 
 trait ApplicationDriverSetup extends DriverSetup {
 
@@ -21,6 +18,7 @@ trait ApplicationDriverSetup extends DriverSetup {
     case "applicationConfigPath" => false
     case "applicationConfigurationLoader" => false
     case "enableHiveSupport" => false
+    case "dfs-cluster" => false
     case _ => true
   }
 
@@ -51,7 +49,8 @@ trait ApplicationDriverSetup extends DriverSetup {
     application = application,
     globals = Some(params),
     sparkConf = sparkConf,
-    enableHiveSupport = parameters.getOrElse("enableHiveSupport", false).asInstanceOf[Boolean]
+    enableHiveSupport = parameters.getOrElse("enableHiveSupport", false).asInstanceOf[Boolean],
+    parquetDictionaryEnabled = parameters.getOrElse("parquetDictionaryEnabled", true).asInstanceOf[Boolean]
   )}
 
   /**
@@ -101,9 +100,9 @@ case class DefaultApplicationDriverSetup(parameters: Map[String, Any]) extends A
     val json = if (parameters.contains("applicationJson")) {
       parameters("applicationJson").asInstanceOf[String]
     } else if (parameters.contains("applicationConfigPath")) {
-      val className = parameters.getOrElse("applicationConfigurationLoader", "com.acxiom.pipeline.utils.LocalFileManager").asInstanceOf[String]
+      val className = parameters.getOrElse("applicationConfigurationLoader", "com.acxiom.pipeline.fs.LocalFileManager").asInstanceOf[String]
       val path = parameters("applicationConfigPath").toString
-      DriverUtils.loadJsonFromFile(path, className)
+      DriverUtils.loadJsonFromFile(path, className, parameters)
     } else {
       throw new RuntimeException("Either the applicationJson or the applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
     }

@@ -6,11 +6,11 @@ import java.nio.file.{Files, Path}
 import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
-import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
 
 import scala.io.Source
 
@@ -36,12 +36,17 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     config = new HdfsConfiguration()
     config.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, file.getAbsolutePath)
     miniCluster = new MiniDFSCluster.Builder(config).build()
-    fs = FileSystem.get(config)
+    miniCluster.waitActive()
+    // Only pull the fs object from the mini cluster
+    fs = miniCluster.getFileSystem
 
     sparkConf = new SparkConf()
       .setMaster(MASTER)
       .setAppName(APPNAME)
       .set("spark.local.dir", sparkLocalDir.toFile.getAbsolutePath)
+      // Force Spark to use the HDFS cluster
+      .set("spark.hadoop.fs.defaultFS", miniCluster.getFileSystem().getUri.toString)
+    // Create the session
     sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
 
     pipelineContext = PipelineContext(Some(sparkConf), Some(sparkSession), Some(Map[String, Any]()),
@@ -95,7 +100,7 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       assert(writtenData == chickens)
     }
-    it("should respect options"){
+    it("should respect options") {
       val spark = this.sparkSession
       import spark.implicits._
 
@@ -103,8 +108,8 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       HDFSSteps.writeToPath(
         dataFrame = dataFrame,
-        options = DataFrameWriterOptions(format = "csv", options = Some(Map[String, String]("delimiter" -> "þ"))),
-        path=miniCluster.getURI + "/data/chickens.csv"
+        options = DataFrameWriterOptions(format = "csv").setOption("delimiter", "þ"),
+        path = miniCluster.getURI + "/data/chickens.csv"
       )
       val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
 
@@ -122,7 +127,7 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     }
   }
 
-  describe("HDFS Steps - Basic Reading"){
+  describe("HDFS Steps - Basic Reading") {
     val chickens = Seq(
       ("1", "silkie"),
       ("2", "polish"),
@@ -152,9 +157,9 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       val dataFrame = HDFSSteps.readFromPaths(
         List(p1, p2),
-        DataFrameReaderOptions(
-          format = "csv",
-          options = Some(Map[String, String]("header" -> "true"))),
+        DataFrameReaderOptions(format = "csv",
+          schema = Some(Schema(List(Attribute("id", "string"), Attribute("chicken", "string")))))
+          .setOption("header", "true"),
         pipelineContext)
       assert(dataFrame.count() == 3)
       val result = dataFrame.take(3).map(r => (r.getString(0), r.getString(1))).toSeq.sortBy(t => t._1)
@@ -168,15 +173,19 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       val dataFrame = HDFSSteps.readFromPath(
         path = path,
-        options = DataFrameReaderOptions(
-          format = "csv",
-          options = Some(Map[String, String]("header" -> "true", "delimiter" -> "þ"))
+        options = DataFrameReaderOptions(format = "csv").setOptions(Map[String, String]("header" -> "true", "delimiter" -> "þ")
         ),
         pipelineContext = pipelineContext)
 
       assert(dataFrame.count() == 3)
       val result = dataFrame.take(3).map(r => (r.getString(0), r.getString(1))).toSeq
       assert(result == chickens)
+    }
+  }
+
+  describe("HDFS Steps - Validations") {
+    it("Should return None when missing spark session") {
+      assert(HDFSSteps.createFileManager(pipelineContext.copy(sparkSession = None)).isEmpty)
     }
   }
 
@@ -192,6 +201,5 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     val pw = new PrintWriter(fs.create(new org.apache.hadoop.fs.Path(path)))
     pw.print(content)
     pw.close()
-
   }
 }

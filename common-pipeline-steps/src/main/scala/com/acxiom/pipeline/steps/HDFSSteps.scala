@@ -1,7 +1,8 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+import com.acxiom.pipeline.fs.HDFSFileManager
 import org.apache.spark.sql.DataFrame
 
 @StepObject
@@ -38,5 +39,24 @@ object HDFSSteps {
                      path: String,
                      options: DataFrameWriterOptions = DataFrameWriterOptions()): Unit = {
     DataFrameSteps.getDataFrameWriter(dataFrame, options).save(path)
+  }
+
+  /**
+    * Simple function to generate the HDFSFileManager for the local HDFS file system.
+    * @param pipelineContext The current pipeline context containing the Spark session
+    * @return A FileManager if the spark session is set, otherwise None.
+    */
+  @StepFunction("e4dad367-a506-5afd-86c0-82c2cf5cd15c",
+    "Create HDFS FileManager",
+    "Simple function to generate the HDFSFileManager for the local HDFS file system",
+    "Pipeline",
+    "InputOutput"
+  )
+  def createFileManager(pipelineContext: PipelineContext): Option[HDFSFileManager] = {
+    if (pipelineContext.sparkSession.isDefined) {
+      Some(HDFSFileManager(pipelineContext.sparkSession.get))
+    } else {
+      None
+    }
   }
 }

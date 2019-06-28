@@ -6,6 +6,7 @@
   "executions": [
     {
       "id": "0",
+      "parents": [],
       "pipelines": [
         {
           "id": "Pipeline1",
@@ -14,7 +15,7 @@
             {
               "id": "Pipeline1Step1",
               "displayName": "Pipeline1Step1",
-              "type": "preload",
+              "type": "pipeline",
               "params": [
                 {
                   "type": "text",

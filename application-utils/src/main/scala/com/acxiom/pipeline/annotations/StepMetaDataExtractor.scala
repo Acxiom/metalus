@@ -5,6 +5,7 @@ import java.util.jar.JarFile
 
 import com.acxiom.pipeline.EngineMeta
 import com.acxiom.pipeline.utils.DriverUtils
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 
@@ -24,6 +25,9 @@ import scala.util.{Failure, Success, Try}
 object StepMetaDataExtractor {
   implicit val formats: Formats = DefaultFormats
 
+  private val FOUR = 4
+  private val SEVEN = 7
+
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("step-packages", "jar-files")))
     val stepPackages = parameters("step-packages").asInstanceOf[String].split(",").toList
@@ -38,7 +42,7 @@ object StepMetaDataExtractor {
           (packageDefinitions._1.getOrElse(packageName, List[StepDefinition]()), definitions._2))((stepDefinitions, cf) => {
           val stepPath = s"${cf.getName.substring(0, cf.getName.indexOf(".")).replaceAll("/", "\\.")}"
           if (!stepPath.contains("$")) {
-            val stepsAndClasses = findStepDefinitions(stepPath)
+            val stepsAndClasses = findStepDefinitions(stepPath, packageName)
             val steps = if (stepsAndClasses.nonEmpty) Some(stepsAndClasses.get._1) else None
             val classes = if (stepsAndClasses.nonEmpty) Some(stepsAndClasses.get._2) else None
             val updatedCaseClasses = if (classes.isDefined) stepDefinitions._2 ++ classes.get else stepDefinitions._2
@@ -88,26 +92,20 @@ object StepMetaDataExtractor {
   }
 
   private def buildPackageObjects(caseClasses: Set[String]): List[PackageObject] = {
-    import scala.reflect.runtime.currentMirror
-    import scala.tools.reflect.ToolBox
+    import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator
+    import com.fasterxml.jackson.databind.ObjectMapper
+    import com.fasterxml.jackson.databind.JsonNode
+
     caseClasses.map(x => {
-      val script =
-        s"""
-           |import com.github.andyglow.json.JsonFormatter
-           |import com.github.andyglow.jsonschema.AsValue
-           |import json.Json
-           |
-        |val schema: json.Schema[$x] = Json.schema[$x]
-           |JsonFormatter.format(AsValue.schema(schema))
-      """.stripMargin
-
-      val tree = currentMirror.mkToolBox().parse(script)
-      val schemaJson = currentMirror.mkToolBox().compile(tree)().asInstanceOf[String]
-        .replaceFirst("draft-04", "draft-07")
-        .replaceAll("\n", "")
-        .replaceAll(" +", "")
-
-      PackageObject(x, schemaJson)
+      val xClass = Class.forName(x)
+      val objectMapper = new ObjectMapper
+      objectMapper.registerModule(new DefaultScalaModule)
+      import com.kjetland.jackson.jsonSchema.JsonSchemaConfig
+      val config = JsonSchemaConfig.vanillaJsonSchemaDraft4
+      val jsonSchemaGenerator = new JsonSchemaGenerator(objectMapper, debug=true, config)
+      val jsonSchema: JsonNode = jsonSchemaGenerator.generateJsonSchema(xClass)
+      val schema = objectMapper.writeValueAsString(jsonSchema).replaceFirst("draft-04", "draft-07")
+       PackageObject(x, schema)
     }).toList
   }
 
@@ -118,7 +116,7 @@ object StepMetaDataExtractor {
     * @param stepObjectPath The fully qualified class name.
     * @return A list of step definitions.
     */
-  private def findStepDefinitions(stepObjectPath: String): Option[(List[StepDefinition], Set[String])] = {
+  private def findStepDefinitions(stepObjectPath: String, packageName: String): Option[(List[StepDefinition], Set[String])] = {
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     Try(mirror.staticModule(stepObjectPath)) match {
       case Success(_) =>
@@ -128,7 +126,7 @@ object StepMetaDataExtractor {
         if (annotation.isDefined) {
           Some(im.symbol.info.decls.foldLeft((List[StepDefinition](), Set[String]()))((stepsAndClasses, symbol) => {
             val ann = symbol.annotations.find(_.tree.tpe =:= ru.typeOf[StepFunction])
-            generateStepDefinitionList(im, stepsAndClasses._1, stepsAndClasses._2, symbol, ann)
+            generateStepDefinitionList(im, stepsAndClasses._1, stepsAndClasses._2, symbol, ann, packageName)
           }))
         } else {
           None
@@ -137,11 +135,9 @@ object StepMetaDataExtractor {
     }
   }
 
-  private def generateStepDefinitionList(im: ru.ModuleMirror,
-                                         steps: List[StepDefinition],
-                                         caseClasses: Set[String],
-                                         symbol: ru.Symbol,
-                                         ann: Option[ru.Annotation]): (List[StepDefinition], Set[String]) = {
+  private def generateStepDefinitionList(im: ru.ModuleMirror, steps: List[StepDefinition], caseClasses: Set[String],
+                                         symbol: ru.Symbol, ann: Option[ru.Annotation],
+                                         packageName: String): (List[StepDefinition], Set[String]) = {
     if (ann.isDefined) {
       val params = symbol.asMethod.paramLists.head
       val parameters = if (params.nonEmpty) {
@@ -152,37 +148,74 @@ object StepMetaDataExtractor {
             val caseClass = if (paramSymbol.typeSignature.typeSymbol.isClass &&
               paramSymbol.typeSignature.typeSymbol.asClass.isCaseClass) {
               Some(paramSymbol.typeSignature.toString)
-            } else {
-              None
-            }
+            } else if (paramSymbol.typeSignature.toString.startsWith("Option[")) {
+              extractCaseClassFromOption(paramSymbol)
+            } else { None }
             val annotations = paramSymbol.annotations
             val a1 = annotations.find(_.tree.tpe =:= ru.typeOf[StepParameter])
             val updatedStepParams = if (a1.isDefined)  {
-              stepParams :+ annotationToStepFunctionParameter(a1.get, paramSymbol).copy(className = caseClass)
+              stepParams :+ annotationToStepFunctionParameter(a1.get, paramSymbol, caseClass)
             } else {
-              stepParams :+ StepFunctionParameter(getParameterType(paramSymbol), paramSymbol.name.toString, className = caseClass)
+              stepParams :+ StepFunctionParameter(getParameterType(paramSymbol, caseClass.isDefined), paramSymbol.name.toString, className = caseClass)
             }
-            val updatedCaseClassSet = if(caseClass.nonEmpty) paramsAndClasses._2 + caseClass.get else paramsAndClasses._2
+            // only add non-private case classes to the case class set
+            val updatedCaseClassSet = if(caseClass.nonEmpty && !annotations.exists(_.tree.tpe =:= ru.typeOf[PrivateObject])) {
+              paramsAndClasses._2 + caseClass.get
+            } else { paramsAndClasses._2 }
             (updatedStepParams, updatedCaseClassSet)
-          } else {
-            paramsAndClasses
-          }
+          } else { paramsAndClasses }
         })
-      } else {
-        (List[StepFunctionParameter](), caseClasses)
-      }
+      } else { (List[StepFunctionParameter](), caseClasses) }
       val newSteps = steps :+ StepDefinition(
         ann.get.tree.children.tail.head.toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(1).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(2).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(3).toString().replaceAll("\"", ""),
-        ann.get.tree.children.tail(4).toString().replaceAll("\"", ""),
-        parameters._1,
-        EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}")))
-
+        ann.get.tree.children.tail(FOUR).toString().replaceAll("\"", ""),
+        getBranchResults(parameters._1, symbol), EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName)))
       (newSteps, parameters._2)
+    } else { (steps, caseClasses) }
+  }
+
+  /**
+    * Determine if the BranchResults annotation exists and add the results to the parameters.
+    * @param parameters The existing step parameters
+    * @param symbol The step symbol
+    * @return A list of parameters that may include result type parameters.
+    */
+  private def getBranchResults(parameters: List[StepFunctionParameter], symbol: ru.Symbol): List[StepFunctionParameter] = {
+    val ann = symbol.annotations.find(_.tree.tpe =:= ru.typeOf[BranchResults])
+    if (ann.isDefined) {
+      ann.get.tree.children.tail.head.children.zipWithIndex.foldLeft(parameters)((params, child) => {
+        if (child._2 > 0) {
+          params :+ StepFunctionParameter("result", child._1.toString().replaceAll("\"", ""))
+        } else {
+          params
+        }
+      })
     } else {
-      (steps, caseClasses)
+      parameters
+    }
+  }
+
+  /**
+    * This function will inspect the Option type to determine if a case class is embedded.
+    * @param paramSymbol The parameter symbol
+    * @return The case class name or None.
+    */
+  private def extractCaseClassFromOption(paramSymbol: ru.Symbol): Option[String] = {
+    val optionString = paramSymbol.typeSignature.toString
+    val className = optionString.substring(SEVEN, optionString.length - 1)
+    val mirror = ru.runtimeMirror(getClass.getClassLoader)
+    try {
+      val moduleClass = mirror.staticClass(className)
+      if (moduleClass.isCaseClass) {
+        Some(className)
+      } else {
+        None
+      }
+    } catch {
+      case _: Throwable => None
     }
   }
 
@@ -192,16 +225,17 @@ object StepMetaDataExtractor {
     * @param paramSymbol The parameter information
     * @return
     */
-  private def annotationToStepFunctionParameter(annotation: ru.Annotation, paramSymbol: ru.Symbol): StepFunctionParameter = {
+  private def annotationToStepFunctionParameter(annotation: ru.Annotation, paramSymbol: ru.Symbol, caseClass: Option[String] = None): StepFunctionParameter = {
     val typeValue = annotation.tree.children.tail.head.toString()
     val requiredValue = annotation.tree.children.tail(1).toString()
     val defaultValue = annotation.tree.children.tail(2).toString()
     val language = annotation.tree.children.tail(3).toString()
+    val className = annotation.tree.children.tail(3 + 1).toString()
     StepFunctionParameter(
       if (isValueSet(typeValue)) {
         getAnnotationValue(typeValue, stringValue = true).asInstanceOf[String]
       } else {
-        getParameterType(paramSymbol)
+        getParameterType(paramSymbol, caseClass.isDefined)
       },
       paramSymbol.name.toString,
       if (isValueSet(requiredValue)) {
@@ -219,7 +253,11 @@ object StepMetaDataExtractor {
       } else {
         None
       },
-      None)
+      if (isValueSet(className)) {
+        Some(getAnnotationValue(className, stringValue = true).asInstanceOf[String])
+      } else {
+        caseClass
+      })
   }
 
   private def isValueSet(annotationValue: String) = annotationValue.startsWith("scala.Some.apply[")
@@ -232,12 +270,15 @@ object StepMetaDataExtractor {
     }
   }
 
-  private def getParameterType(paramSymbol: ru.Symbol) = {
+  private def getParameterType(paramSymbol: ru.Symbol, caseClass: Boolean = false) = {
     try {
       paramSymbol.typeSignature.toString match {
-        case "Integer" => "number"
+        case "Integer" => "integer"
         case "scala.Boolean" => "boolean"
-        case _ => "text"
+        case "Option[Int]" => "integer"
+        case "Option[Boolean]" => "boolean"
+        case "Boolean" => "boolean"
+        case _ => if (caseClass) { "object" } else { "text" }
       }
     } catch {
       case _: Throwable => "text"

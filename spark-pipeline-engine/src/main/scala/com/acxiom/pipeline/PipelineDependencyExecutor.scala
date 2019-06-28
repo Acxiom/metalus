@@ -18,7 +18,7 @@ object PipelineDependencyExecutor {
     */
   def executePlan(executions: List[PipelineExecution]): Unit = {
     // Find the initial executions
-    val rootExecutions = executions.filter(_.parents.isEmpty)
+    val rootExecutions = executions.filter(e => e.parents.isEmpty || e.parents.get.isEmpty)
     // Only execute if there is at least one execution
     if (rootExecutions.nonEmpty) {
       // Create an execution lookup
@@ -170,7 +170,8 @@ object PipelineDependencyExecutor {
     Future {
       try {
         FutureResult(execution,
-          Some(PipelineExecutor.executePipelines(execution.pipelines, execution.initialPipelineId, execution.pipelineContext)),
+          Some(PipelineExecutor.executePipelines(execution.pipelines, execution.initialPipelineId,
+            execution.pipelineContext.setGlobal("executionId", execution.id))),
           None)
       } catch {
         case t: Throwable => FutureResult(execution, None, Some(t))

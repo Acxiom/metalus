@@ -4,15 +4,27 @@ import com.acxiom.pipeline.drivers.DriverSetup
 
 object MockStepObject {
   def mockStepFunction(string: String, boolean: Boolean): PipelineStepResponse = {
-    PipelineStepResponse(Some(string), Some(Map[String, Any]("boolean" -> boolean)))
+    PipelineStepResponse(Some(string), Some(Map[String, Any]("boolean" -> boolean, "string" -> string)))
   }
 
   def mockStepFunction(string: String, boolean: Boolean, opt: Option[String]): PipelineStepResponse = {
-    PipelineStepResponse(Some(string), Some(Map[String, Any]("boolean" -> boolean, "option" -> opt)))
+    PipelineStepResponse(Some(string), Some(Map[String, Any]("boolean" -> boolean, "string" -> string, "option" -> opt)))
+  }
+
+  def mockStepFunctionWithDefaultValue(string: String, default: Option[String] = Some("chicken")): Option[String] = {
+    default
   }
 
   def mockStepFunctionAnyResponse(string: String): String = {
     string
+  }
+
+  def mockStringListStepFunction(listSize: Int): PipelineStepResponse = {
+    PipelineStepResponse(Some(List.tabulate(listSize)(_.toString)), None)
+  }
+
+  def mockExceptionStepFunction(string: String): PipelineStepResponse = {
+    throw new IllegalArgumentException(s"exception thrown for string value ($string)")
   }
 }
 

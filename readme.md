@@ -14,7 +14,7 @@ This section will attempt to provide a high level idea of how the framework achi
 
 There are several concepts that help achieve the project goal:
 
-### Steps
+### [Steps](spark-pipeline-engine/docs/steps.md)
 The step is the smallest unit of work in the application. A step is a single reusable code function that can be executed
 by a pipeline. There are two parts to a step, the actual function and the *PipelineStep* metadata. The function should 
 define the parameters that are required to execute properly and the metadata is used by the pipeline to define how those
@@ -59,19 +59,22 @@ There are several sub-projects:
 ### [Spark Pipeline Engine](spark-pipeline-engine/readme.md)
 This project contains the core library and is the minimum requirement for any application.
 
-[Maven library](https://search.maven.org/search?q=a:spark-pipeline-engine_2.11)
+[Maven 2.11 library](https://search.maven.org/search?q=a:spark-pipeline-engine_2.11)
+[Maven 2.12 library](https://search.maven.org/search?q=a:spark-pipeline-engine_2.12)
 
 ### [Common Pipeline Steps](common-pipeline-steps/readme.md)
 This component contains steps that are considered generic enough to be used in any project.
 
-[Maven library](https://search.maven.org/search?q=a:common-pipeline-steps_2.11)
+[Maven 2.11 library](https://search.maven.org/search?q=a:common-pipeline-steps_2.11)
+[Maven 2.12 library](https://search.maven.org/search?q=a:common-pipeline-steps_2.12)
 
 ### [Streaming Pipeline Drivers](streaming-pipeline-drivers/readme.md)
 This component contains drivers classes that connect to various streaming technologies like [Kafka](http://kafka.apache.org/) 
 and [Kinesis](https://aws.amazon.com/kinesis/). Each class provides a basic implementation that gathers data and then 
 initiates the Spark Pipeline Engine Component for processing of the incoming data.
 
-[Maven library](https://search.maven.org/search?q=a:streaming-pipeline-drivers_2.11)
+[Maven 2.11 library](https://search.maven.org/search?q=a:streaming-pipeline-drivers_2.11)
+[Maven 2.12 library](https://search.maven.org/search?q=a:streaming-pipeline-drivers_2.12)
 
 ### [Pipeline Drivers Examples](pipeline-drivers-examples/readme.md)
 This project provides several examples to help demonstrate how to use the library.
@@ -84,9 +87,18 @@ Examples of building pipelines can be found in the [pipeline-drivers-examples](p
 
 ## Building
 The project is built using [Apache Maven](http://maven.apache.org/).
-To build the project run:
+To build the project using Scala 2.11 and Spark 2.3 run:
 
 	mvn
+
+To build the project using Scala 2.11 and Spark 2.4 run:
+
+	mvn -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.3
+
+To build the project using Scala 2.12 and Spark 2.4 run:
+
+	mvn -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.3 -Dscala.compat.version=2.12 -Dscala.version=2.12.8
+
 
 (This will clean, build, test and package the jars and generate documentation)
 

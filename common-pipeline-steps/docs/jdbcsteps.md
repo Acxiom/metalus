@@ -9,11 +9,15 @@ Given a JDBCOptions object, this step will read a table into a DataFrame. Full p
 * **jDBCOptions** - A JDBCOptions object used to connect.
 
 ## Read With StepOptions
-Given a JDBCStepOptions object, this step will read a table into a DataFrame. Full parameter descriptions are listed below:
+This step uses a JDBCDataFrameReaderOptions, which should be used if more control on the underlying DataFrameReader
+object is desired. Using the provided options, this step will read a table over jdbc into a DataFrame.
+Full parameter descriptions are listed below:
 
-* **jDBCStepOptions** - A JDBCStepOptions object used to connect.
+* **jDBCStepOptions** - A JDBCDataFrameReaderOptions object used to connect.
 
 ## Read With Properties
+This step allows for a list of predicates to be provided,
+allowing for more control over the partitioning behavior when reading the table.
 Given a url and table name, this step will read a table into a DataFrame. Full parameter descriptions are listed below:
 
 * **url** - A valid jdbc url.
@@ -31,15 +35,14 @@ Full parameter descriptions are listed below:
 The default value is "_Overwrite_".
 
 ## Write With StepOptions
-Given a JDBCStepOptions object and a DataFrame, this step will write to a table via JDBC. 
+This step uses a JDBCDataFrameWriterOptions, which should be used if more control on the underlying DataFrameWriter
+object is desired. Using the provided options, this step will write to a table via JDBC.
 Full parameter descriptions are listed below:
 
 * **dataFrame** - A dataFrame to be written via JDBC.
-* **jDBCStepOptions** - A JDBCStepOptions object used to connect.
-* **saveMode** - The Writing behavior. Valid values: (Append, Overwrite, ErrorIfExists, Ignore). 
-The default value is "_Overwrite_".
+* **jDBCStepOptions** - A JDBCDataFrameWriterOptions object used to connect.
 
-## Write With StepOptions
+## Write With Properties
 Given a url and table name, this step will write to a table via JDBC. 
 Full parameter descriptions are listed below:
 

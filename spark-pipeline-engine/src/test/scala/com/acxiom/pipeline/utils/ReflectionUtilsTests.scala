@@ -41,6 +41,26 @@ class ReflectionUtilsTests extends FunSpec {
       assert(response.asInstanceOf[PipelineStepResponse].namedReturns.isDefined)
       assert(response.asInstanceOf[PipelineStepResponse].namedReturns.get("option").asInstanceOf[Option[String]].getOrElse("") == "Option")
     }
+
+    it("Should process step with default value") {
+      val step = PipelineStep(None, None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithDefaultValue"))))
+      val response = ReflectionUtils.processStep(step,
+        Map[String, Any]("string" -> "string"), pipelineContext)
+      assert(response.isInstanceOf[PipelineStepResponse])
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "chicken")
+    }
+
+    it("Should return an informative error if a step function is not found") {
+      val step = PipelineStep(None, None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.typo"))))
+      val thrown = intercept[IllegalArgumentException]{
+        val response = ReflectionUtils.processStep(step, Map[String, Any](), pipelineContext)
+      }
+      assert(thrown.getMessage == "typo is not a valid function!")
+    }
+
   }
 
   describe("ReflectionUtils - loadClass") {

@@ -14,7 +14,7 @@ a recommended option since large configurations could have issues.
 ### Local Disk
 There are two ways to pull the configuration from the local disk, the first is using the *applicationJson* property. The 
 second method involves populating the *applicationConfigPath* property and either not providing a value for the
-*applicationConfigurationLoader* property or using the value *com.acxiom.pipeline.utils.LocalFileManager*.
+*applicationConfigurationLoader* property or using the value *com.acxiom.pipeline.fs.LocalFileManager*.
 
 **Example:**
 ```bash
@@ -30,7 +30,7 @@ spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 
 ### HDFS
 Should the configuration be stored on an HDFS file system, then the path should be provided using the *applicationConfigPath* 
-property and pass the value *com.acxiom.pipeline.utils.HDFSFileManager* in the *applicationConfigurationLoader* property.
+property and pass the value *com.acxiom.pipeline.fs.HDFSFileManager* in the *applicationConfigurationLoader* property.
 
 **Example:**
 ```bash
@@ -41,7 +41,7 @@ spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 <jar_path>/<uber-jar>.jar \
 --driverSetupClass com.acxiom.pipeline.applications.ApplicationDriverSetup \
 --applicationConfigPath <location of configuration json> \
---applicationConfigurationLoader com.acxiom.pipeline.utils.HDFSFileManager \
+--applicationConfigurationLoader com.acxiom.pipeline.fs.HDFSFileManager \
 --logLevel DEBUG
 ```
 
