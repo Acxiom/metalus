@@ -210,7 +210,8 @@ object ReflectionUtils {
       }
 
       val finalValueType = finalValue match {
-        case v: Option[_] => s"Some(${v.asInstanceOf[Option[_]].get.getClass.getSimpleName})"
+        case v: Option[_] =>
+          if(v.asInstanceOf[Option[_]].isEmpty) "None" else s"Some(${v.asInstanceOf[Option[_]].get.getClass.getSimpleName})"
         case _ => finalValue.getClass.getSimpleName
       }
 
