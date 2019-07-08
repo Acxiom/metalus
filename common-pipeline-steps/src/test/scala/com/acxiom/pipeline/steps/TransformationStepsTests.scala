@@ -77,12 +77,12 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
 
       val dfSchema = Schema(
         Seq(
-          Attribute("   id", "Integer"),
-          Attribute("first_name", "String"),
-          Attribute("last_name", "String"),
-          Attribute("zip", "String"),
-          Attribute("amount", "Double"),
-          Attribute("age #", "Integer")
+          Attribute("   id", AttributeType("Integer")),
+          Attribute("first_name", AttributeType("String")),
+          Attribute("last_name", AttributeType("String")),
+          Attribute("zip", AttributeType("String")),
+          Attribute("amount", AttributeType("Double")),
+          Attribute("age #", AttributeType("Integer"))
         )
       )
 

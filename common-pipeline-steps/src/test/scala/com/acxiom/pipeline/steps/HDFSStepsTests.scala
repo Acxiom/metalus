@@ -158,7 +158,7 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       val dataFrame = HDFSSteps.readFromPaths(
         List(p1, p2),
         DataFrameReaderOptions(format = "csv",
-          schema = Some(Schema(List(Attribute("id", "string"), Attribute("chicken", "string")))))
+          schema = Some(Schema(List(Attribute("id", AttributeType("string")), Attribute("chicken", AttributeType("string"))))))
           .setOption("header", "true"),
         pipelineContext)
       assert(dataFrame.count() == 3)
