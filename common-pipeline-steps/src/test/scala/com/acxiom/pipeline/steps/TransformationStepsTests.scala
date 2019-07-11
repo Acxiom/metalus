@@ -293,13 +293,17 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
     }
 
     it("Should be buildable from a StructType") {
-      val sql = "select 1 as id, array('1', '2', '3') as list, named_struct('name', 'chicken') as chicken"
+      val sql = "select 1 as id, array('1', '2', '3') as list, named_struct('name', 'chicken') as chicken, map('chickens', current_timestamp()) as simpleMap"
       val df = sparkSession.sql(sql)
       val attributes = Schema.fromStructType(df.schema).attributes
 
       assert(attributes.exists(a => a.name == "id" && a.dataType.baseType == "integer"))
       assert(attributes.exists(a => a.name == "list" && a.dataType.baseType == "array"
         && a.dataType.valueType.getOrElse(AttributeType("int")).baseType == "string"))
+      assert(attributes.exists(a => a.name == "simpleMap" && a.dataType.baseType == "map"
+        && a.dataType.nameType.getOrElse(AttributeType("")).baseType == "string"
+        && a.dataType.valueType.getOrElse(AttributeType("")).baseType == "timestamp")
+      )
       val chicken = attributes.find(a => a.name == "chicken")
       assert(chicken.isDefined && chicken.get.dataType.baseType == "struct" && chicken.get.dataType.schema.isDefined)
       val chickenAttribute = chicken.get.dataType.schema.get.attributes.head
