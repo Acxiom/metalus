@@ -13,6 +13,8 @@ object Attribute {
   def fromStructField(field: StructField): Attribute = {
     Attribute(field.name, AttributeType.fromDataType(field.dataType))
   }
+
+  def apply(name: String, dataType: String): Attribute = new Attribute(name, AttributeType(dataType))
 }
 
 case class AttributeType(baseType: String, valueType: Option[AttributeType] = None, nameType: Option[AttributeType] = None, schema: Option[Schema] = None) {
