@@ -157,16 +157,34 @@ the syntax for *@* and *$* to specify any previous pipeline value. *Example: @p1
 Values may also be embedded. The user has the option to reference properties embedded in top level objects. Given an 
 object (obj) that contains a sub-object (subObj) which contains a name, the user could access the name field using this
 syntax:
-
-	$obj.subObj.name
+```json
+$obj.subObj.name
+```
 	
 Here is the object descried as JSON:
+```json
+{
+	"subObj": {
+		"name": "Spark"
+	}
+} 
+```
 
-	{
-		"subObj": {
-			"name": "Spark"
-		}
-	} 
+**Embedded Values and String Concatenation**
+
+The mapper also allows special values to be concatenated together in a parameter value. The special value must be wrapped
+in curly braces "{}". As an example, given the following string 
+```
+"some_string-${pipelineId.subObj.name}-another_string"
+ ```
+would return 
+```
+"some_string-Spark-another_string"
+```
+Multiple values may be embedded as long as the resulting value is a string, boolean
+or number. A return value of an object will log a warning and ignore string concatenation to return the object value.
+
+**Embedded Values in JSON**
 
 JSON object values may also be embedded as a pipeline step value. Two attributes must be provided in the JSON, 
 *className* and *object*. The *className* must be the fully qualified name of the case class to initialize and

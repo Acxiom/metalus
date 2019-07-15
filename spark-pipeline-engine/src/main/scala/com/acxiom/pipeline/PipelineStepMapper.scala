@@ -208,9 +208,35 @@ trait PipelineStepMapper {
   private def returnBestValue(value: String,
                               parameter: Parameter,
                               pipelineContext: PipelineContext): Option[Any] = {
-    // TODO Figure out how to walk the pipeline chain looking for values when pipelineId is not present and value is not part of current pipeline.
-    val pipelinePath = getPathValues(value, pipelineContext)
-    // TODO The first two cases need to call mapByType after the value has been returned
+    val embeddedVariables = "([!@$#]\\{.*?\\})".r.findAllIn(value).toList
+
+    if (embeddedVariables.nonEmpty) {
+      embeddedVariables.foldLeft(Option[Any](value))((finalValue, embeddedValue) => {
+        finalValue.get match {
+          case valueString: String =>
+            val pipelinePath = getPathValues(
+              embeddedValue.replaceAll("\\{", "").replaceAll("\\}", ""), pipelineContext)
+            val retVal = processValue(parameter, pipelineContext, pipelinePath)
+            if (retVal.isEmpty && finalValue.get.isInstanceOf[String]) {
+              Some(valueString.replace(embeddedValue, "None"))
+            } else {
+              if (retVal.get.isInstanceOf[java.lang.Number] || retVal.get.isInstanceOf[String] || retVal.get.isInstanceOf[java.lang.Boolean]) {
+                Some(valueString.replace(embeddedValue, retVal.get.toString))
+              } else {
+                retVal
+              }
+            }
+          case _ =>
+            logger.warn(s"Value for $embeddedValue is an object. String concatenation will be ignored.")
+            finalValue
+        }
+      })
+    } else {
+      processValue(parameter, pipelineContext, getPathValues(value, pipelineContext))
+    }
+  }
+
+  private def processValue(parameter: Parameter, pipelineContext: PipelineContext, pipelinePath: PipelinePath) = {
     pipelinePath.mainValue match {
       case p if List('@', '#').contains(p.headOption.getOrElse("")) => getPipelineParameterValue(pipelinePath, pipelineContext)
       case r if r.startsWith("$") => mapRuntimeParameter(pipelinePath, parameter, pipelineContext)
