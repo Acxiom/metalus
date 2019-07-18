@@ -185,11 +185,12 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
     }
 
     it("Should replace variables in a map") {
-      val objectMap = Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger")
+      val objectMap = Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger", "concatString" -> "global->!{globalString}->value")
       val objectParameter = Parameter(value=Some(objectMap))
       val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
       assert(parameterValue.asInstanceOf[Map[String, Any]]("string").asInstanceOf[Option[String]].contains("globalValue1"))
       assert(parameterValue.asInstanceOf[Map[String, Any]]("num").asInstanceOf[Option[Int]].contains(FIVE))
+      assert(parameterValue.asInstanceOf[Map[String, Any]]("concatString").asInstanceOf[Option[String]].contains("global->globalValue1->value"))
     }
 
     it("Should create a list of objects") {
@@ -217,12 +218,13 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
     }
 
     it("Should return a list of items") {
-      val objectParameter = Parameter(value=Some(List("string", FIVE)))
+      val objectParameter = Parameter(value=Some(List("string", FIVE, "global->!{globalString}->value")))
       val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
       val list = parameterValue.asInstanceOf[List[Any]]
-      assert(list.length == 2)
+      assert(list.length == 3)
       assert(list.head == "string")
       assert(list(1) == FIVE)
+      assert(list(2) == Some("global->globalValue1->value"))
     }
   }
 }

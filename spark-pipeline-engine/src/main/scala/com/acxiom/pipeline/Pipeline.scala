@@ -1,8 +1,10 @@
 package com.acxiom.pipeline
 
+import com.acxiom.pipeline.audits.{Audit, AuditType}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.util.CollectionAccumulator
+
 import scala.collection.JavaConversions._
 
 /**
@@ -61,8 +63,8 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            stepPackages: Option[List[String]] = Some(List("com.acxiom.pipeline", "com.acxiom.pipeline.steps")),
                            parameterMapper: PipelineStepMapper = PipelineStepMapper(),
                            pipelineListener: Option[PipelineListener] = Some(DefaultPipelineListener()),
-                           stepMessages: Option[CollectionAccumulator[PipelineStepMessage]]) {
-
+                           stepMessages: Option[CollectionAccumulator[PipelineStepMessage]],
+                           rootAudit: Audit = Audit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis())) {
   /**
     * Get the named global value as a string.
     *
@@ -170,6 +172,87 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
   def setParameterByPipelineId(pipelineId: String, name: String, parameter: Any): PipelineContext = {
     val params = parameters.setParameterByPipelineId(pipelineId, name, parameter)
     this.copy(parameters = params)
+  }
+
+  /**
+    * Sets the root audit for this pipeline context
+    *
+    * @param audit The audit to make root
+    * @return
+    */
+  def setRootAudit(audit: Audit): PipelineContext = {
+    this.copy(rootAudit = audit)
+  }
+
+  /**
+    * Retrieves the audit for the specified pipeline id
+    *
+    * @param id The pipeline id to retrieve
+    * @return An audit or None
+    */
+  def getPipelineAudit(id: String): Option[Audit] = {
+    this.rootAudit.getChildAudit(id, None)
+  }
+
+  /**
+    * Adds the provided pipeline audit to the root audit. Any existing audit will be overwritten.
+    *
+    * @param audit The audit to add
+    * @return An updated PipelineContext
+    */
+  def setPipelineAudit(audit: Audit): PipelineContext = {
+    this.copy(rootAudit = this.rootAudit.setChildAudit(audit))
+  }
+
+  /**
+    * Add or replace a metric value on the pipeline audit
+    *
+    * @param id The id of the pipeline
+    * @param name The name of the metric to add or replace
+    * @param value The value of the metric entry
+    * @return An updated pipeline context with the metric
+    */
+  def setPipelineAuditMetric(id: String, name: String, value: Any): PipelineContext = {
+    val audit = this.rootAudit.getChildAudit(id, None).get.setMetric(name, value)
+    this.copy(rootAudit = this.rootAudit.setChildAudit(audit))
+  }
+
+  /**
+    * Returns a step audit for the provided pipeline
+    *
+    * @param pipelineId The id of the pipeline
+    * @param stepId The main id of the audit
+    * @param groupId The optional group id of the audit
+    * @return The step audit or None
+    */
+  def getStepAudit(pipelineId: String, stepId: String, groupId: Option[String]): Option[Audit] = {
+    this.rootAudit.getChildAudit(pipelineId).get.getChildAudit(stepId, groupId)
+  }
+
+  /**
+    * Set the provided audit as a child of the specified pipeline audit. This audit will replace any existing audit.
+    *
+    * @param pipelineId The pipeline id to add this audit to
+    * @param audit The audit to set.
+    * @return An updated PipelineContext
+    */
+  def setStepAudit(pipelineId: String, audit: Audit): PipelineContext = {
+    this.copy(rootAudit = this.rootAudit.setChildAudit(getPipelineAudit(pipelineId).get.setChildAudit(audit)))
+  }
+
+  /**
+    * Add or replace a metric value on the step audit
+    *
+    * @param pipelineId The id of the pipeline
+    * @param stepId     The main id of the audit
+    * @param groupId The optional group id of the audit
+    * @param name       The name of the metric to add or replace
+    * @param value      The value of the metric entry
+    * @return An updated pipeline context with the metric
+    */
+  def setStepMetric(pipelineId: String, stepId: String, groupId: Option[String], name: String, value: Any): PipelineContext = {
+    val audit = getStepAudit(pipelineId, stepId, groupId).get.setMetric(name, value)
+    this.setStepAudit(pipelineId, audit)
   }
 }
 

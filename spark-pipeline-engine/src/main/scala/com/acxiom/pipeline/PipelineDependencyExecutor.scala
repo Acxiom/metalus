@@ -2,6 +2,7 @@ package com.acxiom.pipeline
 
 import java.util.UUID
 
+import com.acxiom.pipeline.audits.{Audit, AuditType}
 import org.apache.log4j.Logger
 
 import scala.annotation.tailrec
@@ -69,7 +70,7 @@ object PipelineDependencyExecutor {
             val updatedResults = futureResultMap.copy(resultMap = updateResultMap)
             // Get the children of this execution
             val children = executionGraph.getOrElse(result.execution.id, Map[String, PipelineExecution]()).filter(c => executionReady(c._2, updateResultMap))
-            // Iterate the children and kick of the jobs
+            // Iterate the children and kick off the jobs
             val childFutures = children.map(c => startExecution(c._2, updateResultMap))
             // Add the new child futures
             updatedResults.copy(futures = updatedResults.futures ++ childFutures)
@@ -78,7 +79,7 @@ object PipelineDependencyExecutor {
             futureResultMap
           }
         } else {
-          logger.warn("Execution did not execute successfully!")
+          logger.warn("Execution did not complete successfully!")
           // If the future is not a success, then do nothing. This should be a rare occurrence
           futureResultMap
         }
@@ -171,7 +172,9 @@ object PipelineDependencyExecutor {
       try {
         FutureResult(execution,
           Some(PipelineExecutor.executePipelines(execution.pipelines, execution.initialPipelineId,
-            execution.pipelineContext.setGlobal("executionId", execution.id))),
+            execution.pipelineContext
+              .setGlobal("executionId", execution.id)
+              .setRootAudit(Audit(execution.id, AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis())))),
           None)
       } catch {
         case t: Throwable => FutureResult(execution, None, Some(t))

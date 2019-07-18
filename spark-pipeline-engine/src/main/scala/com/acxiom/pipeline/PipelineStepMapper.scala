@@ -17,8 +17,6 @@ class DefaultPipelineStepMapper extends PipelineStepMapper
 trait PipelineStepMapper {
   val logger: Logger = Logger.getLogger(getClass)
 
-  private val specialCharacters = List('@', '#', '$', '!')
-
   /**
     * This function is called prior to executing a PipelineStep generating a map of values to be passed to the step
     * function.
@@ -150,7 +148,7 @@ trait PipelineStepMapper {
   }
 
   /**
-    * Provides variable mapping and case class intialization for list containing maps. Case class initialization is supported
+    * Provides variable mapping and case class initialization for list containing maps. Case class initialization is supported
     * if the className attribute is present.
     *
     * @param list      The list to expand.
@@ -165,6 +163,11 @@ trait PipelineStepMapper {
         DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get))
     } else if (list.head.isInstanceOf[Map[_, _]]) {
       list.map(value => mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext))
+    } else if(list.nonEmpty) {
+      list.map {
+        case s: String if containsSpecialCharacters(s) => returnBestValue(s, Parameter(), pipelineContext)
+        case a: Any => a
+      }
     } else {
       list
     })
@@ -179,13 +182,17 @@ trait PipelineStepMapper {
   private def mapEmbeddedVariables(classMap: Map[String, Any], pipelineContext: PipelineContext): Map[String, Any] = {
     classMap.foldLeft(classMap)((map, entry) => {
       entry._2 match {
-        case s: String if specialCharacters.contains(s.headOption.getOrElse("")) =>
+        case s: String if containsSpecialCharacters(s) =>
           map + (entry._1 -> returnBestValue(s, Parameter(), pipelineContext))
         case m:  Map[_, _] =>
           map + (entry._1 -> mapEmbeddedVariables(m.asInstanceOf[Map[String, Any]], pipelineContext))
         case _ => map
       }
     })
+  }
+
+  private def containsSpecialCharacters(value: String): Boolean = {
+    "([!@$#])".r.findAllIn(value).nonEmpty
   }
 
   @tailrec
