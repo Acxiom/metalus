@@ -26,8 +26,7 @@ object TransformationSteps {
     "Transforms")
   def mapToDestinationDataFrame(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, transforms: Transformations = Transformations(List()),
                              addNewColumns: Boolean = true): DataFrame = {
-    val schema = Schema(destinationDataFrame.schema.map(x => Attribute(x.name, x.dataType.toString)).toList)
-    mapDataFrameToSchema(inputDataFrame, schema, transforms, addNewColumns)
+    mapDataFrameToSchema(inputDataFrame, Schema.fromStructType(destinationDataFrame.schema), transforms, addNewColumns)
   }
 
   /**
