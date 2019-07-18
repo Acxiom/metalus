@@ -58,7 +58,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
                 "childKey2Map" -> Map("grandChildKey1Boolean" -> true)
               )
             )
-          ))
+          )),
+          "step3" -> PipelineStepResponse(Some("fred"), None)
         )
       ),
       PipelineParameter("pipeline-id-2", Map("rawInteger" -> 2, "rawDecimal" -> 15.65)),
@@ -75,6 +76,13 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
 
     it("should pull the appropriate value for given parameters") {
       val tests = List(
+        ("basic string concatenation missing value", Parameter(value=Some("!{bad-value}::concat_value")), "None::concat_value"),
+        ("basic string concatenation", Parameter(value=Some("!{pipelineId}::concat_value")), "pipeline-id-3::concat_value"),
+        ("embedded string concatenation", Parameter(value=Some("embedded!{pipelineId}::concat_value")), "embeddedpipeline-id-3::concat_value"),
+        ("multiple embedded string concatenation",
+          Parameter(value=Some("!{pipelineId}::!{globalBoolean}::#{pipeline-id-1.step2.namedKey2Map.childKey2Integer}::@{pipeline-id-1.step3}")),
+          "pipeline-id-3::true::2::fred"),
+        ("string concatenation object override", Parameter(value=Some("somestring::!{globalTestObject}::concat_value")), globalTestObject),
         ("script", Parameter(value=Some("my_script"),`type`=Some("script")), "my_script"),
         ("boolean", Parameter(value=Some(true),`type`=Some("boolean")), true),
         ("cast to a boolean", Parameter(value=Some("true"),`type`=Some("boolean")), true),
