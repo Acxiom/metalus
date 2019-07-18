@@ -2,7 +2,7 @@ package com.acxiom.pipeline
 
 import java.util.UUID
 
-import com.acxiom.pipeline.audits.{Audit, AuditType}
+import com.acxiom.pipeline.audits.{ExecutionAudit, AuditType}
 import org.apache.log4j.Logger
 
 import scala.annotation.tailrec
@@ -174,7 +174,7 @@ object PipelineDependencyExecutor {
           Some(PipelineExecutor.executePipelines(execution.pipelines, execution.initialPipelineId,
             execution.pipelineContext
               .setGlobal("executionId", execution.id)
-              .setRootAudit(Audit(execution.id, AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis())))),
+              .setRootAudit(ExecutionAudit(execution.id, AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis())))),
           None)
       } catch {
         case t: Throwable => FutureResult(execution, None, Some(t))

@@ -1,6 +1,6 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.audits.{Audit, AuditType}
+import com.acxiom.pipeline.audits.{ExecutionAudit, AuditType}
 import com.acxiom.pipeline.utils.ReflectionUtils
 import org.apache.log4j.Logger
 
@@ -36,8 +36,8 @@ object PipelineExecutor {
           .setGlobal("pipelineId", pipeline.id)
           .setGlobal("stepId", pipeline.steps.get.head.id.get)
           .setPipelineAudit(
-            Audit(pipeline.id.get, AuditType.PIPELINE, Map[String, Any](), System.currentTimeMillis(), None, None, Some(List[Audit](
-              Audit(pipeline.steps.get.head.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis())))))
+            ExecutionAudit(pipeline.id.get, AuditType.PIPELINE, Map[String, Any](), System.currentTimeMillis(), None, None, Some(List[ExecutionAudit](
+              ExecutionAudit(pipeline.steps.get.head.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis())))))
         try {
           val resultPipelineContext = executeStep(pipeline.steps.get.head, pipeline, stepLookup, updatedCtx)
           val messages = resultPipelineContext.getStepMessages
@@ -204,7 +204,7 @@ object PipelineExecutor {
 
     val updateCtx = if (nextStepId.isDefined) {
       ctx.setStepAudit(pipelineId,
-        Audit(nextStepId.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), None, forkId))
+        ExecutionAudit(nextStepId.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), None, forkId))
     } else {
       ctx
     }
@@ -499,7 +499,7 @@ object PipelineExecutor {
       .setGlobal("forkId", forkId.toString)
       .setGlobal("stepId", firstStep.id)
       .setStepAudit(pipelineContext.getGlobalString("pipelineId").get,
-        Audit(firstStep.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), None, Some(forkId.toString)))
+        ExecutionAudit(firstStep.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), None, Some(forkId.toString)))
   }
 
   /**

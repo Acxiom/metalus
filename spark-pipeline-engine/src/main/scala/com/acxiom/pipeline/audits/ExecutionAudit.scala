@@ -13,13 +13,13 @@ import com.acxiom.pipeline.audits.AuditType.AuditType
   * @param groupId The optional id of the group which this audit is a member
   * @param children A list of child audits
   */
-case class Audit(id: String,
-                 auditType: AuditType,
-                 metrics: Map[String, Any] = Map[String, Any](),
-                 start: Long,
-                 end: Option[Long] = None,
-                 groupId: Option[String] = None,
-                 children: Option[List[Audit]] = None) {
+case class ExecutionAudit(id: String,
+                          auditType: AuditType,
+                          metrics: Map[String, Any] = Map[String, Any](),
+                          start: Long,
+                          end: Option[Long] = None,
+                          groupId: Option[String] = None,
+                          children: Option[List[ExecutionAudit]] = None) {
   /**
     * Merges the provided audit with this audit. The end, metrics and children attributes wil be merged. Attributes from
     * the provided audit will override the properties of this audit.
@@ -27,9 +27,9 @@ case class Audit(id: String,
     * @param audit The audit to merge
     * @return The newly merged audit.
     */
-  def merge(audit: Audit): Audit = {
+  def merge(audit: ExecutionAudit): ExecutionAudit = {
     // Merge the common children
-    val childList = this.children.getOrElse(List[Audit]()).map(child => {
+    val childList = this.children.getOrElse(List[ExecutionAudit]()).map(child => {
       val childAudit = audit.getChildAudit(child.id, child.groupId)
       if (childAudit.isDefined) {
         child.merge(childAudit.get)
@@ -39,7 +39,7 @@ case class Audit(id: String,
     })
     this.copy(end = if(audit.end.isDefined) { audit.end } else { end },
       metrics = this.metrics ++ audit.metrics,
-      children = Some(audit.children.getOrElse(List[Audit]()).foldLeft(childList)((finalChildren, child) => {
+      children = Some(audit.children.getOrElse(List[ExecutionAudit]()).foldLeft(childList)((finalChildren, child) => {
         if (finalChildren.exists(c => checkMatch(c, child.id, child.groupId))) {
           finalChildren
         } else {
@@ -54,7 +54,7 @@ case class Audit(id: String,
     * @param endTime A long representing the time.
     * @return A new Audit with the end time set.
     */
-  def setEnd(endTime: Long): Audit = this.copy(end = Some(endTime))
+  def setEnd(endTime: Long): ExecutionAudit = this.copy(end = Some(endTime))
 
   /**
     * Retrieves a named metric
@@ -71,7 +71,7 @@ case class Audit(id: String,
     * @param metric The metric to set
     * @return A new Audit with the metric
     */
-  def setMetric(name: String, metric: Any): Audit = this.copy(metrics = this.metrics + (name -> metric))
+  def setMetric(name: String, metric: Any): ExecutionAudit = this.copy(metrics = this.metrics + (name -> metric))
 
   /**
     * Sets the multiple metrics
@@ -79,7 +79,7 @@ case class Audit(id: String,
     * @param metrics The metrics to set
     * @return A new Audit with the metric
     */
-  def setMetrics(metrics: Map[String, Any]): Audit =
+  def setMetrics(metrics: Map[String, Any]): ExecutionAudit =
     this.copy(metrics = metrics.foldLeft(this.metrics)((newMetrics, metric) => {
       newMetrics + (metric._1 -> metric._2)
     }))
@@ -89,8 +89,8 @@ case class Audit(id: String,
     * @param audit The child audit to set
     * @return A new Audit with the child in place.
     */
-  def setChildAudit(audit: Audit): Audit = {
-    val childList = this.children.getOrElse(List[Audit](audit))
+  def setChildAudit(audit: ExecutionAudit): ExecutionAudit = {
+    val childList = this.children.getOrElse(List[ExecutionAudit](audit))
     val childAudits = if (childList.exists(child => checkMatch(child, audit.id, child.groupId))) {
       childList.map(child => if(child.id == audit.id) { audit } else { child })
     } else {
@@ -106,11 +106,11 @@ case class Audit(id: String,
     * @param groupId The optional groupId of the audit
     * @return An option containing the audit or None
     */
-  def getChildAudit(id: String, groupId: Option[String] = None): Option[Audit] = {
-    this.children.getOrElse(List[Audit]()).find(audit => checkMatch(audit, id, groupId))
+  def getChildAudit(id: String, groupId: Option[String] = None): Option[ExecutionAudit] = {
+    this.children.getOrElse(List[ExecutionAudit]()).find(audit => checkMatch(audit, id, groupId))
   }
 
-  private def checkMatch(child: Audit, id: String, groupId: Option[String]): Boolean = {
+  private def checkMatch(child: ExecutionAudit, id: String, groupId: Option[String]): Boolean = {
     child.id == id && child.groupId.getOrElse("NONE") == groupId.getOrElse("NONE")
   }
 }

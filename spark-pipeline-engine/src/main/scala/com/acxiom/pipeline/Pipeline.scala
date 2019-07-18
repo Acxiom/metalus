@@ -1,6 +1,6 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.audits.{Audit, AuditType}
+import com.acxiom.pipeline.audits.{ExecutionAudit, AuditType}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.util.CollectionAccumulator
@@ -64,7 +64,7 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            parameterMapper: PipelineStepMapper = PipelineStepMapper(),
                            pipelineListener: Option[PipelineListener] = Some(DefaultPipelineListener()),
                            stepMessages: Option[CollectionAccumulator[PipelineStepMessage]],
-                           rootAudit: Audit = Audit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis())) {
+                           rootAudit: ExecutionAudit = ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis())) {
   /**
     * Get the named global value as a string.
     *
@@ -180,7 +180,7 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     * @param audit The audit to make root
     * @return
     */
-  def setRootAudit(audit: Audit): PipelineContext = {
+  def setRootAudit(audit: ExecutionAudit): PipelineContext = {
     this.copy(rootAudit = audit)
   }
 
@@ -190,7 +190,7 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     * @param id The pipeline id to retrieve
     * @return An audit or None
     */
-  def getPipelineAudit(id: String): Option[Audit] = {
+  def getPipelineAudit(id: String): Option[ExecutionAudit] = {
     this.rootAudit.getChildAudit(id, None)
   }
 
@@ -200,7 +200,7 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     * @param audit The audit to add
     * @return An updated PipelineContext
     */
-  def setPipelineAudit(audit: Audit): PipelineContext = {
+  def setPipelineAudit(audit: ExecutionAudit): PipelineContext = {
     this.copy(rootAudit = this.rootAudit.setChildAudit(audit))
   }
 
@@ -225,7 +225,7 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     * @param groupId The optional group id of the audit
     * @return The step audit or None
     */
-  def getStepAudit(pipelineId: String, stepId: String, groupId: Option[String]): Option[Audit] = {
+  def getStepAudit(pipelineId: String, stepId: String, groupId: Option[String]): Option[ExecutionAudit] = {
     this.rootAudit.getChildAudit(pipelineId).get.getChildAudit(stepId, groupId)
   }
 
@@ -236,7 +236,7 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     * @param audit The audit to set.
     * @return An updated PipelineContext
     */
-  def setStepAudit(pipelineId: String, audit: Audit): PipelineContext = {
+  def setStepAudit(pipelineId: String, audit: ExecutionAudit): PipelineContext = {
     this.copy(rootAudit = this.rootAudit.setChildAudit(getPipelineAudit(pipelineId).get.setChildAudit(audit)))
   }
 
