@@ -9,12 +9,6 @@ import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
 class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
-  /* TODO Remaining Tests:
-   * Create a pipeline with a branch step
-   * Have a step thrown an exception
-   * Have s tep log a message that causes an exception
-   * Need a test that validates the merge responses "fill list" logic or remove that logic
-   */
   override def beforeAll() {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
@@ -194,7 +188,7 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       }
       val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
       assert(!executionResult.success)
-      results.validate(1)
+      results.validate()
     }
 
     it("Should process list and handle exception using parallel processing") {
@@ -215,7 +209,7 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       }
       val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
       assert(!executionResult.success)
-      results.validate(1)
+      results.validate()
     }
   }
 
@@ -247,6 +241,10 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(stringList.head.get == "0")
     assert(stringList(1).get == "1")
     assert(stringList(2).get == "2")
+    assert(ctx.rootAudit.children.isDefined)
+    assert(ctx.rootAudit.children.get.length == 1)
+    val pipelineAudit = ctx.rootAudit.children.get.head
+    assert(pipelineAudit.children.isDefined)
 
     if (extraStep) {
       assert(parameters.parameters.contains("PROCESS_RAW_VALUE"))
@@ -260,6 +258,9 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(!rawNamedReturns("boolean").asInstanceOf[Boolean])
       assert(rawNamedReturns.contains("string"))
       assert(rawNamedReturns("string").asInstanceOf[String] == "RAW_DATA")
+      assert(pipelineAudit.children.get.length == 12)
+    } else {
+      assert(pipelineAudit.children.get.length == 5)
     }
   }
 }

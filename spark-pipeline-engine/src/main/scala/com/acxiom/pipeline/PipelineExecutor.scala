@@ -1,5 +1,6 @@
 package com.acxiom.pipeline
 
+import com.acxiom.pipeline.audits.{ExecutionAudit, AuditType}
 import com.acxiom.pipeline.utils.ReflectionUtils
 import org.apache.log4j.Logger
 
@@ -21,30 +22,36 @@ object PipelineExecutor {
     } else {
       pipelines
     }
-    val esContext = handleEvent(initialContext, "executionStarted", List(executingPipelines, initialContext))
+    val executionId = initialContext.getGlobalString("executionId").getOrElse("root")
+    val esContext = handleEvent(initialContext.setRootAudit(ExecutionAudit(executionId, AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis())),
+      "executionStarted", List(executingPipelines, initialContext))
     try {
       val pipelineLookup = executingPipelines.map(p => p.id.getOrElse("") -> p.name.getOrElse("")).toMap
       val ctx = executingPipelines.foldLeft(esContext)((accCtx, pipeline) => {
-        val psCtx = handleEvent(accCtx, "pipelineStarted", List(pipeline, accCtx))
         // Map the steps for easier lookup during execution
         val stepLookup = pipeline.steps.get.map(step => {
           validateStep(step, pipeline)
           step.id.get -> step
         }).toMap
-        // Set the pipelineId in the global lookup
-        val updatedCtx = psCtx
+        val updatedCtx = handleEvent(accCtx.setPipelineAudit(
+          ExecutionAudit(pipeline.id.get, AuditType.PIPELINE, Map[String, Any](), System.currentTimeMillis(), None, None, Some(List[ExecutionAudit](
+            ExecutionAudit(pipeline.steps.get.head.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis()))))),
+          "pipelineStarted", List(pipeline, accCtx))
           .setGlobal("pipelineId", pipeline.id)
           .setGlobal("stepId", pipeline.steps.get.head.id.get)
         try {
           val resultPipelineContext = executeStep(pipeline.steps.get.head, pipeline, stepLookup, updatedCtx)
           val messages = resultPipelineContext.getStepMessages
           processStepMessages(messages, pipelineLookup)
-          handleEvent(resultPipelineContext, "pipelineFinished", List(pipeline, resultPipelineContext))
+          val auditCtx = resultPipelineContext.setPipelineAudit(
+            resultPipelineContext.getPipelineAudit(pipeline.id.get).get.setEnd(System.currentTimeMillis()))
+          handleEvent(auditCtx, "pipelineFinished", List(pipeline, auditCtx))
         } catch {
           case t: Throwable => throw handleStepExecutionExceptions(t, pipeline, accCtx, executingPipelines)
         }
       })
-      PipelineExecutionResult(handleEvent(ctx, "executionFinished", List(executingPipelines, ctx)), success = true)
+      val exCtx = ctx.setRootAudit(ctx.rootAudit.setEnd(System.currentTimeMillis()))
+      PipelineExecutionResult(handleEvent(exCtx, "executionFinished", List(executingPipelines, exCtx)), success = true)
     } catch {
       case p: PauseException =>
         logger.info(s"Paused pipeline flow at pipeline ${p.pipelineId} step ${p.stepId}. ${p.message}")
@@ -145,7 +152,11 @@ object PipelineExecutor {
           message = Some(s"[type] is required for step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
           pipelineId = pipeline.id,
           stepId = step.id)
-      case unknown => throw PipelineException(message = Some(s"Unknown pipeline type: [$unknown] for step [${step.id.get}] in pipeline [${pipeline.id.get}]."), pipelineId = pipeline.id, stepId = step.id)
+      case unknown =>
+        throw PipelineException(message =
+          Some(s"Unknown pipeline type: [$unknown] for step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+          pipelineId = pipeline.id,
+          stepId = step.id)
     }
   }
 
@@ -183,12 +194,22 @@ object PipelineExecutor {
   }
 
   private def updatePipelineContext(step: PipelineStep, result: Any, nextStepId: Option[String], pipelineContext: PipelineContext): PipelineContext = {
-    step match {
+    val pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
+    val forkId = pipelineContext.getGlobalString("forkId")
+    val ctx = step match {
       case PipelineStep(_, _, _, Some("fork"), _, _, _, _) => result.asInstanceOf[ForkStepResult].pipelineContext
       case _ =>
-        pipelineContext.setParameterByPipelineId(pipelineContext.getGlobalString("pipelineId").getOrElse(""),
-          step.id.getOrElse(""), result).setGlobal("stepId", nextStepId)
+        pipelineContext.setParameterByPipelineId(pipelineId, step.id.getOrElse(""), result)
+          .setGlobal("stepId", nextStepId)
     }
+
+    val updateCtx = if (nextStepId.isDefined) {
+      ctx.setStepAudit(pipelineId,
+        ExecutionAudit(nextStepId.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), None, forkId))
+    } else {
+      ctx
+    }
+    updateCtx.setStepAudit(pipelineId, updateCtx.getStepAudit(pipelineId, step.id.get, forkId).get.setEnd(System.currentTimeMillis()))
   }
 
   private def getNextStepId(step: PipelineStep, result: Any): Option[String] = {
@@ -320,7 +341,8 @@ object PipelineExecutor {
                              forkSteps: List[PipelineStep], executionId: Int): PipelineContext = {
     val sourceParameter = source.parameters.getParametersByPipelineId(pipelineId)
     val sourceParameters = sourceParameter.get.parameters
-    forkSteps.foldLeft(pipelineContext)((ctx, step) => {
+    val mergeAuditCtx = pipelineContext.copy(rootAudit = pipelineContext.rootAudit.merge(source.rootAudit))
+    forkSteps.foldLeft(mergeAuditCtx)((ctx, step) => {
       val rootParameter = ctx.parameters.getParametersByPipelineId(pipelineId)
       val parameters = if (rootParameter.isEmpty) {
         Map[String, Any]()
@@ -423,7 +445,7 @@ object PipelineExecutor {
       try {
         ForkStepExecutionResult(value._2,
           Some(executeStep(firstStep, pipeline, steps,
-            createForkPipelineContext(pipelineContext, value._2).setParameterByPipelineId(pipeline.id.get,
+            createForkPipelineContext(pipelineContext, value._2, firstStep).setParameterByPipelineId(pipeline.id.get,
               forkStepId, PipelineStepResponse(Some(value._1 ), None)))), None)
       } catch {
         case t: Throwable => ForkStepExecutionResult(value._2, None, Some(t))
@@ -452,7 +474,7 @@ object PipelineExecutor {
         try {
           ForkStepExecutionResult(value._2,
             Some(executeStep(firstStep, pipeline, steps,
-            createForkPipelineContext(pipelineContext, value._2)
+            createForkPipelineContext(pipelineContext, value._2, firstStep)
               .setParameterByPipelineId(pipeline.id.get,
               forkStepId, PipelineStepResponse(Some(value._1 ), None)))), None)
         } catch {
@@ -472,10 +494,13 @@ object PipelineExecutor {
     * @param forkId The id of the fork process
     * @return A cloned PipelineContext
     */
-  private def createForkPipelineContext(pipelineContext: PipelineContext, forkId: Int): PipelineContext = {
+  private def createForkPipelineContext(pipelineContext: PipelineContext, forkId: Int, firstStep: PipelineStep): PipelineContext = {
     pipelineContext.copy(stepMessages =
       Some(pipelineContext.sparkSession.get.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
-      .setGlobal("forkId", forkId)
+      .setGlobal("forkId", forkId.toString)
+      .setGlobal("stepId", firstStep.id)
+      .setStepAudit(pipelineContext.getGlobalString("pipelineId").get,
+        ExecutionAudit(firstStep.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), None, Some(forkId.toString)))
   }
 
   /**
