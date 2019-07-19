@@ -19,6 +19,10 @@ with files on different file systems such as HDFS.
 #### DriverUtils
 This utility provides several functions to help in the creation of a custom *DriverSetup*
 
+### Execution Audits
+Basic timing [audits](docs/executionaudits.md) are captured during execution that can be useful for troubleshooting or
+establishing trends. The *PipelineListener* allows adding additional information to each audit.
+
 ### Application
 The Application allows application developers the ability to assemble a Spark application by providing a JSON 
 configuration file and specifying the *ApplicationDriverSetup* during the call to 'spark-submit'.

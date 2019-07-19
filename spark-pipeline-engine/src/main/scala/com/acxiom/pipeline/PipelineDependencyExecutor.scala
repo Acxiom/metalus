@@ -172,10 +172,7 @@ object PipelineDependencyExecutor {
       try {
         FutureResult(execution,
           Some(PipelineExecutor.executePipelines(execution.pipelines, execution.initialPipelineId,
-            execution.pipelineContext
-              .setGlobal("executionId", execution.id)
-              .setRootAudit(ExecutionAudit(execution.id, AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis())))),
-          None)
+            execution.pipelineContext.setGlobal("executionId", execution.id))), None)
       } catch {
         case t: Throwable => FutureResult(execution, None, Some(t))
       }

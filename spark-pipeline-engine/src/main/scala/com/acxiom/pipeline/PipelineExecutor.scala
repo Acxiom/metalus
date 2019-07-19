@@ -22,22 +22,23 @@ object PipelineExecutor {
     } else {
       pipelines
     }
-    val esContext = handleEvent(initialContext, "executionStarted", List(executingPipelines, initialContext))
+    val executionId = initialContext.getGlobalString("executionId").getOrElse("root")
+    val esContext = handleEvent(initialContext.setRootAudit(ExecutionAudit(executionId, AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis())),
+      "executionStarted", List(executingPipelines, initialContext))
     try {
       val pipelineLookup = executingPipelines.map(p => p.id.getOrElse("") -> p.name.getOrElse("")).toMap
       val ctx = executingPipelines.foldLeft(esContext)((accCtx, pipeline) => {
-        val psCtx = handleEvent(accCtx, "pipelineStarted", List(pipeline, accCtx))
         // Map the steps for easier lookup during execution
         val stepLookup = pipeline.steps.get.map(step => {
           validateStep(step, pipeline)
           step.id.get -> step
         }).toMap
-        val updatedCtx = psCtx
+        val updatedCtx = handleEvent(accCtx.setPipelineAudit(
+          ExecutionAudit(pipeline.id.get, AuditType.PIPELINE, Map[String, Any](), System.currentTimeMillis(), None, None, Some(List[ExecutionAudit](
+            ExecutionAudit(pipeline.steps.get.head.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis()))))),
+          "pipelineStarted", List(pipeline, accCtx))
           .setGlobal("pipelineId", pipeline.id)
           .setGlobal("stepId", pipeline.steps.get.head.id.get)
-          .setPipelineAudit(
-            ExecutionAudit(pipeline.id.get, AuditType.PIPELINE, Map[String, Any](), System.currentTimeMillis(), None, None, Some(List[ExecutionAudit](
-              ExecutionAudit(pipeline.steps.get.head.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis())))))
         try {
           val resultPipelineContext = executeStep(pipeline.steps.get.head, pipeline, stepLookup, updatedCtx)
           val messages = resultPipelineContext.getStepMessages
@@ -49,7 +50,7 @@ object PipelineExecutor {
           case t: Throwable => throw handleStepExecutionExceptions(t, pipeline, accCtx, executingPipelines)
         }
       })
-      val exCtx = ctx.copy(rootAudit = ctx.rootAudit.setEnd(System.currentTimeMillis()))
+      val exCtx = ctx.setRootAudit(ctx.rootAudit.setEnd(System.currentTimeMillis()))
       PipelineExecutionResult(handleEvent(exCtx, "executionFinished", List(executingPipelines, exCtx)), success = true)
     } catch {
       case p: PauseException =>
