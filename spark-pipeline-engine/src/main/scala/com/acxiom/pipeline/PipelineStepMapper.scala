@@ -139,11 +139,17 @@ trait PipelineStepMapper {
     * @return A expanded map or initialized case class.
     */
   private def handleMapParameter(map: Map[_, _], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
+    val workingMap = map.asInstanceOf[Map[String, Any]]
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
       implicit val formats: Formats = DefaultFormats
-      DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(map.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get)
+      // Skip the embedded variable mapping if this is a step-group pipeline parameter
+      if (workingMap.getOrElse("category", "pipeline").asInstanceOf[String] == "step-group") {
+        DriverUtils.parseJson(Serialization.write(workingMap), parameter.className.get)
+      } else {
+        DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(workingMap, pipelineContext)), parameter.className.get)
+      }
     } else {
-      mapEmbeddedVariables(map.asInstanceOf[Map[String, Any]], pipelineContext)
+      mapEmbeddedVariables(workingMap, pipelineContext)
     })
   }
 

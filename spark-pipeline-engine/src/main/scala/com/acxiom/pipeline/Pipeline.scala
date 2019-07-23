@@ -13,25 +13,29 @@ import scala.collection.JavaConversions._
 object Pipeline {
   def apply(id: Option[String] = None,
             name: Option[String] = None,
-            steps: Option[List[PipelineStep]] = None): Pipeline = DefaultPipeline(id, name, steps)
+            steps: Option[List[PipelineStep]] = None,
+            category: Option[String] = Some("pipeline")): Pipeline = DefaultPipeline(id, name, steps, category)
 }
 
 trait Pipeline {
   def id: Option[String] = None
   def name: Option[String] = None
   def steps: Option[List[PipelineStep]] = None
+  def category: Option[String] = Some("pipeline")
 }
 
 /**
   * Contains the a pipeline definition to be executed.
   *
-  * @param id    The unique id of this pipeline.
-  * @param name  The pipeline name used for logging and errors.
-  * @param steps A list of steps to execute.
+  * @param id       The unique id of this pipeline.
+  * @param name     The pipeline name used for logging and errors.
+  * @param steps    A list of steps to execute.
+  * @param category The category of pipeline: pipeline or step-group
   */
 case class DefaultPipeline(override val id: Option[String] = None,
                            override val name: Option[String] = None,
-                           override val steps: Option[List[PipelineStep]] = None) extends Pipeline
+                           override val steps: Option[List[PipelineStep]] = None,
+                           override val category: Option[String] = Some("pipeline")) extends Pipeline
 
 /**
   * Extends the Pipeline trait and adds the additional "typeClass" field that can be overridden and used when parsing

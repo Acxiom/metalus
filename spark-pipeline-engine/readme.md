@@ -70,7 +70,11 @@ to communicate back to the driver. Basic initialization should be
 Pipelines are a collection of steps that are executed in a specified order. Each pipeline contains one or more step 
 mappings that will be executed. The pipeline is the most basic construct that can be represented as an external 
 configuration. Using the *DriverUtils.parsePipelineJson* function, it is easy to convert a JSON representation into a 
-list of *Pipeline* case classes which can then be executed as part of the execution plan.
+list of *Pipeline* case classes which can then be executed as part of the execution plan. There are two categories 
+pipeline:
+
+* pipeline: this is the default
+* step-group: this indicates a pipeline designed to be embedded within a [step-group](docs/steps.md) in another pipeline
 
 This diagram describes the flow of an executing pipeline:
 
