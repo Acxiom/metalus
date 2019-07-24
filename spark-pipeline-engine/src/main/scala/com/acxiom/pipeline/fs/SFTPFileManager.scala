@@ -188,7 +188,7 @@ class SFTPFileManager(user: String,
       f
       true
     } catch {
-      case e: SftpException => false
+      case _: SftpException => false
       case t: Throwable => throw t
     }
   }

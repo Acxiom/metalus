@@ -33,14 +33,14 @@ be "branch".
 ## Step Group
 The step-group type step provides a mechanism for embedding pipelines within another pipeline. This feature is in place
 to leverage building smaller reusable pipelines that can be shared across other pipelines. The pipeline will be provided 
-with a pipeline context with no pipeline parameters and globals that are only populated with the values from the mappings 
-parameter. There are two parameters for a step-group:
+with a pipeline context with no pipeline parameters and globals that are only populated with the values from the 
+pipelineMappings parameter. There are two parameters for a step-group:
 
 ### pipeline
 This parameter is required and can contain either a string with expansion variable or a map with the proper pipeline 
 layout. The "className" attribute must be set when using a map.
 
-### mappings
+### pipelineMappings
 This optional parameter provides a mechanism for mapping values from the outer pipeline to the globals object accessible 
 to the embedded pipeline.
 

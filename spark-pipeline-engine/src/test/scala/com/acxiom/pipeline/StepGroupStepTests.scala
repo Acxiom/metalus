@@ -84,19 +84,19 @@ class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
     val pipeline = DefaultPipeline(Some("pipelineId"), Some("Pipeline"), Some(List(
       pipelineStepOne, pipelineStepTwo, pipelineStepThree)))
 
-    it("Should execute step with no mappings") {
+    it("Should execute step with no pipelineMappings") {
       SparkTestHelper.pipelineListener = PipelineListener()
       val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
       assert(executionResult.success)
       validateResults(executionResult.pipelineContext)
     }
 
-    it("Should execute step with mappings pulled from globals") {
+    it("Should execute step with pipelineMappings pulled from globals") {
       SparkTestHelper.pipelineListener = PipelineListener()
       val mappingPipelineStepTwo = PipelineStep(Some("PIPELINE_STEP_TWO"), None, None, Some("step-group"),
         Some(List(Parameter(Some("text"), Some("pipeline"),
           value = Some("!subPipeline")),
-          Parameter(Some("object"), Some("mappings"),
+          Parameter(Some("object"), Some("pipelineMappings"),
             value = Some(Map[String, Any]("globalOne" -> "globalOne", "globalTwo" -> "gtwo", "globalThree" -> "3"))))),
         engineMeta = None, nextStepId = Some("PIPELINE_STEP_THREE"))
 

@@ -2,6 +2,7 @@ package com.acxiom.pipeline
 
 import java.io.File
 
+import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import com.acxiom.pipeline.drivers.{DefaultPipelineDriver, DriverSetup}
 import com.acxiom.pipeline.utils.DriverUtils
 import org.apache.commons.io.FileUtils
@@ -233,6 +234,35 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       // Execution should complete without exception
       DefaultPipelineDriver.main(args.toArray)
       results.validate()
+    }
+  }
+
+  describe("PipelineContext") {
+    it("Should set global values") {
+      val ctx = SparkTestHelper.generatePipelineContext()
+      assert(ctx.globals.isDefined)
+      assert(ctx.globals.get.isEmpty)
+      val map = Map[String, Any]("one" -> 1, "two" -> "two")
+      val updatedCtx = ctx.setGlobal("three", 3).setGlobals(map)
+      assert(updatedCtx.globals.isDefined)
+      assert(updatedCtx.globals.get.size == 3)
+      assert(updatedCtx.getGlobalString("two").isDefined)
+      assert(updatedCtx.getGlobalString("two").get == "two")
+      assert(updatedCtx.getGlobal("one").isDefined)
+      assert(updatedCtx.getGlobal("one").get.asInstanceOf[Int] == 1)
+      assert(updatedCtx.getGlobal("three").isDefined)
+      assert(updatedCtx.getGlobal("three").get.asInstanceOf[Int] == 3)
+    }
+
+    it("Should set audit metrics") {
+      val ctx = SparkTestHelper.generatePipelineContext()
+      val updatedCtx = ctx.setPipelineAudit(ExecutionAudit("pipelineId", AuditType.PIPELINE, Map[String, Any](), System.currentTimeMillis()))
+      assert(updatedCtx.getPipelineAudit("pipelineId").isDefined)
+      assert(updatedCtx.getPipelineAudit("pipelineId").get.metrics.isEmpty)
+      val metricsCtx = updatedCtx.setPipelineAuditMetric("pipelineId", "fred", "redonthehead")
+      assert(metricsCtx.getPipelineAudit("pipelineId").get.metrics.size == 1)
+      assert(metricsCtx.getPipelineAudit("pipelineId").get.metrics.contains("fred"))
+      assert(metricsCtx.getPipelineAudit("pipelineId").get.metrics("fred") == "redonthehead")
     }
   }
 }

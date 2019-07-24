@@ -166,7 +166,7 @@ object PipelineExecutor {
   private def validateStepGroup(step: PipelineStep, pipelineId: Option[String]): Unit = {
     if(step.params.isEmpty) {
       throw PipelineException(
-        message = Some(s"Parameters [pipeline] and [mappings] is required for step group [${step.id.get}] in pipeline [${pipelineId.get}]."),
+        message = Some(s"Parameter [pipeline] is required for step group [${step.id.get}] in pipeline [${pipelineId.get}]."),
         pipelineId = pipelineId,
         stepId = step.id)
     }
@@ -301,7 +301,7 @@ object PipelineExecutor {
     val pipelineAudit = ExecutionAudit(subPipeline.id.getOrElse(""), AuditType.PIPELINE, Map[String, Any](),
       System.currentTimeMillis(), None, None, Some(List(stepAudit)))
     // Inject the mappings into the globals object of the PipelineContext
-    val ctx = pipelineContext.copy(globals = Some(parameterValues.getOrElse("mappings", Map[String, Any]()).asInstanceOf[Map[String, Any]]))
+    val ctx = pipelineContext.copy(globals = Some(parameterValues.getOrElse("pipelineMappings", Map[String, Any]()).asInstanceOf[Map[String, Any]]))
       .setGlobal("pipelineId", subPipeline.id.getOrElse(""))
       .setGlobal("stepId", firstStep.id.getOrElse(""))
       .setGlobal("groupId", s"$pipelineId::$stepId")
