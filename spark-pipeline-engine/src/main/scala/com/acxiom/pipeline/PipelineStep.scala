@@ -33,6 +33,7 @@ case class PipelineStep(id: Option[String] = None,
   * @param required     Boolean indicating whether this parameter is required.
   * @param defaultValue The default value to pass if the value is not set.
   * @param value        The value to be used for this parameter.
+  * @param className    An optional classname used to convert a map into an object
   */
 case class Parameter(`type`: Option[String] = None,
                      name: Option[String] = None,

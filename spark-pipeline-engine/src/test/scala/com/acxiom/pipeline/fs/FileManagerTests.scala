@@ -3,7 +3,7 @@ package com.acxiom.pipeline.fs
 import java.io._
 import java.nio.file.Files
 
-import com.jcraft.jsch.SftpException
+import com.jcraft.jsch.{JSchException, SftpException}
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
@@ -176,15 +176,27 @@ class FileManagerTests extends FunSpec with Suite {
   }
 
   describe("FileManager - SFTP") {
+    it("Should fail when no password is provided") {
+      val server = new MockSftpServer(PORT)
+      val sftp = new SFTPFileManager("tester",
+        "localhost", PORT, None, None,
+        config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
+      val thrown = intercept[JSchException] {
+        sftp.connect()
+      }
+      assert(thrown.getMessage == "Auth fail")
+      server.stop()
+    }
+
     it("Should be able to write") {
       val server = new MockSftpServer(PORT)
       val contents = "Chickens Rule!"
       val sftp = new SFTPFileManager("tester",
-        "localhost", PORT, Some("testing"), None,
+        "localhost", PORT, Some("testing"), Some("localhost"),
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
-      val pw = new PrintWriter(sftp.getOutputStream("/newChicken.txt"))
-      pw.println(contents)
+      val pw = new OutputStreamWriter(sftp.getOutputStream("/newChicken.txt"))
+      pw.write(contents)
       pw.flush()
       pw.close()
       assert(Source.fromInputStream(new FileInputStream(s"${server.getBaseDirectory}/newChicken.txt")).getLines().mkString == contents)
@@ -199,6 +211,9 @@ class FileManagerTests extends FunSpec with Suite {
       val sftp = new SFTPFileManager("tester",
         "localhost", PORT, Some("testing"), None,
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
+      // connect to the service
+      sftp.connect()
+      // call connect again to ensure things still work
       sftp.connect()
       assert(Source.fromInputStream(sftp.getInputStream("/chicken.txt")).getLines().mkString == contents)
       sftp.disconnect()

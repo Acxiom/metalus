@@ -15,7 +15,7 @@ This audit is automatically started when the "pipelineStepStarted" event is trig
 event is fired.
 
 ### Fork Steps
-All of the steps contained in a fork, including the join, will be tracked based on the *forkId* and rolled up under the 
+All of the steps contained in a fork, including the join, will be tracked based on the *groupId* and rolled up under the 
 fork step for analysis. The *groupId* of the step audit can be used to group all steps involved in a single execution.
 
 ## Additional Classes
