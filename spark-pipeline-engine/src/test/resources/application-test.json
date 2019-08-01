@@ -126,7 +126,23 @@
           }
         ]
       }
-    }
+    },
+    "listMappedObjects": [
+      {
+        "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+        "object": {
+          "name": "Global Mapped Object in a list",
+          "subObjects": [
+            {
+              "name": "Sub Object 1"
+            },
+            {
+              "name": "Sub Object 2"
+            }
+          ]
+        }
+      }
+    ]
   },
   "executions": [
     {
