@@ -169,15 +169,42 @@ object StepMetaDataExtractor {
           } else { paramsAndClasses }
         })
       } else { (List[StepFunctionParameter](), caseClasses) }
+      val returnType = getReturnType(symbol.asMethod)
       val newSteps = steps :+ StepDefinition(
         ann.get.tree.children.tail.head.toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(1).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(2).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(3).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(FOUR).toString().replaceAll("\"", ""),
-        getBranchResults(parameters._1, symbol), EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName)))
+        getBranchResults(parameters._1, symbol),
+        EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName), returnType))
       (newSteps, parameters._2)
     } else { (steps, caseClasses) }
+  }
+
+  private def getReturnType(method: ru.MethodSymbol): Option[com.acxiom.pipeline.StepResults] = {
+    val returnTypeString = method.returnType.toString
+    val annotations = method.annotations
+    if (annotations.exists(_.tree.tpe =:= ru.typeOf[StepResults])) {
+      val ann = annotations.find(_.tree.tpe =:= ru.typeOf[StepResults])
+      val primaryType = ann.get.tree.children.tail.head.toString().replaceAll("\"", "")
+      val secondaryTypes = if (ann.get.tree.children.tail(1).toString() == "scala.None") {
+        None
+      } else {
+        Some(ann.get.tree.children.tail(1).children.tail.head.children.tail.foldLeft(Map[String, String]())((map, param) => {
+          map + (param.children.head.children.head.children.head.children.tail.head.toString.replaceAll("\"", "") ->
+            param.children.tail.head.toString().replaceAll("\"", "")
+            )
+        }))
+      }
+      Some(com.acxiom.pipeline.StepResults(primaryType, secondaryTypes))
+    } else if (returnTypeString.startsWith("Option[")) {
+      Some(com.acxiom.pipeline.StepResults(returnTypeString.substring(SEVEN, returnTypeString.length - 1)))
+    } else if (returnTypeString != "Unit") {
+      Some(com.acxiom.pipeline.StepResults(returnTypeString))
+    } else {
+      None
+    }
   }
 
   private def getParameterInfo(paramSymbol: ru.Symbol): ParameterInfo = {
