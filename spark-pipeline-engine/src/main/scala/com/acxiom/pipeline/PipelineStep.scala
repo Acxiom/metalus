@@ -28,19 +28,21 @@ case class PipelineStep(id: Option[String] = None,
 /**
   * Represents a single parameter in a step.
   *
-  * @param `type`       The parameter type.
-  * @param name         The parameter name. This should match the parameter name of the function being called.
-  * @param required     Boolean indicating whether this parameter is required.
-  * @param defaultValue The default value to pass if the value is not set.
-  * @param value        The value to be used for this parameter.
-  * @param className    An optional classname used to convert a map into an object
+  * @param `type`        The parameter type.
+  * @param name          The parameter name. This should match the parameter name of the function being called.
+  * @param required      Boolean indicating whether this parameter is required.
+  * @param defaultValue  The default value to pass if the value is not set.
+  * @param value         The value to be used for this parameter.
+  * @param className     An optional classname used to convert a map into an object
+  * @param parameterType Contains optional type information for each parameter
   */
 case class Parameter(`type`: Option[String] = None,
                      name: Option[String] = None,
                      required: Option[Boolean] = Some(false),
                      defaultValue: Option[Any] = None,
                      value: Option[Any] = None,
-                     className: Option[String] = None)
+                     className: Option[String] = None,
+                     parameterType: Option[String] = None)
 
 /**
   * This class contains the execution information for a Step
