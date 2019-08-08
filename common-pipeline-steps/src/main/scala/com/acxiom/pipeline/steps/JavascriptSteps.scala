@@ -14,7 +14,7 @@ object JavascriptSteps {
     "Executes a script and returns the result",
     "Pipeline",
     "Scripting")
-  def processScript(@StepParameter(Some("script"), Some(true), None, Some("javascript"), None) script: String,
+  def processScript(@StepParameter(Some("script"), Some(true), None, Some("javascript"), None, None) script: String,
                     pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new JavaScriptEngine
     val bindings = new SimpleBindings()
@@ -28,7 +28,7 @@ object JavascriptSteps {
     "Executes a script and returns the result",
     "Pipeline",
     "Scripting")
-  def processScriptWithValue(@StepParameter(Some("script"), Some(true), None, Some("javascript"), None) script: String,
+  def processScriptWithValue(@StepParameter(Some("script"), Some(true), None, Some("javascript"), None, None) script: String,
                              value: Any, pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new JavaScriptEngine
     val bindings = new SimpleBindings()
