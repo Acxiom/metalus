@@ -45,9 +45,9 @@
         <encoding>UTF-8</encoding>
         <scala.version>2.11.12</scala.version>
         <scala.compat.version>2.11</scala.compat.version>
-        <spark.compat.version>2.4</spark.compat.version>
-        <spark.version>2.4.2</spark.version>
-        <json4s.version>3.5.3</json4s.version>
+        <spark.compat.version>2.3</spark.compat.version>
+        <spark.version>2.3.3</spark.version>
+        <json4s.version>3.2.11</json4s.version>
         <scala.style.config>${basedir}/scalastyle_config.xml</scala.style.config>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <sonar.core.codeCoveragePlugin>scoverage</sonar.core.codeCoveragePlugin>
