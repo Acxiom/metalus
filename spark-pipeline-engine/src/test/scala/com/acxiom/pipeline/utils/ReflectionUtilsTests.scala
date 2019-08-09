@@ -72,6 +72,22 @@ class ReflectionUtilsTests extends FunSpec {
       assert(thrown.getMessage == message)
     }
 
+    it("should handle primitive types"){
+      val step = PipelineStep(None, None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithPrimitives"))))
+      val map = Map[String, Any]("i" -> 1,
+        "l" -> 1L,
+        "s" -> 1.toShort.asInstanceOf[java.lang.Short],
+        "d" -> 1.0D,
+        "f" -> 1.0F,
+        "c" -> '1',
+        "by" -> 1.toByte.asInstanceOf[java.lang.Byte]
+      )
+      val response = ReflectionUtils.processStep(step, map, pipelineContext)
+      assert(response.isInstanceOf[PipelineStepResponse])
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == 1)
+    }
   }
 
   describe("ReflectionUtils - loadClass") {

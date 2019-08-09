@@ -224,36 +224,30 @@ object ReflectionUtils {
   }
 
   private def validateParamTypeAssignment(runtimeMirror: Mirror,
-                           param: Symbol,
-                           isOption: Boolean,
-                           finalValue: Any,
-                           finalValueType: String,
-                           funcName: String): Unit = {
-    if (isOption && finalValue.asInstanceOf[Option[_]].isEmpty) {
-      return
-    }
-    val paramClass = runtimeMirror.runtimeClass(if (isOption) param.typeSignature.typeArgs.head else param.typeSignature)
-    val isAssignable = finalValue match {
-      case b: java.lang.Boolean => paramClass.isAssignableFrom(b.asInstanceOf[Boolean].getClass)
-      case i: java.lang.Integer => paramClass.isAssignableFrom(i.asInstanceOf[Int].getClass)
-      case l: java.lang.Long => paramClass.isAssignableFrom(l.asInstanceOf[Long].getClass)
-      case s: java.lang.Short => paramClass.isAssignableFrom(s.asInstanceOf[Short].getClass)
-      case c: java.lang.Character => paramClass.isAssignableFrom(c.asInstanceOf[Char].getClass)
-      case d: java.lang.Double => paramClass.isAssignableFrom(d.asInstanceOf[Double].getClass)
-      case f: java.lang.Float => paramClass.isAssignableFrom(f.asInstanceOf[Float].getClass)
-      case by: java.lang.Byte => paramClass.isAssignableFrom(by.asInstanceOf[Byte].getClass)
-      case _ =>
-        if (isOption) {
-          paramClass.isAssignableFrom(finalValue.asInstanceOf[Option[_]].get.getClass)
-        }
-        else {
-          paramClass.isAssignableFrom(finalValue.getClass)
-        }
-    }
-    if (!isAssignable) {
-      val message = s"Failed to map value [$finalValue] of type [$finalValueType] to paramName [${param.name.toString}] of" +
-        s" type [${param.typeSignature}] for method [$funcName]"
-      throw new IllegalArgumentException(message)
+                                          param: Symbol,
+                                          isOption: Boolean,
+                                          value: Any,
+                                          valueType: String,
+                                          funcName: String): Unit = {
+    if (!(isOption && value.asInstanceOf[Option[_]].isEmpty)) {
+      val finalValue = if (isOption) value.asInstanceOf[Option[_]].get else value
+      val paramClass = runtimeMirror.runtimeClass(if (isOption) param.typeSignature.typeArgs.head else param.typeSignature)
+      val isAssignable = finalValue match {
+        case b: java.lang.Boolean => paramClass.isAssignableFrom(b.asInstanceOf[Boolean].getClass)
+        case i: java.lang.Integer => paramClass.isAssignableFrom(i.asInstanceOf[Int].getClass)
+        case l: java.lang.Long => paramClass.isAssignableFrom(l.asInstanceOf[Long].getClass)
+        case s: java.lang.Short => paramClass.isAssignableFrom(s.asInstanceOf[Short].getClass)
+        case c: java.lang.Character => paramClass.isAssignableFrom(c.asInstanceOf[Char].getClass)
+        case d: java.lang.Double => paramClass.isAssignableFrom(d.asInstanceOf[Double].getClass)
+        case f: java.lang.Float => paramClass.isAssignableFrom(f.asInstanceOf[Float].getClass)
+        case by: java.lang.Byte => paramClass.isAssignableFrom(by.asInstanceOf[Byte].getClass)
+        case _ => paramClass.isAssignableFrom(finalValue.getClass)
+      }
+      if (!isAssignable) {
+        val message = s"Failed to map value [$value] of type [$valueType] to paramName [${param.name.toString}] of" +
+          s" type [${param.typeSignature}] for method [$funcName]"
+        throw new IllegalArgumentException(message)
+      }
     }
   }
 
