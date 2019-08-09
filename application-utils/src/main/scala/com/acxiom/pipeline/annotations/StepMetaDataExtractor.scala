@@ -145,36 +145,75 @@ object StepMetaDataExtractor {
           val stepParams = paramsAndClasses._1
           if (paramSymbol.name.toString != "pipelineContext") {
             // See if the parameter has been annotated
-            val caseClass = if (paramSymbol.typeSignature.typeSymbol.isClass &&
-              paramSymbol.typeSignature.typeSymbol.asClass.isCaseClass) {
-              Some(paramSymbol.typeSignature.toString)
-            } else if (paramSymbol.typeSignature.toString.startsWith("Option[")) {
-              extractCaseClassFromOption(paramSymbol)
-            } else { None }
+            val parameterInfo = getParameterInfo(paramSymbol)
             val annotations = paramSymbol.annotations
             val a1 = annotations.find(_.tree.tpe =:= ru.typeOf[StepParameter])
             val updatedStepParams = if (a1.isDefined)  {
-              stepParams :+ annotationToStepFunctionParameter(a1.get, paramSymbol, caseClass)
+              stepParams :+ annotationToStepFunctionParameter(a1.get, paramSymbol, parameterInfo)
             } else {
-              stepParams :+ StepFunctionParameter(getParameterType(paramSymbol, caseClass.isDefined), paramSymbol.name.toString, className = caseClass)
+              stepParams :+ StepFunctionParameter(getParameterType(paramSymbol, parameterInfo.caseClass),
+                paramSymbol.name.toString,
+                required = false, None, None,
+                if (parameterInfo.caseClass) {
+                  Some(parameterInfo.className)
+                } else {
+                  None
+                },
+                parameterType = Some(parameterInfo.className))
             }
             // only add non-private case classes to the case class set
-            val updatedCaseClassSet = if(caseClass.nonEmpty && !annotations.exists(_.tree.tpe =:= ru.typeOf[PrivateObject])) {
-              paramsAndClasses._2 + caseClass.get
+            val updatedCaseClassSet = if(parameterInfo.caseClass && !annotations.exists(_.tree.tpe =:= ru.typeOf[PrivateObject])) {
+              paramsAndClasses._2 + parameterInfo.className
             } else { paramsAndClasses._2 }
             (updatedStepParams, updatedCaseClassSet)
           } else { paramsAndClasses }
         })
       } else { (List[StepFunctionParameter](), caseClasses) }
+      val returnType = getReturnType(symbol.asMethod)
       val newSteps = steps :+ StepDefinition(
         ann.get.tree.children.tail.head.toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(1).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(2).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(3).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(FOUR).toString().replaceAll("\"", ""),
-        getBranchResults(parameters._1, symbol), EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName)))
+        getBranchResults(parameters._1, symbol),
+        EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName), returnType))
       (newSteps, parameters._2)
     } else { (steps, caseClasses) }
+  }
+
+  private def getReturnType(method: ru.MethodSymbol): Option[com.acxiom.pipeline.StepResults] = {
+    val returnTypeString = method.returnType.toString
+    val annotations = method.annotations
+    if (annotations.exists(_.tree.tpe =:= ru.typeOf[StepResults])) {
+      val ann = annotations.find(_.tree.tpe =:= ru.typeOf[StepResults])
+      val primaryType = ann.get.tree.children.tail.head.toString().replaceAll("\"", "")
+      val secondaryTypes = if (ann.get.tree.children.tail(1).toString() == "scala.None") {
+        None
+      } else {
+        Some(ann.get.tree.children.tail(1).children.tail.head.children.tail.foldLeft(Map[String, String]())((map, param) => {
+          map + (param.children.head.children.head.children.head.children.tail.head.toString.replaceAll("\"", "") ->
+            param.children.tail.head.toString().replaceAll("\"", "")
+            )
+        }))
+      }
+      Some(com.acxiom.pipeline.StepResults(primaryType, secondaryTypes))
+    } else if (returnTypeString.startsWith("Option[")) {
+      Some(com.acxiom.pipeline.StepResults(returnTypeString.substring(SEVEN, returnTypeString.length - 1)))
+    } else if (returnTypeString != "Unit") {
+      Some(com.acxiom.pipeline.StepResults(returnTypeString))
+    } else {
+      None
+    }
+  }
+
+  private def getParameterInfo(paramSymbol: ru.Symbol): ParameterInfo = {
+   if (paramSymbol.typeSignature.typeSymbol.isClass &&
+      paramSymbol.typeSignature.typeSymbol.asClass.isCaseClass) {
+     ParameterInfo(paramSymbol.typeSignature.toString, caseClass = true)
+    } else if (paramSymbol.typeSignature.toString.startsWith("Option[")) {
+     extractCaseClassFromOption(paramSymbol)
+    } else { ParameterInfo(paramSymbol.typeSignature.toString, caseClass = false) }
   }
 
   /**
@@ -201,21 +240,21 @@ object StepMetaDataExtractor {
   /**
     * This function will inspect the Option type to determine if a case class is embedded.
     * @param paramSymbol The parameter symbol
-    * @return The case class name or None.
+    * @return A ParameterInfo that provides the classname and a boolean indicating whether this is a case class
     */
-  private def extractCaseClassFromOption(paramSymbol: ru.Symbol): Option[String] = {
+  private def extractCaseClassFromOption(paramSymbol: ru.Symbol): ParameterInfo = {
     val optionString = paramSymbol.typeSignature.toString
     val className = optionString.substring(SEVEN, optionString.length - 1)
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     try {
       val moduleClass = mirror.staticClass(className)
       if (moduleClass.isCaseClass) {
-        Some(className)
+        ParameterInfo(className, caseClass = true)
       } else {
-        None
+        ParameterInfo(className, caseClass = false)
       }
     } catch {
-      case _: Throwable => None
+      case _: Throwable => ParameterInfo(className, caseClass = false)
     }
   }
 
@@ -225,17 +264,20 @@ object StepMetaDataExtractor {
     * @param paramSymbol The parameter information
     * @return
     */
-  private def annotationToStepFunctionParameter(annotation: ru.Annotation, paramSymbol: ru.Symbol, caseClass: Option[String] = None): StepFunctionParameter = {
+  private def annotationToStepFunctionParameter(annotation: ru.Annotation,
+                                                paramSymbol: ru.Symbol,
+                                                parameterInfo: ParameterInfo): StepFunctionParameter = {
     val typeValue = annotation.tree.children.tail.head.toString()
     val requiredValue = annotation.tree.children.tail(1).toString()
     val defaultValue = annotation.tree.children.tail(2).toString()
     val language = annotation.tree.children.tail(3).toString()
     val className = annotation.tree.children.tail(3 + 1).toString()
+    val parameterType = annotation.tree.children.tail(3 + 2).toString()
     StepFunctionParameter(
       if (isValueSet(typeValue)) {
         getAnnotationValue(typeValue, stringValue = true).asInstanceOf[String]
       } else {
-        getParameterType(paramSymbol, caseClass.isDefined)
+        getParameterType(paramSymbol, parameterInfo.caseClass)
       },
       paramSymbol.name.toString,
       if (isValueSet(requiredValue)) {
@@ -256,7 +298,12 @@ object StepMetaDataExtractor {
       if (isValueSet(className)) {
         Some(getAnnotationValue(className, stringValue = true).asInstanceOf[String])
       } else {
-        caseClass
+        Some(parameterInfo.className)
+      },
+      if (isValueSet(parameterType)) {
+        Some(getAnnotationValue(parameterType, stringValue = true).asInstanceOf[String])
+      } else {
+        None
       })
   }
 
@@ -285,3 +332,5 @@ object StepMetaDataExtractor {
     }
   }
 }
+
+case class ParameterInfo(className: String, caseClass: Boolean)
