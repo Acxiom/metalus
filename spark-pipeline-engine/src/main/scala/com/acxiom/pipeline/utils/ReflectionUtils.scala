@@ -2,11 +2,10 @@ package com.acxiom.pipeline.utils
 
 import java.lang.reflect.InvocationTargetException
 
-import com.acxiom.pipeline.{PipelineContext, PipelineException, PipelineStep, PipelineStepResponse}
+import com.acxiom.pipeline.{PipelineContext, PipelineStep, PipelineStepResponse}
 import org.apache.log4j.Logger
 
 import scala.annotation.tailrec
-import scala.collection.immutable.Map.Map1
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 import scala.runtime.BoxedUnit
