@@ -61,6 +61,17 @@ class ReflectionUtilsTests extends FunSpec {
       assert(thrown.getMessage == "typo is not a valid function!")
     }
 
+    it("Should return an informative error if the parameter types do not match function params"){
+      val step = PipelineStep(None, None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
+      val thrown = intercept[IllegalArgumentException] {
+        ReflectionUtils.processStep(step, Map[String, Any]("list" -> 1), pipelineContext)
+      }
+      val message = "Failed to map value [Some(1)] of type [Some(Integer)] to paramName [list] of" +
+        " type [Option[Seq[String]]] for method [mockStepFunctionWithOptionalGenericParams]"
+      assert(thrown.getMessage == message)
+    }
+
   }
 
   describe("ReflectionUtils - loadClass") {

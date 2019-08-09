@@ -19,6 +19,10 @@ object MockStepObject {
     string
   }
 
+  def mockStepFunctionWithOptionalGenericParams(list: Option[Seq[String]]): String ={
+    list.getOrElse(List("chicken")).headOption.getOrElse("chicken")
+  }
+
   def mockStringListStepFunction(listSize: Int): PipelineStepResponse = {
     PipelineStepResponse(Some(List.tabulate(listSize)(_.toString)), None)
   }

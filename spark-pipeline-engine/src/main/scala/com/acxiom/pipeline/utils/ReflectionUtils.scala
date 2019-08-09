@@ -2,10 +2,11 @@ package com.acxiom.pipeline.utils
 
 import java.lang.reflect.InvocationTargetException
 
-import com.acxiom.pipeline.{PipelineContext, PipelineStep, PipelineStepResponse}
+import com.acxiom.pipeline.{PipelineContext, PipelineException, PipelineStep, PipelineStepResponse}
 import org.apache.log4j.Logger
 
 import scala.annotation.tailrec
+import scala.collection.immutable.Map.Map1
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 import scala.runtime.BoxedUnit
@@ -31,7 +32,7 @@ object ReflectionUtils {
     if (symbols.nonEmpty) {
       val method = getMethodBySymbol(symbols.head, parameters.getOrElse(Map[String, Any]()), Some(symbols))
       classMirror.reflectConstructor(method)
-      classMirror.reflectConstructor(method)(mapMethodParameters(method.paramLists.head, parameters.getOrElse(Map[String, Any]()),
+      classMirror.reflectConstructor(method)(mapMethodParameters(method.paramLists.head, parameters.getOrElse(Map[String, Any]()), mirror,
         mirror.reflect(mirror.reflectModule(module)), symbols.head.asTerm.fullName, method.typeSignature, None)
         : _*)
     }
@@ -72,7 +73,7 @@ object ReflectionUtils {
     val ts = stepObject.symbol.typeSignature
     // Get the parameters this method requires
     val parameters = method.paramLists.head
-    val params = mapMethodParameters(parameters, parameterValues, stepObject, funcName, ts, Some(pipelineContext))
+    val params = mapMethodParameters(parameters, parameterValues, mirror, stepObject, funcName, ts, Some(pipelineContext))
     logger.info(s"Executing step $objName.$funcName")
     logger.debug(s"Parameters: $params")
     // Invoke the method
@@ -179,6 +180,7 @@ object ReflectionUtils {
 
   private def mapMethodParameters(parameters: List[ru.Symbol],
                                   parameterValues: Map[String, Any],
+                                  runtimeMirror: Mirror,
                                   stepObject: ru.InstanceMirror,
                                   funcName: String,
                                   ts: ru.Type,
@@ -214,10 +216,41 @@ object ReflectionUtils {
           if(v.asInstanceOf[Option[_]].isEmpty) "None" else s"Some(${v.asInstanceOf[Option[_]].get.getClass.getSimpleName})"
         case _ => finalValue.getClass.getSimpleName
       }
+      validateType(runtimeMirror, param, optionType, finalValue, finalValueType, funcName)
 
       logger.debug(s"Mapping parameter to method $funcName,paramName=$name,paramType=${param.typeSignature}," +
         s"valueType=$finalValueType,value=$finalValue")
       finalValue
+    }
+  }
+
+  private def validateType(runtimeMirror: Mirror, param: Symbol, isOption: Boolean, finalValue: Any, finalValueType: String, funcName: String): Unit = {
+    if (isOption && finalValue.asInstanceOf[Option[_]].isEmpty) {
+      return
+    }
+    val paramClass = runtimeMirror.runtimeClass(if (isOption) param.typeSignature.typeArgs.head else param.typeSignature)
+    val v2 = finalValue match {
+      case b: java.lang.Boolean =>
+        b.asInstanceOf[Boolean].getClass.isAssignableFrom(paramClass)
+      case i: java.lang.Integer => i.asInstanceOf[Int].getClass.isAssignableFrom(paramClass)
+      case l: java.lang.Long => l.asInstanceOf[Long].getClass.isAssignableFrom(paramClass)
+      case s: java.lang.Short => s.asInstanceOf[Short].getClass.isAssignableFrom(paramClass)
+      case c: java.lang.Character => c.asInstanceOf[Char].getClass.isAssignableFrom(paramClass)
+      case d: java.lang.Double => d.asInstanceOf[Double].getClass.isAssignableFrom(paramClass)
+      case f: java.lang.Float => f.asInstanceOf[Float].getClass.isAssignableFrom(paramClass)
+      case by: java.lang.Byte => paramClass.isAssignableFrom(by.asInstanceOf[Byte].getClass)
+      case _ =>
+        if (isOption) {
+          paramClass.isAssignableFrom(finalValue.asInstanceOf[Option[_]].get.getClass)
+        }
+        else {
+          paramClass.isAssignableFrom(finalValue.getClass)
+        }
+    }
+    if (!v2) {
+      val message = s"Failed to map value [$finalValue] of type [$finalValueType] to paramName [${param.name.toString}] of" +
+        s" type [${param.typeSignature}] for method [$funcName]"
+      throw new IllegalArgumentException(message)
     }
   }
 
