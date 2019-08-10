@@ -24,7 +24,8 @@ globals object under the key name with the **"$globals."** prefix is stripped of
 be replaced and a warning logged.
 
 ### Fork Join Step Behavior
-
+Steps that update global while in the middle of a fork, will have the results presented as a list in the same order as
+the values used to trigger the fork. This is the same behavior as responses.
 
 ## Step Types
 The library provides several step types to make building applications easier.

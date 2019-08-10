@@ -360,6 +360,7 @@ object PipelineExecutor {
 
   /**
     * Special handling of fork steps.
+    *
     * @param step The fork step
     * @param pipeline The pipeline being executed
     * @param steps The step lookup
@@ -367,12 +368,8 @@ object PipelineExecutor {
     * @param pipelineContext The current pipeline context
     * @return The result of processing the forked steps.
     */
-  private def processForkStep(step: PipelineStep,
-                              pipeline: Pipeline,
-                              steps: Map[String, PipelineStep],
-                              parameterValues: Map[String, Any],
-                              pipelineContext: PipelineContext): ForkStepResult = {
-    // Get the first step
+  private def processForkStep(step: PipelineStep, pipeline: Pipeline, steps: Map[String, PipelineStep],
+                              parameterValues: Map[String, Any], pipelineContext: PipelineContext): ForkStepResult = {
     val firstStep = steps(step.nextStepId.getOrElse(""))
     // Create the list of steps that need to be executed starting with the "nextStepId"
     val newSteps = getForkSteps(firstStep, pipeline, steps, List())
@@ -400,16 +397,24 @@ object PipelineExecutor {
             Some(ForkedPipelineStepException(message = Some("One or more errors has occurred while processing fork step:\n"),
               exceptions = Map(result.index -> result.error.get))))
         }
-      } else { // This should never happen
-        combinedResult
-      }
+      } else { combinedResult }
     })
-    if (finalResult.error.isDefined) {
-      throw finalResult.error.get
-    } else {
+    if (finalResult.error.isDefined) { throw finalResult.error.get } else {
+      val pipelineId = pipeline.id.get
+      val params = finalResult.result.get.parameters.getParametersByPipelineId(pipelineId).get
+      val mergedContext =newSteps.foldLeft(finalResult.result.get)((ctx, step) => {
+        val stepResult = params.parameters.get(step.id.get)
+        if (stepResult.isDefined && stepResult.get.isInstanceOf[PipelineStepResponse]
+          && stepResult.get.asInstanceOf[PipelineStepResponse].namedReturns.isDefined) {
+          stepResult.get.asInstanceOf[PipelineStepResponse].namedReturns.get.foldLeft(ctx)((context, entry) => {
+            if (entry._1.startsWith("$globals.")) { updateGlobals(step.displayName.getOrElse(""), pipelineId, context, entry._2, entry._1.substring(NINE)) }
+            else { context }
+          })
+        } else { ctx }
+      })
       ForkStepResult(if (joinSteps.nonEmpty) {
         joinSteps.head.nextStepId
-      } else { None }, finalResult.result.get)
+      } else { None }, mergedContext)
     }
   }
 
