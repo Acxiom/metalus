@@ -93,7 +93,7 @@ object PipelineExecutor {
       // process step normally if empty
       case "" if step.`type`.getOrElse("") == "fork" => processForkStep(step, pipeline, steps, parameterValues, pipelineContext)
       case "" if step.`type`.getOrElse("") == "step-group" => processStepGroup(step, pipeline, steps, parameterValues, pipelineContext)
-      case "" => ReflectionUtils.processStep(step, parameterValues, ssContext)
+      case "" => ReflectionUtils.processStep(step, pipeline, parameterValues, ssContext)
       case value: String =>
         logger.debug(s"Evaluating execute if empty: $value")
         // wrap the value in a parameter object
@@ -102,7 +102,7 @@ object PipelineExecutor {
         ret match {
           case option: Option[Any] => if (option.isEmpty) {
             logger.debug("Executing step normally")
-            ReflectionUtils.processStep(step, parameterValues, ssContext)
+            ReflectionUtils.processStep(step, pipeline, parameterValues, ssContext)
           } else {
             logger.debug("Returning existing value")
             PipelineStepResponse(option, None)
