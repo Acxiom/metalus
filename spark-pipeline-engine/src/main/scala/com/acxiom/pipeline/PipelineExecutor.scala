@@ -400,21 +400,9 @@ object PipelineExecutor {
       } else { combinedResult }
     })
     if (finalResult.error.isDefined) { throw finalResult.error.get } else {
-      val pipelineId = pipeline.id.get
-      val params = finalResult.result.get.parameters.getParametersByPipelineId(pipelineId).get
-      val mergedContext =newSteps.foldLeft(finalResult.result.get)((ctx, step) => {
-        val stepResult = params.parameters.get(step.id.get)
-        if (stepResult.isDefined && stepResult.get.isInstanceOf[PipelineStepResponse]
-          && stepResult.get.asInstanceOf[PipelineStepResponse].namedReturns.isDefined) {
-          stepResult.get.asInstanceOf[PipelineStepResponse].namedReturns.get.foldLeft(ctx)((context, entry) => {
-            if (entry._1.startsWith("$globals.")) { updateGlobals(step.displayName.getOrElse(""), pipelineId, context, entry._2, entry._1.substring(NINE)) }
-            else { context }
-          })
-        } else { ctx }
-      })
       ForkStepResult(if (joinSteps.nonEmpty) {
         joinSteps.head.nextStepId
-      } else { None }, mergedContext)
+      } else { None }, finalResult.result.get)
     }
   }
 
