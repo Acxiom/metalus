@@ -90,7 +90,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
       }
       val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/single-execution.json")).mkString)
       PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
-      results.validate(1)
+      results.validate()
     }
 
     it("Should execute a simple dependency graph of two pipeline chains") {
@@ -137,6 +137,9 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
               results.addValidation(s"Execution failed for $pipelineId",
                 getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step1") == "Chain0" &&
                   getStringValue(pipelineContext, "PipelineChain2", "Pipeline3Step2") == "Chain2")
+              results.addValidation(s"Pipeline Audit missing for $pipelineId", pipelineContext.getPipelineAudit(pipelineId).isDefined)
+              results.addValidation(s"Step Audits missing for $pipelineId", pipelineContext.getPipelineAudit(pipelineId).get.children.isDefined)
+              results.addValidation(s"Step Audits missing for $pipelineId", pipelineContext.getPipelineAudit(pipelineId).get.children.get.length == 2)
             case "PipelineChain3" =>
               results.addValidation(s"Execution failed for $pipelineId",
                 getStringValue(pipelineContext, "PipelineChain3", "Pipeline3Step1") == "Chain0" &&
@@ -214,7 +217,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
         }
       }
 
-      // PipelineChain1 should throw an exception which h=should prevent Pipeline3 from executing
+      // PipelineChain1 should throw an exception which should prevent Pipeline3 from executing
       val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/multi-tiered-exception.json")).mkString)
       PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
       results.validate()
@@ -312,12 +315,14 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 object ExecutionSteps {
   private val ONE_SEC = 1000
 
-  def sleepFunction(value: String): PipelineStepResponse = {
+  def sleepFunction(value: String, pipelineContext: PipelineContext): PipelineStepResponse = {
+    println(s"Executing step in pipeline: ${pipelineContext.getGlobalString("pipelineId").getOrElse("")}")
     Thread.sleep(ONE_SEC)
     PipelineStepResponse(Some(value), Some(Map[String, Any]("time" -> new Date())))
   }
 
-  def normalFunction(value: String): PipelineStepResponse = {
+  def normalFunction(value: String, pipelineContext: PipelineContext): PipelineStepResponse = {
+    println(s"Executing step in pipeline: ${pipelineContext.getGlobalString("pipelineId").getOrElse("")}")
     PipelineStepResponse(Some(value), Some(Map[String, Any]("time" -> new Date())))
   }
 

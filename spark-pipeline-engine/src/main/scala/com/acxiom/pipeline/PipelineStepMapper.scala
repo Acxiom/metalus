@@ -17,8 +17,6 @@ class DefaultPipelineStepMapper extends PipelineStepMapper
 trait PipelineStepMapper {
   val logger: Logger = Logger.getLogger(getClass)
 
-  private val specialCharacters = List('@', '#', '$', '!')
-
   /**
     * This function is called prior to executing a PipelineStep generating a map of values to be passed to the step
     * function.
@@ -141,16 +139,22 @@ trait PipelineStepMapper {
     * @return A expanded map or initialized case class.
     */
   private def handleMapParameter(map: Map[_, _], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
+    val workingMap = map.asInstanceOf[Map[String, Any]]
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
       implicit val formats: Formats = DefaultFormats
-      DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(map.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get)
+      // Skip the embedded variable mapping if this is a step-group pipeline parameter
+      if (workingMap.getOrElse("category", "pipeline").asInstanceOf[String] == "step-group") {
+        DriverUtils.parseJson(Serialization.write(workingMap), parameter.className.get)
+      } else {
+        DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(workingMap, pipelineContext)), parameter.className.get)
+      }
     } else {
-      mapEmbeddedVariables(map.asInstanceOf[Map[String, Any]], pipelineContext)
+      mapEmbeddedVariables(workingMap, pipelineContext)
     })
   }
 
   /**
-    * Provides variable mapping and case class intialization for list containing maps. Case class initialization is supported
+    * Provides variable mapping and case class initialization for list containing maps. Case class initialization is supported
     * if the className attribute is present.
     *
     * @param list      The list to expand.
@@ -165,6 +169,11 @@ trait PipelineStepMapper {
         DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get))
     } else if (list.head.isInstanceOf[Map[_, _]]) {
       list.map(value => mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext))
+    } else if(list.nonEmpty) {
+      list.map {
+        case s: String if containsSpecialCharacters(s) => returnBestValue(s, Parameter(), pipelineContext)
+        case a: Any => a
+      }
     } else {
       list
     })
@@ -179,13 +188,17 @@ trait PipelineStepMapper {
   private def mapEmbeddedVariables(classMap: Map[String, Any], pipelineContext: PipelineContext): Map[String, Any] = {
     classMap.foldLeft(classMap)((map, entry) => {
       entry._2 match {
-        case s: String if specialCharacters.contains(s.headOption.getOrElse("")) =>
+        case s: String if containsSpecialCharacters(s) =>
           map + (entry._1 -> returnBestValue(s, Parameter(), pipelineContext))
         case m:  Map[_, _] =>
           map + (entry._1 -> mapEmbeddedVariables(m.asInstanceOf[Map[String, Any]], pipelineContext))
         case _ => map
       }
     })
+  }
+
+  private def containsSpecialCharacters(value: String): Boolean = {
+    "([!@$#])".r.findAllIn(value).nonEmpty
   }
 
   @tailrec
@@ -208,9 +221,35 @@ trait PipelineStepMapper {
   private def returnBestValue(value: String,
                               parameter: Parameter,
                               pipelineContext: PipelineContext): Option[Any] = {
-    // TODO Figure out how to walk the pipeline chain looking for values when pipelineId is not present and value is not part of current pipeline.
-    val pipelinePath = getPathValues(value, pipelineContext)
-    // TODO The first two cases need to call mapByType after the value has been returned
+    val embeddedVariables = "([!@$#]\\{.*?\\})".r.findAllIn(value).toList
+
+    if (embeddedVariables.nonEmpty) {
+      embeddedVariables.foldLeft(Option[Any](value))((finalValue, embeddedValue) => {
+        finalValue.get match {
+          case valueString: String =>
+            val pipelinePath = getPathValues(
+              embeddedValue.replaceAll("\\{", "").replaceAll("\\}", ""), pipelineContext)
+            val retVal = processValue(parameter, pipelineContext, pipelinePath)
+            if (retVal.isEmpty && finalValue.get.isInstanceOf[String]) {
+              Some(valueString.replace(embeddedValue, "None"))
+            } else {
+              if (retVal.get.isInstanceOf[java.lang.Number] || retVal.get.isInstanceOf[String] || retVal.get.isInstanceOf[java.lang.Boolean]) {
+                Some(valueString.replace(embeddedValue, retVal.get.toString))
+              } else {
+                retVal
+              }
+            }
+          case _ =>
+            logger.warn(s"Value for $embeddedValue is an object. String concatenation will be ignored.")
+            finalValue
+        }
+      })
+    } else {
+      processValue(parameter, pipelineContext, getPathValues(value, pipelineContext))
+    }
+  }
+
+  private def processValue(parameter: Parameter, pipelineContext: PipelineContext, pipelinePath: PipelinePath) = {
     pipelinePath.mainValue match {
       case p if List('@', '#').contains(p.headOption.getOrElse("")) => getPipelineParameterValue(pipelinePath, pipelineContext)
       case r if r.startsWith("$") => mapRuntimeParameter(pipelinePath, parameter, pipelineContext)

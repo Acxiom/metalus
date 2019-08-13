@@ -216,7 +216,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution4.parents.isEmpty)
     // Verify the globals object was properly merged
     val globals = ctx3.globals.get
-    assert(globals.size == 6)
+    assert(globals.size == 7)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("number"))
@@ -295,27 +295,19 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
   private def verifySecondExecution(execution2: PipelineExecution) = {
     val ctx2 = execution2.pipelineContext
-    // Ensure the id is set properly
     assert(execution2.id == "1")
-    // Second execution uses the listener defined for it
     assert(ctx2.pipelineListener.get.isInstanceOf[TestPipelineListener])
     assert(ctx2.pipelineListener.get.asInstanceOf[TestPipelineListener].name == "Sub Pipeline Listener")
-    // Use a global security manager
     assert(ctx2.security.asInstanceOf[TestPipelineSecurityManager].name == "Test Security Manager")
-    // Use the custom pipeline parameters
     assert(ctx2.parameters.parameters.length == 1)
     assert(ctx2.parameters.parameters.head.parameters.getOrElse("howard", "") == "johnson")
-    // Use the custom step mapper
     assert(ctx2.parameterMapper.asInstanceOf[TestPipelineStepMapper].name == "Sub Step Mapper")
-    // Validate the correct pipeline is set
     assert(execution2.pipelines.head.name.getOrElse("") == "Pipeline 2")
     verifyMappedParameter(execution2)
-    // Ensure the correct parent
     assert(execution2.parents.isDefined)
     assert(execution2.parents.get.head == "0")
-    // Verify the globals object was properly constructed
     val globals1 = ctx2.globals.get
-    assert(globals1.size == 5)
+    assert(globals1.size == 6)
     assert(globals1.contains("rootLogLevel"))
     assert(globals1.contains("rootLogLevel"))
     assert(globals1.contains("number"))
@@ -331,7 +323,15 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(subGlobalObject1.subObjects.get.length == 2)
     assert(subGlobalObject1.subObjects.get.head.name.getOrElse("") == "Sub Object 1")
     assert(subGlobalObject1.subObjects.get(1).name.getOrElse("") == "Sub Object 2")
-    // Verify the PipelineParameters object was set properly
+    assert(globals1.contains("listMappedObjects"))
+    val listGlobalObjects = globals1("listMappedObjects").asInstanceOf[List[TestGlobalObject]]
+    assert(listGlobalObjects.nonEmpty)
+    val listGlobalObject = listGlobalObjects.head
+    assert(listGlobalObject.name.getOrElse("") == "Global Mapped Object in a list")
+    assert(listGlobalObject.subObjects.isDefined)
+    assert(listGlobalObject.subObjects.get.length == 2)
+    assert(listGlobalObject.subObjects.get.head.name.getOrElse("") == "Sub Object 1")
+    assert(listGlobalObject.subObjects.get(1).name.getOrElse("") == "Sub Object 2")
     assert(ctx2.parameters.parameters.length == 1)
     assert(ctx2.parameters.parameters.length == 1)
     assert(ctx2.parameters.hasPipelineParameters("Pipeline2"))

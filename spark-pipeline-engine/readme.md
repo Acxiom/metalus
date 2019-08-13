@@ -19,6 +19,10 @@ with files on different file systems such as HDFS.
 #### DriverUtils
 This utility provides several functions to help in the creation of a custom *DriverSetup*
 
+### Execution Audits
+Basic timing [audits](docs/executionaudits.md) are captured during execution that can be useful for troubleshooting or
+establishing trends. The *PipelineListener* allows adding additional information to each audit.
+
 ### Application
 The Application allows application developers the ability to assemble a Spark application by providing a JSON 
 configuration file and specifying the *ApplicationDriverSetup* during the call to 'spark-submit'.
@@ -66,7 +70,11 @@ to communicate back to the driver. Basic initialization should be
 Pipelines are a collection of steps that are executed in a specified order. Each pipeline contains one or more step 
 mappings that will be executed. The pipeline is the most basic construct that can be represented as an external 
 configuration. Using the *DriverUtils.parsePipelineJson* function, it is easy to convert a JSON representation into a 
-list of *Pipeline* case classes which can then be executed as part of the execution plan.
+list of *Pipeline* case classes which can then be executed as part of the execution plan. There are two categories 
+pipeline:
+
+* pipeline: this is the default
+* step-group: this indicates a pipeline designed to be embedded within a [step-group](docs/steps.md) in another pipeline
 
 This diagram describes the flow of an executing pipeline:
 
@@ -157,16 +165,34 @@ the syntax for *@* and *$* to specify any previous pipeline value. *Example: @p1
 Values may also be embedded. The user has the option to reference properties embedded in top level objects. Given an 
 object (obj) that contains a sub-object (subObj) which contains a name, the user could access the name field using this
 syntax:
-
-	$obj.subObj.name
+```json
+$obj.subObj.name
+```
 	
 Here is the object descried as JSON:
+```json
+{
+	"subObj": {
+		"name": "Spark"
+	}
+} 
+```
 
-	{
-		"subObj": {
-			"name": "Spark"
-		}
-	} 
+**Embedded Values and String Concatenation**
+
+The mapper also allows special values to be concatenated together in a parameter value. The special value must be wrapped
+in curly braces "{}". As an example, given the following string 
+```
+"some_string-${pipelineId.subObj.name}-another_string"
+ ```
+would return 
+```
+"some_string-Spark-another_string"
+```
+Multiple values may be embedded as long as the resulting value is a string, boolean
+or number. A return value of an object will log a warning and ignore string concatenation to return the object value.
+
+**Embedded Values in JSON**
 
 JSON object values may also be embedded as a pipeline step value. Two attributes must be provided in the JSON, 
 *className* and *object*. The *className* must be the fully qualified name of the case class to initialize and

@@ -85,6 +85,12 @@ case class DataFrameReaderOptions(format: String = "parquet",
                                   options: Option[Map[String, String]] = None,
                                   schema: Option[Schema] = None) {
 
+  def setSchema(schema: Schema): DataFrameReaderOptions = {
+    val old = this.schema.getOrElse(Schema(Seq()))
+    val newSchema = old.copy(attributes = old.attributes.filter(a => !schema.attributes.exists(na => na.name == a.name)) ++ schema.attributes)
+    this.copy(schema = Some(newSchema))
+  }
+
   def setOption(key: String, value: String): DataFrameReaderOptions = {
     this.copy(options = Some(this.options.getOrElse(Map()) + (key -> value)))
   }

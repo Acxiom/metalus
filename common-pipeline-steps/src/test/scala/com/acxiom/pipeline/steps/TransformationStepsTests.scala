@@ -1,12 +1,13 @@
 package com.acxiom.pipeline.steps
 
 import java.nio.file.{Files, Path}
+import java.util
 
 import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{Row, SparkSession}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 
 class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
@@ -77,12 +78,12 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
 
       val dfSchema = Schema(
         Seq(
-          Attribute("   id", "Integer"),
-          Attribute("first_name", "String"),
-          Attribute("last_name", "String"),
-          Attribute("zip", "String"),
-          Attribute("amount", "Double"),
-          Attribute("age #", "Integer")
+          Attribute("   id", AttributeType("Integer")),
+          Attribute("first_name", AttributeType("String")),
+          Attribute("last_name", AttributeType("String")),
+          Attribute("zip", AttributeType("String")),
+          Attribute("amount", AttributeType("Double")),
+          Attribute("age #", AttributeType("Integer"))
         )
       )
 
@@ -265,6 +266,48 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       When("transforms are empty, expect dataFrame to be returned unchanged with no errors")
       val noTransformsDF = TransformationSteps.applyTransforms(df, Transformations(List()))
       assert(noTransformsDF.count == df.count)
+    }
+  }
+
+  describe("Schema Tests") {
+    it("Should represent complex types") {
+      val struct = Schema(Seq(Attribute("name", "string"), Attribute("breed", "string"), Attribute("toes", "integer")))
+      val map: Attribute = Attribute("chickens", AttributeType("map",
+        nameType = Some(AttributeType("string")),
+        valueType = Some(AttributeType("struct", schema = Some(struct))))
+      )
+      val array: Attribute = Attribute("numbers", AttributeType("array", valueType = Some(AttributeType("integer"))))
+      val schema = Schema(Seq(map, array)).toStructType()
+      val rdd = sparkSession.sparkContext.parallelize(Seq(Row(Map("cogburn" -> Row("cogburn", "game cock", 3)), List(1, 2, 3))))
+      val df = sparkSession.createDataFrame(rdd, schema)
+      val result = df.selectExpr(
+        "chickens['cogburn'].breed AS breed",
+        "chickens['cogburn'].toes AS toes",
+        "numbers[1] AS number"
+      )
+        .collect()
+        .head
+      assert(result.getAs[String]("breed") == "game cock")
+      assert(result.getAs[Int]("toes") == 3)
+      assert(result.getAs[Int]("number") == 2)
+    }
+
+    it("Should be buildable from a StructType") {
+      val sql = "select 1 as id, array('1', '2', '3') as list, named_struct('name', 'chicken') as chicken, map('chickens', current_timestamp()) as simpleMap"
+      val df = sparkSession.sql(sql)
+      val attributes = Schema.fromStructType(df.schema).attributes
+
+      assert(attributes.exists(a => a.name == "id" && a.dataType.baseType == "integer"))
+      assert(attributes.exists(a => a.name == "list" && a.dataType.baseType == "array"
+        && a.dataType.valueType.getOrElse(AttributeType("int")).baseType == "string"))
+      assert(attributes.exists(a => a.name == "simpleMap" && a.dataType.baseType == "map"
+        && a.dataType.nameType.getOrElse(AttributeType("")).baseType == "string"
+        && a.dataType.valueType.getOrElse(AttributeType("")).baseType == "timestamp")
+      )
+      val chicken = attributes.find(a => a.name == "chicken")
+      assert(chicken.isDefined && chicken.get.dataType.baseType == "struct" && chicken.get.dataType.schema.isDefined)
+      val chickenAttribute = chicken.get.dataType.schema.get.attributes.head
+      assert(chickenAttribute.name == "name" && chickenAttribute.dataType.baseType == "string")
     }
   }
 

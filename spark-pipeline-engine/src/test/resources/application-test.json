@@ -54,7 +54,7 @@
         {
           "id": "Pipeline1Step1",
           "displayName": "Pipeline1Step1",
-          "type": "preload",
+          "type": "pipeline",
           "params": [
             {
               "type": "text",
@@ -76,7 +76,7 @@
         {
           "id": "Pipeline2Step1",
           "displayName": "Pipeline2Step1",
-          "type": "preload",
+          "type": "pipeline",
           "params": [
             {
               "type": "text",
@@ -126,7 +126,23 @@
           }
         ]
       }
-    }
+    },
+    "listMappedObjects": [
+      {
+        "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+        "object": {
+          "name": "Global Mapped Object in a list",
+          "subObjects": [
+            {
+              "name": "Sub Object 1"
+            },
+            {
+              "name": "Sub Object 2"
+            }
+          ]
+        }
+      }
+    ]
   },
   "executions": [
     {
@@ -171,7 +187,7 @@
             {
               "id": "Pipeline2Step1",
               "displayName": "Pipeline2Step1",
-              "type": "preload",
+              "type": "pipeline",
               "params": [
                 {
                   "type": "text",
@@ -239,7 +255,7 @@
           {
             "id": "Pipeline1Step1",
             "displayName": "Pipeline1Step1",
-            "type": "preload",
+            "type": "pipeline",
             "params": [
               {
                 "type": "text",
