@@ -14,7 +14,7 @@
             {
               "id": "Pipeline1Step1",
               "displayName": "Pipeline1Step1",
-              "type": "preload",
+              "type": "pipeline",
               "params": [
                 {
                   "type": "text",
@@ -41,7 +41,7 @@
             {
               "id": "Pipeline2Step1",
               "displayName": "Pipeline2Step1",
-              "type": "preload",
+              "type": "pipeline",
               "params": [
                 {
                   "type": "text",

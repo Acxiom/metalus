@@ -16,13 +16,25 @@ annotation to the step function as a way to describe the usage of the step. The 
 GUID. Using the *StepMetaDataExtractor* object, it is possible to convert all known steps to JSON metadata. This feature
 currently only works against classes and not against jars.
 
+## Globals
+Due to the immutability of the PipelineContext, a step does not have the ability to directly add a global. An indirect 
+mechanism is provided using the *namedReturns* of a *PipelineStepResponse* to mark the entries. As each step response
+is processed, the *namedReturns* key names are scanned for entries that begin with **"$globals."** and then placed in the
+globals object under the key name with the **"$globals."** prefix is stripped off. Existing global values for that key will 
+be replaced and a warning logged.
+
+### Fork Join Step Behavior
+Steps that update global while in the middle of a fork, will have the results attached to the globals within that fork.
+However these global values will not be present in the globals after the join step.
+
+## Step Types
 The library provides several step types to make building applications easier.
 
-## Pipeline
+### Pipeline
 This is the most common step type used to perform work in the pipeline. When defining this type of step, the type should
 be "Pipeline".
 
-## Branch
+### Branch
 The branch type step provides a **decision** point in the flow of a pipeline. This step adds a new parameter type of **result**
 that is used to determine the **nextStepId**. The logic in the step function must return a value that may be matched to 
 one of the parameters by name. As an example, if there are three *result* type parameters defined ("One", "Two", "Three"),
@@ -30,11 +42,25 @@ then the output of the branch step, must be either "One", "Two" or "Three" in or
 is no match, then processing for that pipeline will stop normally. When defining this type of step, the type should
 be "branch".
 
-## Fork/Join
+### Step Group
+The step-group type step provides a mechanism for embedding pipelines within another pipeline. This feature is in place
+to leverage building smaller reusable pipelines that can be shared across other pipelines. The pipeline will be provided 
+with a pipeline context with no pipeline parameters and globals that are only populated with the values from the 
+pipelineMappings parameter. There are two parameters for a step-group:
+
+#### pipeline
+This parameter is required and can contain either a string with expansion variable or a map with the proper pipeline 
+layout. The "className" attribute must be set when using a map.
+
+#### pipelineMappings
+This optional parameter provides a mechanism for mapping values from the outer pipeline to the globals object accessible 
+to the embedded pipeline.
+
+### Fork/Join
 The fork and join step types are simple constructs that allow processing a list of data in a loop like construct and then 
 joining the results back for further processing.
 
-### Fork
+#### Fork
 A fork type step allows running a set of steps against a list of data simulating looping behavior. There are two ways
 to process the data: *serial* or *parallel*. Serial will process the data one entry at a time, but all values will be 
 processed regardless of errors. Parallel will attempt to run each value at the same time depending on the available 
@@ -52,7 +78,7 @@ parameters are:
 The first step in the set to be used during fork processing should reference the *id* of the fork step to access the 
 data from the list.
 
-### Join
+#### Join
 A join type step is used to **join** the executions of the fork step to continue processing in a linear manner. This step 
 type requires a fork step. A join step is not required if all of the remaining steps in the pipeline are to be used to 
 process each value in the list. Without a join step, the driver will automatically join the step values and then complete

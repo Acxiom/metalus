@@ -113,5 +113,4 @@ class ScalaStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       assert(df.schema.fields.length == 7)
     }
   }
-
 }

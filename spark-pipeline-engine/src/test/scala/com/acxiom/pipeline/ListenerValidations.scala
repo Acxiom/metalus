@@ -10,10 +10,5 @@ class ListenerValidations {
     results += result
   }
 
-  def validate(expectedValidations: Int = -1): Unit = {
-    if (expectedValidations > -1) {
-      assert(expectedValidations == results.length, "Expected validations count does not match")
-    }
-    results.foreach(result => assert(result._2, result._1))
-  }
+  def validate(): Unit = results.foreach(result => assert(result._2, result._1))
 }

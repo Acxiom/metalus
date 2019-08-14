@@ -1,18 +1,51 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.steps.TransformationSteps.cleanColumnName
-import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
+import org.apache.spark.sql.types._
 
-case class Attribute(name: String, dataType: String) {
-  def toStructField: StructField = {
-    val dataType = this.dataType.toLowerCase match {
+case class Attribute(name: String, dataType: AttributeType) {
+  def toStructField(transforms: Option[Transformations] = None): StructField = {
+    StructField(this.name, dataType.toDataType(transforms))
+  }
+}
+
+object Attribute {
+  def fromStructField(field: StructField): Attribute = {
+    Attribute(field.name, AttributeType.fromDataType(field.dataType))
+  }
+
+  def apply(name: String, dataType: String): Attribute = new Attribute(name, AttributeType(dataType))
+}
+
+case class AttributeType(baseType: String, valueType: Option[AttributeType] = None, nameType: Option[AttributeType] = None, schema: Option[Schema] = None) {
+  def toDataType(transforms: Option[Transformations] = None): DataType = {
+    baseType.toLowerCase match {
+      case "struct" => schema.getOrElse(Schema(Seq())).toStructType(transforms.getOrElse(Transformations(List())))
+      case "array" =>
+        DataTypes.createArrayType(if (valueType.isDefined) valueType.get.toDataType() else DataTypes.StringType)
+      case "map" =>
+        DataTypes.createMapType(nameType.getOrElse(AttributeType("string")).toDataType(), valueType.getOrElse(AttributeType("string")).toDataType())
       case "string" => DataTypes.StringType
       case "double" => DataTypes.DoubleType
       case "integer" => DataTypes.IntegerType
       case "timestamp" => DataTypes.TimestampType
+      case "decimal" => DataTypes.createDecimalType()
       case _ => DataTypes.StringType
     }
-    StructField(this.name, dataType)
+  }
+}
+
+object AttributeType {
+  def fromDataType(dataType: DataType): AttributeType = {
+    dataType.typeName match {
+      case "struct" => AttributeType(dataType.typeName, schema = Some(Schema.fromStructType(dataType.asInstanceOf[StructType])))
+      case "array" => AttributeType(dataType.typeName, valueType = Some(fromDataType(dataType.asInstanceOf[ArrayType].elementType)))
+      case "map" => val mapType = dataType.asInstanceOf[MapType]
+        val keyType = AttributeType(mapType.keyType.typeName, Some(fromDataType(mapType.keyType)))
+        val valueType = AttributeType(mapType.valueType.typeName, Some(fromDataType(mapType.valueType)))
+        AttributeType(dataType.typeName, nameType=Some(keyType), valueType=Some(valueType))
+      case _ => AttributeType(dataType.typeName)
+    }
   }
 }
 
@@ -20,11 +53,16 @@ case class Schema(attributes: Seq[Attribute]) {
   def toStructType(transforms: Transformations = Transformations(List())): StructType = {
     StructType(attributes.map(a => {
       if (transforms.standardizeColumnNames.getOrElse(false)) {
-        a.toStructField.copy(name = cleanColumnName(a.name))
+        a.toStructField().copy(name = cleanColumnName(a.name))
       } else {
-        a.toStructField
+        a.toStructField()
       }
     }))
   }
 }
 
+object Schema {
+  def fromStructType(struct: StructType): Schema = {
+    Schema(struct.fields.map(f => Attribute.fromStructField(f)))
+  }
+}
