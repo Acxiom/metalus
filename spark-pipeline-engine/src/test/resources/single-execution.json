@@ -7,6 +7,9 @@
     {
       "id": "0",
       "parents": [],
+      "globals": {
+        "listOfStrings": ["silkie", "leghorn", "onagadori"]
+      },
       "pipelines": [
         {
           "id": "Pipeline1",
