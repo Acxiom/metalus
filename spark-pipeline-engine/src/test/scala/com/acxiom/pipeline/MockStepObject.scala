@@ -34,6 +34,10 @@ object MockStepObject {
   def mockExceptionStepFunction(string: String): PipelineStepResponse = {
     throw new IllegalArgumentException(s"exception thrown for string value ($string)")
   }
+
+  def mockStepSetGlobal(string: String, globalName: String): PipelineStepResponse = {
+    PipelineStepResponse(Some(string), Some(Map[String, Any]("$globals." + globalName -> string)))
+  }
 }
 
 case class MockClass(string: String)
