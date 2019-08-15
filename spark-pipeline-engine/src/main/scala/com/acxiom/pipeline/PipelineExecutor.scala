@@ -89,6 +89,8 @@ object PipelineExecutor {
     }
   }
 
+  private val STEPGROUP = "step-group"
+
   @tailrec
   private def executeStep(step: PipelineStep, pipeline: Pipeline, steps: Map[String, PipelineStep],
                           pipelineContext: PipelineContext): PipelineContext = {
@@ -99,7 +101,7 @@ object PipelineExecutor {
     val result = step.executeIfEmpty.getOrElse("") match {
       // process step normally if empty
       case "" if step.`type`.getOrElse("") == "fork" => processForkStep(step, pipeline, steps, parameterValues, pipelineContext)
-      case "" if step.`type`.getOrElse("") == "step-group" => processStepGroup(step, pipeline, steps, parameterValues, pipelineContext)
+      case "" if step.`type`.getOrElse("") == STEPGROUP => processStepGroup(step, pipeline, steps, parameterValues, pipelineContext)
       case "" => ReflectionUtils.processStep(step, pipeline, parameterValues, ssContext)
       case value: String =>
         logger.debug(s"Evaluating execute if empty: $value")
@@ -155,7 +157,7 @@ object PipelineExecutor {
         }
       case "fork" => validateForkStep(step, pipeline)
       case "join" =>
-      case "step-group" =>
+      case STEPGROUP =>
         if(step.params.isEmpty || !step.params.get.exists(p => p.name.getOrElse("") == "pipeline")) {
           throw PipelineException(
             message = Some(s"Parameter [pipeline] is required for step group [${step.id.get}] in pipeline [${pipeline.id.get}]."),
@@ -213,7 +215,7 @@ object PipelineExecutor {
     val groupId = pipelineContext.getGlobalString("groupId")
     val ctx = step match {
       case PipelineStep(_, _, _, Some("fork"), _, _, _, _) => result.asInstanceOf[ForkStepResult].pipelineContext
-      case PipelineStep(_, _, _, Some("step-group"), _, _, _, _) =>
+      case PipelineStep(_, _, _, Some(STEPGROUP), _, _, _, _) =>
         val groupResult = result.asInstanceOf[StepGroupResult]
         val updatedCtx = pipelineContext.setStepAudit(pipelineId, groupResult.audit)
           .setParameterByPipelineId(pipelineId, step.id.getOrElse(""), groupResult.pipelineStepResponse)
