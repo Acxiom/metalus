@@ -168,12 +168,16 @@ object ApplicationUtils {
           case map: Map[String, Any] if map.contains("className") =>
             val obj = DriverUtils.parseJson(Serialization.write(map("object").asInstanceOf[Map[String, Any]]), map("className").asInstanceOf[String])
             rootMap + (entry._1 -> obj)
-          case listMap: List[Map[String, Any]] =>
-            val obj = listMap.map(m => {
-              if (m.contains("className")) {
-                DriverUtils.parseJson(Serialization.write(m("object").asInstanceOf[Map[String, Any]]), m("className").asInstanceOf[String])
-              } else { m }
-            })
+          case listMap: List[Any] =>
+            val obj = listMap.map {
+              case m: Map[String, Any] =>
+                if (m.contains("className")) {
+                  DriverUtils.parseJson(Serialization.write(m("object").asInstanceOf[Map[String, Any]]), m("className").asInstanceOf[String])
+                } else {
+                  m
+                }
+              case any => any
+            }
             rootMap + (entry._1 -> obj)
           case _ => rootMap + (entry._1 -> entry._2)
         }
