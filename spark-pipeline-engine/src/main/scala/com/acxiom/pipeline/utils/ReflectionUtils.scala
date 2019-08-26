@@ -234,9 +234,10 @@ object ReflectionUtils {
                                           funcName: String,
                                           stepId: Option[String],
                                           pipelineId: Option[String]): Unit = {
-    if (!(isOption && value.asInstanceOf[Option[_]].isEmpty)) {
+    val paramType = if (isOption) param.typeSignature.typeArgs.head else param.typeSignature
+    if (!(isOption && value.asInstanceOf[Option[_]].isEmpty) && paramType.toString.toLowerCase != "any") {
       val finalValue = if (isOption) value.asInstanceOf[Option[_]].get else value
-      val paramClass = runtimeMirror.runtimeClass(if (isOption) param.typeSignature.typeArgs.head else param.typeSignature)
+      val paramClass = runtimeMirror.runtimeClass(paramType)
       val isAssignable = finalValue match {
         case b: java.lang.Boolean => paramClass.isAssignableFrom(b.asInstanceOf[Boolean].getClass)
         case i: java.lang.Integer => paramClass.isAssignableFrom(i.asInstanceOf[Int].getClass)

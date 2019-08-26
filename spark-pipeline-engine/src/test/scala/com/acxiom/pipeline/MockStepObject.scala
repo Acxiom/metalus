@@ -23,7 +23,7 @@ object MockStepObject {
     list.getOrElse(List("chicken")).headOption.getOrElse("chicken")
   }
 
-  def mockStepFunctionWithPrimitives(i: Int, l: Long, d: Double, f: Float, c: Char, by: Option[Byte], s: Short): Int ={
+  def mockStepFunctionWithPrimitives(i: Int, l: Long, d: Double, f: Float, c: Char, by: Option[Byte], s: Short, a: Any): Int ={
     i
   }
 
