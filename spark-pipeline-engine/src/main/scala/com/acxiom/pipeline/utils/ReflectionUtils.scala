@@ -17,7 +17,7 @@ object ReflectionUtils {
   /**
     * This function will attempt to find and instantiate the named class with the given parameters.
     *
-    * @param className The fully qualified class name
+    * @param className  The fully qualified class name
     * @param parameters The parameters to pass to the constructor or None
     * @return An instantiated class.
     */
@@ -96,10 +96,11 @@ object ReflectionUtils {
 
   /**
     * execute a function on an existing object by providing the function name and parameters (in expected order)
-    * @param obj        the object with the function that needs to be run
-    * @param funcName   the name of the function on the object to run
-    * @param params     the parameters required for the function (in proper order)
-    * @return     the results of the executed function
+    *
+    * @param obj      the object with the function that needs to be run
+    * @param funcName the name of the function on the object to run
+    * @param params   the parameters required for the function (in proper order)
+    * @return the results of the executed function
     */
   def executeFunctionByName(obj: Any, funcName: String, params: List[Any]): Any = {
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
@@ -215,7 +216,7 @@ object ReflectionUtils {
 
       val finalValueType = finalValue match {
         case v: Option[_] =>
-          if(v.asInstanceOf[Option[_]].isEmpty) "None" else s"Some(${v.asInstanceOf[Option[_]].get.getClass.getSimpleName})"
+          if (v.asInstanceOf[Option[_]].isEmpty) "None" else s"Some(${v.asInstanceOf[Option[_]].get.getClass.getSimpleName})"
         case _ => finalValue.getClass.getSimpleName
       }
       validateParamTypeAssignment(runtimeMirror, param, optionType, finalValue, finalValueType, funcName, stepId, pipelineId)
@@ -235,27 +236,31 @@ object ReflectionUtils {
                                           stepId: Option[String],
                                           pipelineId: Option[String]): Unit = {
     val paramType = if (isOption) param.typeSignature.typeArgs.head else param.typeSignature
-    if (!(isOption && value.asInstanceOf[Option[_]].isEmpty) && paramType.toString.toLowerCase != "any") {
+    if (!(isOption && value.asInstanceOf[Option[_]].isEmpty) && !(paramType =:= typeOf[Any])) {
       val finalValue = if (isOption) value.asInstanceOf[Option[_]].get else value
       val paramClass = runtimeMirror.runtimeClass(paramType)
-      val isAssignable = finalValue match {
-        case b: java.lang.Boolean => paramClass.isAssignableFrom(b.asInstanceOf[Boolean].getClass)
-        case i: java.lang.Integer => paramClass.isAssignableFrom(i.asInstanceOf[Int].getClass)
-        case l: java.lang.Long => paramClass.isAssignableFrom(l.asInstanceOf[Long].getClass)
-        case s: java.lang.Short => paramClass.isAssignableFrom(s.asInstanceOf[Short].getClass)
-        case c: java.lang.Character => paramClass.isAssignableFrom(c.asInstanceOf[Char].getClass)
-        case d: java.lang.Double => paramClass.isAssignableFrom(d.asInstanceOf[Double].getClass)
-        case f: java.lang.Float => paramClass.isAssignableFrom(f.asInstanceOf[Float].getClass)
-        case by: java.lang.Byte => paramClass.isAssignableFrom(by.asInstanceOf[Byte].getClass)
-        case _ => paramClass.isAssignableFrom(finalValue.getClass)
-      }
+      val isAssignable = isAssignableFrom(paramClass, finalValue)
       if (!isAssignable) {
-        val stepMessage = if(stepId.isDefined) s"in step [${stepId.get}]" else ""
-        val pipelineMessage = if(pipelineId.isDefined) s"in pipeline [${pipelineId.get}]" else ""
+        val stepMessage = if (stepId.isDefined) s"in step [${stepId.get}]" else ""
+        val pipelineMessage = if (pipelineId.isDefined) s"in pipeline [${pipelineId.get}]" else ""
         val message = s"Failed to map value [$value] of type [$valueType] to paramName [${param.name.toString}] of" +
           s" type [${param.typeSignature}] for method [$funcName] $stepMessage $pipelineMessage"
         throw PipelineException(message = Some(message), stepId = stepId, pipelineId = pipelineId)
       }
+    }
+  }
+
+  private def isAssignableFrom(paramClass: Class[_], value: Any): Boolean = {
+    value match {
+      case b: java.lang.Boolean => paramClass.isAssignableFrom(b.asInstanceOf[Boolean].getClass)
+      case i: java.lang.Integer => paramClass.isAssignableFrom(i.asInstanceOf[Int].getClass)
+      case l: java.lang.Long => paramClass.isAssignableFrom(l.asInstanceOf[Long].getClass)
+      case s: java.lang.Short => paramClass.isAssignableFrom(s.asInstanceOf[Short].getClass)
+      case c: java.lang.Character => paramClass.isAssignableFrom(c.asInstanceOf[Char].getClass)
+      case d: java.lang.Double => paramClass.isAssignableFrom(d.asInstanceOf[Double].getClass)
+      case f: java.lang.Float => paramClass.isAssignableFrom(f.asInstanceOf[Float].getClass)
+      case by: java.lang.Byte => paramClass.isAssignableFrom(by.asInstanceOf[Byte].getClass)
+      case _ => paramClass.isAssignableFrom(value.getClass)
     }
   }
 
