@@ -82,7 +82,8 @@ class ReflectionUtilsTests extends FunSpec {
         "d" -> 1.0D,
         "f" -> 1.0F,
         "c" -> '1',
-        "by" -> 1.toByte.asInstanceOf[java.lang.Byte]
+        "by" -> 1.toByte.asInstanceOf[java.lang.Byte],
+        "a" -> "anyValue"
       )
       val response = ReflectionUtils.processStep(step, pipeline, map, pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
