@@ -245,7 +245,7 @@ trait PipelineStepMapper {
         }
       })
     } else {
-      processValue(parameter, pipelineContext, getPathValues(value, pipelineContext))
+      processValue(parameter, pipelineContext, PipelinePath(None, value, None))
     }
   }
 

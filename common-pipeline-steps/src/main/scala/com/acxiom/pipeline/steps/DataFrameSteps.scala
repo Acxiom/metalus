@@ -56,18 +56,18 @@ object DataFrameSteps {
       .mode(options.saveMode)
       .options(options.options.getOrElse(Map[String, String]()))
 
-    val w1 = if (options.bucketingOptions.isDefined) {
+    val w1 = if (options.bucketingOptions.isDefined && options.bucketingOptions.get.columns.nonEmpty) {
       val bucketingOptions = options.bucketingOptions.get
       writer.bucketBy(bucketingOptions.numBuckets, bucketingOptions.columns.head, bucketingOptions.columns.drop(1): _*)
     } else {
       writer
     }
-    val w2 = if (options.partitionBy.isDefined) {
+    val w2 = if (options.partitionBy.isDefined && options.partitionBy.get.nonEmpty) {
       w1.partitionBy(options.partitionBy.get: _*)
     } else {
       w1
     }
-    if (options.sortBy.isDefined) {
+    if (options.sortBy.isDefined && options.sortBy.get.nonEmpty) {
       val sortBy = options.sortBy.get
       w2.sortBy(sortBy.head, sortBy.drop(1): _*)
     } else {

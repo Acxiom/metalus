@@ -146,19 +146,22 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
             Parameter(name = Some("One"), value=Some(classMap), className = Some("com.acxiom.pipeline.ParameterTest")),
             Parameter(name = Some("Two"), value=Some("15"),`type`=Some("integer")),
             Parameter(name = Some("Three")),
-            Parameter(name = Some("Four"), defaultValue = Some("Four default"))))),
+            Parameter(name = Some("Four"), defaultValue = Some("Four default")),
+            Parameter(name = Some("Five"), value=Some("silkie.chicken@chickens.com"))))),
         pipelineContext)
-      assert(parameterMap.size == 4)
+      assert(parameterMap.size == 5)
       assert(parameterMap.contains("One"))
       assert(parameterMap.contains("Two"))
       assert(parameterMap.contains("Three"))
       assert(parameterMap.contains("Four"))
+      assert(parameterMap.contains("Five"))
       assert(parameterMap("One").isInstanceOf[ParameterTest])
       assert(parameterMap("One").asInstanceOf[ParameterTest].string.getOrElse("") == "fred")
       assert(parameterMap("One").asInstanceOf[ParameterTest].num.getOrElse(0) == 3)
       assert(parameterMap("Two").asInstanceOf[Int] == 15)
       assert(parameterMap("Three").asInstanceOf[Option[_]].isEmpty)
       assert(parameterMap("Four").asInstanceOf[String] == "Four default")
+      assert(parameterMap("Five").asInstanceOf[String] == "silkie.chicken@chickens.com")
     }
 
     it("Should create object with variables") {
