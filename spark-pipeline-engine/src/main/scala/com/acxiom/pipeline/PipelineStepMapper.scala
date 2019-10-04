@@ -245,7 +245,7 @@ trait PipelineStepMapper {
         }
       })
     } else {
-      processValue(parameter, pipelineContext, PipelinePath(None, value, None))
+      processValue(parameter, pipelineContext, getPathValues(value, pipelineContext))
     }
   }
 
@@ -303,9 +303,9 @@ trait PipelineStepMapper {
   }
 
   private def getPathValues(value: String, pipelineContext: PipelineContext): PipelinePath = {
-    if (value.contains('.')) {
+    val special = getSpecialCharacter(value)
+    if (value.contains('.') && special.nonEmpty) {
       // Check for the special character
-      val special = getSpecialCharacter(value)
       val pipelineId = value.substring(0, value.indexOf('.')).substring(1)
       val paths = value.split('.')
       if (pipelineContext.parameters.hasPipelineParameters(pipelineId)) {
