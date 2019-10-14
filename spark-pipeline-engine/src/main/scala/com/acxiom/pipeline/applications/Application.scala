@@ -15,6 +15,7 @@ import com.acxiom.pipeline.{DefaultPipeline, PipelineParameters}
   * @param pipelineParameters A default set of pipeline parameters to make available while processing
   * @param sparkConf          Configuration items to set on the SparkConf when it is created.
   * @param requiredParameters A list of parameter names that must be present
+  * @param pipelineManager    An alternate pipeline manager class to use while processing
   */
 case class Application(executions: Option[List[Execution]],
                        stepPackages: Option[List[String]],
@@ -26,7 +27,8 @@ case class Application(executions: Option[List[Execution]],
                        stepMapper: Option[ClassInfo] = None,
                        pipelineParameters: Option[PipelineParameters] = None,
                        sparkConf: Option[Map[String, Any]] = None,
-                       requiredParameters: Option[List[String]] = None)
+                       requiredParameters: Option[List[String]] = None,
+                       pipelineManager: Option[ClassInfo] = None)
 
 /**
   * Represents a single execution of a Spark application

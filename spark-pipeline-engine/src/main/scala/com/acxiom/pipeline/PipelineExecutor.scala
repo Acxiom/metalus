@@ -158,9 +158,10 @@ object PipelineExecutor {
       case "fork" => validateForkStep(step, pipeline)
       case "join" =>
       case STEPGROUP =>
-        if(step.params.isEmpty || !step.params.get.exists(p => p.name.getOrElse("") == "pipeline")) {
+        if(step.params.isEmpty ||
+          !step.params.get.exists(p => p.name.getOrElse("") == "pipeline" || p.name.getOrElse("") == "pipelineId")) {
           throw PipelineException(
-            message = Some(s"Parameter [pipeline] is required for step group [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+            message = Some(s"Parameter [pipeline] or [pipelineId] is required for step group [${step.id.get}] in pipeline [${pipeline.id.get}]."),
             pipelineId = pipeline.id,
             stepId = step.id)
         }
@@ -312,12 +313,15 @@ object PipelineExecutor {
     ex
   }
 
-  private def processStepGroup(step: PipelineStep,
-                               pipeline: Pipeline,
-                               steps: Map[String, PipelineStep],
-                               parameterValues: Map[String, Any],
-                               pipelineContext: PipelineContext): StepGroupResult = {
-    val subPipeline = parameterValues("pipeline").asInstanceOf[Pipeline]
+  private def processStepGroup(step: PipelineStep, pipeline: Pipeline, steps: Map[String, PipelineStep],
+                               parameterValues: Map[String, Any], pipelineContext: PipelineContext): StepGroupResult = {
+    val subPipeline =if (parameterValues.contains("pipelineId")) {
+      pipelineContext.pipelineManager.getPipeline(parameterValues("pipelineId").toString)
+        .getOrElse(throw PipelineException(message = Some(s"Unable to retrieve required step group id ${parameterValues("pipelineId")}"),
+          pipelineId = pipeline.id, stepId = step.id))
+    } else {
+      parameterValues("pipeline").asInstanceOf[Pipeline]
+    }
     val firstStep = subPipeline.steps.get.head
     val stepLookup = createStepLookup(subPipeline)
     val pipelineId = pipeline.id.getOrElse("")
@@ -334,7 +338,6 @@ object PipelineExecutor {
       .setGlobal("groupId", s"$pipelineId::$stepId")
       .setRootAudit(pipelineContext.getStepAudit(pipelineId, stepId, groupId).get.setChildAudit(pipelineAudit))
       .copy(parameters = PipelineParameters(List(PipelineParameter(subPipeline.id.getOrElse(""), Map[String, Any]()))))
-
     val resultCtx = executeStep(firstStep, subPipeline, stepLookup, ctx)
     val pipelineParams = resultCtx.parameters.getParametersByPipelineId(subPipeline.id.getOrElse(""))
     val response = if (pipelineParams.isDefined) {

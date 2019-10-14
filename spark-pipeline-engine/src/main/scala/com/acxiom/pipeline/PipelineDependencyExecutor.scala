@@ -2,14 +2,13 @@ package com.acxiom.pipeline
 
 import java.util.UUID
 
-import com.acxiom.pipeline.audits.{ExecutionAudit, AuditType}
 import org.apache.log4j.Logger
 
 import scala.annotation.tailrec
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 object PipelineDependencyExecutor {
   val logger: Logger = Logger.getLogger(getClass)

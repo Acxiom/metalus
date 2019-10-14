@@ -65,6 +65,8 @@ specific to the application.
 * **Step Messages** - This is a Spark collection accumulator of *PipelineStepMessage* objects that allow remote executions
 to communicate back to the driver. Basic initialization should be 
 *```sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")```*.
+* **Root Audit** - This is the root [audit](docs/executionaudits.md) for the execution.
+* **Pipeline Manager** - This class manages access to pipelines that may be used by step groups during an execution.
 
 ### Pipelines
 Pipelines are a collection of steps that are executed in a specified order. Each pipeline contains one or more step 
@@ -102,6 +104,13 @@ also needs to read data from the parquet table. However, since the second pipeli
 pipeline being executed, it will need a step that reads the data from the parquet table. By passing the DataFrame from 
 the first pipeline into the *executeIfEmpty* attribute, the step will only be executed if the the DataFrame is missing.
 This allows sharing the DAG across pipelines which will also allow Spark to perform optimizations.
+
+#### Step Groups
+A step-group is a step that executes another pipeline. The embedded pipeline will be executed in an isolated manner from 
+the main pipeline. A mappings parameter is used to populate the execution globals.
+
+##### Pipeline Manager
+The PipelineManager is an abstraction that provides access to pipelines that are used by step groups.
 
 #### Flow Control
 There are two ways to stop pipelines:
