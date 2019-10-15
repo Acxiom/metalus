@@ -58,6 +58,8 @@ trait JsonPipeline extends Pipeline {
   * @param parameterMapper  Used to map parameters to step functions
   * @param pipelineListener Used to communicate progress through the pipeline
   * @param stepMessages     Used for logging messages from steps.
+  * @param rootAudit        The base audit record
+  * @param pipelineManager  The PipelineManager to use for Step Groups.
   */
 case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            sparkSession: Option[SparkSession] = None,
@@ -68,7 +70,8 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            parameterMapper: PipelineStepMapper = PipelineStepMapper(),
                            pipelineListener: Option[PipelineListener] = Some(DefaultPipelineListener()),
                            stepMessages: Option[CollectionAccumulator[PipelineStepMessage]],
-                           rootAudit: ExecutionAudit = ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis())) {
+                           rootAudit: ExecutionAudit = ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
+                           pipelineManager: PipelineManager = PipelineManager(List())) {
   /**
     * Get the named global value as a string.
     *
