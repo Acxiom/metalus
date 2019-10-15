@@ -1,5 +1,7 @@
 package com.acxiom.pipeline.utils
 
+import java.util
+
 import com.acxiom.pipeline.{PipelineStepResponse, _}
 import org.scalatest.FunSpec
 
@@ -53,6 +55,16 @@ class ReflectionUtilsTests extends FunSpec {
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "chicken")
     }
 
+    it("Should wrap values in a List, Seq, or Array if passing a single element to a collection") {
+      val step = PipelineStep(None, None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithListParams"))))
+      val response = ReflectionUtils.processStep(step, pipeline,
+        Map[String, Any]("list" -> "l1", "seq" -> 1, "arrayList" -> new util.ArrayList()), pipelineContext)
+      assert(response.isInstanceOf[PipelineStepResponse])
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "Some(l1),Some(1),None")
+    }
+
     it("Should return an informative error if a step function is not found") {
       val step = PipelineStep(None, None, None, None, None,
         Some(EngineMeta(Some("MockStepObject.typo"))))
@@ -66,10 +78,10 @@ class ReflectionUtilsTests extends FunSpec {
       val step = PipelineStep(Some("chicken"), None, None, None, None,
         Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
       val thrown = intercept[PipelineException] {
-        ReflectionUtils.processStep(step, pipeline, Map[String, Any]("list" -> 1), pipelineContext)
+        ReflectionUtils.processStep(step, pipeline, Map[String, Any]("string" -> 1), pipelineContext)
       }
-      val message = "Failed to map value [Some(1)] of type [Some(Integer)] to paramName [list] of" +
-        " type [Option[Seq[String]]] for method [mockStepFunctionWithOptionalGenericParams] in step [chicken] in pipeline [TestPipeline]"
+      val message = "Failed to map value [Some(1)] of type [Some(Integer)] to paramName [string] of" +
+        " type [Option[String]] for method [mockStepFunctionWithOptionalGenericParams] in step [chicken] in pipeline [TestPipeline]"
       assert(thrown.getMessage == message)
     }
 
