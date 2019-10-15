@@ -262,6 +262,11 @@ JSON objects, maps and list of maps/objects can use the special characters defin
 values in predefined objects. Using the application framework, note that globals cannot use *@* or *#* since steps will 
 not have values prior to initialization.
 
+**Validation**
+
+Step parameter type checking can be enabled by providing the passing the option "validateStepParameterTypes true" as a global parameter.
+This validation is disabled by default.
+
 ### PipelineStep
 The PipelineStep describes the step functions that need to be called including how data is passed between steps. When 
 creating a PipelineStep, these values need to be populated:

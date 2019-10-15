@@ -17,8 +17,9 @@ object ReflectionUtils {
   /**
    * This function will attempt to find and instantiate the named class with the given parameters.
    *
-   * @param className  The fully qualified class name
-   * @param parameters The parameters to pass to the constructor or None
+   * @param className              The fully qualified class name
+   * @param parameters             The parameters to pass to the constructor or None
+   * @param validateParameterTypes Enable method paramter type validation.
    * @return An instantiated class.
    */
   def loadClass(className: String, parameters: Option[Map[String, Any]] = None, validateParameterTypes: Boolean = false): Any = {
@@ -41,6 +42,7 @@ object ReflectionUtils {
    * This function will execute the PipelineStep function using the provided parameter values.
    *
    * @param step            The step to execute
+   * @param pipeline        The pipeline to process the step in
    * @param parameterValues A map of named parameter values to map to the step function parameters.
    * @return The result of the step function execution.
    */
@@ -73,7 +75,7 @@ object ReflectionUtils {
     val ts = stepObject.symbol.typeSignature
     // Get the parameters this method requires
     val parameters = method.paramLists.head
-    val validateTypes = pipelineContext.globals.getOrElse(Map()).getOrElse("validateStepParameterTypes", false).asInstanceOf[Boolean]
+    val validateTypes = pipelineContext.getGlobal("validateStepParameterTypes").getOrElse(false).asInstanceOf[Boolean]
     val params = mapMethodParameters(parameters, parameterValues, mirror, stepObject, funcName, ts, Some(pipelineContext), step.id, pipeline.id, validateTypes)
     logger.info(s"Executing step $objName.$funcName")
     logger.debug(s"Parameters: $params")
