@@ -21,7 +21,7 @@ object ReflectionUtils {
    * @param parameters The parameters to pass to the constructor or None
    * @return An instantiated class.
    */
-  def loadClass(className: String, parameters: Option[Map[String, Any]] = None): Any = {
+  def loadClass(className: String, parameters: Option[Map[String, Any]] = None, validateParameterTypes: Boolean = false): Any = {
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     val moduleClass = mirror.staticClass(className)
     val module = mirror.staticModule(className)
@@ -32,7 +32,7 @@ object ReflectionUtils {
       val method = getMethodBySymbol(symbols.head, parameters.getOrElse(Map[String, Any]()), Some(symbols))
       classMirror.reflectConstructor(method)
       classMirror.reflectConstructor(method)(mapMethodParameters(method.paramLists.head, parameters.getOrElse(Map[String, Any]()), mirror,
-        mirror.reflect(mirror.reflectModule(module)), symbols.head.asTerm.fullName, method.typeSignature, None, None, None)
+        mirror.reflect(mirror.reflectModule(module)), symbols.head.asTerm.fullName, method.typeSignature, None, None, None, validateParameterTypes)
         : _*)
     }
   }
@@ -73,7 +73,8 @@ object ReflectionUtils {
     val ts = stepObject.symbol.typeSignature
     // Get the parameters this method requires
     val parameters = method.paramLists.head
-    val params = mapMethodParameters(parameters, parameterValues, mirror, stepObject, funcName, ts, Some(pipelineContext), step.id, pipeline.id)
+    val validateTypes = pipelineContext.globals.getOrElse(Map()).getOrElse("validateStepParameterTypes", false).asInstanceOf[Boolean]
+    val params = mapMethodParameters(parameters, parameterValues, mirror, stepObject, funcName, ts, Some(pipelineContext), step.id, pipeline.id, validateTypes)
     logger.info(s"Executing step $objName.$funcName")
     logger.debug(s"Parameters: $params")
     // Invoke the method
@@ -187,7 +188,8 @@ object ReflectionUtils {
                                   ts: ru.Type,
                                   pipelineContext: Option[PipelineContext],
                                   stepId: Option[String],
-                                  pipelineId: Option[String]) = {
+                                  pipelineId: Option[String],
+                                  validateParameterTypes: Boolean) = {
     parameters.zipWithIndex.map { case (param, pos) =>
       val name = param.name.toString
       logger.debug(s"Mapping parameter $name")
@@ -219,7 +221,9 @@ object ReflectionUtils {
           if (v.asInstanceOf[Option[_]].isEmpty) "None" else s"Some(${v.asInstanceOf[Option[_]].get.getClass.getSimpleName})"
         case _ => finalValue.getClass.getSimpleName
       }
-      validateParamTypeAssignment(runtimeMirror, param, optionType, finalValue, finalValueType, funcName, stepId, pipelineId)
+      if (validateParameterTypes) {
+        validateParamTypeAssignment(runtimeMirror, param, optionType, finalValue, finalValueType, funcName, stepId, pipelineId)
+      }
 
       logger.debug(s"Mapping parameter to method $funcName,paramName=$name,paramType=${param.typeSignature}," +
         s"valueType=$finalValueType,value=$finalValue")

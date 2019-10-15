@@ -9,7 +9,8 @@ class ReflectionUtilsTests extends FunSpec {
   private val FIVE = 5
   describe("ReflectionUtil - processStep") {
     val pipeline = Pipeline(Some("TestPipeline"))
-    val pipelineContext = PipelineContext(None, None, None, PipelineSecurityManager(), PipelineParameters(),
+    val globals = Map[String, Any]("validateStepParameterTypes" -> true)
+    val pipelineContext = PipelineContext(None, None, Some(globals), PipelineSecurityManager(), PipelineParameters(),
       Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(), None, None)
     it("Should process step function") {
       val step = PipelineStep(None, None, None, None, None, Some(EngineMeta(Some("MockStepObject.mockStepFunction"))))
@@ -72,6 +73,16 @@ class ReflectionUtilsTests extends FunSpec {
         val response = ReflectionUtils.processStep(step, pipeline, Map[String, Any](), pipelineContext)
       }
       assert(thrown.getMessage == "typo is not a valid function!")
+    }
+
+    it("Should respect the validateStepParameterTypes global"){
+      val step = PipelineStep(Some("chicken"), None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
+      val thrown = intercept[ClassCastException] {
+        ReflectionUtils.processStep(step, pipeline, Map[String, Any]("string" -> 1), pipelineContext.setGlobal("validateStepParameterTypes", false))
+      }
+      val message = "java.lang.Integer cannot be cast to java.lang.String"
+      assert(thrown.getMessage == message)
     }
 
     it("Should return an informative error if the parameter types do not match function params"){
