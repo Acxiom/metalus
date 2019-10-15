@@ -1,6 +1,7 @@
 package com.acxiom.pipeline.applications
 
 import com.acxiom.pipeline._
+import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
@@ -56,8 +57,11 @@ object ApplicationUtils {
     val globalSecurityManager = generateSecurityManager(application.securityManager, Some(PipelineSecurityManager()))
     val globalStepMapper = generateStepMapper(application.stepMapper, Some(PipelineStepMapper()))
     val globalPipelineParameters = generatePipelineParameters(application.pipelineParameters, Some(PipelineParameters()))
+    val pipelineManager = generatePipelineManager(application.pipelineManager,
+      Some(PipelineManager(application.pipelines.getOrElse(List[DefaultPipeline]())))).get
     // Generate the execution plan
     application.executions.get.map(execution => {
+      // Extracting pipelines
       val ctx = PipelineContext(Some(sparkConf),
         Some(sparkSession),
         generateGlobals(execution.globals, rootGlobals, defaultGlobals, execution.mergeGlobals.getOrElse(false)),
@@ -66,10 +70,10 @@ object ApplicationUtils {
         application.stepPackages,
         generateStepMapper(execution.stepMapper, globalStepMapper).get,
         generatePipelineListener(execution.pipelineListener, globalListener),
-        Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
-      // Extracting pipelines
-      val pipelines = generatePipelines(execution, application)
-      PipelineExecution(execution.id.getOrElse(""), pipelines, execution.initialPipelineId, ctx, execution.parents)
+        Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")),
+        ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
+        pipelineManager)
+      PipelineExecution(execution.id.getOrElse(""), generatePipelines(execution, application), execution.initialPipelineId, ctx, execution.parents)
     })
   }
 
@@ -111,6 +115,16 @@ object ApplicationUtils {
       applicationPipelines
     } else {
       throw new IllegalArgumentException("Either execution pipelines, pipelineIds or application pipelines must be provided for an execution")
+    }
+  }
+
+  private def generatePipelineManager(pipelineManagerInfo: Option[ClassInfo],
+                                      pipelineManager: Option[PipelineManager]): Option[PipelineManager] = {
+    if (pipelineManagerInfo.isDefined) {
+      Some(ReflectionUtils.loadClass(pipelineManagerInfo.get.className.getOrElse("com.acxiom.pipeline.CachedPipelineManager"),
+        pipelineManagerInfo.get.parameters).asInstanceOf[PipelineManager])
+    } else {
+      pipelineManager
     }
   }
 
