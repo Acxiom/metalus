@@ -15,13 +15,14 @@ object ReflectionUtils {
   private val logger = Logger.getLogger(getClass)
 
   /**
-    * This function will attempt to find and instantiate the named class with the given parameters.
-    *
-    * @param className  The fully qualified class name
-    * @param parameters The parameters to pass to the constructor or None
-    * @return An instantiated class.
-    */
-  def loadClass(className: String, parameters: Option[Map[String, Any]] = None): Any = {
+   * This function will attempt to find and instantiate the named class with the given parameters.
+   *
+   * @param className              The fully qualified class name
+   * @param parameters             The parameters to pass to the constructor or None
+   * @param validateParameterTypes Enable method paramter type validation.
+   * @return An instantiated class.
+   */
+  def loadClass(className: String, parameters: Option[Map[String, Any]] = None, validateParameterTypes: Boolean = false): Any = {
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     val moduleClass = mirror.staticClass(className)
     val module = mirror.staticModule(className)
@@ -32,18 +33,19 @@ object ReflectionUtils {
       val method = getMethodBySymbol(symbols.head, parameters.getOrElse(Map[String, Any]()), Some(symbols))
       classMirror.reflectConstructor(method)
       classMirror.reflectConstructor(method)(mapMethodParameters(method.paramLists.head, parameters.getOrElse(Map[String, Any]()), mirror,
-        mirror.reflect(mirror.reflectModule(module)), symbols.head.asTerm.fullName, method.typeSignature, None, None, None)
+        mirror.reflect(mirror.reflectModule(module)), symbols.head.asTerm.fullName, method.typeSignature, None, None, None, validateParameterTypes)
         : _*)
     }
   }
 
   /**
-    * This function will execute the PipelineStep function using the provided parameter values.
-    *
-    * @param step            The step to execute
-    * @param parameterValues A map of named parameter values to map to the step function parameters.
-    * @return The result of the step function execution.
-    */
+   * This function will execute the PipelineStep function using the provided parameter values.
+   *
+   * @param step            The step to execute
+   * @param pipeline        The pipeline to process the step in
+   * @param parameterValues A map of named parameter values to map to the step function parameters.
+   * @return The result of the step function execution.
+   */
   def processStep(step: PipelineStep,
                   pipeline: Pipeline,
                   parameterValues: Map[String, Any],
@@ -73,7 +75,8 @@ object ReflectionUtils {
     val ts = stepObject.symbol.typeSignature
     // Get the parameters this method requires
     val parameters = method.paramLists.head
-    val params = mapMethodParameters(parameters, parameterValues, mirror, stepObject, funcName, ts, Some(pipelineContext), step.id, pipeline.id)
+    val validateTypes = pipelineContext.getGlobal("validateStepParameterTypes").getOrElse(false).asInstanceOf[Boolean]
+    val params = mapMethodParameters(parameters, parameterValues, mirror, stepObject, funcName, ts, Some(pipelineContext), step.id, pipeline.id, validateTypes)
     logger.info(s"Executing step $objName.$funcName")
     logger.debug(s"Parameters: $params")
     // Invoke the method
@@ -95,13 +98,13 @@ object ReflectionUtils {
   }
 
   /**
-    * execute a function on an existing object by providing the function name and parameters (in expected order)
-    *
-    * @param obj      the object with the function that needs to be run
-    * @param funcName the name of the function on the object to run
-    * @param params   the parameters required for the function (in proper order)
-    * @return the results of the executed function
-    */
+   * execute a function on an existing object by providing the function name and parameters (in expected order)
+   *
+   * @param obj      the object with the function that needs to be run
+   * @param funcName the name of the function on the object to run
+   * @param params   the parameters required for the function (in proper order)
+   * @return the results of the executed function
+   */
   def executeFunctionByName(obj: Any, funcName: String, params: List[Any]): Any = {
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     val reflectedObj = mirror.reflect(obj)
@@ -111,15 +114,15 @@ object ReflectionUtils {
   }
 
   /**
-    * This function will attempt to extract the value assigned to the field name from the given entity. The field can
-    * contain "." character to denote sub objects. If the field does not exist or is empty a None object will be
-    * returned. This function does not handle collections.
-    *
-    * @param entity            The entity containing the value.
-    * @param fieldName         The name of the field to extract
-    * @param extractFromOption Setting this to true will see if the value is an option and extract the sub value.
-    * @return The value from the field or an empty string
-    */
+   * This function will attempt to extract the value assigned to the field name from the given entity. The field can
+   * contain "." character to denote sub objects. If the field does not exist or is empty a None object will be
+   * returned. This function does not handle collections.
+   *
+   * @param entity            The entity containing the value.
+   * @param fieldName         The name of the field to extract
+   * @param extractFromOption Setting this to true will see if the value is an option and extract the sub value.
+   * @return The value from the field or an empty string
+   */
   def extractField(entity: Any, fieldName: String, extractFromOption: Boolean = true): Any = {
     if (fieldName == "") {
       entity
@@ -187,7 +190,8 @@ object ReflectionUtils {
                                   ts: ru.Type,
                                   pipelineContext: Option[PipelineContext],
                                   stepId: Option[String],
-                                  pipelineId: Option[String]) = {
+                                  pipelineId: Option[String],
+                                  validateParameterTypes: Boolean) = {
     parameters.zipWithIndex.map { case (param, pos) =>
       val name = param.name.toString
       logger.debug(s"Mapping parameter $name")
@@ -209,9 +213,9 @@ object ReflectionUtils {
       }
 
       val finalValue = if (pipelineContext.isDefined) {
-        pipelineContext.get.security.secureParameter(getFinalValue(optionType, value))
+        pipelineContext.get.security.secureParameter(getFinalValue(param.asTerm.typeSignature, value))
       } else {
-        getFinalValue(optionType, value)
+        getFinalValue(param.asTerm.typeSignature, value)
       }
 
       val finalValueType = finalValue match {
@@ -219,7 +223,9 @@ object ReflectionUtils {
           if (v.asInstanceOf[Option[_]].isEmpty) "None" else s"Some(${v.asInstanceOf[Option[_]].get.getClass.getSimpleName})"
         case _ => finalValue.getClass.getSimpleName
       }
-      validateParamTypeAssignment(runtimeMirror, param, optionType, finalValue, finalValueType, funcName, stepId, pipelineId)
+      if (validateParameterTypes) {
+        validateParamTypeAssignment(runtimeMirror, param, optionType, finalValue, finalValueType, funcName, stepId, pipelineId)
+      }
 
       logger.debug(s"Mapping parameter to method $funcName,paramName=$name,paramType=${param.typeSignature}," +
         s"valueType=$finalValueType,value=$finalValue")
@@ -264,11 +270,32 @@ object ReflectionUtils {
     }
   }
 
-  private def getFinalValue(optionType: Boolean, value: Any): Any = {
+  private def getFinalValue(paramType: ru.Type, value: Any): Any = {
+    val optionType = paramType.toString.contains("Option[")
     if (optionType && !value.isInstanceOf[Option[_]]) {
-      Some(value)
-    } else if (!optionType && value.isInstanceOf[Option[_]] && value.asInstanceOf[Option[_]].isDefined) {
-      value.asInstanceOf[Option[_]].get
+      Some(wrapValueInCollection(paramType, optionType, value))
+    } else if (!optionType && value.isInstanceOf[Option[_]]) {
+      if (value.asInstanceOf[Option[_]].isDefined) {
+        wrapValueInCollection(paramType, optionType, value.asInstanceOf[Option[_]].get)
+      } else {
+        value
+      }
+    } else {
+      wrapValueInCollection(paramType, optionType, value)
+    }
+  }
+
+  private def wrapValueInCollection(paramType: ru.Type, isOption: Boolean, value: Any): Any = {
+    val collectionType = isCollection(isOption, paramType)
+    val typeName = if (isOption) paramType.typeArgs.head.toString else paramType.toString
+    if (collectionType) {
+      typeName match {
+        case t if t.contains("List[") =>
+          if (!value.isInstanceOf[List[_]]) List(value)
+        case t if t.contains("Seq[") =>
+          if (!value.isInstanceOf[Seq[_]]) Seq(value)
+        case _ => value
+      }
     } else {
       value
     }
@@ -320,7 +347,7 @@ object ReflectionUtils {
       if (parameterValues.contains(name)) {
         val paramType = Class.forName(param.typeSignature.typeSymbol.fullName)
         val optionType = param.typeSignature.typeSymbol.fullName.contains("Option")
-        val instanceClass = getFinalValue(optionType, parameterValues(name)).getClass
+        val instanceClass = getFinalValue(param.asTerm.typeSignature, parameterValues(name)).getClass
         val instanceType = if (instanceClass.getName == "java.lang.Boolean") Class.forName("scala.Boolean") else instanceClass
         parameterValues.contains(name) && paramType.isAssignableFrom(instanceType)
       } else {
@@ -329,5 +356,11 @@ object ReflectionUtils {
     })
 
     matches.length
+  }
+
+  private def isCollection(optionType: Boolean, paramType: ru.Type): Boolean = if (optionType) {
+    paramType.typeArgs.head <:< typeOf[Seq[_]]
+  } else {
+    paramType <:< typeOf[Seq[_]]
   }
 }

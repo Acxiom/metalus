@@ -15,12 +15,16 @@ object MockStepObject {
     default
   }
 
+  def mockStepFunctionWithListParams(list: List[String], seq: Seq[Int], arrayList: java.util.ArrayList[String]): String ={
+    s"${list.headOption},${seq.headOption},${if(arrayList.isEmpty) None else Some(arrayList.get(0))}"
+  }
+
   def mockStepFunctionAnyResponse(string: String): String = {
     string
   }
 
-  def mockStepFunctionWithOptionalGenericParams(list: Option[Seq[String]]): String ={
-    list.getOrElse(List("chicken")).headOption.getOrElse("chicken")
+  def mockStepFunctionWithOptionalGenericParams(string: Option[String]): String ={
+    string.getOrElse("chicken")
   }
 
   def mockStepFunctionWithPrimitives(i: Int, l: Long, d: Double, f: Float, c: Char, by: Option[Byte], s: Short, a: Any): Int ={

@@ -1,5 +1,7 @@
 package com.acxiom.pipeline.utils
 
+import java.util
+
 import com.acxiom.pipeline.{PipelineStepResponse, _}
 import org.scalatest.FunSpec
 
@@ -7,7 +9,8 @@ class ReflectionUtilsTests extends FunSpec {
   private val FIVE = 5
   describe("ReflectionUtil - processStep") {
     val pipeline = Pipeline(Some("TestPipeline"))
-    val pipelineContext = PipelineContext(None, None, None, PipelineSecurityManager(), PipelineParameters(),
+    val globals = Map[String, Any]("validateStepParameterTypes" -> true)
+    val pipelineContext = PipelineContext(None, None, Some(globals), PipelineSecurityManager(), PipelineParameters(),
       Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(), None, None)
     it("Should process step function") {
       val step = PipelineStep(None, None, None, None, None, Some(EngineMeta(Some("MockStepObject.mockStepFunction"))))
@@ -53,6 +56,16 @@ class ReflectionUtilsTests extends FunSpec {
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "chicken")
     }
 
+    it("Should wrap values in a List, Seq, or Array if passing a single element to a collection") {
+      val step = PipelineStep(None, None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithListParams"))))
+      val response = ReflectionUtils.processStep(step, pipeline,
+        Map[String, Any]("list" -> "l1", "seq" -> 1, "arrayList" -> new util.ArrayList()), pipelineContext)
+      assert(response.isInstanceOf[PipelineStepResponse])
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "Some(l1),Some(1),None")
+    }
+
     it("Should return an informative error if a step function is not found") {
       val step = PipelineStep(None, None, None, None, None,
         Some(EngineMeta(Some("MockStepObject.typo"))))
@@ -62,14 +75,24 @@ class ReflectionUtilsTests extends FunSpec {
       assert(thrown.getMessage == "typo is not a valid function!")
     }
 
+    it("Should respect the validateStepParameterTypes global"){
+      val step = PipelineStep(Some("chicken"), None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
+      val thrown = intercept[ClassCastException] {
+        ReflectionUtils.processStep(step, pipeline, Map[String, Any]("string" -> 1), pipelineContext.setGlobal("validateStepParameterTypes", false))
+      }
+      val message = "java.lang.Integer cannot be cast to java.lang.String"
+      assert(thrown.getMessage == message)
+    }
+
     it("Should return an informative error if the parameter types do not match function params"){
       val step = PipelineStep(Some("chicken"), None, None, None, None,
         Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
       val thrown = intercept[PipelineException] {
-        ReflectionUtils.processStep(step, pipeline, Map[String, Any]("list" -> 1), pipelineContext)
+        ReflectionUtils.processStep(step, pipeline, Map[String, Any]("string" -> 1), pipelineContext)
       }
-      val message = "Failed to map value [Some(1)] of type [Some(Integer)] to paramName [list] of" +
-        " type [Option[Seq[String]]] for method [mockStepFunctionWithOptionalGenericParams] in step [chicken] in pipeline [TestPipeline]"
+      val message = "Failed to map value [Some(1)] of type [Some(Integer)] to paramName [string] of" +
+        " type [Option[String]] for method [mockStepFunctionWithOptionalGenericParams] in step [chicken] in pipeline [TestPipeline]"
       assert(thrown.getMessage == message)
     }
 
