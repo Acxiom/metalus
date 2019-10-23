@@ -316,13 +316,11 @@ object ExecutionSteps {
   private val ONE_SEC = 1000
 
   def sleepFunction(value: String, pipelineContext: PipelineContext): PipelineStepResponse = {
-    println(s"Executing step in pipeline: ${pipelineContext.getGlobalString("pipelineId").getOrElse("")}")
     Thread.sleep(ONE_SEC)
     PipelineStepResponse(Some(value), Some(Map[String, Any]("time" -> new Date())))
   }
 
   def normalFunction(value: String, pipelineContext: PipelineContext): PipelineStepResponse = {
-    println(s"Executing step in pipeline: ${pipelineContext.getGlobalString("pipelineId").getOrElse("")}")
     PipelineStepResponse(Some(value), Some(Map[String, Any]("time" -> new Date())))
   }
 

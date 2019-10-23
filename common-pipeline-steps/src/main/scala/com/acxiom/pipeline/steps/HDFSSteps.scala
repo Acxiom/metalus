@@ -54,7 +54,7 @@ object HDFSSteps {
   )
   def createFileManager(pipelineContext: PipelineContext): Option[HDFSFileManager] = {
     if (pipelineContext.sparkSession.isDefined) {
-      Some(HDFSFileManager(pipelineContext.sparkSession.get))
+      Some(HDFSFileManager(pipelineContext.sparkSession.get.sparkContext.getConf))
     } else {
       None
     }

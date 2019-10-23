@@ -108,6 +108,40 @@ class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       validateResults(executionResult.pipelineContext, "globalOne", "gtwo", "3")
     }
 
+    it("Should execute step with pipelineMappings pulled from PipelineManager") {
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val mappingPipelineStepTwo = PipelineStep(Some("PIPELINE_STEP_TWO"), None, None, Some("step-group"),
+        Some(List(Parameter(Some("text"), Some("pipelineId"),
+          value = Some("subPipelineId")),
+          Parameter(Some("object"), Some("pipelineMappings"),
+            value = Some(Map[String, Any]("globalOne" -> "globalOne", "globalTwo" -> "gtwo", "globalThree" -> "3"))))),
+        engineMeta = None, nextStepId = Some("PIPELINE_STEP_THREE"))
+
+      val context = SparkTestHelper.generatePipelineContext()
+        .copy(pipelineManager = PipelineManager(List(subPipeline)))
+      val executionResult = PipelineExecutor.executePipelines(List(DefaultPipeline(Some("pipelineId"), Some("Pipeline"), Some(List(
+        pipelineStepOne, mappingPipelineStepTwo, pipelineStepThree)))), None, context)
+      assert(executionResult.success)
+      validateResults(executionResult.pipelineContext, "globalOne", "gtwo", "3")
+    }
+
+    it("Should execute step with pipelineMappings pulled from PipelineManager using special character") {
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val mappingPipelineStepTwo = PipelineStep(Some("PIPELINE_STEP_TWO"), None, None, Some("step-group"),
+        Some(List(Parameter(Some("text"), Some("pipeline"),
+          value = Some("&subPipelineId")),
+          Parameter(Some("object"), Some("pipelineMappings"),
+            value = Some(Map[String, Any]("globalOne" -> "globalOne", "globalTwo" -> "gtwo", "globalThree" -> "3"))))),
+        engineMeta = None, nextStepId = Some("PIPELINE_STEP_THREE"))
+
+      val context = SparkTestHelper.generatePipelineContext()
+        .copy(pipelineManager = PipelineManager(List(subPipeline)))
+      val executionResult = PipelineExecutor.executePipelines(List(DefaultPipeline(Some("pipelineId"), Some("Pipeline"), Some(List(
+        pipelineStepOne, mappingPipelineStepTwo, pipelineStepThree)))), None, context)
+      assert(executionResult.success)
+      validateResults(executionResult.pipelineContext, "globalOne", "gtwo", "3")
+    }
+
     def validateResults(ctx: PipelineContext,
                         subStepOneValue: String = "ONE",
                         subStepTwoValue: String = "TWO",

@@ -221,7 +221,7 @@ trait PipelineStepMapper {
   private def returnBestValue(value: String,
                               parameter: Parameter,
                               pipelineContext: PipelineContext): Option[Any] = {
-    val embeddedVariables = "([!@$#]\\{.*?\\})".r.findAllIn(value).toList
+    val embeddedVariables = "([!@$#&]\\{.*?\\})".r.findAllIn(value).toList
 
     if (embeddedVariables.nonEmpty) {
       embeddedVariables.foldLeft(Option[Any](value))((finalValue, embeddedValue) => {
@@ -254,6 +254,7 @@ trait PipelineStepMapper {
       case p if List('@', '#').contains(p.headOption.getOrElse("")) => getPipelineParameterValue(pipelinePath, pipelineContext)
       case r if r.startsWith("$") => mapRuntimeParameter(pipelinePath, parameter, pipelineContext)
       case g if g.startsWith("!") => getGlobalParameterValue(g, pipelinePath.extraPath.getOrElse(""), pipelineContext)
+      case g if g.startsWith("&") => pipelineContext.pipelineManager.getPipeline(pipelinePath.mainValue.substring(1))
       case o if o.nonEmpty => Some(mapByType(Some(o), parameter))
       case _ => None
     }
@@ -303,9 +304,9 @@ trait PipelineStepMapper {
   }
 
   private def getPathValues(value: String, pipelineContext: PipelineContext): PipelinePath = {
-    if (value.contains('.')) {
+    val special = getSpecialCharacter(value)
+    if (value.contains('.') && special.nonEmpty) {
       // Check for the special character
-      val special = getSpecialCharacter(value)
       val pipelineId = value.substring(0, value.indexOf('.')).substring(1)
       val paths = value.split('.')
       if (pipelineContext.parameters.hasPipelineParameters(pipelineId)) {
@@ -324,7 +325,7 @@ trait PipelineStepMapper {
   }
 
   private def getSpecialCharacter(value: String): String = {
-    if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!") || value.startsWith("#")) {
+    if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!") || value.startsWith("#") || value.startsWith("&")) {
       value.substring(0, 1)
     } else {
       ""
