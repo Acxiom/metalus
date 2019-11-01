@@ -15,6 +15,10 @@ object MockStepObject {
     default
   }
 
+  def mockStepWithListOfOptions(s: List[Option[String]]): String ={
+    s.flatten.mkString(",")
+  }
+
   def mockStepFunctionWithListParams(list: List[String], seq: Seq[Int], arrayList: java.util.ArrayList[String]): String ={
     s"${list.headOption},${seq.headOption},${if(arrayList.isEmpty) None else Some(arrayList.get(0))}"
   }

@@ -195,7 +195,7 @@ object ReflectionUtils {
     parameters.zipWithIndex.map { case (param, pos) =>
       val name = param.name.toString
       logger.debug(s"Mapping parameter $name")
-      val optionType = param.asTerm.typeSignature.toString.contains("Option[")
+      val optionType = param.asTerm.typeSignature.toString.startsWith("Option[")
       val value = if (parameterValues.contains(name)) {
         parameterValues(name)
       } else if (param.asTerm.isParamWithDefault) {
@@ -271,7 +271,7 @@ object ReflectionUtils {
   }
 
   private def getFinalValue(paramType: ru.Type, value: Any): Any = {
-    val optionType = paramType.toString.contains("Option[")
+    val optionType = paramType.toString.startsWith("Option[")
     if (optionType && !value.isInstanceOf[Option[_]]) {
       Some(wrapValueInCollection(paramType, optionType, value))
     } else if (!optionType && value.isInstanceOf[Option[_]]) {
@@ -290,10 +290,10 @@ object ReflectionUtils {
     val typeName = if (isOption) paramType.typeArgs.head.toString else paramType.toString
     if (collectionType) {
       typeName match {
-        case t if t.contains("List[") =>
-          if (!value.isInstanceOf[List[_]]) List(value)
-        case t if t.contains("Seq[") =>
-          if (!value.isInstanceOf[Seq[_]]) Seq(value)
+        case t if t.startsWith("List[") && !value.isInstanceOf[List[_]] =>
+          List(value)
+        case t if t.startsWith("Seq[") && !value.isInstanceOf[Seq[_]] =>
+          Seq(value)
         case _ => value
       }
     } else {
@@ -346,7 +346,6 @@ object ReflectionUtils {
       val name = param.name.toString
       if (parameterValues.contains(name)) {
         val paramType = Class.forName(param.typeSignature.typeSymbol.fullName)
-        val optionType = param.typeSignature.typeSymbol.fullName.contains("Option")
         val instanceClass = getFinalValue(param.asTerm.typeSignature, parameterValues(name)).getClass
         val instanceType = if (instanceClass.getName == "java.lang.Boolean") Class.forName("scala.Boolean") else instanceClass
         parameterValues.contains(name) && paramType.isAssignableFrom(instanceType)
