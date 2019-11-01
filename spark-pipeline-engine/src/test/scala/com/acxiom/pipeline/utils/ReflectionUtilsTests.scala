@@ -66,16 +66,26 @@ class ReflectionUtilsTests extends FunSpec {
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "Some(l1),Some(1),None")
     }
 
+    it("Should unwrap an option passed to a non option param"){
+      val step = PipelineStep(None, None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.mockStepWithListOfOptions"))))
+      val response = ReflectionUtils.processStep(step, pipeline,
+        Map[String, Any]("s" -> Some(List(Some("s1"), Some("s2")))), pipelineContext)
+      assert(response.isInstanceOf[PipelineStepResponse])
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "s1,s2")
+    }
+
     it("Should return an informative error if a step function is not found") {
       val step = PipelineStep(None, None, None, None, None,
         Some(EngineMeta(Some("MockStepObject.typo"))))
-      val thrown = intercept[IllegalArgumentException]{
+      val thrown = intercept[IllegalArgumentException] {
         val response = ReflectionUtils.processStep(step, pipeline, Map[String, Any](), pipelineContext)
       }
       assert(thrown.getMessage == "typo is not a valid function!")
     }
 
-    it("Should respect the validateStepParameterTypes global"){
+    it("Should respect the validateStepParameterTypes global") {
       val step = PipelineStep(Some("chicken"), None, None, None, None,
         Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
       val thrown = intercept[ClassCastException] {
@@ -85,7 +95,7 @@ class ReflectionUtilsTests extends FunSpec {
       assert(thrown.getMessage == message)
     }
 
-    it("Should return an informative error if the parameter types do not match function params"){
+    it("Should return an informative error if the parameter types do not match function params") {
       val step = PipelineStep(Some("chicken"), None, None, None, None,
         Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
       val thrown = intercept[PipelineException] {
@@ -96,7 +106,7 @@ class ReflectionUtilsTests extends FunSpec {
       assert(thrown.getMessage == message)
     }
 
-    it("should handle primitive types"){
+    it("should handle primitive types") {
       val step = PipelineStep(None, None, None, None, None,
         Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithPrimitives"))))
       val map = Map[String, Any]("i" -> 1,
