@@ -12,7 +12,8 @@ case class StepDefinition(id: String,
                           `type`: String,
                           category: String,
                           params: List[StepFunctionParameter],
-                          engineMeta: EngineMeta)
+                          engineMeta: EngineMeta,
+                          jarName: Option[String])
 
 case class StepFunctionParameter(`type`: String,
                                  name: String,
