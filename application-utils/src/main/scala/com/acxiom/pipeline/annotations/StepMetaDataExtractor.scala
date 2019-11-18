@@ -42,7 +42,7 @@ object StepMetaDataExtractor {
           (packageDefinitions._1.getOrElse(packageName, List[StepDefinition]()), definitions._2))((stepDefinitions, cf) => {
           val stepPath = s"${cf.getName.substring(0, cf.getName.indexOf(".")).replaceAll("/", "\\.")}"
           if (!stepPath.contains("$")) {
-            val stepsAndClasses = findStepDefinitions(stepPath, packageName)
+            val stepsAndClasses = findStepDefinitions(stepPath, packageName, file.substring(file.lastIndexOf('/') + 1))
             val steps = if (stepsAndClasses.nonEmpty) Some(stepsAndClasses.get._1) else None
             val classes = if (stepsAndClasses.nonEmpty) Some(stepsAndClasses.get._2) else None
             val updatedCaseClasses = if (classes.isDefined) stepDefinitions._2 ++ classes.get else stepDefinitions._2
@@ -116,7 +116,7 @@ object StepMetaDataExtractor {
     * @param stepObjectPath The fully qualified class name.
     * @return A list of step definitions.
     */
-  private def findStepDefinitions(stepObjectPath: String, packageName: String): Option[(List[StepDefinition], Set[String])] = {
+  private def findStepDefinitions(stepObjectPath: String, packageName: String, jarName: String): Option[(List[StepDefinition], Set[String])] = {
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     Try(mirror.staticModule(stepObjectPath)) match {
       case Success(_) =>
@@ -126,7 +126,7 @@ object StepMetaDataExtractor {
         if (annotation.isDefined) {
           Some(im.symbol.info.decls.foldLeft((List[StepDefinition](), Set[String]()))((stepsAndClasses, symbol) => {
             val ann = symbol.annotations.find(_.tree.tpe =:= ru.typeOf[StepFunction])
-            generateStepDefinitionList(im, stepsAndClasses._1, stepsAndClasses._2, symbol, ann, packageName)
+            generateStepDefinitionList(im, stepsAndClasses._1, stepsAndClasses._2, symbol, ann, packageName, jarName)
           }))
         } else {
           None
@@ -137,7 +137,7 @@ object StepMetaDataExtractor {
 
   private def generateStepDefinitionList(im: ru.ModuleMirror, steps: List[StepDefinition], caseClasses: Set[String],
                                          symbol: ru.Symbol, ann: Option[ru.Annotation],
-                                         packageName: String): (List[StepDefinition], Set[String]) = {
+                                         packageName: String, jarName: String): (List[StepDefinition], Set[String]) = {
     if (ann.isDefined) {
       val params = symbol.asMethod.paramLists.head
       val parameters = if (params.nonEmpty) {
@@ -177,7 +177,8 @@ object StepMetaDataExtractor {
         ann.get.tree.children.tail(3).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(FOUR).toString().replaceAll("\"", ""),
         getBranchResults(parameters._1, symbol),
-        EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName), returnType))
+        EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName), returnType),
+        Some(jarName))
       (newSteps, parameters._2)
     } else { (steps, caseClasses) }
   }
