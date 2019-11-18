@@ -8,7 +8,7 @@ import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.DataFrame
 import org.json4s.native.JsonMethods.parse
 import org.json4s.reflect.Reflector
 import org.json4s.{DefaultFormats, Extraction, Formats}
@@ -152,11 +152,8 @@ object DriverUtils {
     } else {
       tempConf
     }
-    val sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
-    val fileManager = ReflectionUtils.loadClass(fileLoaderClassName,
-      Some(Map("sparkSession" -> sparkSession))).asInstanceOf[FileManager]
+    val fileManager = ReflectionUtils.loadClass(fileLoaderClassName, Some(Map("conf" -> sparkConf))).asInstanceOf[FileManager]
     val json = Source.fromInputStream(fileManager.getInputStream(path)).mkString
-    sparkSession.stop()
     json
   }
 }

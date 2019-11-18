@@ -60,12 +60,14 @@ There are several sub-projects:
 This project contains the core library and is the minimum requirement for any application.
 
 [Maven 2.11 library](https://search.maven.org/search?q=a:spark-pipeline-engine_2.11)
+
 [Maven 2.12 library](https://search.maven.org/search?q=a:spark-pipeline-engine_2.12)
 
 ### [Common Pipeline Steps](common-pipeline-steps/readme.md)
 This component contains steps that are considered generic enough to be used in any project.
 
 [Maven 2.11 library](https://search.maven.org/search?q=a:common-pipeline-steps_2.11)
+
 [Maven 2.12 library](https://search.maven.org/search?q=a:common-pipeline-steps_2.12)
 
 ### [Streaming Pipeline Drivers](streaming-pipeline-drivers/readme.md)
@@ -74,6 +76,7 @@ and [Kinesis](https://aws.amazon.com/kinesis/). Each class provides a basic impl
 initiates the Spark Pipeline Engine Component for processing of the incoming data.
 
 [Maven 2.11 library](https://search.maven.org/search?q=a:streaming-pipeline-drivers_2.11)
+
 [Maven 2.12 library](https://search.maven.org/search?q=a:streaming-pipeline-drivers_2.12)
 
 ### [Pipeline Drivers Examples](pipeline-drivers-examples/readme.md)

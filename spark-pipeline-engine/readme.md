@@ -65,6 +65,8 @@ specific to the application.
 * **Step Messages** - This is a Spark collection accumulator of *PipelineStepMessage* objects that allow remote executions
 to communicate back to the driver. Basic initialization should be 
 *```sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")```*.
+* **Root Audit** - This is the root [audit](docs/executionaudits.md) for the execution.
+* **Pipeline Manager** - This class manages access to pipelines that may be used by step groups during an execution.
 
 ### Pipelines
 Pipelines are a collection of steps that are executed in a specified order. Each pipeline contains one or more step 
@@ -102,6 +104,13 @@ also needs to read data from the parquet table. However, since the second pipeli
 pipeline being executed, it will need a step that reads the data from the parquet table. By passing the DataFrame from 
 the first pipeline into the *executeIfEmpty* attribute, the step will only be executed if the the DataFrame is missing.
 This allows sharing the DAG across pipelines which will also allow Spark to perform optimizations.
+
+#### Step Groups
+A step-group is a step that executes another pipeline. The embedded pipeline will be executed in an isolated manner from 
+the main pipeline. A mappings parameter is used to populate the execution globals.
+
+##### Pipeline Manager
+The PipelineManager is an abstraction that provides access to pipelines that are used by step groups.
 
 #### Flow Control
 There are two ways to stop pipelines:
@@ -156,6 +165,7 @@ dynamic:
 * **$** - When the value begins with this character, the system will search the PipelineContext.parameters for the named parameter and pass that value to the step function.
 * **@** - When the value begins with this character, the system will search the PipelineContext.parameters for the named parameter and pass the primaryReturn value to the step function.
 * **#** - When the value begins with this character, the system will search the PipelineContext.parameters for the named parameter and pass the namedReturns value to the step function.
+* **&** - When the value begins with this character, the system will search the PipelineContext.pipelineManager for the named parameter and pass the pipeline or None to the step function. This is usually used in a step-group.
 
 The **@** and **#** symbols are shortcuts that assume the value in PipelineContext.parameters is a PipelineStepresponse.
  
@@ -165,7 +175,7 @@ the syntax for *@* and *$* to specify any previous pipeline value. *Example: @p1
 Values may also be embedded. The user has the option to reference properties embedded in top level objects. Given an 
 object (obj) that contains a sub-object (subObj) which contains a name, the user could access the name field using this
 syntax:
-```json
+```
 $obj.subObj.name
 ```
 	
@@ -201,10 +211,12 @@ it must be on the classpath. *object* is the JSON object to use to initialize th
 Below is the syntax:
 
 ```json
-"className": "com.acxiom.pipeleine.ParameterTest",
-"object": {
-	"string": "some string",
-	"num": 5
+{
+  "className": "com.acxiom.pipeleine.ParameterTest",
+  "object": {
+  	"string": "some string",
+  	"num": 5
+  }
 }
 ```
 
@@ -249,6 +261,11 @@ Syntax for a list of maps:
 JSON objects, maps and list of maps/objects can use the special characters defined above. This allows referencing dynamic 
 values in predefined objects. Using the application framework, note that globals cannot use *@* or *#* since steps will 
 not have values prior to initialization.
+
+**Validation**
+
+Step parameter type checking can be enabled by providing the passing the option "validateStepParameterTypes true" as a global parameter.
+This validation is disabled by default.
 
 ### PipelineStep
 The PipelineStep describes the step functions that need to be called including how data is passed between steps. When 

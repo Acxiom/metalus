@@ -101,7 +101,7 @@ class FileManagerTests extends FunSpec with Suite {
         .setMaster("local")
         .set("spark.hadoop.fs.defaultFS", miniCluster.getFileSystem().getUri.toString)
       val sparkSession = SparkSession.builder().config(conf).getOrCreate()
-      val fileManager = HDFSFileManager(sparkSession)
+      val fileManager = HDFSFileManager(conf)
       // These methods do nothing, so call them and then run file operations
       fileManager.connect()
       fileManager.disconnect()
