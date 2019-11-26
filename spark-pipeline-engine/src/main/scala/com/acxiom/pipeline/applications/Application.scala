@@ -2,6 +2,8 @@ package com.acxiom.pipeline.applications
 
 import com.acxiom.pipeline.{DefaultPipeline, PipelineParameters}
 
+case class ApplicationResponse(application: Application)
+
 /**
   * Represents the configuration for a Spark application.
   *

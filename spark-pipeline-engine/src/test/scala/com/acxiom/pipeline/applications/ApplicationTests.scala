@@ -1,11 +1,14 @@
 package com.acxiom.pipeline.applications
 
 import java.io.{File, FileOutputStream, OutputStreamWriter}
+import java.net.HttpURLConnection
 import java.nio.file.Files
 
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline._
+import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, urlPathEqualTo}
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
@@ -124,6 +127,52 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       miniCluster.shutdown(true)
       FileUtils.deleteDirectory(testDirectory.toFile)
       setup.pipelineContext.sparkSession.get.stop()
+    }
+
+    it("Should load and create an Application from an http location") {
+      val wireMockServer = new WireMockServer("15432".toInt)
+      wireMockServer.start()
+
+      wireMockServer.addStubMapping(get(urlPathEqualTo("/applications/12345"))
+        .willReturn(aResponse()
+          .withStatus(HttpURLConnection.HTTP_OK)
+          .withHeader("content-type", "application/json")
+            .withBody(applicationJson)
+        ).build())
+
+      val setup = ApplicationDriverSetup(Map[String, Any](
+        "applicationConfigPath" -> s"${wireMockServer.baseUrl()}/applications/12345",
+        "rootLogLevel" -> "ERROR"))
+      verifyDriverSetup(setup)
+      verifyApplication(setup.executionPlan.get)
+      assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
+      assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
+      assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
+
+      setup.pipelineContext.sparkSession.get.stop()
+
+      val application = DriverUtils.parseJson(applicationJson, "com.acxiom.pipeline.applications.Application").asInstanceOf[Application]
+      implicit val formats: Formats = DefaultFormats
+      val json = org.json4s.native.Serialization.write(ApplicationResponse(application))
+
+      wireMockServer.addStubMapping(get(urlPathEqualTo("/applications/54321"))
+        .willReturn(aResponse()
+          .withStatus(HttpURLConnection.HTTP_OK)
+          .withHeader("content-type", "application/json")
+          .withBody(json)
+        ).build())
+
+      val setup1 = ApplicationDriverSetup(Map[String, Any](
+        "applicationConfigPath" -> s"${wireMockServer.baseUrl()}/applications/54321",
+        "rootLogLevel" -> "ERROR"))
+      verifyDriverSetup(setup1)
+      verifyApplication(setup1.executionPlan.get)
+      assert(!setup1.pipelineContext.globals.get.contains("applicationJson"))
+      assert(!setup1.pipelineContext.globals.get.contains("applicationConfigPath"))
+      assert(!setup1.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
+
+      setup1.pipelineContext.sparkSession.get.stop()
+      wireMockServer.stop()
     }
 
     it("Should respect the 'enableHiveSupport' parameter") {

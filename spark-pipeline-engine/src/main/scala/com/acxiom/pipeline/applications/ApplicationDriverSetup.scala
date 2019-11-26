@@ -1,6 +1,7 @@
 package com.acxiom.pipeline.applications
 
 import com.acxiom.pipeline.drivers.DriverSetup
+import com.acxiom.pipeline.fs.HttpRestClient
 import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline.{Pipeline, PipelineContext, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
@@ -100,9 +101,13 @@ case class DefaultApplicationDriverSetup(parameters: Map[String, Any]) extends A
     val json = if (parameters.contains("applicationJson")) {
       parameters("applicationJson").asInstanceOf[String]
     } else if (parameters.contains("applicationConfigPath")) {
-      val className = parameters.getOrElse("applicationConfigurationLoader", "com.acxiom.pipeline.fs.LocalFileManager").asInstanceOf[String]
       val path = parameters("applicationConfigPath").toString
-      DriverUtils.loadJsonFromFile(path, className, parameters)
+      if (path.startsWith("http")) {
+        HttpRestClient(path).getStringContent("")
+      } else {
+        val className = parameters.getOrElse("applicationConfigurationLoader", "com.acxiom.pipeline.fs.LocalFileManager").asInstanceOf[String]
+        DriverUtils.loadJsonFromFile(path, className, parameters)
+      }
     } else {
       throw new RuntimeException("Either the applicationJson or the applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
     }
