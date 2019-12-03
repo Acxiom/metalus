@@ -79,6 +79,12 @@
             <version>${scala.version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-reflect</artifactId>
+            <version>${scala.version}</version>
+            <scope>provided</scope>
+        </dependency>
         <!-- JSON Library -->
         <dependency>
             <groupId>org.json4s</groupId>
