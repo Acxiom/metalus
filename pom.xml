@@ -17,11 +17,11 @@
         </license>
     </licenses>
 
-    <url>https://github.com/Acxiom/spark-pipeline-driver</url>
+    <url>https://github.com/Acxiom/metalus</url>
 
     <scm>
-        <connection>scm:git@github.com:Acxiom/spark-pipeline-driver.git</connection>
-        <url>https://github.com/Acxiom/spark-pipeline-driver</url>
+        <connection>scm:git@github.com:Acxiom/metalus.git</connection>
+        <url>https://github.com/Acxiom/metalus</url>
     </scm>
 
     <developers>
@@ -322,7 +322,7 @@
     <distributionManagement>
         <site>
             <id>api.wiki</id>
-            <url>https://github.com/Acxiom/spark-pipeline-driver/wiki</url>
+            <url>https://github.com/Acxiom/metalus/wiki</url>
         </site>
         <snapshotRepository>
             <id>ossrh</id>

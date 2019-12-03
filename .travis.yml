@@ -73,7 +73,7 @@ jobs:
       install: mvn -B -DskipTests=true clean install
       script: mvn -B -DrepoToken=$coverallsToken clean scoverage:report coveralls:report
     -
-      if: branch = develop AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
+      if: branch = develop AND type != pull_request AND fork = false AND repo = Acxiom/metalus
       os: linux
       dist: trusty
       scala:
@@ -84,7 +84,7 @@ jobs:
       script: mvn -B -Dsonar.organization=$SONAR_ORGANIZATION -Dsonar.login=$SONAR_TOKEN -Dsonar.projectKey=Acxiom_spark-pipeline-driver-develop -Dsonar.host.url=https://sonarcloud.io scoverage:report scalastyle:check org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
 
     - stage: Release
-      if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
+      if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/metalus
       name: Spark 2.3 Scala 2.11 Build
       os: linux
       dist: trusty
@@ -101,7 +101,7 @@ jobs:
       before_script:
         - gpg --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
         - gpg --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
-      script: mvn --settings deployment/release-settings.xml -pl .,spark-pipeline-engine,streaming-pipeline-drivers,common-pipeline-steps -B -P release -DskipTests=true -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg deploy
+      script: mvn --settings deployment/release-settings.xml -pl .,metalus-core,metalus-aws,metalus-common -B -P release -DskipTests=true -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg deploy
       before_deploy:
         - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
       deploy:
@@ -111,10 +111,10 @@ jobs:
         skip_cleanup: true
         file_glob: true
         file:
-          - application-utils/target/application-utils_2.11-spark_2.3-${project_version}.tar.gz
-          - common-pipeline-steps/target/common-steps-application_2.11-spark_2.3-${project_version}.jar
+          - metalus-utils/target/metalus-utils_2.11-spark_2.3-${project_version}.tar.gz
+          - metalus-application/target/metalus-application_2.11-spark_2.3-${project_version}.jar
     -
-      if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
+      if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/metalus
       name: Spark 2.4 Scala 2.11 Build
       os: linux
       dist: trusty
@@ -130,7 +130,7 @@ jobs:
       before_script:
         - gpg --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
         - gpg --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
-      script: mvn --settings deployment/release-settings.xml -pl spark-pipeline-engine,streaming-pipeline-drivers,common-pipeline-steps -B -P release -DskipTests=true -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.2 -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg deploy
+      script: mvn --settings deployment/release-settings.xml -pl metalus-core,metalus-aws,metalus-common -B -P release -DskipTests=true -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.2 -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg deploy
       before_deploy:
         - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
       deploy:
@@ -140,9 +140,9 @@ jobs:
         skip_cleanup: true
         file_glob: true
         file:
-          - application-utils/target/application-utils_2.11-spark_2.4-${project_version}.tar.gz
-          - common-pipeline-steps/target/common-steps-application_2.11-spark_2.4-${project_version}.jar
-    - if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/spark-pipeline-driver
+          - metalus-utils/target/metalus-utils_2.11-spark_2.4-${project_version}.tar.gz
+          - metalus-application/target/metalus-application_2.11-spark_2.4-${project_version}.jar
+    - if: branch = master AND type != pull_request AND fork = false AND repo = Acxiom/metalus
       name: Spark 2.4 Scala 2.12 Build
       os: linux
       dist: trusty
@@ -158,7 +158,7 @@ jobs:
       before_script:
         - gpg --keyring=$TRAVIS_BUILD_DIR/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
         - gpg --secret-keyring=$TRAVIS_BUILD_DIR/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
-      script: mvn --settings deployment/release-settings.xml -pl spark-pipeline-engine,streaming-pipeline-drivers,common-pipeline-steps -B -P release -DskipTests=true -Dscala.compat.version=2.12 -Dscala.version=2.12.10 -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.3 -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg deploy
+      script: mvn --settings deployment/release-settings.xml -pl metalus-core,metalus-aws,metalus-common -B -P release -DskipTests=true -Dscala.compat.version=2.12 -Dscala.version=2.12.10 -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.3 -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=$PASSPHRASE -Dgpg.publicKeyring=$TRAVIS_BUILD_DIR/pubring.gpg -Dgpg.secretKeyring=$TRAVIS_BUILD_DIR/secring.gpg deploy
       before_deploy:
         - export project_version=$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)
       deploy:
@@ -168,5 +168,5 @@ jobs:
         skip_cleanup: true
         file_glob: true
         file:
-          - application-utils/target/application-utils_2.12-spark_2.4-${project_version}.tar.gz
-          - common-pipeline-steps/target/common-steps-application_2.12-spark_2.4-${project_version}.jar
+          - metalus-utils/target/metalus-utils_2.12-spark_2.4-${project_version}.tar.gz
+          - metalus-application/target/metalus-application_2.12-spark_2.4-${project_version}.jar

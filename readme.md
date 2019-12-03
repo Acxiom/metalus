@@ -1,88 +1,56 @@
 |Branch|Build|Coverage|Quality|
 -------|-----|---------|-------|
-|Develop|[![Develop Build](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=develop)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=develop)|[![Develop Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/develop.svg)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=develop)|[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Acxiom_spark-pipeline-driver-develop&metric=alert_status)](https://sonarcloud.io/dashboard?id=Acxiom_spark-pipeline-driver-develop)|
-|Master|[![Master Status](https://travis-ci.com/Acxiom/spark-pipeline-driver.svg?branch=master)](https://travis-ci.com/Acxiom/spark-pipeline-driver?branch=master)|[![Master Coverage](https://img.shields.io/coveralls/github/Acxiom/spark-pipeline-driver/master.svg)](https://coveralls.io/github/Acxiom/spark-pipeline-driver?branch=master)|[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Acxiom_spark-pipeline-driver-release&metric=alert_status)](https://sonarcloud.io/dashboard?id=Acxiom_spark-pipeline-driver-release)|
+|Develop|[![Develop Build](https://travis-ci.com/Acxiom/metalus.svg?branch=develop)](https://travis-ci.com/Acxiom/metalus?branch=develop)|[![Develop Coverage](https://img.shields.io/coveralls/github/Acxiom/metalus/develop.svg)](https://coveralls.io/github/Acxiom/metalus?branch=develop)|[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Acxiom_spark-pipeline-driver-develop&metric=alert_status)](https://sonarcloud.io/dashboard?id=Acxiom_spark-pipeline-driver-develop)|
+|Master|[![Master Status](https://travis-ci.com/Acxiom/metalus.svg?branch=master)](https://travis-ci.com/Acxiom/metalus?branch=master)|[![Master Coverage](https://img.shields.io/coveralls/github/Acxiom/metalus/master.svg)](https://coveralls.io/github/Acxiom/metalus?branch=master)|[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Acxiom_spark-pipeline-driver-release&metric=alert_status)](https://sonarcloud.io/dashboard?id=Acxiom_spark-pipeline-driver-release)|
 
 # Metalus Pipeline Library
-The goal of this project is to make writing [Spark](http://spark.apache.org) applications easier by abstracting the logic
-into reusable components that can be compiled into a jar, stored on the cluster and then configured dynamically using
-external configurations such as JSON.
-
-## Concepts
-This section will attempt to provide a high level idea of how the framework achieves the project goals. Visit 
-[metalus-core](metalus-core/readme.md) for more information.
-
-There are several concepts that help achieve the project goal:
-
-### [Steps](metalus-core/docs/steps.md)
-The step is the smallest unit of work in the application. A step is a single reusable code function that can be executed
-by a pipeline. There are two parts to a step, the actual function and the *PipelineStep* metadata. The function should 
-define the parameters that are required to execute properly and the metadata is used by the pipeline to define how those
-parameters are populated. The return type may be anything including *Unit*, but it is recommended that a 
-*PipelineStepResponse* be returned.
-
-### Pipelines
-A pipeline is a collection of steps that should be executed in a predefined order. An application may execute one or 
-more pipelines as part of an application and are useful when there may be a need to restart processing in an application
-without needing to run all of the same logic again.
-
-![Pipeline Overview](docs/images/Pipeline_Overview.png "Pipeline Overview")
-
-### Execution Plan
-An execution plan allows control over how pipelines are executed. An [application](metalus-core/docs/application.md) 
-may choose to only have a single execution that runs one or more pipelines or several executions that run pipelines in 
-parallel or based on a dependency structure.
-
-![Execution Overview](docs/images/Execution_Overview.png "Execution Overview")
-
-### Drivers
-Drivers are the entry point into the application. The driver is responsible for processing the input parameters and
-initializing the *DriverSetup* for the application.
-
-### Driver Setup
-Each provided driver relies on the *DriverSetup* trait. Each project is required to implement this trait and pass the
-class name as a command line parameter. The driver will then call the different functions to begin processing data. Visit
-[metalus-core](metalus-core/readme.md) for more information.
-
-![Driver Initialization](docs/images/DefaultPipelineDriver.png "Default Pipeline Driver Flow")
-
-### [Application](metalus-core/docs/application.md)
-The *Application* framework is a configuration based method of describing the Spark application. This includes defining 
-the execution plan, pipelines, pipeline context overrides (*pipeline listener*, *security manager*, *step mapper*) and 
-global values.
-
-![Application Overview](docs/images/Application_Overview.png "Application Overview")
+The Metalus library provides a set of components for constructing data processing applications that can be executed against
+the [Spark](http://spark.apache.org) framework using external configuration scripts written in JSON. Reusable logic is
+maintained in the form of [Steps](metalus-core/docs/steps.md) written in Scala. Pipelines execute the steps in a flow 
+defined using JSON (these may be coded as well). Executions are used to execute one or more pipelines sequentially and 
+provide a mechanism for expressing dependencies. [Applications](metalus-core/docs/application.md) define the the 
+configuration required to run the executions, pipelines and steps as well as initial setup information.
 
 ## Projects
 There are several sub-projects:
 
-### [metalus Pipeline Core](metalus-core/readme.md)
+### [Metalus Pipeline Core](metalus-core/readme.md)
 This project contains the core library and is the minimum requirement for any application.
 
-[Maven 2.11 library](https://search.maven.org/search?q=a:metalus-core_2.11)
+[Maven 2.11 Spark 2.3library](https://search.maven.org/search?q=a:metalus-core_2.11-spark_2.3)
 
-[Maven 2.12 library](https://search.maven.org/search?q=a:metalus-core_2.12)
+[Maven 2.12 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-core_2.12-spark_2.3)
+
+[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-core_2.12-spark_2.4)
 
 ### [Metalus Common Pipeline Components](metalus-common/readme.md)
 This component contains steps that are considered generic enough to be used in any project.
 
-[Maven 2.11 library](https://search.maven.org/search?q=a:common-pipeline-steps_2.11)
+[Maven 2.11 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-common_2.11-spark_2.3)
 
-[Maven 2.12 library](https://search.maven.org/search?q=a:common-pipeline-steps_2.12)
+[Maven 2.12 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-common_2.12-spark_2.3)
+
+[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-common_2.12-spark_2.4)
 
 ### [Metalus AWS](metalus-aws/readme.md)
 This component contains AWS specific components. The [Kinesis](https://aws.amazon.com/kinesis/) driver provides a basic 
 implementation that gathers data and then initiates the Metalus Pipeline Core for processing of the incoming data.
 
-[Maven 2.11 library](https://search.maven.org/search?q=a:streaming-pipeline-drivers_2.11)
+[Maven 2.11 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-aws_2.11-spark_2.3)
 
-[Maven 2.12 library](https://search.maven.org/search?q=a:streaming-pipeline-drivers_2.12)
+[Maven 2.12 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_2.3)
+
+[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_2.4)
 
 ### [Metalus Pipeline Examples](metalus-examples/readme.md)
 This project provides several examples to help demonstrate how to use the library.
 
 ### [Metalus Utilities](metalus-utils/readme.md)
 This project provides utilities that help work with the project.
+
+### [Metalus Application](metalus-application/readme.md)
+This project provides a single jar that can be used to run the application. Additional components provide jars that can be
+added to the classpath.
 
 ## Examples
 Examples of building pipelines can be found in the [pipeline-drivers-examples](metalus-examples/readme.md) project.
@@ -108,9 +76,8 @@ To build the project using Scala 2.12 and Spark 2.4 run:
 Tests are part of the main build.
 
 ## Contributing
-* Start by forking the main GutHub [repository](https://github.com/Acxiom/spark-pipeline-driver).
+* Start by forking the main GutHub [repository](https://github.com/Acxiom/metalus).
 * Commit all changes to the develop branch.
 * Create proper scaladoc comments for any new or changed functions.
 * Provide a thorough unit test for the change.
 * Provide any additional documentation required by individual projects.
-

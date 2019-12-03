@@ -1,49 +1,32 @@
 # Metalus Pipeline Core
 This project provides the tools necessary for building applications based on reusable components that are assembled at
-runtime using external configurations. Using the concepts of *steps* and *pipelines* application developers are able to
-deploy a single 'uber-jar' to the cluster and then use the 'spark-submit' command as a gateway to assembling the 
-application. Application developers can achieve this by creating reusable *steps* that are packaged in the 'uber-jar' and
-one or more *DriverSetup* implementation(s) that is responsible for parsing the external configuration information to 
-construct an *execution plan* and *pipelines*.
+runtime using external configurations. Using the concepts of *steps*, *pipelines*, *executions* and *applications*, 
+developers are able to deploy a single 'uber-jar' (metalus-application) to the cluster and then use the 'spark-submit' 
+command as a gateway to assembling the application. Application developers can achieve this by creating reusable *steps* 
+that are packaged in a jar and an application JSON configuration or a *DriverSetup* implementation that is responsible 
+for parsing the external configuration information to construct an *execution plan* and *pipelines*.
 
-## Getting Started
-There is some preparation and understanding that needs to happen in order to create dynamically assembled applications.
+## Concepts
+This section will attempt to provide a high level idea of how the framework achieves the project goals.
 
-### Utilities
-There are some utility libraries provided to make writing steps easier.
-
-#### [FileManager](docs/filemanager.md)
-The FileManger utility provides an abstraction of different file systems. Step authors may use this to work directly
-with files on different file systems such as HDFS.
-
-#### DriverUtils
-This utility provides several functions to help in the creation of a custom *DriverSetup*
-
-### Execution Audits
-Basic timing [audits](docs/executionaudits.md) are captured during execution that can be useful for troubleshooting or
-establishing trends. The *PipelineListener* allows adding additional information to each audit.
-
-### Application
-The Application allows application developers the ability to assemble a Spark application by providing a JSON 
-configuration file and specifying the *ApplicationDriverSetup* during the call to 'spark-submit'.
-
-Visit the [Application](docs/application.md) document for more information.
-
-### Steps
-[Steps](docs/steps.md) are the basic building blocks of a pipeline. More detailed documentation is available
-[here](docs/steps.md).
-
-### DriverSetup
-The next task an application developer must do is create one or more *DriverSetup* implementations.
-
-See the [pipeline driver](docs/pipeline-drivers.md) documentation for more information.
+### [Steps](../metalus-core/docs/steps.md)
+The step is the smallest unit of work in the application. A step is a single reusable code function that can be executed
+by a pipeline. There are two parts to a step, the actual function and the *PipelineStep* metadata. The function should 
+define the parameters that are required to execute properly and the metadata is used by the pipeline to define how those
+parameters are populated. The return type may be anything including *Unit*, but it is recommended that a 
+*PipelineStepResponse* be returned.
 
 ### Pipelines
-Pipelines are a collection of steps that are executed in a specified order. Each pipeline contains one or more step 
-mappings that will be executed. The pipeline is the most basic construct that can be represented as an external 
-configuration. Using the *DriverUtils.parsePipelineJson* function, it is easy to convert a JSON representation into a 
-list of *Pipeline* case classes which can then be executed as part of the execution plan. There are two categories 
-pipeline:
+A pipeline is a collection of steps that should be executed in a predefined order. An application may execute one or 
+more pipelines as part of an application and are useful when there may be a need to restart processing in an application
+without needing to run all of the same logic again.
+
+![Pipeline Overview](../docs/images/Pipeline_Overview.png "Pipeline Overview")
+
+Each pipeline contains one or more step mappings that will be executed. The pipeline is the most basic construct that 
+can be represented as an external configuration. Using the *DriverUtils.parsePipelineJson* function, it is easy to 
+convert a JSON representation into a list of *Pipeline* case classes which can then be executed as part of the execution 
+plan. There are two categories pipeline:
 
 * pipeline: this is the default
 * step-group: this indicates a pipeline designed to be embedded within a [step-group](docs/steps.md) in another pipeline
@@ -62,7 +45,6 @@ When the flow of the pipeline execution needs to be determined conditionally, a 
 The return value of the branch should match the name of a parameter in the step params metadata. The value of the matched
 parameter will be used as the id of the next step to execute.
 
-#### Conditional Step Execution
 #### Conditional Step Execution
 Each step has an attribute named *executeIfEmpty* which takes a value just like the parameters of the step. If the value
 is empty, then the step will be executed. This is useful in pipeline chaining to aid with sharing resources such as a 
@@ -96,6 +78,12 @@ Throwing an exception that is not a *PipelineStepException* will result in the a
 restarted by the resource manager such as Yarn. This should only be done when the error is no longer recoverable.
 
 ### Execution Plan
+An execution plan allows control over how pipelines are executed. An [application](docs/application.md) 
+may choose to only have a single execution that runs one or more pipelines or several executions that run pipelines in 
+parallel or based on a dependency structure.
+
+![Execution Overview](../docs/images/Execution_Overview.png "Execution Overview")
+
 The execution plan allows pipelines to execute in parallel and express dependencies between pipelines or groups of 
 pipelines. Each *PipelineExecution* in the plan has the ability to execute multiple *pipelines* as well as express
 a dependency on other executions. Each execution runs the pipelines as described in the *Pipelines* section above.
@@ -117,6 +105,36 @@ available. The final pipeline chain *E* will only execute once both *B* and *D* 
 This next diagram shows how an execution plan is processed:
 
 ![Pipeline Execution Plan Flow](../docs/images/Execution_Plan_Flow.png "Pipeline Execution Flow")
+
+### Drivers
+Drivers are the entry point into the application. The driver is responsible for processing the input parameters and
+initializing the application.
+
+See the [pipeline driver](docs/pipeline-drivers.md) documentation for more information.
+
+### [Application](docs/application.md)
+The *Application* framework is a configuration based method of describing the Spark application. This includes defining 
+the execution plan, pipelines, pipeline context overrides (*pipeline listener*, *security manager*, *step mapper*) and 
+global values as JSON.
+
+![Application Overview](../docs/images/Application_Overview.png "Application Overview")
+
+## Getting Started
+There is some preparation and understanding that needs to happen in order to create dynamically assembled applications.
+
+### Utilities
+There are some utility libraries provided to make writing steps easier.
+
+#### [FileManager](docs/filemanager.md)
+The FileManger utility provides an abstraction of different file systems. Step authors may use this to work directly
+with files on different file systems such as HDFS.
+
+#### DriverUtils
+This utility provides several functions to help in the creation of a custom *DriverSetup*
+
+### [Execution Audits](docs/executionaudits.md)
+Basic timing audits are captured during execution that can be useful for troubleshooting or
+establishing trends. The *PipelineListener* allows adding additional information to each audit.
 
 ## Pipeline Step Mapping
 *Pipelines* represent the reusable construct of the application. In order to abstract the pipeline definition in a way that

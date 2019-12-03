@@ -1,7 +1,7 @@
-# Spark Pipeline Driver Examples
+# Metalus Pipeline Examples
 This project contains examples related to using the different features of the framework. All examples present some form
 of coding exercise as a way of teaching the basic requirements, however using the *Application* framework and 
-*common steps* project, it may be entirely possible to write a complete application without the need to build a jar
+*metalus-common* project, it may be entirely possible to write a complete application without the need to build a jar
 or create new steps.
 
 * [Application Example](docs/application-example.md) - This example uses the *Application* framework to build the 

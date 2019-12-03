@@ -8,19 +8,19 @@
     <files>
         <file>
             <source>step-metadata-extractor.sh</source>
-            <outputDirectory>application-utilites/bin</outputDirectory>
+            <outputDirectory>metalus-utils/bin</outputDirectory>
         </file>
     </files>
     <fileSets>
         <fileSet>
             <directory>libraries</directory>
-            <outputDirectory>application-utilites/libraries</outputDirectory>
+            <outputDirectory>metalus-utils/libraries</outputDirectory>
         </fileSet>
     </fileSets>
     <dependencySets>
         <dependencySet>
             <useProjectArtifact>true</useProjectArtifact>
-            <outputDirectory>application-utilites/libraries</outputDirectory>
+            <outputDirectory>metalus-utils/libraries</outputDirectory>
         </dependencySet>
     </dependencySets>
 </assembly>
