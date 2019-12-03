@@ -189,9 +189,8 @@
                 <configuration>
                     <repoToken>${repoToken}</repoToken>
                     <coberturaReports>
-                        <coberturaReport>spark-pipeline-engine/target/cobertura.xml</coberturaReport>
-                        <coberturaReport>common-pipeline-steps/target/cobertura.xml</coberturaReport>
-                        <coberturaReport>streaming-pipeline-drivers/target/cobertura.xml</coberturaReport>
+                        <coberturaReport>metalus-core/target/cobertura.xml</coberturaReport>
+                        <coberturaReport>metalus-common/target/cobertura.xml</coberturaReport>
                     </coberturaReports>
                 </configuration>
             </plugin>
