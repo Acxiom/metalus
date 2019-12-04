@@ -30,7 +30,7 @@ object InputOutputSteps {
   def loadFileWithSchema(url: String, format: String, separator: Option[String], schema: Option[StructType] = None,
                          pipelineContext: PipelineContext): DataFrame = {
     val dfr = if (separator.isDefined) {
-      pipelineContext.sparkSession.get.read.format(format).option("sep", separator.get.toCharArray.head)
+      pipelineContext.sparkSession.get.read.format(format).option("sep", separator.get.toCharArray.head.toString)
     } else {
       pipelineContext.sparkSession.get.read.format(format)
     }

@@ -22,15 +22,21 @@
         "attributes": [
           {
             "name": "CUSTOMER_ID",
-            "dataType": "Integer"
+            "dataType": {
+              "baseType": "Integer"
+            }
           },
           {
             "name": "ACCOUNT_NUMBER",
-            "dataType": "String"
+            "dataType": {
+              "baseType": "String"
+            }
           },
           {
             "name": "ACCOUNT_TYPE",
-            "dataType": "String"
+            "dataType": {
+              "baseType": "String"
+            }
           }
         ]
       }
@@ -41,12 +47,16 @@
         "columnDetails": [
           {
             "outputField": "ACCOUNT_NUMBER",
-            "inputAliases": ["CC_NUM"],
+            "inputAliases": [
+              "CC_NUM"
+            ],
             "expression": null
           },
           {
             "outputField": "ACCOUNT_TYPE",
-            "inputAliases": ["CC_TYPE"],
+            "inputAliases": [
+              "CC_TYPE"
+            ],
             "expression": "upper(ACCOUNT_TYPE)"
           }
         ]
@@ -58,19 +68,27 @@
         "attributes": [
           {
             "name": "ORDER_ID",
-            "dataType": "String"
+            "dataType": {
+              "baseType": "String"
+            }
           },
           {
             "name": "CUSTOMER_ID",
-            "dataType": "Integer"
+            "dataType": {
+              "baseType": "Integer"
+            }
           },
           {
             "name": "PRODUCT_ID",
-            "dataType": "String"
+            "dataType": {
+              "baseType": "String"
+            }
           },
           {
             "name": "UNITS",
-            "dataType": "Integer"
+            "dataType": {
+              "baseType": "Integer"
+            }
           }
         ]
       }
@@ -81,7 +99,9 @@
         "columnDetails": [
           {
             "outputField": "ORDER_ID",
-            "inputAliases": ["ORDER_NUM"],
+            "inputAliases": [
+              "ORDER_NUM"
+            ],
             "expression": null
           }
         ]
@@ -216,15 +236,21 @@
                     "attributes": [
                       {
                         "name": "PRODUCT_NAME",
-                        "dataType": "String"
+                        "dataType": {
+                          "baseType": "String"
+                        }
                       },
                       {
                         "name": "PRODUCT_ID",
-                        "dataType": "String"
+                        "dataType": {
+                          "baseType": "String"
+                        }
                       },
                       {
                         "name": "COST",
-                        "dataType": "Double"
+                        "dataType": {
+                          "baseType": "Double"
+                        }
                       }
                     ]
                   }
@@ -301,35 +327,51 @@
                     "attributes": [
                       {
                         "name": "CUSTOMER_ID",
-                        "dataType": "Integer"
+                        "dataType": {
+                          "baseType": "Integer"
+                        }
                       },
                       {
                         "name": "FIRST_NAME",
-                        "dataType": "String"
+                        "dataType": {
+                          "baseType": "String"
+                        }
                       },
                       {
                         "name": "LAST_NAME",
-                        "dataType": "String"
+                        "dataType": {
+                          "baseType": "String"
+                        }
                       },
                       {
                         "name": "POSTAL_CODE",
-                        "dataType": "String"
+                        "dataType": {
+                          "baseType": "String"
+                        }
                       },
                       {
                         "name": "GENDER_CODE",
-                        "dataType": "String"
+                        "dataType": {
+                          "baseType": "String"
+                        }
                       },
                       {
                         "name": "EIN",
-                        "dataType": "String"
+                        "dataType": {
+                          "baseType": "String"
+                        }
                       },
                       {
                         "name": "EMAIL",
-                        "dataType": "String"
+                        "dataType": {
+                          "baseType": "String"
+                        }
                       },
                       {
                         "name": "FULL_NAME",
-                        "dataType": "STRING"
+                        "dataType": {
+                          "baseType": "STRING"
+                        }
                       }
                     ]
                   }
@@ -343,7 +385,9 @@
                     "columnDetails": [
                       {
                         "outputField": "GENDER_CODE",
-                        "inputAliases": ["GENDER"],
+                        "inputAliases": [
+                          "GENDER"
+                        ],
                         "expression": "upper(substring(GENDER_CODE,0,1))"
                       },
                       {

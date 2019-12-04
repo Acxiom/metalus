@@ -195,7 +195,8 @@ object ReflectionUtils {
     parameters.zipWithIndex.map { case (param, pos) =>
       val name = param.name.toString
       logger.debug(s"Mapping parameter $name")
-      val optionType = param.asTerm.typeSignature.toString.startsWith("Option[")
+      val optionType = param.asTerm.typeSignature.toString.startsWith("Option[") ||
+        param.asTerm.typeSignature.toString.startsWith("scala.Option[")
       val value = if (parameterValues.contains(name)) {
         parameterValues(name)
       } else if (param.asTerm.isParamWithDefault) {
@@ -271,7 +272,7 @@ object ReflectionUtils {
   }
 
   private def getFinalValue(paramType: ru.Type, value: Any): Any = {
-    val optionType = paramType.toString.startsWith("Option[")
+    val optionType = paramType.toString.startsWith("Option[") || paramType.toString.startsWith("scala.Option[")
     if (optionType && !value.isInstanceOf[Option[_]]) {
       Some(wrapValueInCollection(paramType, optionType, value))
     } else if (!optionType && value.isInstanceOf[Option[_]]) {
