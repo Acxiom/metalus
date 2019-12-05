@@ -18,7 +18,7 @@ and output will be broken apart.
 
 ```scala
 val dfr = if (separator.isDefined) {
-	pipelineContext.sparkSession.get.read.format(format).option("sep", separator.get.toCharArray.head)
+	pipelineContext.sparkSession.get.read.format(format).option("sep", separator.get.toCharArray.head.toString)
 } else {
 	pipelineContext.sparkSession.get.read.format(format)
 }
@@ -146,19 +146,40 @@ override def executionPlan: Option[List[PipelineExecution]] = Some(List(Pipeline
 ``` 
 
 ## Running
-The code will need to be packaged as an 'uber-jar' (the example project does this automatically when package is called) 
-that contains all of the dependencies. Once this is done, place the jar in a location that can be read by Spark.
+The code may be run using the provided [application jar](../../metalus-application/readme.md) for the main jar and the 
+metalus-common and metalus-examples jars provided to the *--jars* parameter.
 
-Submit a job locally:
+### Run the spark-submit command for Spark 2.3:
 
-```
+```bash
 spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 --master spark://localhost:7077 \
 --deploy-mode client \
-<jar_path>/pipeline-drivers-examples_<SCALA-COMPAT-VERSION>-spark_<SPARK-COMPAT-VERSION>-<VERSION>.jar \
---driverSetupClass com.acxiom.pipeline.SimpleDataDriverSetup \
+--jars metalus-common_2.11-spark_2.3-<VERSION>.jar,metalus-examples_2.11-spark_2.3-<VERSION>.jar  \
+<jar_path>/metalus-application_2.11-spark_2.3-<VERSION>.jar \
+--driverSetupClass  \
 --input_url <location of input file> \
 --input_format <csv, parquet, etc...> \
+--input_separator , \
 --grouping_field <field name to group by> \
---output_url <location to write the JSON file
-	```
+--output_url <location to write the JSON file \
+--logLevel DEBUG
+```
+
+### Run the spark-submit command for Spark 2.4:
+
+```bash
+spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
+--master spark://localhost:7077 \
+--deploy-mode client \
+--jars metalus-common_2.11-spark_2.4-<VERSION>.jar,metalus-examples_2.11-spark_2.4-<VERSION>.jar  \
+<jar_path>/metalus-application_2.11-spark_2.4-<VERSION>.jar \
+--driverSetupClass com.acxiom.pipeline.ExecutionPlanDataDriverSetup \
+--input_url <location of input file> \
+--input_format <csv, parquet, etc...> \
+--input_separator , \
+--grouping_field <field name to group by> \
+--output_url <location to write the JSON file \
+--logLevel DEBUG
+```
+
