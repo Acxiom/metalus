@@ -18,6 +18,12 @@
             <artifactId>metalus-core_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
             <version>${parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.acxiom</groupId>
+            <artifactId>metalus-common_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
+            <version>${parent.version}</version>
+            <scope>provided</scope>
+        </dependency>
 
         <!-- Kinesis -->
         <dependency>
