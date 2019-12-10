@@ -22,7 +22,7 @@ object ApplicationUtils {
     */
   def parseApplication(json: String): Application = {
     // See if this is an application response
-    if (json.indexOf("application") > -1 && json.indexOf("application") < 15) {
+    if (json.indexOf("application\"") > -1 && json.indexOf("application") < 15) {
       DriverUtils.parseJson(json, "com.acxiom.pipeline.applications.ApplicationResponse").asInstanceOf[ApplicationResponse].application
     } else {
       DriverUtils.parseJson(json, "com.acxiom.pipeline.applications.Application").asInstanceOf[Application]

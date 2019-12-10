@@ -6,10 +6,11 @@ import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline.{Pipeline, PipelineContext, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
+import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
 
 trait ApplicationDriverSetup extends DriverSetup {
-
+  val logger: Logger = Logger.getLogger(getClass)
   // Load the Application configuration
   protected def loadApplication: Application
 
@@ -96,7 +97,6 @@ object ApplicationDriverSetup {
 }
 
 case class DefaultApplicationDriverSetup(parameters: Map[String, Any]) extends ApplicationDriverSetup {
-
   override protected def loadApplication: Application = {
     val json = if (parameters.contains("applicationJson")) {
       parameters("applicationJson").asInstanceOf[String]
@@ -111,7 +111,7 @@ case class DefaultApplicationDriverSetup(parameters: Map[String, Any]) extends A
     } else {
       throw new RuntimeException("Either the applicationJson or the applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
     }
+    logger.debug(s"Loaded application json: $json")
     ApplicationUtils.parseApplication(json)
   }
-
 }

@@ -1,6 +1,7 @@
-package com.acxiom.pipeline.drivers
+package com.acxiom.aws.drivers
 
 import com.acxiom.pipeline.PipelineDependencyExecutor
+import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.services.kinesis.AmazonKinesisClient
@@ -11,7 +12,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.streaming.kinesis.KinesisUtils
+import org.apache.spark.streaming.kinesis.{KinesisInitialPositions, KinesisInputDStream, SparkAWSCredentials}
 import org.apache.spark.streaming.{Duration, StreamingContext}
 
 /**
@@ -91,13 +92,17 @@ object KinesisPipelineDriver {
   private def createKinesisDStreams(awsAccessKey: String, awsAccessSecret: String, appName: String, duration: Duration,
                                     streamingContext: StreamingContext, numStreams: Int, parameters: Map[String, Any]) = {
     (0 until numStreams).map { _ =>
-      KinesisUtils.createStream(streamingContext, appName,
-        parameters("streamName").asInstanceOf[String],
-        parameters("endPointURL").asInstanceOf[String],
-        parameters("regionName").asInstanceOf[String],
-        InitialPositionInStream.LATEST, duration, StorageLevel.MEMORY_AND_DISK_2,
-        (r: Record) => Row(r.getPartitionKey, new String(r.getData.array()), appName),
-        awsAccessKey, awsAccessSecret)
+      KinesisInputDStream.builder
+        .endpointUrl(parameters("endPointURL").asInstanceOf[String])
+        .streamName(parameters("streamName").asInstanceOf[String])
+        .regionName(parameters("regionName").asInstanceOf[String])
+        .streamingContext(streamingContext)
+        .checkpointAppName(appName)
+        .checkpointInterval(duration)
+        .initialPosition(KinesisInitialPositions.fromKinesisInitialPosition(InitialPositionInStream.LATEST))
+        .storageLevel(StorageLevel.MEMORY_AND_DISK_2)
+        .kinesisCredentials(SparkAWSCredentials.builder.basicCredentials(awsAccessKey, awsAccessSecret).build())
+        .buildWithMessageHandler((r: Record) => Row(r.getPartitionKey, new String(r.getData.array()), appName))
     }
   }
 }

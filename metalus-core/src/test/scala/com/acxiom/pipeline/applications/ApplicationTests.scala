@@ -40,6 +40,16 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       executionPlan.head.pipelineContext.sparkSession.get.stop()
     }
 
+    it("Should create an execution plan from a REST response") {
+      val app = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/application-response-test.json")).mkString)
+      val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
+        .setMaster("local")
+      val executionPlan = ApplicationUtils.createExecutionPlan(app, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf,
+        DefaultPipelineListener())
+      verifyApplication(executionPlan)
+      executionPlan.head.pipelineContext.sparkSession.get.stop()
+    }
+
     it("Should throw an exception if no pipelines are provided") {
       val thrown = intercept[IllegalArgumentException] {
         val badApplication = ApplicationUtils.parseApplication(

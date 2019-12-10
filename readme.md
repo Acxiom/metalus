@@ -81,3 +81,4 @@ Tests are part of the main build.
 * Create proper scaladoc comments for any new or changed functions.
 * Provide a thorough unit test for the change.
 * Provide any additional documentation required by individual projects.
+* Discuss on [Slack](https://join.slack.com/t/acxiom-metalus/shared_invite/enQtODY3OTU0ODE5NzUwLTc2Zjc0MzE2MjYzZjBmZjJkODQxODhhOTM4N2VmZjNhZGVlN2Q3N2QzNWU3ZTk4NWExNWM2YzZkYTVjNjNiNWQ)
