@@ -53,7 +53,7 @@ This project provides a single jar that can be used to run the application. Addi
 added to the classpath.
 
 ## Examples
-Examples of building pipelines can be found in the [pipeline-drivers-examples](metalus-examples/readme.md) project.
+Examples of building pipelines can be found in the [metalus-examples](metalus-examples/readme.md) project.
 
 ## Building
 The project is built using [Apache Maven](http://maven.apache.org/).
