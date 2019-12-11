@@ -97,7 +97,9 @@ This array is used to set the packages where compiled steps can be found.
 ### pipelineListener
 This object allows specifying a custom *PipelineListener*. The class represented by the fully qualified *className* 
 must be available on the class path. The optional *parameters* specified will be passed to the constructor. Currently
-only simple types and maps are supported, but more complex data types will be supported in the future.
+only simple types and maps are supported, but more complex data types will be supported in the future. If this class
+extends SparkListener, it can also be added as a spark listener by setting a global variable of
+**pipelineListenerAsSparkListener** to **true**
 
 ```json
 {
@@ -107,6 +109,31 @@ only simple types and maps are supported, but more complex data types will be su
       "name": "Test Pipeline Listener"
     }
   }
+}
+```
+
+### sparkListeners
+This is a list of custom SparkListeners that will be added to the sparkContext. 
+The class represented by the fully qualified *className* must be available on the class path.
+The optional *parameters* specified will be passed to the constructor. Currently only simple types and maps are
+supported, but more complex data types will be supported in the future.
+
+```json
+{
+  "sparkListeners": [
+    {
+      "className": "com.acxiom.pipeline.applications.TestSparkListener",
+      "parameters": {
+        "name": "Test Spark Listener"
+      }
+    },
+    {
+      "className": "com.acxiom.pipeline.applications.AnotherTestSparkListener",
+      "parameters": {
+        "name": "Test Spark Listener"
+      }
+    }
+  ]
 }
 ```
 

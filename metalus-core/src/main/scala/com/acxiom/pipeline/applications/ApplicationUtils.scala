@@ -5,21 +5,23 @@ import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
+import org.apache.spark.scheduler.SparkListener
 import org.apache.spark.sql.SparkSession
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 
 /**
-  * Provides a set of utility functions for working with Application metadata
-  */
+ * Provides a set of utility functions for working with Application metadata
+ */
 object ApplicationUtils {
   private val logger = Logger.getLogger(getClass)
+
   /**
-    * This function will parse an Application from the provided JSON.
-    *
-    * @param json The json string representing an Application.
-    * @return An Application object.
-    */
+   * This function will parse an Application from the provided JSON.
+   *
+   * @param json The json string representing an Application.
+   * @return An Application object.
+   */
   def parseApplication(json: String): Application = {
     // See if this is an application response
     if (json.indexOf("application\"") > -1 && json.indexOf("application") < 15) {
@@ -30,15 +32,15 @@ object ApplicationUtils {
   }
 
   /**
-    * This function will convert the Application into an execution plan supplying the globals (if provided) to each
-    * PipelineContext. This function will create a SparkSession using the provided SparkConf.
-    *
-    * @param application      The Application to use to generate the execution plan.
-    * @param globals          An optional set of globals to use in each PipelineContext
-    * @param sparkConf        The SparkConf to use
-    * @param pipelineListener An optional PipelineListener. This may be overridden by the application.
-    * @return An execution plan.
-    */
+   * This function will convert the Application into an execution plan supplying the globals (if provided) to each
+   * PipelineContext. This function will create a SparkSession using the provided SparkConf.
+   *
+   * @param application      The Application to use to generate the execution plan.
+   * @param globals          An optional set of globals to use in each PipelineContext
+   * @param sparkConf        The SparkConf to use
+   * @param pipelineListener An optional PipelineListener. This may be overridden by the application.
+   * @return An execution plan.
+   */
   def createExecutionPlan(application: Application,
                           globals: Option[Map[String, Any]],
                           sparkConf: SparkConf,
@@ -51,14 +53,13 @@ object ApplicationUtils {
     } else {
       SparkSession.builder().config(sparkConf).getOrCreate()
     }
-
     logger.info(s"setting parquet dictionary enabled to ${parquetDictionaryEnabled.toString}")
     sparkSession.sparkContext.hadoopConfiguration.set("parquet.enable.dictionary", parquetDictionaryEnabled.toString)
-
     // Create the default globals
     val rootGlobals = globals.getOrElse(Map[String, Any]())
     val defaultGlobals = generateGlobals(application.globals, rootGlobals, Some(rootGlobals))
     val globalListener = generatePipelineListener(application.pipelineListener, Some(pipelineListener))
+    val globalSparkListeners = generateSparkListeners(application.sparkListeners, None)
     val globalSecurityManager = generateSecurityManager(application.securityManager, Some(PipelineSecurityManager()))
     val globalStepMapper = generateStepMapper(application.stepMapper, Some(PipelineStepMapper()))
     val globalPipelineParameters = generatePipelineParameters(application.pipelineParameters, Some(PipelineParameters()))
@@ -66,15 +67,25 @@ object ApplicationUtils {
       Some(PipelineManager(application.pipelines.getOrElse(List[DefaultPipeline]())))).get
     // Generate the execution plan
     application.executions.get.map(execution => {
+      val finalGlobals = generateGlobals(execution.globals, rootGlobals, defaultGlobals, execution.mergeGlobals.getOrElse(false))
+      val usePipelineListener = finalGlobals.getOrElse(Map()).getOrElse("pipelineListenerAsSparkListener", false).asInstanceOf[Boolean]
+      val pipelineListener = generatePipelineListener(execution.pipelineListener, globalListener)
+      if (usePipelineListener && pipelineListener.isDefined && pipelineListener.get.isInstanceOf[SparkListener]) {
+        sparkSession.sparkContext.addSparkListener(pipelineListener.get.asInstanceOf[SparkListener])
+      }
+      val sparkListeners = generateSparkListeners(execution.sparkListeners, globalSparkListeners)
+      if (sparkListeners.isDefined && sparkListeners.get.nonEmpty) {
+        sparkListeners.get.foreach(sparkListener => sparkSession.sparkContext.addSparkListener(sparkListener))
+      }
       // Extracting pipelines
       val ctx = PipelineContext(Some(sparkConf),
         Some(sparkSession),
-        generateGlobals(execution.globals, rootGlobals, defaultGlobals, execution.mergeGlobals.getOrElse(false)),
+        finalGlobals,
         generateSecurityManager(execution.securityManager, globalSecurityManager).get,
         generatePipelineParameters(execution.pipelineParameters, globalPipelineParameters).get,
         application.stepPackages,
         generateStepMapper(execution.stepMapper, globalStepMapper).get,
-        generatePipelineListener(execution.pipelineListener, globalListener),
+        pipelineListener,
         Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")),
         ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
         pipelineManager)
@@ -83,14 +94,14 @@ object ApplicationUtils {
   }
 
   /**
-    * Utility method that resets the state on the PipelineExecution.
-    *
-    * @param application       The Application configuration
-    * @param rootGlobals       The initial set of globals
-    * @param execution         The execution configuration
-    * @param pipelineExecution The PipelineExecution that needs to be refreshed
-    * @return An updated PipelineExecution
-    */
+   * Utility method that resets the state on the PipelineExecution.
+   *
+   * @param application       The Application configuration
+   * @param rootGlobals       The initial set of globals
+   * @param execution         The execution configuration
+   * @param pipelineExecution The PipelineExecution that needs to be refreshed
+   * @return An updated PipelineExecution
+   */
   def refreshPipelineExecution(application: Application,
                                rootGlobals: Option[Map[String, Any]],
                                execution: Execution,
@@ -140,6 +151,22 @@ object ApplicationUtils {
         pipelineListenerInfo.get.parameters).asInstanceOf[PipelineListener])
     } else {
       pipelineListener
+    }
+  }
+
+  private def generateSparkListeners(sparkListenerInfos: Option[List[ClassInfo]],
+                                     sparkListeners: Option[List[SparkListener]]): Option[List[SparkListener]] = {
+    if (sparkListenerInfos.isDefined) {
+      val listeners = sparkListenerInfos.get.flatMap { info =>
+        if (info.className.isDefined) {
+          Some(ReflectionUtils.loadClass(info.className.get, info.parameters).asInstanceOf[SparkListener])
+        } else {
+          None
+        }
+      }
+      Some(sparkListeners.getOrElse(List()) ++ listeners)
+    } else {
+      sparkListeners
     }
   }
 
