@@ -13,7 +13,7 @@ case class StepDefinition(id: String,
                           category: String,
                           params: List[StepFunctionParameter],
                           engineMeta: EngineMeta,
-                          jarName: Option[String])
+                          tags: List[String])
 
 case class StepFunctionParameter(`type`: String,
                                  name: String,

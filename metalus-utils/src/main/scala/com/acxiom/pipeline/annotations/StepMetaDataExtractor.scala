@@ -46,14 +46,14 @@ object StepMetaDataExtractor {
             val steps = if (stepsAndClasses.nonEmpty) Some(stepsAndClasses.get._1) else None
             val classes = if (stepsAndClasses.nonEmpty) Some(stepsAndClasses.get._2) else None
             val updatedCaseClasses = if (classes.isDefined) stepDefinitions._2 ++ classes.get else stepDefinitions._2
-            val updatedSteps = if (steps.isDefined) stepDefinitions._1 ::: steps.get else stepDefinitions._1
+            val updatedSteps = if (steps.isDefined) reconcileSteps(stepDefinitions._1, steps.get) else stepDefinitions._1
             (updatedSteps, updatedCaseClasses)
           } else { stepDefinitions }
         })
         val jarSteps = jarStepsAndClasses._1
         val jarCaseClasses = jarStepsAndClasses._2
         val lastDefinitions = if (definitions._1.contains(packageName)) {
-          definitions._1 + (packageName -> (definitions._1(packageName) ::: jarSteps))
+          definitions._1 + (packageName -> reconcileSteps(definitions._1(packageName), jarSteps))
         } else {
           definitions._1 + (packageName -> jarSteps)
         }
@@ -65,6 +65,24 @@ object StepMetaDataExtractor {
     val outputFile = if(parameters.contains("output-file")) Some(parameters("output-file").asInstanceOf[String]) else None
     val packageObjects = buildPackageObjects(stepMappingsAndClasses._2)
     writeStepMappings(stepMappingsAndClasses._1, packageObjects, outputFile)
+  }
+
+  private def reconcileSteps(existingSteps: List[StepDefinition], newSteps: List[StepDefinition]): List[StepDefinition] = {
+    newSteps.foldLeft(existingSteps)((updatedSteps, step) => {
+      val stepExists = updatedSteps.exists(_.id == step.id)
+      if (stepExists) {
+        val steps = updatedSteps.map(s => {
+          if (s.id == step.id) {
+            s.copy(tags = (s.tags ::: step.tags).distinct)
+          } else {
+            s
+          }
+        })
+        steps
+      } else {
+        updatedSteps :+ step
+      }
+    })
   }
 
   private def writeStepMappings(stepMappings: Map[String, List[StepDefinition]], packageObjects: List[PackageObject],
@@ -178,7 +196,7 @@ object StepMetaDataExtractor {
         ann.get.tree.children.tail(FOUR).toString().replaceAll("\"", ""),
         getBranchResults(parameters._1, symbol),
         EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName), returnType),
-        Some(jarName))
+        List(jarName))
       (newSteps, parameters._2)
     } else { (steps, caseClasses) }
   }
