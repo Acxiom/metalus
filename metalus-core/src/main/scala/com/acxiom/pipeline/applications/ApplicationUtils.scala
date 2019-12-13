@@ -41,7 +41,6 @@ object ApplicationUtils {
    * @param pipelineListener An optional PipelineListener. This may be overridden by the application.
    * @return An execution plan.
    */
-  //noinspection ScalaStyle
   def createExecutionPlan(application: Application,
                           globals: Option[Map[String, Any]],
                           sparkConf: SparkConf,

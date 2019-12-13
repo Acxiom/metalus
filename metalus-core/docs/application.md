@@ -98,8 +98,7 @@ This array is used to set the packages where compiled steps can be found.
 This object allows specifying a custom *PipelineListener*. The class represented by the fully qualified *className* 
 must be available on the class path. The optional *parameters* specified will be passed to the constructor. Currently
 only simple types and maps are supported, but more complex data types will be supported in the future. If this class
-extends SparkListener, it can also be added as a spark listener by setting a global variable of
-**pipelineListenerAsSparkListener** to **true**
+extends SparkListener, it will also be added as a spark listener.
 
 ```json
 {
