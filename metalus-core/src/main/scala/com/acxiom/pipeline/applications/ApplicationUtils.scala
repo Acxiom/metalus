@@ -41,6 +41,7 @@ object ApplicationUtils {
    * @param pipelineListener An optional PipelineListener. This may be overridden by the application.
    * @return An execution plan.
    */
+  //noinspection ScalaStyle
   def createExecutionPlan(application: Application,
                           globals: Option[Map[String, Any]],
                           sparkConf: SparkConf,
@@ -59,28 +60,26 @@ object ApplicationUtils {
     val rootGlobals = globals.getOrElse(Map[String, Any]())
     val defaultGlobals = generateGlobals(application.globals, rootGlobals, Some(rootGlobals))
     val globalListener = generatePipelineListener(application.pipelineListener, Some(pipelineListener))
-    val globalSparkListeners = generateSparkListeners(application.sparkListeners, None)
     val globalSecurityManager = generateSecurityManager(application.securityManager, Some(PipelineSecurityManager()))
     val globalStepMapper = generateStepMapper(application.stepMapper, Some(PipelineStepMapper()))
     val globalPipelineParameters = generatePipelineParameters(application.pipelineParameters, Some(PipelineParameters()))
     val pipelineManager = generatePipelineManager(application.pipelineManager,
       Some(PipelineManager(application.pipelines.getOrElse(List[DefaultPipeline]())))).get
+    generateSparkListeners(application.sparkListeners).getOrElse(List()).foreach(sparkSession.sparkContext.addSparkListener)
+    if (globalListener.isDefined && globalListener.get.isInstanceOf[SparkListener]) {
+      sparkSession.sparkContext.addSparkListener(globalListener.get.asInstanceOf[SparkListener])
+    }
     // Generate the execution plan
     application.executions.get.map(execution => {
-      val finalGlobals = generateGlobals(execution.globals, rootGlobals, defaultGlobals, execution.mergeGlobals.getOrElse(false))
-      val usePipelineListener = finalGlobals.getOrElse(Map()).getOrElse("pipelineListenerAsSparkListener", false).asInstanceOf[Boolean]
       val pipelineListener = generatePipelineListener(execution.pipelineListener, globalListener)
-      if (usePipelineListener && pipelineListener.isDefined && pipelineListener.get.isInstanceOf[SparkListener]) {
+      if (execution.pipelineListener.isDefined && pipelineListener.isDefined && pipelineListener.get.isInstanceOf[SparkListener]) {
         sparkSession.sparkContext.addSparkListener(pipelineListener.get.asInstanceOf[SparkListener])
       }
-      val sparkListeners = generateSparkListeners(execution.sparkListeners, globalSparkListeners)
-      if (sparkListeners.isDefined && sparkListeners.get.nonEmpty) {
-        sparkListeners.get.foreach(sparkListener => sparkSession.sparkContext.addSparkListener(sparkListener))
-      }
+      generateSparkListeners(execution.sparkListeners).getOrElse(List()).foreach(sparkSession.sparkContext.addSparkListener)
       // Extracting pipelines
       val ctx = PipelineContext(Some(sparkConf),
         Some(sparkSession),
-        finalGlobals,
+        generateGlobals(execution.globals, rootGlobals, defaultGlobals, execution.mergeGlobals.getOrElse(false)),
         generateSecurityManager(execution.securityManager, globalSecurityManager).get,
         generatePipelineParameters(execution.pipelineParameters, globalPipelineParameters).get,
         application.stepPackages,
@@ -154,19 +153,17 @@ object ApplicationUtils {
     }
   }
 
-  private def generateSparkListeners(sparkListenerInfos: Option[List[ClassInfo]],
-                                     sparkListeners: Option[List[SparkListener]]): Option[List[SparkListener]] = {
+  private def generateSparkListeners(sparkListenerInfos: Option[List[ClassInfo]]): Option[List[SparkListener]] = {
     if (sparkListenerInfos.isDefined) {
-      val listeners = sparkListenerInfos.get.flatMap { info =>
+      Some(sparkListenerInfos.get.flatMap { info =>
         if (info.className.isDefined) {
           Some(ReflectionUtils.loadClass(info.className.get, info.parameters).asInstanceOf[SparkListener])
         } else {
           None
         }
-      }
-      Some(sparkListeners.getOrElse(List()) ++ listeners)
+      })
     } else {
-      sparkListeners
+      None
     }
   }
 

@@ -24,6 +24,14 @@
       "name": "Test Pipeline Listener"
     }
   },
+  "sparkListeners": [
+    {
+      "className":"com.acxiom.pipeline.applications.TestSparkListener",
+      "parameters": {
+        "name": "Listener1"
+      }
+    }
+  ],
   "securityManager": {
     "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
     "parameters": {
@@ -229,6 +237,14 @@
           "name": "Sub Pipeline Listener"
         }
       },
+      "sparkListeners": [
+        {
+          "className":"com.acxiom.pipeline.applications.TestSparkListener",
+          "parameters": {
+            "name": "Listener2"
+          }
+        }
+      ],
       "stepMapper": {
         "className": "com.acxiom.pipeline.applications.TestPipelineStepMapper",
         "parameters": {
