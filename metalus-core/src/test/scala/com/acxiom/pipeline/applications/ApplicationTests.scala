@@ -15,6 +15,9 @@ import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.{Level, Logger}
+import org.apache.spark.PackagePrivateSparkTestHelper
+import org.apache.spark.scheduler.SparkListener
+import org.apache.spark.sql.SparkSession
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
@@ -37,6 +40,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val executionPlan = ApplicationUtils.createExecutionPlan(application, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf,
         DefaultPipelineListener())
       verifyApplication(executionPlan)
+      removeSparkListeners(executionPlan.head.pipelineContext.sparkSession.get)
       executionPlan.head.pipelineContext.sparkSession.get.stop()
     }
 
@@ -47,6 +51,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val executionPlan = ApplicationUtils.createExecutionPlan(app, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf,
         DefaultPipelineListener())
       verifyApplication(executionPlan)
+      removeSparkListeners(executionPlan.head.pipelineContext.sparkSession.get)
       executionPlan.head.pipelineContext.sparkSession.get.stop()
     }
 
@@ -60,6 +65,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
         val executionPlan = ApplicationUtils.createExecutionPlan(badApplication, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf)
         executionPlan.head.pipelineContext.sparkSession.get.stop()
       }
+      removeSparkListeners(SparkSession.builder().getOrCreate())
       assert(thrown.getMessage == "Either execution pipelines, pipelineIds or application pipelines must be provided for an execution")
     }
   }
@@ -70,9 +76,11 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "rootLogLevel" -> "OFF"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
+      verifyListeners(setup.pipelineContext.sparkSession.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
+      removeSparkListeners(setup.pipelineContext.sparkSession.get)
       setup.pipelineContext.sparkSession.get.stop()
     }
 
@@ -90,10 +98,12 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
         "rootLogLevel" -> "ERROR"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
+      verifyListeners(setup.pipelineContext.sparkSession.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
 
+      removeSparkListeners(setup.pipelineContext.sparkSession.get)
       setup.pipelineContext.sparkSession.get.stop()
       file.delete()
       FileUtils.deleteDirectory(testDirectory.toFile)
@@ -130,12 +140,14 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
         "rootLogLevel" -> "INFO"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
+      verifyListeners(setup.pipelineContext.sparkSession.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
 
       miniCluster.shutdown(true)
       FileUtils.deleteDirectory(testDirectory.toFile)
+      removeSparkListeners(setup.pipelineContext.sparkSession.get)
       setup.pipelineContext.sparkSession.get.stop()
     }
 
@@ -147,7 +159,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
         .willReturn(aResponse()
           .withStatus(HttpURLConnection.HTTP_OK)
           .withHeader("content-type", "application/json")
-            .withBody(applicationJson)
+          .withBody(applicationJson)
         ).build())
 
       val setup = ApplicationDriverSetup(Map[String, Any](
@@ -155,10 +167,12 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
         "rootLogLevel" -> "ERROR"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
+      verifyListeners(setup.pipelineContext.sparkSession.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
 
+      removeSparkListeners(setup.pipelineContext.sparkSession.get)
       setup.pipelineContext.sparkSession.get.stop()
 
       val application = DriverUtils.parseJson(applicationJson, "com.acxiom.pipeline.applications.Application").asInstanceOf[Application]
@@ -177,10 +191,12 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
         "rootLogLevel" -> "ERROR"))
       verifyDriverSetup(setup1)
       verifyApplication(setup1.executionPlan.get)
+      verifyListeners(setup1.pipelineContext.sparkSession.get)
       assert(!setup1.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup1.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup1.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
 
+      removeSparkListeners(setup.pipelineContext.sparkSession.get)
       setup1.pipelineContext.sparkSession.get.stop()
       wireMockServer.stop()
     }
@@ -200,6 +216,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "rootLogLevel" -> "DEBUG"))
       val executionPlan = setup.executionPlan.get
       verifyApplication(setup.refreshExecutionPlan(executionPlan))
+      removeSparkListeners(setup.pipelineContext.sparkSession.get)
       setup.pipelineContext.sparkSession.get.stop()
     }
 
@@ -461,10 +478,37 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(ctx1.parameters.getParametersByPipelineId("Pipeline1").get.parameters.size == 1)
     assert(ctx1.parameters.getParametersByPipelineId("Pipeline1").get.parameters("fred").asInstanceOf[String] == "johnson")
   }
+
+  def verifyListeners(spark: SparkSession): Unit = {
+    val listeners = PackagePrivateSparkTestHelper.getSparkListeners(spark)
+      .filter(l => l.isInstanceOf[TestPipelineListener] || l.isInstanceOf[TestSparkListener])
+    assert(listeners.size == 4)
+    val pl = listeners.filter(_.isInstanceOf[TestPipelineListener]).map(_.asInstanceOf[TestPipelineListener])
+    val sl = listeners.filter(_.isInstanceOf[TestSparkListener]).map(_.asInstanceOf[TestSparkListener])
+    assert(pl.size == 2)
+    assert(pl.exists(_.name == "Test Pipeline Listener"))
+    assert(pl.exists(_.name == "Sub Pipeline Listener"))
+    assert(sl.size == 2)
+    assert(sl.exists(_.name == "Listener1"))
+    assert(sl.exists(_.name == "Listener2"))
+
+  }
+
+  def removeSparkListeners(spark: SparkSession): Unit = {
+    val listeners = PackagePrivateSparkTestHelper.getSparkListeners(spark)
+      .filter(l => l.isInstanceOf[TestPipelineListener] || l.isInstanceOf[TestSparkListener])
+    listeners.foreach(l => spark.sparkContext.removeSparkListener(l))
+  }
 }
 
-case class TestPipelineListener(name: String) extends PipelineListener
+case class TestPipelineListener(name: String) extends SparkListener with PipelineListener
+
+case class TestSparkListener(name: String) extends SparkListener
+
 case class TestPipelineSecurityManager(name: String) extends PipelineSecurityManager
+
 case class TestPipelineStepMapper(name: String) extends PipelineStepMapper
+
 case class TestGlobalObject(name: Option[String], subObjects: Option[List[TestSubGlobalObject]])
+
 case class TestSubGlobalObject(name: Option[String])
