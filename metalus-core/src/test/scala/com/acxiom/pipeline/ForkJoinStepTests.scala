@@ -76,7 +76,7 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
     it("Should process list and merge results using serial processing") {
       val pipeline = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(List(generateDataStep, simpleForkSerialStep, processValueStep)))
       SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      val executionResult = PipelineExecutor.executePipelines(List(pipeline), Some("SERIAL_FORK_TEST"), SparkTestHelper.generatePipelineContext())
       verifySimpleForkSteps(pipeline, executionResult)
     }
 
@@ -84,7 +84,7 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       val pipelineSteps = List(generateDataStep, simpleForkParallelStep, processValueStep)
       val pipeline = Pipeline(Some("PARALLEL_FORK_TEST"), Some("Parallel Fork Test"), Some(pipelineSteps))
       SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      val executionResult = PipelineExecutor.executePipelines(List(pipeline), Some("PARALLEL_FORK_TEST"), SparkTestHelper.generatePipelineContext())
       verifySimpleForkSteps(pipeline, executionResult)
     }
   }

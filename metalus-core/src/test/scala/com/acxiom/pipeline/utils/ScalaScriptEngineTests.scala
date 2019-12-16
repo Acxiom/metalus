@@ -5,7 +5,7 @@ import org.scalatest.{BeforeAndAfterAll, FunSpec}
 
 class ScalaScriptEngineTests extends FunSpec with BeforeAndAfterAll {
 
-  var scriptEngine: ScriptEngine = _
+  var scriptEngine: ScalaScriptEngine = _
 
   override def beforeAll(): Unit = {
     scriptEngine = new ScalaScriptEngine
@@ -58,6 +58,19 @@ class ScalaScriptEngineTests extends FunSpec with BeforeAndAfterAll {
           | "RedOnTheHead" + userValue.asInstanceOf[String]
         """.stripMargin
       val result = scriptEngine.executeScriptWithObject(script, "Fred", pipelineContext)
+      assert(result == "RedOnTheHeadFred")
+    }
+
+    it("Should execute a script with a supplied bindings") {
+      val pipelineContext = PipelineContext(None, None, Some(Map[String, Any]("pipelineId" -> "testPipelineId")),
+        PipelineSecurityManager(), PipelineParameters(),
+        Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(), None, None)
+      val script =
+        """
+          | "RedOnTheHead" + userValue.asInstanceOf[String]
+        """.stripMargin
+      val bindings = Bindings()
+      val result = scriptEngine.executeScriptWithBindings(script, bindings.setBinding("userValue", "Fred", "String"), pipelineContext)
       assert(result == "RedOnTheHeadFred")
     }
   }
