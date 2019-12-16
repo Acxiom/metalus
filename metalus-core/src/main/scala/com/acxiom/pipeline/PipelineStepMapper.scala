@@ -254,7 +254,9 @@ trait PipelineStepMapper {
       case p if List('@', '#').contains(p.headOption.getOrElse("")) => getPipelineParameterValue(pipelinePath, pipelineContext)
       case r if r.startsWith("$") => mapRuntimeParameter(pipelinePath, parameter, pipelineContext)
       case g if g.startsWith("!") => getGlobalParameterValue(g, pipelinePath.extraPath.getOrElse(""), pipelineContext)
-      case g if g.startsWith("&") => pipelineContext.pipelineManager.getPipeline(pipelinePath.mainValue.substring(1))
+      case g if g.startsWith("&") =>
+        logger.debug(s"Fetching pipeline value for ${pipelinePath.mainValue.substring(1)}")
+        pipelineContext.pipelineManager.getPipeline(pipelinePath.mainValue.substring(1))
       case o if o.nonEmpty => Some(mapByType(Some(o), parameter))
       case _ => None
     }

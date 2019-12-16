@@ -2,11 +2,12 @@ package com.acxiom.pipeline
 
 import java.io.File
 
+import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
-import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite, GivenWhenThen}
+import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen, Suite}
 
 class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen with Suite {
   private val FIVE = 5
@@ -70,9 +71,11 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
     val globalParameters = Map("pipelineId" -> "pipeline-id-3", "globalString" -> "globalValue1", "globalInteger" -> FIVE,
       "globalBoolean" -> true, "globalTestObject" -> globalTestObject)
 
+    val subPipeline = Pipeline(Some("mypipeline"), Some("My Pipeline"))
+
     val pipelineContext = PipelineContext(
-      None, None, Some(globalParameters), PipelineSecurityManager(), pipelineParameters, None, PipelineStepMapper(), None, None
-    )
+      None, None, Some(globalParameters), PipelineSecurityManager(), pipelineParameters, None, PipelineStepMapper(), None, None,
+      ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()), PipelineManager(List(subPipeline)))
 
     it("should pull the appropriate value for given parameters") {
       val tests = List(
@@ -118,7 +121,10 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("namedReturns from specific pipeline using # to be None", Parameter(value=Some("#pipeline-id-1.step2.nothing"),`type`=Some("string")), None),
         ("namedReturns from current pipeline using #", Parameter(value=Some("#step1.namedKey"),`type`=Some("string")), "namedValue"),
         ("resolve case class", Parameter(value=Some(classMap), className = Some("com.acxiom.pipeline.ParameterTest")), ParameterTest(Some("fred"), Some(3))),
-        ("resolve map", Parameter(value=Some(classMap)), classMap)
+        ("resolve map", Parameter(value=Some(classMap)), classMap),
+        ("resolve pipeline", Parameter(value=Some("&mypipeline")), subPipeline),
+        ("fail to resolve pipeline", Parameter(value=Some("&mypipeline1")), None),
+        ("fail to get global string", Parameter(value=Some("!invalidGlobalString")), None)
       )
 
       tests.foreach(test => {
