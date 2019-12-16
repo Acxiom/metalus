@@ -17,7 +17,7 @@ class CachedPipelineManager(pipelines: List[Pipeline]) extends PipelineManager {
     if (cachedPipelines.contains(id)) {
       Some(cachedPipelines(id))
     } else {
-      None
+      super.getPipeline(id)
     }
   }
 }

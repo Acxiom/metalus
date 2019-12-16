@@ -239,7 +239,7 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
 
   describe("PipelineContext") {
     it("Should set global values") {
-      val ctx = SparkTestHelper.generatePipelineContext()
+      val ctx = SparkTestHelper.generatePipelineContext().copy(stepMessages = None)
       assert(ctx.globals.isDefined)
       assert(ctx.globals.get.isEmpty)
       val map = Map[String, Any]("one" -> 1, "two" -> "two")
@@ -252,17 +252,24 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       assert(updatedCtx.getGlobal("one").get.asInstanceOf[Int] == 1)
       assert(updatedCtx.getGlobal("three").isDefined)
       assert(updatedCtx.getGlobal("three").get.asInstanceOf[Int] == 3)
+      assert(updatedCtx.getGlobalString("one").isEmpty)
+      assert(updatedCtx.getStepMessages.isEmpty)
     }
 
     it("Should set audit metrics") {
       val ctx = SparkTestHelper.generatePipelineContext()
-      val updatedCtx = ctx.setPipelineAudit(ExecutionAudit("pipelineId", AuditType.PIPELINE, Map[String, Any](), System.currentTimeMillis()))
+      val updatedCtx = ctx.setPipelineAudit(ExecutionAudit("pipelineId", AuditType.PIPELINE, Map[String, Any](),
+        System.currentTimeMillis()))
+        .setStepAudit("pipelineId", ExecutionAudit("stepId", AuditType.STEP, Map[String, Any](),
+          System.currentTimeMillis()))
+          .setStepMetric("pipelineId", "stepId", None, "bubba", "gump")
       assert(updatedCtx.getPipelineAudit("pipelineId").isDefined)
       assert(updatedCtx.getPipelineAudit("pipelineId").get.metrics.isEmpty)
       val metricsCtx = updatedCtx.setPipelineAuditMetric("pipelineId", "fred", "redonthehead")
       assert(metricsCtx.getPipelineAudit("pipelineId").get.metrics.size == 1)
       assert(metricsCtx.getPipelineAudit("pipelineId").get.metrics.contains("fred"))
       assert(metricsCtx.getPipelineAudit("pipelineId").get.metrics("fred") == "redonthehead")
+      assert(metricsCtx.getStepAudit("pipelineId", "stepId", None).get.metrics("bubba") == "gump")
     }
   }
 }
