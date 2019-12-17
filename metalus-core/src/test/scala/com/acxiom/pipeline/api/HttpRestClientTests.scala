@@ -1,15 +1,14 @@
-package com.acxiom.pipeline
+package com.acxiom.pipeline.api
 
 import java.net.HttpURLConnection
 
-import com.acxiom.pipeline.fs.HttpRestClient
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.{aMultipart, aResponse, containing, delete, equalTo, get, post, urlPathEqualTo}
+import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
 import scala.io.Source
 
-class HttpRestClientTests  extends FunSpec with BeforeAndAfterAll with Suite {
+class HttpRestClientTests extends FunSpec with BeforeAndAfterAll with Suite {
 
   private val HTTP_PORT = 10293
 
@@ -32,9 +31,10 @@ class HttpRestClientTests  extends FunSpec with BeforeAndAfterAll with Suite {
     }
 
     it("Should validate different functions") {
-      val http = HttpRestClient(wireMockServer.baseUrl())
+      val http = HttpRestClient(wireMockServer.baseUrl(), new BasicAuthorization("myuser", "mypassword"))
       // Call connect and disconnect to ensure they do not change any behaviors
       wireMockServer.addStubMapping(get(urlPathEqualTo("/files"))
+        .withBasicAuth("myuser", "mypassword")
         .willReturn(aResponse()
           .withStatus(HttpURLConnection.HTTP_OK)
           .withHeader("content-type", "application/json")
@@ -44,6 +44,7 @@ class HttpRestClientTests  extends FunSpec with BeforeAndAfterAll with Suite {
       assert(http.getContentLength("/files") == 500)
 
       wireMockServer.addStubMapping(get(urlPathEqualTo("/files/testFile"))
+        .withBasicAuth("myuser", "mypassword")
         .willReturn(aResponse()
           .withHeader("content-type", "application/octet-stream")
           .withBody("this is some content")).build())
@@ -54,16 +55,19 @@ class HttpRestClientTests  extends FunSpec with BeforeAndAfterAll with Suite {
       assert(http.getStringContent("/files/testFile") == "this is some content")
 
       wireMockServer.addStubMapping(delete(urlPathEqualTo("/files/deleteFile"))
+        .withBasicAuth("myuser", "mypassword")
         .willReturn(aResponse().withStatus(HttpURLConnection.HTTP_NO_CONTENT)).build())
       assert(http.delete("/files/deleteFile"))
 
       wireMockServer.addStubMapping(delete(urlPathEqualTo("/files/deleteFileFail"))
+        .withBasicAuth("myuser", "mypassword")
         .withHeader("content-type", equalTo("application/x-www-form-urlencoded"))
         .willReturn(aResponse().withStatus(HttpURLConnection.HTTP_NOT_FOUND)).build())
       assert(!http.delete("/files/deleteFileFail"))
 
       val http1 = HttpRestClient("http", "localhost", wireMockServer.port())
       wireMockServer.addStubMapping(post(urlPathEqualTo("/files/testFileUpload"))
+        .withBasicAuth("myuser", "mypassword")
         .withMultipartRequestBody(aMultipart()
           .withBody(containing("uploaded content")))
         .willReturn(aResponse()
