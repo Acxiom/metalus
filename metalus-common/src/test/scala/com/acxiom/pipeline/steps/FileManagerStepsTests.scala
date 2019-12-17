@@ -31,30 +31,22 @@ class FileManagerStepsTests extends FunSpec with BeforeAndAfterAll {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
     Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
-
-    // setup mini hadoop cluster
     config = new HdfsConfiguration()
     config.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, file.getAbsolutePath)
     miniCluster = new MiniDFSCluster.Builder(config).build()
     miniCluster.waitActive()
-    // Only pull the fs object from the mini cluster
     fs = miniCluster.getFileSystem
-
-    // setup the sftp server
     sftpServer = new MockSftpServer(SFTP_PORT)
     Files.copy(getClass.getResourceAsStream("/MOCK_DATA.csv"),
       new File(s"${sftpServer.getBaseDirectory.toFile.getAbsolutePath}/MOCK_DATA.csv").toPath,
       StandardCopyOption.REPLACE_EXISTING)
-
     sparkConf = new SparkConf()
       .setMaster(MASTER)
       .setAppName(APPNAME)
       .set("spark.local.dir", sparkLocalDir.toFile.getAbsolutePath)
       // Force Spark to use the HDFS cluster
       .set("spark.hadoop.fs.defaultFS", miniCluster.getFileSystem().getUri.toString)
-    // Create the session
     sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
-
     pipelineContext = PipelineContext(Some(sparkConf), Some(sparkSession), Some(Map[String, Any]("StrictHostKeyChecking" -> "no")),
       PipelineSecurityManager(),
       PipelineParameters(List(PipelineParameter("0", Map[String, Any]()), PipelineParameter("1", Map[String, Any]()))),

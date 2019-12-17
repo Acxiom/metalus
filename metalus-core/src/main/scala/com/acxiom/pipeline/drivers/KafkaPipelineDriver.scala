@@ -51,7 +51,7 @@ object KafkaPipelineDriver {
       ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG -> classOf[StringDeserializer],
       ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG -> classOf[StringDeserializer],
       ConsumerConfig.GROUP_ID_CONFIG -> parameters.getOrElse("groupId", "default_stream_listener").asInstanceOf[String],
-      ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> "earliest", // TODO Make sure earliest doesn't cause issues
+      ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> "earliest",
       ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG -> (false: java.lang.Boolean)
     )
     val stream = KafkaUtils.createDirectStream[String, String](streamingContext,
