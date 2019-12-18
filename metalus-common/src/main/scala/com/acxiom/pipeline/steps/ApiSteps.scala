@@ -18,14 +18,10 @@ object ApiSteps {
     "This step will build an HttpRestClient using url parts and optional authorization object",
     "Pipeline",
     "API")
-  def createHttpRestClient(protocol: String,
+  def createHttpRestClientFromParameters(protocol: String,
                            host: String,
-                           port: Int = HttpRestClient.DEFAULT_PORT,
+                           port: Int,
                            authorization: Option[Authorization] = None): HttpRestClient = {
-    if (authorization.isDefined) {
-      new HttpRestClient(protocol, host, port, authorization.get)
-    } else {
-      new HttpRestClient(protocol, host, port)
-    }
+    createHttpRestClient(s"$protocol://$host:$port", authorization)
   }
 }

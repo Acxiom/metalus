@@ -1,15 +1,15 @@
-package com.acxiom.pipeline.api
+package com.acxiom.pipeline.steps
 
 import java.net.HttpURLConnection
 
+import com.acxiom.pipeline.api.BasicAuthorization
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock._
-import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
+import com.github.tomakehurst.wiremock.client.WireMock.{aMultipart, aResponse, containing, delete, equalTo, get, post, urlPathEqualTo}
+import org.scalatest.{BeforeAndAfterAll, FunSpec}
 
 import scala.io.Source
 
-class HttpRestClientTests extends FunSpec with BeforeAndAfterAll with Suite {
-
+class ApiStepsTest extends FunSpec with BeforeAndAfterAll {
   private val HTTP_PORT = 10293
 
   private val wireMockServer = new WireMockServer(HTTP_PORT)
@@ -22,16 +22,9 @@ class HttpRestClientTests extends FunSpec with BeforeAndAfterAll with Suite {
     wireMockServer.stop()
   }
 
-  describe("HttpRestClients") {
-    it("Should fail for protocols other than http and https") {
-      val thrown = intercept[IllegalArgumentException] {
-        HttpRestClient("file://this.should.fail")
-      }
-      assert(thrown.getMessage == "Only http and https protocols are supported!")
-    }
-
+  describe("ApiSteps - HttpRestClient") {
     it("Should validate different functions") {
-      val http = HttpRestClient(wireMockServer.baseUrl(), BasicAuthorization("myuser", "mypassword"))
+      val http = ApiSteps.createHttpRestClient(wireMockServer.baseUrl(), Some(BasicAuthorization("myuser", "mypassword")))
       // Call connect and disconnect to ensure they do not change any behaviors
       wireMockServer.addStubMapping(get(urlPathEqualTo("/files"))
         .withBasicAuth("myuser", "mypassword")
@@ -65,7 +58,7 @@ class HttpRestClientTests extends FunSpec with BeforeAndAfterAll with Suite {
         .willReturn(aResponse().withStatus(HttpURLConnection.HTTP_NOT_FOUND)).build())
       assert(!http.delete("/files/deleteFileFail"))
 
-      val http1 = HttpRestClient("http", "localhost", wireMockServer.port())
+      val http1 = ApiSteps.createHttpRestClientFromParameters("http", "localhost", wireMockServer.port())
       wireMockServer.addStubMapping(post(urlPathEqualTo("/files/testFileUpload"))
         .withBasicAuth("myuser", "mypassword")
         .withMultipartRequestBody(aMultipart()
