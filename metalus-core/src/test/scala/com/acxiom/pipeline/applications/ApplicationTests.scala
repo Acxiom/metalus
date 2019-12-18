@@ -7,6 +7,7 @@ import java.nio.file.Files
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline._
+import com.acxiom.pipeline.api.BasicAuthorization
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, urlPathEqualTo}
 import org.apache.commons.io.FileUtils
@@ -259,6 +260,10 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     // Second execution
     val execution2 = executionPlan(1)
     verifySecondExecution(execution2)
+    assert(execution2.pipelineContext.globals.get.contains("authorization"))
+    assert(execution2.pipelineContext.globals.get("authorization").isInstanceOf[BasicAuthorization])
+    assert(execution2.pipelineContext.globals.get("authorization").asInstanceOf[BasicAuthorization].username == "myuser")
+    assert(execution2.pipelineContext.globals.get("authorization").asInstanceOf[BasicAuthorization].password == "mypassword")
 
     // Third Execution
     val execution3 = executionPlan(2)
@@ -295,7 +300,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution4.parents.isEmpty)
     // Verify the globals object was properly merged
     val globals = ctx3.globals.get
-    val globalCount = if (globals.contains("authorization.class")) { 10 } else { 7 }
+    val globalCount = if (globals.contains("authorization.class")) { 11 } else { 8 }
     assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
@@ -387,7 +392,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution2.parents.isDefined)
     assert(execution2.parents.get.head == "0")
     val globals1 = ctx2.globals.get
-    val globalCount = if (globals1.contains("authorization.class")) { 9 } else { 6 }
+    val globalCount = if (globals1.contains("authorization.class")) { 10 } else { 7 }
     assert(globals1.size == globalCount)
     assert(globals1.contains("rootLogLevel"))
     assert(globals1.contains("rootLogLevel"))
