@@ -26,7 +26,6 @@ case class HDFSFileManager(conf: SparkConf) extends FileManager {
     }
   }
 
-  // TODO Look into better error handling
   override def getOutputStream(path: String, append: Boolean = true, bufferSize: Int = FileManager.DEFAULT_BUFFER_SIZE): OutputStream =
     fileSystem.create(new Path(path), append, bufferSize)
 

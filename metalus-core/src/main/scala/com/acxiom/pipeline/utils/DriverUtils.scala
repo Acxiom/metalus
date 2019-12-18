@@ -19,7 +19,7 @@ object DriverUtils {
 
   private val logger = Logger.getLogger(getClass)
 
-  val DEFAULT_KRYO_CLASSES = Array(classOf[LongWritable], classOf[UrlEncodedFormEntity])
+  val DEFAULT_KRYO_CLASSES: Array[Class[_ >: LongWritable with UrlEncodedFormEntity <: Object]] = Array(classOf[LongWritable], classOf[UrlEncodedFormEntity])
 
   private val SPARK_MASTER = "spark.master"
 

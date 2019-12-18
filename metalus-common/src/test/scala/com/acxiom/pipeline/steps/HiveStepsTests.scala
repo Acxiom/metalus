@@ -23,17 +23,14 @@ class HiveStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
     Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
-
     System.setProperty("derby.system.home", sparkLocalDir.toFile.getAbsolutePath + "/.derby")
     System.setProperty("javax.jdo.option.ConnectionURL", s"jdbc:derby:memory;databaseName=${sparkLocalDir.toFile.getAbsolutePath}/metastore_db;create=true")
-
     sparkConf = new SparkConf()
       .setMaster(MASTER)
       .setAppName(APPNAME)
       .set("spark.local.dir", sparkLocalDir.toFile.getAbsolutePath)
       .set("spark.sql.warehouse.dir", sparkWarehouseDir.toFile.getAbsolutePath)
     sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
-
     pipelineContext = PipelineContext(Some(sparkConf), Some(sparkSession), Some(Map[String, Any]()),
       PipelineSecurityManager(),
       PipelineParameters(List(PipelineParameter("0", Map[String, Any]()), PipelineParameter("1", Map[String, Any]()))),
@@ -41,10 +38,8 @@ class HiveStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       PipelineStepMapper(),
       Some(DefaultPipelineListener()),
       Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
-
     val spark = this.sparkSession
     import spark.implicits._
-
     Seq(
       (1, "silkie"),
       (2, "buttercup"),
@@ -64,7 +59,6 @@ class HiveStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
   }
 
   describe("HiveSteps - Basic IO"){
-
     val chickens = Seq(
       ("1", "silkie"),
       ("2", "polish"),
@@ -87,5 +81,4 @@ class HiveStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       assert(frame.where("breed = 'leghorn'").count() == 1)
     }
   }
-
 }
