@@ -156,6 +156,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       wireMockServer.start()
 
       wireMockServer.addStubMapping(get(urlPathEqualTo("/applications/12345"))
+          .withBasicAuth("cli-user", "cli-password")
         .willReturn(aResponse()
           .withStatus(HttpURLConnection.HTTP_OK)
           .withHeader("content-type", "application/json")
@@ -164,7 +165,10 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
       val setup = ApplicationDriverSetup(Map[String, Any](
         "applicationConfigPath" -> s"${wireMockServer.baseUrl()}/applications/12345",
-        "rootLogLevel" -> "ERROR"))
+        "rootLogLevel" -> "ERROR",
+        "authorization.class" -> "com.acxiom.pipeline.api.BasicAuthorization",
+        "authorization.username" -> "cli-user",
+        "authorization.password" -> "cli-password"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       verifyListeners(setup.pipelineContext.sparkSession.get)
@@ -288,11 +292,11 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution4.pipelines.filter(p => p.id.get == "Pipeline2")
       .head.steps.get.head.params.get.filter(pa => pa.name.get == "value")
       .head.value.get == "CHICKEN")
-    // Ensure no parents
     assert(execution4.parents.isEmpty)
     // Verify the globals object was properly merged
     val globals = ctx3.globals.get
-    assert(globals.size == 7)
+    val globalCount = if (globals.contains("authorization.class")) { 10 } else { 7 }
+    assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("number"))
@@ -340,11 +344,11 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution3.pipelines.filter(p => p.id.get == "Pipeline2")
       .head.steps.get.head.params.get.filter(pa => pa.name.get == "value")
       .head.value.get == "CHICKEN")
-    // Ensure no parents
     assert(execution3.parents.isEmpty)
     // Verify the globals object was properly constructed
     val globals = ctx3.globals.get
-    assert(globals.size == 5)
+    val globalCount = if (globals.contains("authorization.class")) { 8 } else { 5 }
+    assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("number"))
@@ -383,7 +387,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution2.parents.isDefined)
     assert(execution2.parents.get.head == "0")
     val globals1 = ctx2.globals.get
-    assert(globals1.size == 6)
+    val globalCount = if (globals1.contains("authorization.class")) { 9 } else { 6 }
+    assert(globals1.size == globalCount)
     assert(globals1.contains("rootLogLevel"))
     assert(globals1.contains("rootLogLevel"))
     assert(globals1.contains("number"))
@@ -454,7 +459,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution1.parents.isEmpty)
     // Verify the globals object was properly constructed
     val globals = ctx1.globals.get
-    assert(globals.size == 5)
+    val globalCount = if (globals.contains("authorization.class")) { 8 } else { 5 }
+    assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("number"))

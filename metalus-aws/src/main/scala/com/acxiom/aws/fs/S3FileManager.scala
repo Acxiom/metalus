@@ -22,7 +22,9 @@ class S3FileManager(accessKeyId: String, secretAccessKey: String, region: String
   /**
     * Connect to the file system
     */
-  override def connect(): Unit = {}
+  override def connect(): Unit = {
+    // Does nothing
+  }
 
   /**
     * Checks the path to determine whether it exists or not.
@@ -128,7 +130,9 @@ class S3FileManager(accessKeyId: String, secretAccessKey: String, region: String
   /**
     * Disconnect from the file system
     */
-  override def disconnect(): Unit = {}
+  override def disconnect(): Unit = {
+    // Does nothing
+  }
 
   @tailrec
   private def nextObjectBatch(s3Client: AmazonS3, listing: ObjectListing, keys: List[FileInfo] = Nil): List[FileInfo] = {

@@ -1,8 +1,8 @@
 package com.acxiom.pipeline.applications
 
+import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
 import com.acxiom.pipeline.drivers.DriverSetup
-import com.acxiom.pipeline.fs.HttpRestClient
-import com.acxiom.pipeline.utils.DriverUtils
+import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
 import com.acxiom.pipeline.{Pipeline, PipelineContext, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
@@ -103,7 +103,16 @@ case class DefaultApplicationDriverSetup(parameters: Map[String, Any]) extends A
     } else if (parameters.contains("applicationConfigPath")) {
       val path = parameters("applicationConfigPath").toString
       if (path.startsWith("http")) {
-        HttpRestClient(path).getStringContent("")
+        if (parameters.contains("authorization.class")) {
+          val authorizationParameters = parameters.filter(entry =>
+            entry._1.startsWith("authorization.") && entry._1 != "authorization.class")
+              .map(entry => entry._1.substring("authorization.".length) -> entry._2)
+          HttpRestClient(path,
+            ReflectionUtils.loadClass(parameters("authorization.class").asInstanceOf[String], Some(authorizationParameters))
+              .asInstanceOf[Authorization]).getStringContent("")
+        } else {
+          HttpRestClient(path).getStringContent("")
+        }
       } else {
         val className = parameters.getOrElse("applicationConfigurationLoader", "com.acxiom.pipeline.fs.LocalFileManager").asInstanceOf[String]
         DriverUtils.loadJsonFromFile(path, className, parameters)

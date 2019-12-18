@@ -4,12 +4,23 @@ are provided that allow customization of the *PipelineContext*, *SparkConf*, glo
 
 ## Running
 There are two ways to run an application. Depending on where the configuration file is located dictates which command
-line parameters need to be provided. There are two sets of parameters that are used depending on where the file is located:
+line parameters need to be provided. There are several parameters that are used depending on where the file is located:
 
 * **applicationJson** - This parameter is useful when passing the contents of the configuration as a string. This is not 
 a recommended option since large configurations could have issues.
 * **applicationConfigPath** - This is the path to the configuration file on the file system. 
 * **applicationConfigurationLoader** - This is used to specify a different file manager. Default is local.
+* **authorization.class** - This is used to specify an authorization implementation when the *applicationConfigPath* is
+a URL. Any parameters required to instantiate the *Authorization* instance need to be prefixed with *authorization.* so
+they are identified and passed in. To use basic authorization, consider this class signature: 
+
+```scala
+class BasicAuthorization(username: String, password: String) extends Authorization
+```
+would need these command line parameters:
+```
+--application.class com.acxiom.pipeline.api.BasicAuthorization --authorization.username myuser --authorization.password mypasswd
+```
 
 ### Local Disk
 There are two ways to pull the configuration from the local disk, the first is using the *applicationJson* property. The 

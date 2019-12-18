@@ -1,4 +1,4 @@
-package com.acxiom.pipeline.fs
+package com.acxiom.pipeline.api
 
 import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, OutputStream}
 import java.net.{HttpURLConnection, URL}
@@ -12,19 +12,35 @@ object HttpRestClient {
 
   def apply(hostUrl: String): HttpRestClient = new HttpRestClient(hostUrl)
 
+  def apply(hostUrl: String, authorization: Authorization): HttpRestClient = new HttpRestClient(hostUrl, authorization)
+
   def apply(protocol: String, host: String, port: Int = HttpRestClient.DEFAULT_PORT): HttpRestClient =
     new HttpRestClient(protocol, host, port)
+
+  def apply(protocol: String, host: String, port: Int, authorization: Authorization): HttpRestClient =
+    new HttpRestClient(protocol, host, port, authorization)
 
   val DEFAULT_PORT = 80
 }
 
-class HttpRestClient(hostUrl: String) {
+class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
+  def this(hostUrl: String) = {
+    this(hostUrl, None)
+  }
 
-  private implicit val formats: Formats = DefaultFormats
+  def this(hostUrl: String, authorization: Authorization) = {
+    this(hostUrl, Some(authorization))
+  }
 
   def this(protocol: String, host: String, port: Int = HttpRestClient.DEFAULT_PORT) {
     this(s"$protocol://$host:$port")
   }
+
+  def this(protocol: String, host: String, port: Int, authorization: Authorization) {
+    this(s"$protocol://$host:$port", authorization)
+  }
+
+  private implicit val formats: Formats = DefaultFormats
 
   private val baseUrl = new URL(hostUrl)
 
@@ -41,7 +57,7 @@ class HttpRestClient(hostUrl: String) {
     * @return True if the path exists, otherwise false.
     */
   def exists(path: String): Boolean = {
-    val contentType = new URL(baseUrl, path).openConnection().getContentType
+    val contentType = this.openUrlConnection(path).getContentType
     Option(contentType).isDefined
   }
 
@@ -53,7 +69,7 @@ class HttpRestClient(hostUrl: String) {
     * @return A buffered input stream
     */
   def getInputStream(path: String, bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): InputStream = {
-    new BufferedInputStream(new URL(baseUrl, path).openConnection().getInputStream, bufferSize)
+    new BufferedInputStream(this.openUrlConnection(path).getInputStream, bufferSize)
   }
 
   /**
@@ -64,7 +80,7 @@ class HttpRestClient(hostUrl: String) {
     * @return
     */
   def getOutputStream(path: String, bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): OutputStream = {
-    val connection = new URL(baseUrl, path).openConnection().asInstanceOf[HttpURLConnection]
+    val connection =this.openUrlConnection(path)
     connection.setDoOutput(true)
     connection.setRequestProperty("Content-Type", "multipart/form-data")
     new BufferedOutputStream(connection.getOutputStream, bufferSize)
@@ -90,7 +106,7 @@ class HttpRestClient(hostUrl: String) {
     * @return True if the path could be deleted.
     */
   def delete(path: String): Boolean = {
-    val connection = new URL(baseUrl, path).openConnection().asInstanceOf[HttpURLConnection]
+    val connection = this.openUrlConnection(path)
     connection.setDoOutput(true)
     connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
     connection.setRequestMethod("DELETE")
@@ -107,6 +123,14 @@ class HttpRestClient(hostUrl: String) {
     * @return size of the given file
     */
   def getContentLength(path: String): Long = {
-    new URL(baseUrl, path).openConnection().getContentLength
+    this.openUrlConnection(path).getContentLength
+  }
+
+  private def openUrlConnection(path: String): HttpURLConnection = {
+    val connection = new URL(baseUrl, path).openConnection().asInstanceOf[HttpURLConnection]
+    if (authorization.isDefined) {
+      authorization.get.authorize(connection)
+    }
+    connection
   }
 }

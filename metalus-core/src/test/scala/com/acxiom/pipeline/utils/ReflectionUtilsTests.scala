@@ -157,7 +157,14 @@ class ReflectionUtilsTests extends FunSpec {
     it("Should return None when entity is None") {
       assert(ReflectionUtils.extractField(None, "something").asInstanceOf[Option[_]].isEmpty)
     }
+
+    it("Should return the option and not the value") {
+      assert(ReflectionUtils.extractField(
+       Some(MockParent(MockObject("string", FIVE, Some("string")))),
+        "mock.opt", extractFromOption = false).asInstanceOf[Option[String]].getOrElse("bad") == "string")
+    }
   }
 }
 
+case class MockParent(mock: MockObject)
 case class MockObject(string: String, num: Int, opt: Option[String] = None)
