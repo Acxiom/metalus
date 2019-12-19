@@ -128,6 +128,13 @@ The class represented by the fully qualified *className* must be available on th
 The optional *parameters* specified will be passed to the constructor. Currently only simple types and maps are
 supported, but more complex data types will be supported in the future.
 
+### sparkUdfs
+This is a list of classes that implement the PipelineUDF trait. 
+The class represented by the fully qualified *className* must be available on the class path.
+The optional *parameters* specified will be passed to the constructor. Currently only simple types and maps are
+supported, but more complex data types will be supported in the future.
+The register method will be called for each class info defined.
+
 ```json
 {
   "sparkListeners": [

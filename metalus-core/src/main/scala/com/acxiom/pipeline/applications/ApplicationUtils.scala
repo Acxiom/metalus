@@ -68,6 +68,7 @@ object ApplicationUtils {
     if (globalListener.isDefined && globalListener.get.isInstanceOf[SparkListener]) {
       sparkSession.sparkContext.addSparkListener(globalListener.get.asInstanceOf[SparkListener])
     }
+    registerSparkUDFs(defaultGlobals, sparkSession, application.sparkUdfs)
     // Generate the execution plan
     application.executions.get.map(execution => {
       val pipelineListener = generatePipelineListener(execution.pipelineListener, globalListener)
@@ -192,6 +193,18 @@ object ApplicationUtils {
       pipelineParameters
     } else {
       defaultPipelineParameters
+    }
+  }
+
+  private def registerSparkUDFs(globals: Option[Map[String, Any]], sparkSession: SparkSession, sparkUDFs: Option[List[ClassInfo]]): Unit = {
+    if (sparkUDFs.isDefined) {
+      sparkUDFs.get.flatMap { info =>
+        if (info.className.isDefined) {
+          Some(ReflectionUtils.loadClass(info.className.get, info.parameters).asInstanceOf[PipelineUDF])
+        } else {
+          None
+        }
+      }.foreach(udf => udf.register(sparkSession, globals.getOrElse(Map())))
     }
   }
 

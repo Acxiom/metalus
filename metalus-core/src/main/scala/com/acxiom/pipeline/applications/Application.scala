@@ -1,6 +1,8 @@
 package com.acxiom.pipeline.applications
 
 import com.acxiom.pipeline.{DefaultPipeline, PipelineParameters}
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.expressions.UserDefinedFunction
 
 case class ApplicationResponse(application: Application)
 
@@ -31,7 +33,8 @@ case class Application(executions: Option[List[Execution]],
                        pipelineParameters: Option[PipelineParameters] = None,
                        sparkConf: Option[Map[String, Any]] = None,
                        requiredParameters: Option[List[String]] = None,
-                       pipelineManager: Option[ClassInfo] = None)
+                       pipelineManager: Option[ClassInfo] = None,
+                       sparkUdfs: Option[List[ClassInfo]] = None)
 
 /**
   * Represents a single execution of a Spark application
@@ -68,3 +71,17 @@ case class Execution(id: Option[String],
   * @param parameters A map of simple parameters to pass to the constructor
   */
 case class ClassInfo(className: Option[String], parameters: Option[Map[String, Any]] = None)
+
+/**
+ * Trait that can be extended to register spark udfs
+ */
+trait PipelineUDF extends Serializable {
+
+  /**
+   * This method should be used to register a udf with the sparkSession object passed to it.
+   * @param sparkSession The spark session
+   * @param globals      Application level globals.
+   * @return             A spark UserDefinedFunction object.
+   */
+  def register(sparkSession: SparkSession, globals: Map[String, Any]): UserDefinedFunction
+}

@@ -12,7 +12,32 @@ import org.apache.spark.SparkConf
 trait ApplicationDriverSetup extends DriverSetup {
   val logger: Logger = Logger.getLogger(getClass)
   // Load the Application configuration
-  protected def loadApplication: Application
+  protected def loadApplication: Application = {
+    val json = if (parameters.contains("applicationJson")) {
+      parameters("applicationJson").asInstanceOf[String]
+    } else if (parameters.contains("applicationConfigPath")) {
+      val path = parameters("applicationConfigPath").toString
+      if (path.startsWith("http")) {
+        if (parameters.contains("authorization.class")) {
+          val authorizationParameters = parameters.filter(entry =>
+            entry._1.startsWith("authorization.") && entry._1 != "authorization.class")
+            .map(entry => entry._1.substring("authorization.".length) -> entry._2)
+          HttpRestClient(path,
+            ReflectionUtils.loadClass(parameters("authorization.class").asInstanceOf[String], Some(authorizationParameters))
+              .asInstanceOf[Authorization]).getStringContent("")
+        } else {
+          HttpRestClient(path).getStringContent("")
+        }
+      } else {
+        val className = parameters.getOrElse("applicationConfigurationLoader", "com.acxiom.pipeline.fs.LocalFileManager").asInstanceOf[String]
+        DriverUtils.loadJsonFromFile(path, className, parameters)
+      }
+    } else {
+      throw new RuntimeException("Either the applicationJson or the applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
+    }
+    logger.debug(s"Loaded application json: $json")
+    ApplicationUtils.parseApplication(json)
+  }
 
   // Clean out the application properties from the parameters
   protected def cleanParams: Map[String, Any] = parameters.filterKeys {
@@ -96,31 +121,4 @@ object ApplicationDriverSetup {
   def apply(parameters: Map[String, Any]): ApplicationDriverSetup = DefaultApplicationDriverSetup(parameters)
 }
 
-case class DefaultApplicationDriverSetup(parameters: Map[String, Any]) extends ApplicationDriverSetup {
-  override protected def loadApplication: Application = {
-    val json = if (parameters.contains("applicationJson")) {
-      parameters("applicationJson").asInstanceOf[String]
-    } else if (parameters.contains("applicationConfigPath")) {
-      val path = parameters("applicationConfigPath").toString
-      if (path.startsWith("http")) {
-        if (parameters.contains("authorization.class")) {
-          val authorizationParameters = parameters.filter(entry =>
-            entry._1.startsWith("authorization.") && entry._1 != "authorization.class")
-              .map(entry => entry._1.substring("authorization.".length) -> entry._2)
-          HttpRestClient(path,
-            ReflectionUtils.loadClass(parameters("authorization.class").asInstanceOf[String], Some(authorizationParameters))
-              .asInstanceOf[Authorization]).getStringContent("")
-        } else {
-          HttpRestClient(path).getStringContent("")
-        }
-      } else {
-        val className = parameters.getOrElse("applicationConfigurationLoader", "com.acxiom.pipeline.fs.LocalFileManager").asInstanceOf[String]
-        DriverUtils.loadJsonFromFile(path, className, parameters)
-      }
-    } else {
-      throw new RuntimeException("Either the applicationJson or the applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
-    }
-    logger.debug(s"Loaded application json: $json")
-    ApplicationUtils.parseApplication(json)
-  }
-}
+case class DefaultApplicationDriverSetup(parameters: Map[String, Any]) extends ApplicationDriverSetup

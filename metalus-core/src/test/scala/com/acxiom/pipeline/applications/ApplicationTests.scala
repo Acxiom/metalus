@@ -19,6 +19,7 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.PackagePrivateSparkTestHelper
 import org.apache.spark.scheduler.SparkListener
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
@@ -78,6 +79,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       verifyListeners(setup.pipelineContext.sparkSession.get)
+      verifyUDF(setup.pipelineContext.sparkSession.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
@@ -100,6 +102,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       verifyListeners(setup.pipelineContext.sparkSession.get)
+      verifyUDF(setup.pipelineContext.sparkSession.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
@@ -142,6 +145,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       verifyListeners(setup.pipelineContext.sparkSession.get)
+      verifyUDF(setup.pipelineContext.sparkSession.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
@@ -173,6 +177,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       verifyListeners(setup.pipelineContext.sparkSession.get)
+      verifyUDF(setup.pipelineContext.sparkSession.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
@@ -197,6 +202,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       verifyDriverSetup(setup1)
       verifyApplication(setup1.executionPlan.get)
       verifyListeners(setup1.pipelineContext.sparkSession.get)
+      verifyUDF(setup1.pipelineContext.sparkSession.get)
       assert(!setup1.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup1.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup1.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
@@ -490,6 +496,12 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(ctx1.parameters.getParametersByPipelineId("Pipeline1").get.parameters("fred").asInstanceOf[String] == "johnson")
   }
 
+  def verifyUDF(spark: SparkSession): Unit ={
+    val df = spark.sql("select chicken() as chicken")
+    assert(df.columns.length == 1)
+    assert(df.collect().head.getString(0) == "moo")
+  }
+
   def verifyListeners(spark: SparkSession): Unit = {
     val listeners = PackagePrivateSparkTestHelper.getSparkListeners(spark)
       .filter(l => l.isInstanceOf[TestPipelineListener] || l.isInstanceOf[TestSparkListener])
@@ -523,3 +535,10 @@ case class TestPipelineStepMapper(name: String) extends PipelineStepMapper
 case class TestGlobalObject(name: Option[String], subObjects: Option[List[TestSubGlobalObject]])
 
 case class TestSubGlobalObject(name: Option[String])
+
+class TestUDF(name: String) extends PipelineUDF {
+  override def register(sparkSession: SparkSession, globals: Map[String, Any]): UserDefinedFunction = {
+    val func: () =>String = {() => s"${globals.getOrElse(name, "moo")}"}
+    sparkSession.udf.register(name, func)
+  }
+}
