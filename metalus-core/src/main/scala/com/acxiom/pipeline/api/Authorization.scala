@@ -14,7 +14,7 @@ trait Authorization {
   def authorize(urlConnection: URLConnection): Unit
 }
 
-class BasicAuthorization(username: String, password: String) extends Authorization {
+case class BasicAuthorization(username: String, password: String) extends Authorization {
   private val userPass = Base64.getEncoder.encodeToString(s"$username:$password".getBytes)
   /**
     * Performs basic authorization against the provided URLConnection.

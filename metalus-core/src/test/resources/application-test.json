@@ -150,7 +150,14 @@
           ]
         }
       }
-    ]
+    ],
+    "authorization": {
+      "className": "com.acxiom.pipeline.api.BasicAuthorization",
+      "object": {
+        "username": "myuser",
+        "password": "mypassword"
+      }
+    }
   },
   "executions": [
     {
