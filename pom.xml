@@ -2,11 +2,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.acxiom</groupId>
-    <artifactId>spark-pipeline-driver</artifactId>
-    <version>1.4.0-SNAPSHOT</version>
+    <artifactId>metalus</artifactId>
+    <version>1.5.0-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <packaging>pom</packaging>
-    <description>Spark Pipeline Driver Engine</description>
+    <description>Metalus Pipeline Library</description>
     <inceptionYear>2018</inceptionYear>
 
     <licenses>
@@ -17,11 +17,11 @@
         </license>
     </licenses>
 
-    <url>https://github.com/Acxiom/spark-pipeline-driver</url>
+    <url>https://github.com/Acxiom/metalus</url>
 
     <scm>
-        <connection>scm:git@github.com:Acxiom/spark-pipeline-driver.git</connection>
-        <url>https://github.com/Acxiom/spark-pipeline-driver</url>
+        <connection>scm:git@github.com:Acxiom/metalus.git</connection>
+        <url>https://github.com/Acxiom/metalus</url>
     </scm>
 
     <developers>
@@ -57,11 +57,12 @@
     </properties>
 
     <modules>
-        <module>spark-pipeline-engine</module>
-        <module>common-pipeline-steps</module>
-        <module>streaming-pipeline-drivers</module>
-        <module>pipeline-drivers-examples</module>
-        <module>application-utils</module>
+        <module>metalus-application</module>
+        <module>metalus-aws</module>
+        <module>metalus-core</module>
+        <module>metalus-common</module>
+        <module>metalus-examples</module>
+        <module>metalus-utils</module>
     </modules>
 
     <dependencies>
@@ -75,6 +76,12 @@
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-compiler</artifactId>
+            <version>${scala.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-reflect</artifactId>
             <version>${scala.version}</version>
             <scope>provided</scope>
         </dependency>
@@ -182,9 +189,8 @@
                 <configuration>
                     <repoToken>${repoToken}</repoToken>
                     <coberturaReports>
-                        <coberturaReport>spark-pipeline-engine/target/cobertura.xml</coberturaReport>
-                        <coberturaReport>common-pipeline-steps/target/cobertura.xml</coberturaReport>
-                        <coberturaReport>streaming-pipeline-drivers/target/cobertura.xml</coberturaReport>
+                        <coberturaReport>metalus-core/target/cobertura.xml</coberturaReport>
+                        <coberturaReport>metalus-common/target/cobertura.xml</coberturaReport>
                     </coberturaReports>
                 </configuration>
             </plugin>
@@ -316,7 +322,7 @@
     <distributionManagement>
         <site>
             <id>api.wiki</id>
-            <url>https://github.com/Acxiom/spark-pipeline-driver/wiki</url>
+            <url>https://github.com/Acxiom/metalus/wiki</url>
         </site>
         <snapshotRepository>
             <id>ossrh</id>
