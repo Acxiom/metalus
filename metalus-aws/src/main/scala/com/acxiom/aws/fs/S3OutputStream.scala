@@ -13,7 +13,7 @@ class S3OutputStream(s3Client: AmazonS3, bucket: String, key: String, bufferLeng
   private val bufferSize = bufferLength.getOrElse(S3Utilities.MULTIPART_UPLOAD_SIZE)
   private val request = s3Client.initiateMultipartUpload(new InitiateMultipartUploadRequest(bucket, key))
 
-  // TODO Reevaluate if there is a way to do this without mutable variables
+  // Reevaluate if there is a way to do this without mutable variables
   // These values are mutable because some state needed to be maintained to honor the interface
   private val etags = mutable.ListBuffer[PartETag]()
   private val buffer = mutable.ListBuffer[Int]()

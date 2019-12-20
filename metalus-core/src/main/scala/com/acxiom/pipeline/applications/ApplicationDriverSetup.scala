@@ -18,12 +18,13 @@ trait ApplicationDriverSetup extends DriverSetup {
     } else if (parameters.contains("applicationConfigPath")) {
       val path = parameters("applicationConfigPath").toString
       if (path.startsWith("http")) {
-        if (parameters.contains("authorization.class")) {
+        val authorizationClass = "authorization.class"
+        if (parameters.contains(authorizationClass)) {
           val authorizationParameters = parameters.filter(entry =>
-            entry._1.startsWith("authorization.") && entry._1 != "authorization.class")
+            entry._1.startsWith("authorization.") && entry._1 != authorizationClass)
             .map(entry => entry._1.substring("authorization.".length) -> entry._2)
           HttpRestClient(path,
-            ReflectionUtils.loadClass(parameters("authorization.class").asInstanceOf[String], Some(authorizationParameters))
+            ReflectionUtils.loadClass(parameters(authorizationClass).asInstanceOf[String], Some(authorizationParameters))
               .asInstanceOf[Authorization]).getStringContent("")
         } else {
           HttpRestClient(path).getStringContent("")
