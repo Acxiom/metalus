@@ -27,6 +27,13 @@ import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 import scala.io.Source
 
 class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
+
+  private val FIVE = 5
+  private val SEVEN = 7
+  private val EIGHT = 8
+  private val TEN = 10
+  private val ELEVEN = 11
+
   override def beforeAll() {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
@@ -306,7 +313,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution4.parents.isEmpty)
     // Verify the globals object was properly merged
     val globals = ctx3.globals.get
-    val globalCount = if (globals.contains("authorization.class")) { 11 } else { 8 }
+    val globalCount = if (globals.contains("authorization.class")) { ELEVEN } else { EIGHT }
     assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
@@ -358,7 +365,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution3.parents.isEmpty)
     // Verify the globals object was properly constructed
     val globals = ctx3.globals.get
-    val globalCount = if (globals.contains("authorization.class")) { 8 } else { 5 }
+    val globalCount = if (globals.contains("authorization.class")) { EIGHT } else { FIVE }
     assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
@@ -398,7 +405,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution2.parents.isDefined)
     assert(execution2.parents.get.head == "0")
     val globals1 = ctx2.globals.get
-    val globalCount = if (globals1.contains("authorization.class")) { 10 } else { 7 }
+    val globalCount = if (globals1.contains("authorization.class")) { TEN } else { SEVEN }
     assert(globals1.size == globalCount)
     assert(globals1.contains("rootLogLevel"))
     assert(globals1.contains("rootLogLevel"))
@@ -470,7 +477,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution1.parents.isEmpty)
     // Verify the globals object was properly constructed
     val globals = ctx1.globals.get
-    val globalCount = if (globals.contains("authorization.class")) { 8 } else { 5 }
+    val globalCount = if (globals.contains("authorization.class")) { EIGHT } else { FIVE }
     assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))

@@ -208,9 +208,7 @@ object ReflectionUtils {
         stepObject.reflectMethod(defaultGetterMethod)()
       } else {
         logger.debug("Using built in pipeline variable")
-        name match {
-          case "pipelineContext" => if (pipelineContext.isDefined) pipelineContext.get
-        }
+        getBuiltInParameter(pipelineContext, name)
       }
 
       val finalValue = if (pipelineContext.isDefined) {
@@ -231,6 +229,12 @@ object ReflectionUtils {
       logger.debug(s"Mapping parameter to method $funcName,paramName=$name,paramType=${param.typeSignature}," +
         s"valueType=$finalValueType,value=$finalValue")
       finalValue
+    }
+  }
+
+  private def getBuiltInParameter(pipelineContext: Option[PipelineContext], name: String) = {
+    name match {
+      case "pipelineContext" => if (pipelineContext.isDefined) pipelineContext.get
     }
   }
 
