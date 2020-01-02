@@ -2,6 +2,7 @@ package com.acxiom.pipeline.utils
 
 import java.text.ParseException
 
+import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
 import com.acxiom.pipeline.fs.FileManager
 import com.acxiom.pipeline.{DefaultPipeline, Pipeline, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
@@ -77,6 +78,20 @@ object DriverUtils {
     })
     validateRequiredParameters(parameters, requiredParameters)
     parameters
+  }
+
+  def getHttpRestClient(url: String, parameters: Map[String, Any]): HttpRestClient = {
+    val authorizationClass = "authorization.class"
+    if (parameters.contains(authorizationClass)) {
+      val authorizationParameters = parameters.filter(entry =>
+        entry._1.startsWith("authorization.") && entry._1 != authorizationClass)
+        .map(entry => entry._1.substring("authorization.".length) -> entry._2)
+      HttpRestClient(url,
+        ReflectionUtils.loadClass(parameters(authorizationClass).asInstanceOf[String], Some(authorizationParameters))
+          .asInstanceOf[Authorization])
+    } else {
+      HttpRestClient(url)
+    }
   }
 
   /**

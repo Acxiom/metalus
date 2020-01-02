@@ -54,6 +54,13 @@ class HttpRestClientTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(content == "this is some content")
       assert(http.getStringContent("/files/testFile") == "this is some content")
 
+      wireMockServer.addStubMapping(post(urlPathEqualTo("/files"))
+      .withBasicAuth("myuser", "mypassword")
+      .withRequestBody(equalTo("{body: {} }"))
+        .willReturn(aResponse()
+          .withBody("this is some returned content")).build())
+      assert(http.postJsonContent("/files", "{body: {} }") == "this is some returned content")
+
       wireMockServer.addStubMapping(delete(urlPathEqualTo("/files/deleteFile"))
         .withBasicAuth("myuser", "mypassword")
         .willReturn(aResponse().withStatus(HttpURLConnection.HTTP_NO_CONTENT)).build())

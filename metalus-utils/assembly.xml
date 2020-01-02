@@ -7,7 +7,7 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <files>
         <file>
-            <source>step-metadata-extractor.sh</source>
+            <source>metadata-extractor.sh</source>
             <outputDirectory>metalus-utils/bin</outputDirectory>
         </file>
     </files>

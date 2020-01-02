@@ -3,19 +3,22 @@
 usage()
 {
 	echo "step-metadata-extractor.sh [OPTIONS]"
-	echo "--step-packages -> A comma separated list of packages to scan"
-	echo "--output-file   -> A file name to write the JSON output. This parameter is optional."
+	echo "--output-path   -> A path to write the JSON output. This parameter is optional."
+	echo "--api-url       -> The base URL to use when pushing data to an API. This parameter is optional."
 	echo "--jar-files     -> A comma separated list of jar files to scan"
 }
 
 # Parse the parameters
 while [[ "$1" != "" ]]; do
     case $1 in
-        --step-packages )       shift
-                                stepPackages=$1
+        --output-path )    		shift
+        						outputPath=$1
                                 ;;
-        --output-file )    		shift
-        						outputFile=$1
+        --api-url )           shift
+                    apiUrl=$1
+                                ;;
+        --extractors )        shift
+                    extractors=$1
                                 ;;
         --jar-files )           shift
         						jarFiles=$1
@@ -44,11 +47,21 @@ do
     classPath="${classPath}:${i}"
 done
 
-params="--step-packages ${stepPackages} --jar-files ${jarFiles}"
+params="--jar-files ${jarFiles}"
 
-if [[ -n "${outputFile}" ]]
+if [[ -n "${outputPath}" ]]
 then
-	params="${params} --output-file ${outputFile}"
+	params="${params} --output-path ${outputPath}"
 fi
 
-exec scala -cp ${classPath} com.acxiom.pipeline.annotations.StepMetaDataExtractor ${params}
+if [[ -n "${apiUrl}" ]]
+then
+  params="${params} --api-url ${apiUrl}"
+fi
+
+if [[ -n "${extractors}" ]]
+then
+  params="${params} --extractors ${extractors}"
+fi
+
+exec scala -cp ${classPath} com.acxiom.pipeline.MetadataExtractor ${params}
