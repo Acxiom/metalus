@@ -1,4 +1,4 @@
-package com.acxiom.pipeline
+package com.acxiom.metalus
 
 import java.io.{File, FileWriter}
 import java.util.jar.JarFile
@@ -7,7 +7,9 @@ import com.acxiom.pipeline.api.HttpRestClient
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
 
 object MetadataExtractor {
-  private val DEFAULT_EXTRACTORS = List[String]("com.acxiom.pipeline.steps.StepMetadataExtractor")
+  private val DEFAULT_EXTRACTORS = List[String](
+    "com.acxiom.metalus.steps.StepMetadataExtractor",
+    "com.acxiom.metalus.pipelines.PipelineMetadataExtractor")
 
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("jar-files")))
@@ -24,7 +26,7 @@ object MetadataExtractor {
       .filter(_.nonEmpty)
       .foreach(extractor => {
         val extract = ReflectionUtils.loadClass(extractor).asInstanceOf[Extractor]
-        val metadata = extract.extractMetadata(jarFiles, output)
+        val metadata = extract.extractMetadata(jarFiles)
         extract.writeOutputFile(metadata, output)
       })
   }
@@ -39,9 +41,8 @@ trait Extractor {
   /**
     * Called by the MetadataExtractor to extract metadata from the provided jar files and write the data using the provided output.
     * @param jarFiles A list of JarFile objects that should be scanned.
-    * @param output Information about how to output the metadata.
     */
-  def extractMetadata(jarFiles: List[JarFile], output: Output): Metadata
+  def extractMetadata(jarFiles: List[JarFile]): Metadata
 
   /**
     * This function should return a simple type that indicates what type of metadata this extractor produces.

@@ -3,8 +3,8 @@ Application utilities are provided as a way to make working with the project eas
 
 ## Metadata Extractor
 The MetadataExtractor is a generic tool which will scan the provided jar files and extract specific metadata. The 
-StepMetadataExtractor executed by default and additional extractors can be executed as long as the classes are part of
-the provided jars and implement the **Extractor** trait. 
+StepMetadataExtractor and PipelineMetadataExtractor will be executed by default and additional extractors can be 
+executed as long as the classes are part of the provided jars and implement the **Extractor** trait. 
 
 ### Step Metadata Extractor
 This extractor will scan jar files that contain steps and produce a JSON representation. The tool takes a list of packages
@@ -24,6 +24,11 @@ parameters in each step.
 
 **Note:** When using annotations, all parameters must be supplied. Named parameters will not work.
 
+### Pipeline Metadata Extractor
+This extractor will scan jar files looking for JSON files stored under the *metadata/pipelines* path. Each pipeline will
+be loaded and reconciled to a list. This list will be written to the *pipelines.json* file or posted to the */api/v1/pipelines*
+API end point.
+
 ## Running
 The script parameters are:
 * --jar-files - A comma separated list of jar files. This should be the full path.
@@ -33,12 +38,23 @@ The script parameters are:
 
 Installation:
 * Download the tar file from the releases page
-* Expand the tar file (tar xzf application-utilities_2.11...)
+* Expand the tar file (tar xzf metalus-utils_2.11-spark_2.3...)
 * Change to the bin directory (cd application-utilities/bin)
-* Run the command:
+* Example commands:
 
+Write to a file:
 ```bash
-./metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-file steps.json
+./metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp
+```
+
+Write to an api:
+```bash
+./metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --api-url htp://localhost:8000
+```
+
+Write to a file with an additional Extractor:
+```bash
+./metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp --extractors com.acxiom.metalus.MyExampleExtractor
 ```
 
 ## Example using common steps

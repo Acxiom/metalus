@@ -64,4 +64,4 @@ then
   params="${params} --extractors ${extractors}"
 fi
 
-exec scala -cp ${classPath} com.acxiom.pipeline.MetadataExtractor ${params}
+exec scala -cp ${classPath} com.acxiom.metalus.MetadataExtractor ${params}

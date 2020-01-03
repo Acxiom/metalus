@@ -1,23 +1,24 @@
-package com.acxiom.pipeline.steps
+package com.acxiom.metalus.steps
 
 import java.util.jar.JarFile
 
-import scala.collection.JavaConversions._
-import com.acxiom.pipeline.annotations.{BranchResults, PrivateObject, StepFunction, StepObject, StepParameter}
-import com.acxiom.pipeline.{EngineMeta, Extractor, Metadata, Output, StepResults}
+import com.acxiom.metalus.{Extractor, Metadata, Output}
+import com.acxiom.pipeline.annotations._
+import com.acxiom.pipeline.{EngineMeta, StepResults}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 
-import scala.util.{Failure, Success, Try}
+import scala.collection.JavaConversions._
 import scala.reflect.runtime.{universe => ru}
+import scala.util.{Failure, Success, Try}
 
 class StepMetadataExtractor extends Extractor {
   implicit val formats: Formats = DefaultFormats
 
   override def getMetaDataType: String = "steps"
 
-  override def extractMetadata(jarFiles: List[JarFile], output: Output): Metadata = {
+  override def extractMetadata(jarFiles: List[JarFile]): Metadata = {
     val stepMappings = jarFiles.foldLeft((List[StepDefinition](), Set[String]()))((stepDefinitions, file) => {
       file.entries().toList.filter(f => f.getName.endsWith(".class")).foldLeft(stepDefinitions)((definitions, cf) => {
         val stepPath = s"${cf.getName.substring(0, cf.getName.indexOf(".")).replaceAll("/", "\\.")}"
@@ -61,9 +62,8 @@ class StepMetadataExtractor extends Extractor {
   }
 
   private def buildPackageObjects(caseClasses: Set[String]): List[PackageObject] = {
+    import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
     import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator
-    import com.fasterxml.jackson.databind.ObjectMapper
-    import com.fasterxml.jackson.databind.JsonNode
 
     caseClasses.map(x => {
       val xClass = Class.forName(x)
