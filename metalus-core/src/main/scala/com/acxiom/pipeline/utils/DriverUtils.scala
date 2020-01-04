@@ -1,7 +1,5 @@
 package com.acxiom.pipeline.utils
 
-import java.text.ParseException
-
 import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
 import com.acxiom.pipeline.fs.FileManager
 import com.acxiom.pipeline.{DefaultPipeline, Pipeline, PipelineExecution}
@@ -118,10 +116,12 @@ object DriverUtils {
     */
   def parsePipelineJson(pipelineJson: String): Option[List[Pipeline]] = {
     implicit val formats: Formats = DefaultFormats
-    if (pipelineJson.trim()(0) != '[') {
-      throw new ParseException(pipelineJson, 0)
+    val json = if (pipelineJson.nonEmpty && pipelineJson.trim()(0) != '[') {
+      s"[$pipelineJson]"
+    } else {
+      pipelineJson
     }
-    parse(pipelineJson).extractOpt[List[DefaultPipeline]]
+    parse(json).extractOpt[List[DefaultPipeline]]
   }
 
   /**

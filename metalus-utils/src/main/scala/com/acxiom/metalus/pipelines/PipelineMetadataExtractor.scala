@@ -24,8 +24,7 @@ class PipelineMetadataExtractor extends Extractor {
       val updatedPipelines = file.entries().toList
         .filter(f => f.getName.startsWith("metadata/pipelines") && f.getName.endsWith(".json"))
         .foldLeft(pipelines)((pipelineList, json) => {
-          val pipelineJson = Source.fromInputStream(file.getInputStream(file.getEntry(json.getName))).mkString
-          val pipeline = DriverUtils.parsePipelineJson(if (pipelineJson.trim()(0) != '[') { s"[$pipelineJson]" } else { pipelineJson })
+          val pipeline = DriverUtils.parsePipelineJson(Source.fromInputStream(file.getInputStream(file.getEntry(json.getName))).mkString)
           if (pipeline.isDefined) {
             pipelineList.foldLeft(pipeline.get)((pipelines, pipeline) => {
               if (pipelines.exists(p => p.id == pipeline.id)) {
