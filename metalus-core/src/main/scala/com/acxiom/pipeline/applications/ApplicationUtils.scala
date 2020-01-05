@@ -88,7 +88,8 @@ object ApplicationUtils {
         Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")),
         ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
         pipelineManager)
-      PipelineExecution(execution.id.getOrElse(""), generatePipelines(execution, application), execution.initialPipelineId, ctx, execution.parents)
+      PipelineExecution(execution.id.getOrElse(""),
+        generatePipelines(execution, application, pipelineManager), execution.initialPipelineId, ctx, execution.parents)
     })
   }
 
@@ -113,13 +114,26 @@ object ApplicationUtils {
     pipelineExecution.asInstanceOf[DefaultPipelineExecution].copy(pipelineContext = ctx)
   }
 
-  private def generatePipelines(execution: Execution, application: Application): List[Pipeline] = {
-    val executionPipelines = execution.pipelines.getOrElse(List[DefaultPipeline]())
+  private def generatePipelines(execution: Execution, application: Application, pipelineManager: PipelineManager): List[Pipeline] = {
+    val executionPipelines = execution.pipelines.getOrElse(List[Pipeline]())
     val pipelineIds = execution.pipelineIds.getOrElse(List[String]())
-    val applicationPipelines = application.pipelines.getOrElse(List[DefaultPipeline]())
+    val applicationPipelines = application.pipelines.getOrElse(List[Pipeline]())
 
     if (pipelineIds.nonEmpty) {
       val filteredExecutionPipelines = executionPipelines.filter(p => pipelineIds.contains(p.id.getOrElse("")))
+      pipelineIds.foldLeft(filteredExecutionPipelines)((pipelines, pipelineId) => {
+        val pipeline = applicationPipelines.find(p => p.id.getOrElse("") == pipelineId)
+        if (pipeline.isDefined) {
+          pipelines :+ pipeline.get
+        } else {
+          val lookupPipeline = pipelineManager.getPipeline(pipelineId)
+          if (lookupPipeline.isDefined) {
+            pipelines :+ lookupPipeline.get
+          } else {
+            pipelines
+          }
+        }
+      })
       filteredExecutionPipelines ++ applicationPipelines
         .filter(p => {
           !filteredExecutionPipelines.exists(e => e.id.getOrElse("") == p.id.getOrElse("")) && pipelineIds.contains(p.id.get)
