@@ -120,8 +120,11 @@ object ApplicationUtils {
     val applicationPipelines = application.pipelines.getOrElse(List[Pipeline]())
 
     if (pipelineIds.nonEmpty) {
+      // Start with any pipelines that are part of the execution and listed in the pipelineIds
       val filteredExecutionPipelines = executionPipelines.filter(p => pipelineIds.contains(p.id.getOrElse("")))
-      pipelineIds.foldLeft(filteredExecutionPipelines)((pipelines, pipelineId) => {
+      // Get the remaining pipelines listed in pipelineIds
+      pipelineIds.filter(id => !filteredExecutionPipelines.exists(_.id.getOrElse("") == id))
+        .foldLeft(filteredExecutionPipelines)((pipelines, pipelineId) => {
         val pipeline = applicationPipelines.find(p => p.id.getOrElse("") == pipelineId)
         if (pipeline.isDefined) {
           pipelines :+ pipeline.get
@@ -134,10 +137,6 @@ object ApplicationUtils {
           }
         }
       })
-      filteredExecutionPipelines ++ applicationPipelines
-        .filter(p => {
-          !filteredExecutionPipelines.exists(e => e.id.getOrElse("") == p.id.getOrElse("")) && pipelineIds.contains(p.id.get)
-        })
     } else if (executionPipelines.nonEmpty) {
       executionPipelines
     } else if (applicationPipelines.nonEmpty) {
