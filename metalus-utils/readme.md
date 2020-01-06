@@ -4,7 +4,8 @@ Application utilities are provided as a way to make working with the project eas
 ## Metadata Extractor
 The MetadataExtractor is a generic tool which will scan the provided jar files and extract specific metadata. The 
 StepMetadataExtractor and PipelineMetadataExtractor will be executed by default and additional extractors can be 
-executed as long as the classes are part of the provided jars and implement the **Extractor** trait. 
+executed as long as the classes are part of the provided jars and implement the **Extractor** trait. The default extractors
+can be disabled by setting the flags *excludePipelines* and *excludeSteps* to true.
 
 ### Step Metadata Extractor
 This extractor will scan jar files that contain steps and produce a JSON representation. The tool takes a list of packages

@@ -21,8 +21,16 @@ object MetadataExtractor {
     } else {
       Output(None, None)
     }
+    val extractors = DEFAULT_EXTRACTORS.filter(extractor => {
+      (extractor == "com.acxiom.metalus.pipelines.PipelineMetadataExtractor" &&
+        (!parameters.contains("excludePipelines") ||
+        !parameters("excludePipelines").asInstanceOf[Boolean])) ||
+        (extractor == "com.acxiom.metalus.steps.StepMetadataExtractor" &&
+          (!parameters.contains("excludeSteps") ||
+          !parameters("excludeSteps").asInstanceOf[Boolean]))
+    })
     // Iterate the registered extractor
-    (parameters.getOrElse("extractors", "").asInstanceOf[String].split(",").toList ::: DEFAULT_EXTRACTORS)
+    (parameters.getOrElse("extractors", "").asInstanceOf[String].split(",").toList ::: extractors)
       .filter(_.nonEmpty)
       .foreach(extractor => {
         val extract = ReflectionUtils.loadClass(extractor).asInstanceOf[Extractor]
