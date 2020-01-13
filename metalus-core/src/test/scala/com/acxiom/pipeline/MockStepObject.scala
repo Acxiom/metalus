@@ -54,6 +54,11 @@ class MockNoParams {
   def string: String = "no-constructor-string"
 }
 
+class MockDefaultParam(flag: Boolean = false, secondParam: String = "none") {
+  def getFlag: Boolean = flag
+  def getSecondParam: String = secondParam
+}
+
 case class MockDriverSetup(parameters: Map[String, Any]) extends DriverSetup {
   override def pipelines: List[Pipeline] = List()
 
