@@ -46,6 +46,9 @@ object MockStepObject {
   def mockStepSetGlobal(string: String, globalName: String): PipelineStepResponse = {
     PipelineStepResponse(Some(string), Some(Map[String, Any]("$globals." + globalName -> string)))
   }
+  def mockStepSetMetric(string: String, metricName: String): PipelineStepResponse = {
+    PipelineStepResponse(Some(string), Some(Map[String, Any](s"$$metrics.$metricName" -> string)))
+  }
 }
 
 case class MockClass(string: String)
