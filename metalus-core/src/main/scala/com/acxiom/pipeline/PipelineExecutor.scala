@@ -253,11 +253,14 @@ object PipelineExecutor {
     result match {
       case response: PipelineStepResponse if response.namedReturns.isDefined && response.namedReturns.get.nonEmpty =>
         response.namedReturns.get.foldLeft(updatedCtx)((context, entry) => {
-          if (entry._1.startsWith("$globals.")) {
-            val keyName = entry._1.substring(NINE)
-            updateGlobals(step.displayName.get, pipelineId, context, entry._2, keyName)
-          } else {
-            context
+          entry._1 match {
+            case e if e.startsWith("$globals.") =>
+              val keyName = entry._1.substring(NINE)
+              updateGlobals(step.displayName.get, pipelineId, context, entry._2, keyName)
+            case e if e.startsWith("$metrics.") =>
+              val keyName = entry._1.substring(NINE)
+              context.setStepMetric(pipelineId, step.id.getOrElse(""), None, keyName, entry._2)
+            case _ => context
           }
         })
       case _ => updatedCtx
