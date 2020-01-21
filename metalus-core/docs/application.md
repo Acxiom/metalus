@@ -234,7 +234,13 @@ A list of pipelines definitions that can be referenced in any defined execution.
     }
   ]
  }
-``` 
+```
+
+### pipelineManager
+The PipelineManager is used to perform lookups on pipelines for step groups and during execution setup. When overriding
+this class, be aware that when executions are being constructed, the execution pipelines will be used, then the application
+pipelines and finally the PipelineManager will be used. One note when *pipelineIds* is present, then the execution pipelines
+will be skipped.
 
 ### globals
 The globals object will be merged with the application parameters passed to the 'spark-submit' command. All elements are

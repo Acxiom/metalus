@@ -170,7 +170,7 @@
   "executions": [
     {
       "id": "0",
-      "pipelineIds": ["Pipeline1"],
+      "pipelineIds": ["9ecbaee7-ba8d-4520-815b-e5e5a24b1872"],
       "securityManager": {
         "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
         "parameters": {

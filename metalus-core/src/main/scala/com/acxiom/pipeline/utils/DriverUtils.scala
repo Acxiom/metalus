@@ -1,7 +1,6 @@
 package com.acxiom.pipeline.utils
 
-import java.text.ParseException
-
+import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
 import com.acxiom.pipeline.fs.FileManager
 import com.acxiom.pipeline.{DefaultPipeline, Pipeline, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
@@ -79,6 +78,20 @@ object DriverUtils {
     parameters
   }
 
+  def getHttpRestClient(url: String, parameters: Map[String, Any]): HttpRestClient = {
+    val authorizationClass = "authorization.class"
+    if (parameters.contains(authorizationClass)) {
+      val authorizationParameters = parameters.filter(entry =>
+        entry._1.startsWith("authorization.") && entry._1 != authorizationClass)
+        .map(entry => entry._1.substring("authorization.".length) -> entry._2)
+      HttpRestClient(url,
+        ReflectionUtils.loadClass(parameters(authorizationClass).asInstanceOf[String], Some(authorizationParameters))
+          .asInstanceOf[Authorization])
+    } else {
+      HttpRestClient(url)
+    }
+  }
+
   /**
     * Given a map of parameters and a list of required parameter names, verifies that all are present.
     * @param parameters Parameter map to validate
@@ -103,10 +116,12 @@ object DriverUtils {
     */
   def parsePipelineJson(pipelineJson: String): Option[List[Pipeline]] = {
     implicit val formats: Formats = DefaultFormats
-    if (pipelineJson.trim()(0) != '[') {
-      throw new ParseException(pipelineJson, 0)
+    val json = if (pipelineJson.nonEmpty && pipelineJson.trim()(0) != '[') {
+      s"[$pipelineJson]"
+    } else {
+      pipelineJson
     }
-    parse(pipelineJson).extractOpt[List[DefaultPipeline]]
+    parse(json).extractOpt[List[DefaultPipeline]]
   }
 
   /**

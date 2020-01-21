@@ -80,7 +80,7 @@ class ReflectionUtilsTests extends FunSpec {
       val step = PipelineStep(None, None, None, None, None,
         Some(EngineMeta(Some("MockStepObject.typo"))))
       val thrown = intercept[IllegalArgumentException] {
-        val response = ReflectionUtils.processStep(step, pipeline, Map[String, Any](), pipelineContext)
+        ReflectionUtils.processStep(step, pipeline, Map[String, Any](), pipelineContext)
       }
       assert(thrown.getMessage == "typo is not a valid function!")
     }
@@ -143,9 +143,36 @@ class ReflectionUtilsTests extends FunSpec {
 
     it("Should instantiate no param constructor") {
       val className = "com.acxiom.pipeline.MockNoParams"
-      val mc = ReflectionUtils.loadClass(className, None)
+      val mc = ReflectionUtils.loadClass(className, Some(Map[String, Any]("test" -> true)))
       assert(mc.isInstanceOf[MockNoParams])
       assert(mc.asInstanceOf[MockNoParams].string == "no-constructor-string")
+
+      val mc1 = ReflectionUtils.loadClass(className, None)
+      assert(mc1.isInstanceOf[MockNoParams])
+      assert(mc1.asInstanceOf[MockNoParams].string == "no-constructor-string")
+    }
+
+    it("Should instantiate default param constructor") {
+      val className = "com.acxiom.pipeline.MockDefaultParam"
+      val mc = ReflectionUtils.loadClass(className, Some(Map[String, Any]("test" -> true)))
+      assert(mc.isInstanceOf[MockDefaultParam])
+      assert(!mc.asInstanceOf[MockDefaultParam].getFlag)
+      assert(mc.asInstanceOf[MockDefaultParam].getSecondParam == "none")
+
+      val mc1  = ReflectionUtils.loadClass(className, Some(Map[String, Any]("flag" -> true)))
+      assert(mc1.isInstanceOf[MockDefaultParam])
+      assert(mc1.asInstanceOf[MockDefaultParam].getFlag)
+      assert(mc1.asInstanceOf[MockDefaultParam].getSecondParam == "none")
+
+      val mc2  = ReflectionUtils.loadClass(className, None)
+      assert(mc2.isInstanceOf[MockDefaultParam])
+      assert(!mc2.asInstanceOf[MockDefaultParam].getFlag)
+      assert(mc2.asInstanceOf[MockDefaultParam].getSecondParam == "none")
+
+      val mc3  = ReflectionUtils.loadClass(className, Some(Map[String, Any]("secondParam" -> "some")))
+      assert(mc3.isInstanceOf[MockDefaultParam])
+      assert(!mc3.asInstanceOf[MockDefaultParam].getFlag)
+      assert(mc3.asInstanceOf[MockDefaultParam].getSecondParam == "some")
     }
   }
 

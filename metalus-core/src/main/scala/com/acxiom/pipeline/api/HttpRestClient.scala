@@ -57,8 +57,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @return True if the path exists, otherwise false.
     */
   def exists(path: String): Boolean = {
-    val contentType = this.openUrlConnection(path).getContentType
-    Option(contentType).isDefined
+    this.openUrlConnection(path).getResponseCode != 404
   }
 
   /**
@@ -94,6 +93,28 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     */
   def getStringContent(path: String): String = {
     val input = getInputStream(path)
+    val content = Source.fromInputStream(input).mkString
+    input.close()
+    content
+  }
+
+  /**
+    * Simple method to post string content.
+    * @param path The path to post the content
+    * @param body The body to post
+    * @param contentType The content type to post. Defaults to JSON.
+    * @return The String output of the command.
+    */
+  def postJsonContent(path: String, body: String, contentType: String = "application/json"): String = {
+    val connection = this.openUrlConnection(path)
+    connection.setDoOutput(true)
+    connection.setRequestProperty("Content-Type", contentType)
+    connection.setRequestMethod("POST")
+    val output = connection.getOutputStream
+    output.write(body.getBytes, 0, body.length)
+    output.flush()
+    output.close()
+    val input = connection.getInputStream
     val content = Source.fromInputStream(input).mkString
     input.close()
     content
