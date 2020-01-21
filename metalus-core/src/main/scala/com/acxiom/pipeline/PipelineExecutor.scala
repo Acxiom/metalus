@@ -52,6 +52,10 @@ object PipelineExecutor {
       val exCtx = ctx.setRootAudit(ctx.rootAudit.setEnd(System.currentTimeMillis()))
       PipelineExecutionResult(handleEvent(exCtx, "executionFinished", List(executingPipelines, exCtx)), success = true)
     } catch {
+      case fe: ForkedPipelineStepException =>
+        fe.exceptions.foreach(entry =>
+          logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
+        PipelineExecutionResult(esContext, success = false)
       case p: PauseException =>
         logger.info(s"Paused pipeline flow at pipeline ${p.pipelineId} step ${p.stepId}. ${p.message}")
         PipelineExecutionResult(esContext, success = false)
@@ -215,8 +219,8 @@ object PipelineExecutor {
     val pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
     val groupId = pipelineContext.getGlobalString("groupId")
     val ctx = step match {
-      case PipelineStep(_, _, _, Some("fork"), _, _, _, _) => result.asInstanceOf[ForkStepResult].pipelineContext
-      case PipelineStep(_, _, _, Some(STEPGROUP), _, _, _, _) =>
+      case PipelineStep(_, _, _, Some("fork"), _, _, _, _, _) => result.asInstanceOf[ForkStepResult].pipelineContext
+      case PipelineStep(_, _, _, Some(STEPGROUP), _, _, _, _, _) =>
         val groupResult = result.asInstanceOf[StepGroupResult]
         val updatedCtx = pipelineContext.setStepAudit(pipelineId, groupResult.audit)
           .setParameterByPipelineId(pipelineId, step.id.getOrElse(""), groupResult.pipelineStepResponse)
@@ -274,7 +278,7 @@ object PipelineExecutor {
 
   private def getNextStepId(step: PipelineStep, result: Any): Option[String] = {
     step match {
-      case PipelineStep(_, _, _, Some("branch"), _, _, _, _) =>
+      case PipelineStep(_, _, _, Some("branch"), _, _, _, _, _) =>
         // match the result against the step parameter name until we find a match
         val matchValue = result match {
           case response: PipelineStepResponse => response.primaryReturn.getOrElse("").toString
@@ -287,7 +291,7 @@ object PipelineExecutor {
         } else {
           None
         }
-      case PipelineStep(_, _, _, Some("fork"), _, _, _, _) => result.asInstanceOf[ForkStepResult].nextStepId
+      case PipelineStep(_, _, _, Some("fork"), _, _, _, _, _) => result.asInstanceOf[ForkStepResult].nextStepId
       case _ => step.nextStepId
     }
   }

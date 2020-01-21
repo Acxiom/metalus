@@ -1,0 +1,22 @@
+{
+  "id": "9ecbaee7-ba8d-4520-815b-e5e5a24b1872",
+  "name": "Pipeline 1",
+  "steps": [
+    {
+      "id": "Pipeline1Step1",
+      "displayName": "Pipeline1Step1",
+      "type": "pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "value",
+          "required": true,
+          "value": "Chain0"
+        }
+      ],
+      "engineMeta": {
+        "spark": "ExecutionSteps.normalFunction"
+      }
+    }
+  ]
+}
