@@ -156,7 +156,7 @@ dynamic:
 * **#** - When the value begins with this character, the system will search the PipelineContext.parameters for the named parameter and pass the namedReturns value to the step function.
 * **&** - When the value begins with this character, the system will search the PipelineContext.pipelineManager for the named parameter and pass the pipeline or None to the step function. This is usually used in a step-group.
 
-The **@** and **#** symbols are shortcuts that assume the value in PipelineContext.parameters is a PipelineStepresponse.
+The **@** and **#** symbols are shortcuts that assume the value in PipelineContext.parameters is a PipelineStepResponse.
  
 In addition to searching the parameters for the current pipeline, the user has the option of specifying a pipelineId in 
 the syntax for *@* and *$* to specify any previous pipeline value. *Example: @p1.StepOne*
