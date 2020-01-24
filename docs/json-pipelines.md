@@ -9,6 +9,12 @@ the need to write and deploy code. Once a pipeline is designed it may be deliver
 
 The **Metalus** library will then convert the JSON into a scala object to be executed.
 
+There are three components needed to create a pipeline:
+
+* Step Template - This is the JSON that describes the step. Pipeline Steps start with this template and modify to satisfy pipeline requirements.
+* Pipeline Step - The step template is copied and modified with additional attributes and mappings before being added to the pipeline JSON.
+* Pipeline - Contains information about the pipeline including which steps to execute at runtime.
+
 ## Step Templates
 A step template is a JSON representation of a step function. There are two ways to get this representation: 1) manually
 create the JSON based on the properties of the step function or 2) use the provided annotations when creating the step 
@@ -33,7 +39,7 @@ scanned using the [metadata extractor utility](metadata-extractor.md). The **Ste
 information that cannot be gathered from the step function as well as mark the function as being a step. The annotation
 **must** be fully filled in with the following parameters: id, displayName, description, type, category. A description 
 of each is provided in the [JSON Step Template](#json-step-template) section. The scala object containing the step function(s)
-must have the **StepObject** annotation.
+must have the **StepObject** annotation. A complete list of annotations may be found [here](step-annotations.md).
 
 ```scala
   @StepFunction("87db259d-606e-46eb-b723-82923349640f",
@@ -97,7 +103,7 @@ execution for logging, but otherwise these attributes are not required for execu
 * **displayName** - A short name that may be presented to a user in a UI
 * **description** - A longer explanation of what this step does
 * **type** - The type of step. It can be one of the following values: Pipeline, pipeline, branch, fork, join or step-group
-* **category** - ARepresents a group which this step should belong. This is useful for UIs and queries to provide a common grouping of steps
+* **category** - Represents a group which this step should belong. This is useful for UIs and queries to provide a common grouping of steps
 
 #### Tags
 Tags provide an additional layer of grouping within a query or UI. In the example above, the name of the jar file(s) which 
