@@ -1,10 +1,11 @@
 # JSON Pipelines
 Building pipelines in JSON provide developers a way to construct Spark applications using existing **step libraries** without
-the need to write and deploy code. Once a pipeline is design it may be delivered several ways:
+the need to write and deploy code. Once a pipeline is designed it may be delivered several ways:
 
 * As part of an application JSON
-* From an API (a custom PipelineManager or DriverSetup would be required)
+* An API (a custom PipelineManager or DriverSetup would be required)
 * Embedded in a jar
+* A disk (local/hdfs/s3, etc...) location (a custom PipelineManager or DriverSetup would be required)
 
 The **Metalus** library will then convert the JSON into a scala object to be executed.
 
@@ -105,7 +106,7 @@ contained the step functions have been added. Tags are free form strings that ca
 #### Engine Meta
 The engine meta section contains the metadata required to execute the step function at runtime. The **spark** attribute
 is required and must contain the object name containing the step function and the function name. It should be in the form 
-of **<Scala Object>.<function name>**. The **pkg** attribute lists the scala package where the step object may be found.
+of **<Scala_Object>.<function_name>**. The **pkg** attribute lists the scala package where the step object may be found.
 This is not required, but is useful for systems that may use this information to help construct applications at runtime.
 
 ##### Results
