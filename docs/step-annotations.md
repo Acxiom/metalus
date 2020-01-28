@@ -1,3 +1,5 @@
+# [Documentation Home](readme.md)
+
 # Step Annotations
 Pipeline designers that are building JSON representations need step templates as a starting point for each pipeline step
 to be used. Once these step templates are created, they need to be stored so that pipeline designers have access. As an

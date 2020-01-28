@@ -1,3 +1,5 @@
+# [Documentation Home](readme.md)
+
 # Metadata Extractor
 The MetadataExtractor is a generic tool which will scan the provided jar files and extract specific metadata. The 
 StepMetadataExtractor and PipelineMetadataExtractor will be executed by default and additional extractors can be 

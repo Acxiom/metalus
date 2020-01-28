@@ -1,3 +1,5 @@
+# [Documentation Home](readme.md)
+
 # JSON Pipelines
 Building pipelines in JSON provide developers a way to construct Spark applications using existing **step libraries** without
 the need to write and deploy code. Once a pipeline is designed it may be delivered several ways:
