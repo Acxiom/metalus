@@ -1,6 +1,7 @@
 # Table of Contents
 * [Introduction](introduction.md)
 * [Contributing](contributions.md)
+* [Getting Started](getting-started.md)
 * Core
     * [File Manager](filemanager.md)
     * [Drivers](pipeline-drivers.md)
