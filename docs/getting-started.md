@@ -37,7 +37,7 @@ sbin/start-slave.sh localhost:7077 -h localhost
 ## Run the application
 The application commands below provide the proper templates to run the example:
 
-*  _<VERSION>_ - The current Metalus version being built
+* _\<VERSION>_ - The current Metalus version being built
 * _<jar_path>_ - The fully qualified path to the built jars
 * _<data_location>_ - The fully qualified path to the example data
 
