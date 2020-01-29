@@ -1,4 +1,4 @@
-# [Documentation Home](readme.md)
+[Documentation Home](readme.md)
 
 # FileManager
 The FileManager framework provides an abstraction for working with files across different file systems. Steps can use

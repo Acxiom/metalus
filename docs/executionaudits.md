@@ -1,4 +1,4 @@
-# [Documentation Home](readme.md)
+[Documentation Home](readme.md)
 
 # Execution Audits
 Metalus provides a mechanism for capturing audits and metrics during execution. Three levels are available:

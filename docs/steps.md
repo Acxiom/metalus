@@ -1,4 +1,4 @@
-# [Documentation Home](readme.md)
+[Documentation Home](readme.md)
 
 # Steps
 The first task when preparing an application to use this project is to ensure that the reusable steps are available. A

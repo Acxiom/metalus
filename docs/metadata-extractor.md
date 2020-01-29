@@ -1,4 +1,4 @@
-# [Documentation Home](readme.md)
+[Documentation Home](readme.md)
 
 # Metadata Extractor
 The MetadataExtractor is a generic tool which will scan the provided jar files and extract specific metadata. The 

@@ -1,4 +1,4 @@
-# [Documentation Home](readme.md)
+[Documentation Home](readme.md)
 
 # JSON Pipelines
 Building pipelines in JSON provide developers a way to construct Spark applications using existing **step libraries** without

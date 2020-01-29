@@ -1,4 +1,4 @@
-# [Documentation Home](readme.md)
+[Documentation Home](readme.md)
 
 # Pipeline Drivers
 Pipeline drivers are the entry point for any Metalus application. A default and Kafka based (streaming) drivers are 

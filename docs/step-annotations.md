@@ -1,4 +1,4 @@
-# [Documentation Home](readme.md)
+[Documentation Home](readme.md)
 
 # Step Annotations
 Pipeline designers that are building JSON representations need step templates as a starting point for each pipeline step
