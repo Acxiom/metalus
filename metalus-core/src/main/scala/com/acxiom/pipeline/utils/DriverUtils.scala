@@ -167,7 +167,7 @@ object DriverUtils {
     } else {
       tempConf
     }
-    val fileManager = ReflectionUtils.loadClass(fileLoaderClassName, Some(Map("conf" -> sparkConf))).asInstanceOf[FileManager]
+    val fileManager = ReflectionUtils.loadClass(fileLoaderClassName, Some(parameters + ("conf" -> sparkConf))).asInstanceOf[FileManager]
     val json = Source.fromInputStream(fileManager.getInputStream(path)).mkString
     json
   }
