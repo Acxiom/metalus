@@ -5,13 +5,13 @@ The Metalus library was created as a way to create Spark applications at runtime
 code. The library is written in Scala and provides binaries for different version of Spark and Scala. Developers build
 applications by providing a JSON configuration file which gets loaded and executed by the metalus core library. 
 
-## Application Configuration
+## [Application Configuration](applications.md)
 There are several methods for starting a metalus application, but the easiest to use is the application framework using
 an application configuration. The application configuration JSON file provides information needed to run the application. 
 Any application parameters provided to the _spark-submit_ command will automatically be added to the _globals_ and made 
 available at runtime.
 
-## Step Libraries
+## [Step Libraries](step-libraries.md)
 Step libraries contain the scala functions, pipeline configurations and custom driver classes which may be called at 
 runtime using the provided configuration. 
 
@@ -20,7 +20,7 @@ Steps are scala object functions that are executed at runtime by metalus cores. 
 unit of work that stand alone and define requirements through parameters. Developers may [annotate](step-annotations.md) 
 the functions or separately publish step templates which can be used when building applications. 
 
-### Pipelines
+### [Pipelines](pipelines.md)
 Pipeline [configurations written in JSON](json-pipelines.md) may be included in a step library. Developers will need to
 provide a directory in the jar using the path _/metadata/pipelines_. The pipeline will need to be a JSON file where the 
 pipeline id is the name plus the _.json_ extension.

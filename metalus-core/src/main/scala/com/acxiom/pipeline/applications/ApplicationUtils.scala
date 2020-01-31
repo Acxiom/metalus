@@ -44,7 +44,7 @@ object ApplicationUtils {
   def createExecutionPlan(application: Application,
                           globals: Option[Map[String, Any]],
                           sparkConf: SparkConf,
-                          pipelineListener: PipelineListener = DefaultPipelineListener(),
+                          pipelineListener: PipelineListener = PipelineListener(),
                           enableHiveSupport: Boolean = false,
                           parquetDictionaryEnabled: Boolean = true): List[PipelineExecution] = {
     // Create the SparkSession

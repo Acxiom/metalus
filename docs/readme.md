@@ -2,28 +2,23 @@
 * [Introduction](introduction.md)
 * [Getting Started](getting-started.md)
 * [Applications](applications.md)
-* [Contributing](contributions.md)
-
-## Under Development
-* Core
+    * [Executions](executions.md)
+    * [Pipelines](pipelines.md)
+        * [Steps](steps.md)
+            * [Advance Step Features](advanced-step-features.md)
+        * [Pipeline Steps](pipeline-steps.md)
+        * [Step Groups](step-groups.md)
+        * [Flow Control](flow-control.md)
+            * [Fork/Join](fork-join.md)
+        * [Parameter Mapping](parameter-mapping.md)
+* [Step Libraries](step-libraries.md)
+    * [Step Templates](step-templates.md)
+        * [Step Annotations](step-annotations.md)
+    * [JSON Pipelines](json-pipelines.md)
+    * [Metadata Extractor](metadata-extractor.md)
+* Advanced
     * [File Manager](filemanager.md)
     * [Drivers](pipeline-drivers.md)
     * [Audits](executionaudits.md)
-* [Steps](steps.md)
-    * [Annotations](step-annotations.md)
-* Pipelines
-    * Mapping
-    * Flow Control
-        * Branching
-        * Fork/Join
-        * Execute If Empty
-    * Step Groups
-    * [JSON Pipelines](json-pipelines.md)
-    * [Metadata Extractor](metadata-extractor.md)
-    * Chaining
-    * Branching
-* Applications
-    * Globals
-    * SparkConf
-    * Executions
-    * ApplicationDriverSetup
+    * [PipelineContext](pipeline-context.md)
+* [Contributing](contributions.md)

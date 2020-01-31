@@ -68,7 +68,7 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            parameters: PipelineParameters,
                            stepPackages: Option[List[String]] = Some(List("com.acxiom.pipeline", "com.acxiom.pipeline.steps")),
                            parameterMapper: PipelineStepMapper = PipelineStepMapper(),
-                           pipelineListener: Option[PipelineListener] = Some(DefaultPipelineListener()),
+                           pipelineListener: Option[PipelineListener] = Some(PipelineListener()),
                            stepMessages: Option[CollectionAccumulator[PipelineStepMessage]],
                            rootAudit: ExecutionAudit = ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
                            pipelineManager: PipelineManager = PipelineManager(List())) {
