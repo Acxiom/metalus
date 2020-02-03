@@ -2,9 +2,9 @@
 
 # Pipeline Mapping
 Metalus strives to make pipelines reusable by allowing [pipeline step](pipeline-steps.md) parameters to be mapped at
-runtime. This allows the execution flow of the pipeline to operate independently of data being used by the steps. 
-In order to abstract the pipeline definition in a way that allows reuse without having to duplicate the metadata, Metalus
-has the concept of pipeline step mapping using a implementation of the _PipelineStepMapper_ class.
+runtime. This allows the [execution flow of the pipeline](pipeline-flow.md) to operate independently of data being used 
+by the steps. In order to abstract the pipeline definition in a way that allows reuse without having to duplicate the 
+metadata, Metalus has the concept of pipeline step mapping using a implementation of the _PipelineStepMapper_ class.
 
 This flow demonstrates the mapping flow:
 
