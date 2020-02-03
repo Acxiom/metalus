@@ -4,12 +4,9 @@
 |Master|[![Master Status](https://travis-ci.com/Acxiom/metalus.svg?branch=master)](https://travis-ci.com/Acxiom/metalus?branch=master)|[![Master Coverage](https://img.shields.io/coveralls/github/Acxiom/metalus/master.svg)](https://coveralls.io/github/Acxiom/metalus?branch=master)|[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Acxiom_spark-pipeline-driver-release&metric=alert_status)](https://sonarcloud.io/dashboard?id=Acxiom_spark-pipeline-driver-release)|
 
 # Metalus Pipeline Library
-The Metalus library provides a set of components for constructing data processing applications that can be executed against
-the [Spark](http://spark.apache.org) framework using external configuration scripts written in JSON. Reusable logic is
-maintained in the form of [Steps](metalus-core/docs/steps.md) written in Scala. Pipelines execute the steps in a flow 
-defined using JSON (these may be coded as well). Executions are used to execute one or more pipelines sequentially and 
-provide a mechanism for expressing dependencies. [Applications](metalus-core/docs/application.md) define the the 
-configuration required to run the executions, pipelines and steps as well as initial setup information.
+The Metalus library was created as a way to create Spark applications at runtime without the need to write or compile
+code. The library is written in Scala and provides binaries for different version of Spark and Scala. Developers build
+applications by providing a JSON configuration file which gets loaded and executed by the metalus core library. 
 
 ## [Documentation](docs/readme.md)
 Documentation for this project may be found [here](docs/readme.md).
