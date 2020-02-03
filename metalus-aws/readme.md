@@ -1,5 +1,7 @@
-# Metalus AWS Component
-This project provides AWS specific components for the Metalus Core.
+[Documentation Home](../docs/readme.md)
+
+# Metalus AWS Step Library
+The Metalus AWS is a step library with specific steps and utilities for working with AWS technologies.
 
 ## KinesisPipelineDriver
 This driver provides basic support for streaming data from [Kinesis](https://aws.amazon.com/kinesis/) streams. As data

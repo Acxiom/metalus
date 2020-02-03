@@ -1,8 +1,8 @@
 [Documentation Home](readme.md)
 
 # Metalus Application
-This project provides a single uber jar containing the metalus core and third party libraries required to run a basic 
-application.
+This project provides a single self contained jar containing the metalus core and some third party libraries required to 
+run a basic application.
 
 ## Submit a job locally:
 

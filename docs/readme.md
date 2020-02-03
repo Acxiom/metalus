@@ -16,6 +16,8 @@
         * [Step Annotations](step-annotations.md)
     * [JSON Pipelines](json-pipelines.md)
     * [Metadata Extractor](metadata-extractor.md)
+    * [Metalus Common](../metalus-common/readme.md)
+    * [Metalus AWS](../metalus-aws/readme.md)
 * Advanced
     * [File Manager](filemanager.md)
     * [Drivers](pipeline-drivers.md)
