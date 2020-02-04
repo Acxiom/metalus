@@ -1,10 +1,10 @@
 [Documentation Home](readme.md)
 
 # Pipeline Context
-When a [pipeline](pipelines.md) is executed state is maintained using an object named _pipelineContext_ which is an 
-implementation of the _PipelineContext_ class. Each [step](pipeline-steps.md) that executed may access this context
-simply by adding a parameter to the step function. The presence of this parameter informs Metalus that the step would
-like the context injected.
+When a [pipeline](pipelines.md) is executed state is maintained using the _PipelineContext_ class. The *PipelineContext* 
+is a shared object that contains the current state of the pipeline execution. Each [step](pipeline-steps.md) that 
+executed may access this context simply by adding a parameter to the step function. The presence of this parameter 
+informs Metalus that the step would like the context injected.
 
 The _PipelineContext_ contains several fields that may be used by a step to access the current state of the pipeline
 execution:

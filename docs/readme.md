@@ -11,7 +11,7 @@
         * [Flow Control](flow-control.md)
             * [Fork/Join](fork-join.md)
         * [Parameter Mapping](parameter-mapping.md)
-        * [Pipeline Execution and Data Flow](pipeline-flow.md)
+        * [Execution and Data Flow](pipeline-flow.md)
 * [Step Libraries](step-libraries.md)
     * [Step Templates](step-templates.md)
         * [Step Annotations](step-annotations.md)

@@ -4,7 +4,7 @@
 Metalus provides a common step library with a set steps and utilities required to build data processing applications
 using Spark.
 
-## Steps
+## Step Classes
 Here is a list of steps provided:
 
 * [ApiSteps](docs/apisteps.md)
