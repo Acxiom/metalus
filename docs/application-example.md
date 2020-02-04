@@ -43,8 +43,9 @@ object, and an empty *executions* array.
     ]
   },
   "stepPackages": [
+    "com.acxiom.pipeline",
     "com.acxiom.pipeline.steps",
-    "com.acxiom.pipeline"
+    "com.acxiom.metalus.steps.mongo"
   ],
   "globals": {},
   "executions": []
@@ -751,29 +752,8 @@ Now that the data has been loaded and processed into different forms, a final pi
 the data to a Mongo data store. This pipeline is only here to show a multi-parent dependency relationship. It would probably 
 be more optimal to have each of the other pipelines write as a last step.
 
-A new library (mongo connector) and a new step will be required.
+The [metalus-mongo](../metalus-mongo/readme.md) will be required as well as the mongo spark connector jars.
 
-First thing is to include the new library in the pom.xml file. Add this entry to the dependencies section:
-
-```xml
-<dependency>
-	<groupId>org.mongodb.spark</groupId>
-	<artifactId>mongo-spark-connector_${scala.compat.version}</artifactId>
-	<version>2.3.1</version>
-</dependency>
-```
-* Open the object in the *com.acxiom.pipeline.steps* package named [**InputOutputSteps**](src/main/scala/com/acxiom/pipeline/steps/InputOutputSteps.scala)
-* Create a function named *writeDataFrameToMongo* and declare three parameters:
-	* dataFrame: DataFrame
-	* uri: String
-	* collectionName: String
-* Give the function a return type of Unit
-* Insert the following code as the function:
-
-```scala
-def writeDatFrameToMongo(dataFrame: DataFrame, uri: String, collectionName: String): Unit =
-			MongoSpark.save(dataFrame, WriteConfig(Map("collection" -> collectionName, "uri" -> uri)))
-```
 ### Final Execution JSON
 ```json
 {
@@ -785,7 +765,7 @@ def writeDatFrameToMongo(dataFrame: DataFrame, uri: String, collectionName: Stri
 	  "steps": [
 		{
 		  "id": "PRODWRITESTEP",
-		  "stepId": "6b9db56d-bed7-5838-9ed4-7b5e216617c4",
+		  "stepId": "bb6fe036-a981-41ad-afeb-b9c79e44e11d",
 		  "displayName": "Writes a DataFrame to a Mongo database",
 		  "description": "This step will write the contents of a DataFrame to the Mongo database and collection specified",
 		  "type": "Pipeline",
@@ -811,12 +791,12 @@ def writeDatFrameToMongo(dataFrame: DataFrame, uri: String, collectionName: Stri
 			}
 		  ],
 		  "engineMeta": {
-			"spark": "InputOutputSteps.writeDataFrameToMongo"
+			"spark": "MongoSteps.writeDataFrameToMongo"
 		  }
 		},
 		{
 		  "id": "CUSTWRITESTEP",
-		  "stepId": "6b9db56d-bed7-5838-9ed4-7b5e216617c4",
+		  "stepId": "bb6fe036-a981-41ad-afeb-b9c79e44e11d",
 		  "displayName": "Writes a DataFrame to a Mongo database",
 		  "description": "This step will write the contents of a DataFrame to the Mongo database and collection specified",
 		  "type": "Pipeline",
@@ -842,12 +822,12 @@ def writeDatFrameToMongo(dataFrame: DataFrame, uri: String, collectionName: Stri
 			}
 		  ],
 		  "engineMeta": {
-			"spark": "InputOutputSteps.writeDataFrameToMongo"
+			"spark": "MongoSteps.writeDataFrameToMongo"
 		  }
 		},
 		{
 		  "id": "CCWRITESTEP",
-		  "stepId": "6b9db56d-bed7-5838-9ed4-7b5e216617c4",
+		  "stepId": "bb6fe036-a981-41ad-afeb-b9c79e44e11d",
 		  "displayName": "Writes a DataFrame to a Mongo database",
 		  "description": "This step will write the contents of a DataFrame to the Mongo database and collection specified",
 		  "type": "Pipeline",
@@ -873,12 +853,12 @@ def writeDatFrameToMongo(dataFrame: DataFrame, uri: String, collectionName: Stri
 			}
 		  ],
 		  "engineMeta": {
-			"spark": "InputOutputSteps.writeDataFrameToMongo"
+			"spark": "MongoSteps.writeDataFrameToMongo"
 		  }
 		},
 		{
 		  "id": "ORDWRITESTEP",
-		  "stepId": "6b9db56d-bed7-5838-9ed4-7b5e216617c4",
+		  "stepId": "bb6fe036-a981-41ad-afeb-b9c79e44e11d",
 		  "displayName": "Writes a DataFrame to a Mongo database",
 		  "description": "This step will write the contents of a DataFrame to the Mongo database and collection specified",
 		  "type": "Pipeline",
@@ -903,7 +883,7 @@ def writeDatFrameToMongo(dataFrame: DataFrame, uri: String, collectionName: Stri
 			}
 		  ],
 		  "engineMeta": {
-			"spark": "InputOutputSteps.writeDataFrameToMongo"
+			"spark": "MongoSteps.writeDataFrameToMongo"
 		  }
 		}
 	  ]
@@ -925,36 +905,54 @@ Since the configuration is completely configuration based, there is no need to c
 The code may be run using the provided [application jar](../../metalus-application/readme.md) for the main jar and the 
 metalus-common and metalus-examples jars provided to the *--jars* parameter.
 
-### Run the spark-submit command for Spark 2.3:
+The application commands below provide the proper templates to run the example:
 
+* _\<VERSION>_ - The current Metalus version being built
+* _<jar_path>_ - The fully qualified path to the built jars
+* _<data_location>_ - The fully qualified path to the example data
+
+### Spark 2.3/Scala 2.11
 ```bash
 spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 --master spark://localhost:7077 \
 --deploy-mode client \
---jars metalus-common_2.11-spark_2.3-<VERSION>.jar,metalus-examples_2.11-spark_2.3-<VERSION>.jar  \
+--jars metalus-common_2.11-spark_2.3-<VERSION>.jar,metalus-examples_2.11-spark_2.3-<VERSION>.jar,metalus-mongo_2.11-spark_2.3-<VERSION>.jar,mongo-spark-connector_2.11-2.3.2.jar,mongo-java-driver-3.11.2.jar  \
 <jar_path>/metalus-application_2.11-spark_2.3-<VERSION>.jar \
 --driverSetupClass com.acxiom.pipeline.applications.DefaultApplicationDriverSetup \
---applicationConfigPath <location of application-example.json> \
---input_url <location of input file> \
---input_format <csv, parquet, etc...> \
+--applicationConfigPath <data_location>/application-example.json \
+--input_url <data_location>/orders.csv \
+--input_format csv \
 --input_separator , \
---mongoURI <URI to connect to the Mongo DB> \
+--mongoURI mongodb://localhost:27017/application_examples \
 --logLevel DEBUG
 ```
-
-### Run the spark-submit command for Spark 2.4:
-
+### Spark 2.4/Scala 2.11
 ```bash
 spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 --master spark://localhost:7077 \
 --deploy-mode client \
---jars metalus-common_2.11-spark_2.4-<VERSION>.jar,metalus-examples_2.11-spark_2.4-<VERSION>.jar  \
+--jars metalus-common_2.11-spark_2.4-<VERSION>.jar,metalus-examples_2.11-spark_2.4-<VERSION>.jar,metalus-mongo_2.11-spark_2.4-<VERSION>.jar,mongo-spark-connector_2.11-2.4.1.jar,mongo-java-driver-3.11.2.jar  \
 <jar_path>/metalus-application_2.11-spark_2.4-<VERSION>.jar \
 --driverSetupClass com.acxiom.pipeline.applications.DefaultApplicationDriverSetup \
---applicationConfigPath <location of application-example.json> \
---input_url <location of input file> \
---input_format <csv, parquet, etc...> \
+--applicationConfigPath <data_location>/application-example.json \
+--input_url <data_location>/orders.csv \
+--input_format csv \
 --input_separator , \
---mongoURI <URI to connect to the Mongo DB> \
+--mongoURI mongodb://localhost:27017/application_examples \
+--logLevel DEBUG
+```
+### Spark 2.4/Scala 2.12
+```bash
+spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
+--master spark://localhost:7077 \
+--deploy-mode client \
+--jars metalus-common_2.12-spark_2.4-<VERSION>.jar,metalus-examples_2.12-spark_2.4-<VERSION>.jar,metalus-mongo_2.12-spark_2.4-<VERSION>.jar,mongo-spark-connector_2.12-2.4.1.jar,mongo-java-driver-3.11.2.jar  \
+<jar_path>/metalus-application_2.12-spark_2.4-<VERSION>.jar \
+--driverSetupClass com.acxiom.pipeline.applications.DefaultApplicationDriverSetup \
+--applicationConfigPath <data_location>/application-example.json \
+--input_url <data_location>/orders.csv \
+--input_format csv \
+--input_separator , \
+--mongoURI mongodb://localhost:27017/application_examples \
 --logLevel DEBUG
 ```

@@ -1,4 +1,4 @@
-[Documentation Home](../../docs/readme.md) | [Common Home](../readme.md)
+[Documentation Home](../../docs/readme.md) | [AWS Home](../readme.md)
 
 # S3Steps
 S3Steps provides steps that allow a reading a DataFrame and writing a DataFrame to an S3 bucket.

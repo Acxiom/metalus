@@ -1,4 +1,4 @@
-[Documentation Home](../../docs/readme.md) | [Common Home](../readme.md)
+[Documentation Home](../../docs/readme.md) | [AWS Home](../readme.md)
 
 # KinesisPipelineDriver
 This driver provides basic support for streaming data from [Kinesis](https://aws.amazon.com/kinesis/) streams. As data

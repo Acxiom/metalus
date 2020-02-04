@@ -19,6 +19,7 @@
     * [Metadata Extractor](metadata-extractor.md)
     * [Metalus Common](../metalus-common/readme.md)
     * [Metalus AWS](../metalus-aws/readme.md)
+    * [Metalus Mongo](../metalus-mongo/readme.md)
 * Advanced
     * [File Manager](filemanager.md)
     * [Drivers](pipeline-drivers.md)

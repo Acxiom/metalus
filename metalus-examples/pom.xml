@@ -38,11 +38,6 @@
             <artifactId>spark-streaming-kinesis-asl_${scala.compat.version}</artifactId>
             <version>${spark.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.mongodb.spark</groupId>
-            <artifactId>mongo-spark-connector_${scala.compat.version}</artifactId>
-            <version>2.4.1</version>
-        </dependency>
     </dependencies>
 
     <build>

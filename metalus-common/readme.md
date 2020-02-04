@@ -1,12 +1,10 @@
 [Documentation Home](../docs/readme.md)
 
-# Common Pipeline Step Library
+# Common Step Library
 Metalus provides a common step library with a set steps and utilities required to build data processing applications
 using Spark.
 
 ## Step Classes
-Here is a list of steps provided:
-
 * [ApiSteps](docs/apisteps.md)
 * [DataFrameSteps](docs/dataframesteps.md)
 * [FileManagerSteps](docs/filemanagersteps.md)

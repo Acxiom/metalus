@@ -12,8 +12,9 @@
     ]
   },
   "stepPackages": [
+    "com.acxiom.pipeline",
     "com.acxiom.pipeline.steps",
-    "com.acxiom.pipeline"
+    "com.acxiom.metalus.steps.mongo"
   ],
   "globals": {
     "creditCardSchema": {
@@ -625,7 +626,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "InputOutputSteps.writeDataFrameToMongo"
+                "spark": "MongoSteps.writeDataFrameToMongo"
               }
             },
             {
@@ -656,7 +657,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "InputOutputSteps.writeDataFrameToMongo"
+                "spark": "MongoSteps.writeDataFrameToMongo"
               }
             },
             {
@@ -687,7 +688,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "InputOutputSteps.writeDataFrameToMongo"
+                "spark": "MongoSteps.writeDataFrameToMongo"
               }
             },
             {
@@ -717,7 +718,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "InputOutputSteps.writeDataFrameToMongo"
+                "spark": "MongoSteps.writeDataFrameToMongo"
               }
             }
           ]

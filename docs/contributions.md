@@ -27,11 +27,11 @@ To build the project using Scala 2.11 and Spark 2.3 run:
 
 To build the project using Scala 2.11 and Spark 2.4 run:
 
-	mvn -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.3
+	mvn -P spark_2.4
 
 To build the project using Scala 2.12 and Spark 2.4 run:
 
-	mvn -Dspark.compat.version=2.4 -Djson4s.version=3.5.3 -Dspark.version=2.4.3 -Dscala.compat.version=2.12 -Dscala.version=2.12.8
+	mvn -P spark_2.4,scala_2.12
 
 
 (This will clean, build, test and package the jars and generate documentation)
