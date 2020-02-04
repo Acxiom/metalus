@@ -123,7 +123,7 @@ values in predefined objects. Using the application framework, note that globals
 not have values prior to initialization.
 
 ## Parameter Validation
-Step parameter type checking can be enabled by providing the passing the option "validateStepParameterTypes true" as a global parameter.
+Step parameter type checking can be enabled by providing the passing the option "--validateStepParameterTypes true" as a global parameter.
 This validation is disabled by default.
 
 ## Alternate Value Mapping

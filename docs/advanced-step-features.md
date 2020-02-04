@@ -3,6 +3,10 @@
 # Advanced Step Features
 Several advanced step features are made available by Metalus.
 
+## [Step Parameter Validation](parameter-mapping.md#Parameter-Validation)
+Additional step parameter validation may be enabled on the command line. More information may be found 
+[here](parameter-mapping.md#Parameter-Validation).
+
 ## Pipeline Context Update
 The [PipelineContext](pipeline-context.md) is immutable within a step, however there are a few features in place that allow
 steps to update globals and the metrics on the step audit. In order to use these features, a step function must return 

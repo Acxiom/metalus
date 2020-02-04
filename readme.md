@@ -36,14 +36,23 @@ This step library contains steps that are considered generic enough to be used i
 [Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-common_2.12-spark_2.4)
 
 ### [Metalus AWS Step Library](metalus-aws/readme.md)
-This component contains AWS specific components. The [Kinesis](https://aws.amazon.com/kinesis/) driver provides a basic 
-implementation that gathers data and then initiates the Metalus Pipeline Core for processing of the incoming data.
+This step library contains AWS specific components. The [Kinesis](https://aws.amazon.com/kinesis/) driver provides a 
+basic implementation that gathers data and then initiates the Metalus Pipeline Core for processing of the incoming data.
 
 [Maven 2.11 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-aws_2.11-spark_2.3)
 
 [Maven 2.12 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_2.3)
 
 [Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_2.4)
+
+### [Metalus Mongo Step Library](metalus-mongo/readme.md)
+This step library adds support for working with Mongo.
+
+[Maven 2.11 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-mongo_2.11-spark_2.3)
+
+[Maven 2.12 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-mongo_2.12-spark_2.3)
+
+[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-mongo_2.12-spark_2.4)
 
 ### [Metalus Pipeline Examples](metalus-examples/readme.md)
 This project provides several examples to help demonstrate how to use the library.
