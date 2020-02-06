@@ -58,7 +58,7 @@ implement the _SparkListener_ interface it will be registered with Spark.
 * _sparkListeners_ - A list of classes that implement the _SparkListener_ interface to register with the Spark session.
 * _securityManager_ - The _PipelineSecurityManager_ that is used when mapping parameters.
 * _stepMapper_ - The _PipelineStepMapper_ to perform mapping prior to execution of pipeline steps.
-* _pipelineManager_ - Performs lookups based on pipeline ids.
+* [pipelineManager](pipeline-manager.md) - Performs lookups based on pipeline ids.
 * _sparkUdfs_ - A list of UDF classes to register with the Spark session.
 
 Using any of the options listed requires a JSON object that contains two parameters:
@@ -186,7 +186,7 @@ This section allows the developer to optionally establish _runtime_ parameters f
 ### Pipelines
 The pipelines section should contain all pipelines that may be used by the executions. Executions may override pipelines
 directly, but it is advised to place all pipelines in this section and use the _pipelineIds_ array in the execution which
-will invoke the _PipelineManager_ to fetch the pipeline.
+will invoke the [PipelineManager](pipeline-manager.md) to fetch the pipeline.
 
 ### Executions
 The executions array contains definitions for how pipelines should be executed as well as dependencies. In addition to 

@@ -22,7 +22,7 @@ A step library may contain additional classes that extend the base Metalus funct
 in other documentation.
 
 ## Pipelines
-[JSON based pipelines](json-pipelines.md) may also be included within a step library. The default _PipelineManager_ will
-attempt to locate pipelines within the application configuration file and if not found, will scan the step libraries
-**metadata/pipelines** path looking for the pipeline. The pipeline must be in a JSON file with the following naming
-convention: ```<pipeline.id>.json```
+[JSON based pipelines](json-pipelines.md) may also be included within a step library. The default 
+[PipelineManager](pipeline-manager.md) will attempt to locate pipelines within the application configuration file and if 
+not found, will scan the step libraries **metadata/pipelines** path looking for the pipeline. The pipeline must be in a 
+JSON file with the following naming convention: ```<pipeline.id>.json```

@@ -10,8 +10,8 @@ pipelineMappings parameter.
 There are three parameters for a step-group:
 
 ### pipelineId
-This parameter must be a pipeline id that is accessible to the *PipelineManager* within the *PipelineContext*. This
-parameter is not required if the **pipeline** parameter is used.
+This parameter must be a pipeline id that is accessible to the [PipelineManager](pipeline-manager.md) within the 
+[PipelineContext](pipeline-context.md). This parameter is not required if the **pipeline** parameter is used.
 
 ### pipeline
 This parameter is required and can contain either a string with expansion variable or a map with the proper pipeline 

@@ -1,13 +1,14 @@
 [Documentation Home](readme.md)
 
 # JSON Pipelines
-Building pipelines in JSON provide developers a way to construct Spark applications using existing **step libraries** without
+A critical part of any application is the [pipeline(s)](pipelines.md) that gets executed. Building pipelines in JSON 
+provides developers a way to construct Spark applications using existing [step libraries](step-libraries.md) without
 the need to write and deploy code. Once a pipeline is designed it may be delivered several ways:
 
 * As part of an application JSON
-* An API (a custom PipelineManager or DriverSetup would be required)
+* An API (a custom [PipelineManager](pipeline-manager.md) or DriverSetup would be required)
 * Embedded in a jar
-* A disk (local/hdfs/s3, etc...) location (a custom PipelineManager or DriverSetup would be required)
+* A disk (local/hdfs/s3, etc...) location (a custom [PipelineManager](pipeline-manager.md) or DriverSetup would be required)
 
 The **Metalus** library will then convert the JSON into a scala object to be executed.
 
