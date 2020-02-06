@@ -1,6 +1,7 @@
 # Table of Contents
 * [Introduction](introduction.md)
 * [Getting Started](getting-started.md)
+* [JSON Pipelines](json-pipelines.md)
 * [Applications](applications.md)
     * [Executions](executions.md)
     * [Pipelines](pipelines.md)
@@ -13,13 +14,12 @@
         * [Parameter Mapping](parameter-mapping.md)
         * [Execution and Data Flow](pipeline-flow.md)
 * [Step Libraries](step-libraries.md)
-    * [Step Templates](step-templates.md)
-        * [Step Annotations](step-annotations.md)
-    * [JSON Pipelines](json-pipelines.md)
     * [Metadata Extractor](metadata-extractor.md)
     * [Metalus Common](../metalus-common/readme.md)
     * [Metalus AWS](../metalus-aws/readme.md)
     * [Metalus Mongo](../metalus-mongo/readme.md)
+    * [Creating your own step library (Step Templates)](step-templates.md)
+        * [Step Annotations](step-annotations.md)
 * Advanced
     * [File Manager](filemanager.md)
     * [Drivers](pipeline-drivers.md)
