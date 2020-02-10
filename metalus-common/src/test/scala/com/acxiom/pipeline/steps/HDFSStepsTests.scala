@@ -105,12 +105,13 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       import spark.implicits._
 
       val dataFrame = chickens.toDF("id", "chicken")
-
+      DataFrameSteps.persistDataFrame(dataFrame, "MEMORY_ONLY")
       HDFSSteps.writeToPath(
         dataFrame = dataFrame,
         options = DataFrameWriterOptions(format = "csv").setOption("delimiter", "þ"),
         path = miniCluster.getURI + "/data/chickens.csv"
       )
+      DataFrameSteps.unpersistDataFrame(dataFrame)
       val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
 
       assert(list.size == 3)
@@ -142,9 +143,10 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       val dataFrame = HDFSSteps.readFromPath(path = path,
         options = DataFrameReaderOptions(format = "csv"),
         pipelineContext = pipelineContext)
-
+      DataFrameSteps.persistDataFrame(dataFrame)
       assert(dataFrame.count() == 3)
       val result = dataFrame.take(3).map(r => (r.getString(0), r.getString(1))).toSeq
+      DataFrameSteps.unpersistDataFrame(dataFrame, blocking = true)
       assert(result == chickens)
     }
     it("should successfully load multiple files") {
