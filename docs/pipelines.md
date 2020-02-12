@@ -12,8 +12,11 @@ id, name, category and a list of steps to execute.
     * **step-group** - This designates that the pipeline is designed to be included within a [Step Group](step-groups.md).
 * **steps** - A list of [pipeline steps](pipeline-steps.md) to be executed.
 
-## [Steps](steps.md)
 The steps list consists of the _pipeline steps_ which will be executed as part of the pipeline. Below is an overview of 
 a basic pipeline: 
 
-![Pipeline Overview](images/Pipeline_Overview.png "Pipeline Overview)
+![Pipeline Overview](images/Pipeline_Overview.png "Pipeline Overview")
+
+## Pipeline Execution Flow
+
+![Pipeline Flow](images/Default_Pipeline_Execution.png "Pipeline Flow")

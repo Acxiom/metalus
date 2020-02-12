@@ -32,18 +32,10 @@ will be checked. An HDFS implementation is also provided in the core project and
 metlaus-aws project. The value must be a fully qualified class name. All command line parameters will be used to try and
 initialize the file manager.
 
-### Authorization
+### [Authorization](httprestclient.md#authorization)
 * **authorization.class** - This is used to specify an authorization implementation when the _applicationConfigPath_ is
 a URL. Any parameters required to instantiate the _Authorization_ instance need to be prefixed with _authorization._ so
 they are identified and passed in. To use basic authorization, consider this class signature: 
-
-```scala
-class BasicAuthorization(username: String, password: String) extends Authorization
-```
-would need these command line parameters:
-```
---application.class com.acxiom.pipeline.api.BasicAuthorization --authorization.username myuser --authorization.password mypasswd
-```
 
 ## Configuration Sections
 There are a number of sections that may be used to customize an application.

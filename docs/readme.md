@@ -47,4 +47,6 @@
     * [Audits](executionaudits.md)
     * [PipelineContext](pipeline-context.md)
     * [PipelineManager](pipeline-manager.md)
+    * [Http Rest Client](httprestclient.md)
+    * [Driver Utils](driver-utils.md)
 * [Contributing](contributions.md)

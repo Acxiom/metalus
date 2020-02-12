@@ -1,9 +1,10 @@
 [Documentation Home](readme.md)
 
 # Introduction
-The Metalus library was created as a way to create Spark applications at runtime without the need to write or compile
-code. The library is written in Scala and provides binaries for different version of Spark and Scala. Developers build
-applications by providing a JSON configuration file which gets loaded and executed by the metalus core library. 
+The Metalus library was started as a way to build Spark applications at runtime without the need to write or compile
+code. The library is written in Scala and provides binaries for different versions of Spark and Scala. Developers build
+applications by providing a JSON configuration file which gets loaded and executed by the 
+[metalus core](../metalus-core/readme.md) library. 
 
 ## [Application Configuration](applications.md)
 There are several methods for starting a metalus application, but the easiest to use is the application framework using
@@ -15,7 +16,7 @@ available at runtime.
 Step libraries contain the scala functions, pipeline configurations and custom driver classes which may be called at 
 runtime using the provided configuration. 
 
-### Steps
+### [Steps](steps.md)
 Steps are scala object functions that are executed at runtime by metalus cores. Each function should be a small reusable
 unit of work that stand alone and define requirements through parameters. Developers may [annotate](step-annotations.md) 
 the functions or separately publish step templates which can be used when building applications. 
@@ -29,7 +30,7 @@ pipeline id is the name plus the _.json_ extension.
 Developers have the option to extend provided functionality such as drivers, driver setup, file managers and other classes.
 These can be added to a step library and made available at runtime.
 
-## Self Contained Jar
+## [Self Contained Jar](metalus-application.md)
 Metalus provides a self contained jar that may be used when calling the _spark-submit_ command. This jar contains no step
 libraries which provides the developer control over what is available at runtime using the _--jars_ parameter.
 
