@@ -113,13 +113,14 @@ containing name value pairs.
 The **params** array contains all of the step function parameters except those of type **PipelineContext**. Each parameter
 has seven possible parameters:
 
-* **type** - The parameter type. Must be one of: integer, list, boolean, script, string, text, result, object
+* **type** - The parameter [type](parameter-mapping.md#types). Must be one of: integer, list, boolean, script, string, text, result, object
 * **name** - The name of the parameter. This **must** match the name of the parameter on the step function
 * **required** - Boolean flag indicating whether this parameter is required to have a value
 * **defaultValue** - An optional default value that will be used if a value is not provided
 * **language** - An optional script language this parameter expects the value to conform. This should only be present if the **type** is set to *script*
 * **className** - If the **type** is **object**, then this should represent the fully qualified class name that is expected
-* **parameterType** - An optional attribute that represents the fully qualified class name (or primitive name) of the step function parameter. This may be set regardless of type
+* **parameterType** - An optional attribute that represents the fully qualified class name (or primitive name) of the 
+step function parameter. This may be set regardless of type
 
 #### Branch Steps
 Branch steps differ from all other steps in that additional **params** of type **result** may be added which are used to

@@ -31,6 +31,22 @@ The **@** and **#** symbols are shortcuts that assume the value in parameters is
 In addition to searching the parameters for the current pipeline, the user has the option of specifying a pipelineId in 
 the syntax for *@* and *$* to specify any previous pipeline value. *Example: @p1.StepOne*
 
+## Types
+The type attribute on the pipeline step parameter is used for parsing the value/defaultValue when the type cannot be
+determined or to provide additional information to the mapper. 
+
+* **text** - The most common type when using mappings. The value will be parsed for special characters.
+* **string** - The same as text. The value will be evaluated as a string.
+* **boolean** - The value will be parsed as a boolean.
+* **integer** - The value will be parsed as an int.
+* **script** - This indicates that the value contains a script and should not be parsed. The value will be returned unaltered.
+* **list** - Indicates that the value is a list.
+* **object** - Indicates that the value contains and object. This should be stored as a map.
+* **result** - Indicates that this parameter should be matched against the output of a branch step. The value will 
+contain either nothing or the _nextStepId_. 
+
+Additional information about step parameters may be found [here](step-templates.md#params).
+
 ## Embedded Values
 Values may also be embedded. The user has the option to reference properties embedded in top level objects. Given an 
 object (obj) that contains a sub-object (subObj) which contains a name, the user could access the name field using this
