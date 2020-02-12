@@ -7,6 +7,7 @@ import java.nio.file.Files
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline._
+import com.acxiom.pipeline.api.BasicAuthorization
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, urlPathEqualTo}
 import org.apache.commons.io.FileUtils
@@ -18,6 +19,7 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.PackagePrivateSparkTestHelper
 import org.apache.spark.scheduler.SparkListener
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
@@ -25,6 +27,13 @@ import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 import scala.io.Source
 
 class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
+
+  private val FIVE = 5
+  private val SEVEN = 7
+  private val EIGHT = 8
+  private val TEN = 10
+  private val ELEVEN = 11
+
   override def beforeAll() {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
@@ -77,6 +86,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       verifyListeners(setup.pipelineContext.sparkSession.get)
+      verifyUDF(setup.pipelineContext.sparkSession.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
@@ -99,6 +109,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       verifyListeners(setup.pipelineContext.sparkSession.get)
+      verifyUDF(setup.pipelineContext.sparkSession.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
@@ -141,6 +152,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       verifyListeners(setup.pipelineContext.sparkSession.get)
+      verifyUDF(setup.pipelineContext.sparkSession.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
@@ -156,6 +168,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       wireMockServer.start()
 
       wireMockServer.addStubMapping(get(urlPathEqualTo("/applications/12345"))
+          .withBasicAuth("cli-user", "cli-password")
         .willReturn(aResponse()
           .withStatus(HttpURLConnection.HTTP_OK)
           .withHeader("content-type", "application/json")
@@ -164,10 +177,14 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
       val setup = ApplicationDriverSetup(Map[String, Any](
         "applicationConfigPath" -> s"${wireMockServer.baseUrl()}/applications/12345",
-        "rootLogLevel" -> "ERROR"))
+        "rootLogLevel" -> "ERROR",
+        "authorization.class" -> "com.acxiom.pipeline.api.BasicAuthorization",
+        "authorization.username" -> "cli-user",
+        "authorization.password" -> "cli-password"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       verifyListeners(setup.pipelineContext.sparkSession.get)
+      verifyUDF(setup.pipelineContext.sparkSession.get)
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
@@ -192,6 +209,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       verifyDriverSetup(setup1)
       verifyApplication(setup1.executionPlan.get)
       verifyListeners(setup1.pipelineContext.sparkSession.get)
+      verifyUDF(setup1.pipelineContext.sparkSession.get)
       assert(!setup1.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup1.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup1.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
@@ -255,6 +273,10 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     // Second execution
     val execution2 = executionPlan(1)
     verifySecondExecution(execution2)
+    assert(execution2.pipelineContext.globals.get.contains("authorization"))
+    assert(execution2.pipelineContext.globals.get("authorization").isInstanceOf[BasicAuthorization])
+    assert(execution2.pipelineContext.globals.get("authorization").asInstanceOf[BasicAuthorization].username == "myuser")
+    assert(execution2.pipelineContext.globals.get("authorization").asInstanceOf[BasicAuthorization].password == "mypassword")
 
     // Third Execution
     val execution3 = executionPlan(2)
@@ -288,11 +310,11 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution4.pipelines.filter(p => p.id.get == "Pipeline2")
       .head.steps.get.head.params.get.filter(pa => pa.name.get == "value")
       .head.value.get == "CHICKEN")
-    // Ensure no parents
     assert(execution4.parents.isEmpty)
     // Verify the globals object was properly merged
     val globals = ctx3.globals.get
-    assert(globals.size == 7)
+    val globalCount = if (globals.contains("authorization.class")) { ELEVEN } else { EIGHT }
+    assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("number"))
@@ -340,11 +362,11 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution3.pipelines.filter(p => p.id.get == "Pipeline2")
       .head.steps.get.head.params.get.filter(pa => pa.name.get == "value")
       .head.value.get == "CHICKEN")
-    // Ensure no parents
     assert(execution3.parents.isEmpty)
     // Verify the globals object was properly constructed
     val globals = ctx3.globals.get
-    assert(globals.size == 5)
+    val globalCount = if (globals.contains("authorization.class")) { EIGHT } else { FIVE }
+    assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("number"))
@@ -383,7 +405,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution2.parents.isDefined)
     assert(execution2.parents.get.head == "0")
     val globals1 = ctx2.globals.get
-    assert(globals1.size == 6)
+    val globalCount = if (globals1.contains("authorization.class")) { TEN } else { SEVEN }
+    assert(globals1.size == globalCount)
     assert(globals1.contains("rootLogLevel"))
     assert(globals1.contains("rootLogLevel"))
     assert(globals1.contains("number"))
@@ -454,7 +477,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution1.parents.isEmpty)
     // Verify the globals object was properly constructed
     val globals = ctx1.globals.get
-    assert(globals.size == 5)
+    val globalCount = if (globals.contains("authorization.class")) { EIGHT } else { FIVE }
+    assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("number"))
@@ -477,6 +501,12 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(ctx1.parameters.hasPipelineParameters("Pipeline1"))
     assert(ctx1.parameters.getParametersByPipelineId("Pipeline1").get.parameters.size == 1)
     assert(ctx1.parameters.getParametersByPipelineId("Pipeline1").get.parameters("fred").asInstanceOf[String] == "johnson")
+  }
+
+  def verifyUDF(spark: SparkSession): Unit ={
+    val df = spark.sql("select chicken() as chicken")
+    assert(df.columns.length == 1)
+    assert(df.collect().head.getString(0) == "moo")
   }
 
   def verifyListeners(spark: SparkSession): Unit = {
@@ -512,3 +542,10 @@ case class TestPipelineStepMapper(name: String) extends PipelineStepMapper
 case class TestGlobalObject(name: Option[String], subObjects: Option[List[TestSubGlobalObject]])
 
 case class TestSubGlobalObject(name: Option[String])
+
+class TestUDF(name: String) extends PipelineUDF {
+  override def register(sparkSession: SparkSession, globals: Map[String, Any]): UserDefinedFunction = {
+    val func: () =>String = {() => s"${globals.getOrElse(name, "moo")}"}
+    sparkSession.udf.register(name, func)
+  }
+}

@@ -15,6 +15,7 @@ import com.acxiom.pipeline.PipelineStepMessageType.PipelineStepMessageType
   * @param engineMeta     Contains the instruction for invoking the step function.
   * @param executeIfEmpty This field allows a value to be passed in rather than executing the step.
   * @param nextStepId     The id of the next step to execute.
+  * @param stepId         The id of the step that provided the metadata.
   */
 case class PipelineStep(id: Option[String] = None,
                         displayName: Option[String] = None,
@@ -23,7 +24,8 @@ case class PipelineStep(id: Option[String] = None,
                         params: Option[List[Parameter]] = None,
                         engineMeta: Option[EngineMeta] = None,
                         nextStepId: Option[String] = None,
-                        executeIfEmpty: Option[String] = None)
+                        executeIfEmpty: Option[String] = None,
+                        stepId: Option[String] = None)
 
 /**
   * Represents a single parameter in a step.

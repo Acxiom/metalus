@@ -26,3 +26,8 @@ functions have been provided to make accessing pipeline and step audits easier.
 ### PipelineListener
 Implementations of the PipelineListener interface will have access to the audits through the *PipelineContext*. The *metrics*
 functions provided allow any data to be stored/retrieved related to an audit.
+
+## Metrics
+Each audit contains a metrics object where metrics can be set with the **setMetric** and **setMetrics** methods.
+Metrics for step type audits can additionally be set by providing a named return in the PipelineStepResponse that
+follows a naming schema such as: ```$metrics.<metric_name>```

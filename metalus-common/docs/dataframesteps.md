@@ -1,6 +1,6 @@
 # DataFrameSteps
 This step object builds DataFrameReader and DataFrameWriter objects. 
-The There are two step functions provided:
+There are two step functions provided:
 
 ## Get DataFrameReader
 Given a DataFrameReaderOptions object, this step will build a DataFrameReader.

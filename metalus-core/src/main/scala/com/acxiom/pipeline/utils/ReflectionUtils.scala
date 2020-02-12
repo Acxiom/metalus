@@ -182,14 +182,9 @@ object ReflectionUtils {
     }
   }
 
-  private def mapMethodParameters(parameters: List[ru.Symbol],
-                                  parameterValues: Map[String, Any],
-                                  runtimeMirror: Mirror,
-                                  stepObject: ru.InstanceMirror,
-                                  funcName: String,
-                                  ts: ru.Type,
-                                  pipelineContext: Option[PipelineContext],
-                                  stepId: Option[String],
+  private def mapMethodParameters(parameters: List[ru.Symbol], parameterValues: Map[String, Any], runtimeMirror: Mirror,
+                                  stepObject: ru.InstanceMirror, funcName: String, ts: ru.Type,
+                                  pipelineContext: Option[PipelineContext], stepId: Option[String],
                                   pipelineId: Option[String],
                                   validateParameterTypes: Boolean) = {
     parameters.zipWithIndex.map { case (param, pos) =>
@@ -201,16 +196,21 @@ object ReflectionUtils {
         parameterValues(name)
       } else if (param.asTerm.isParamWithDefault) {
         logger.debug("Mapping parameter from function default parameter value")
-        // Locate the generated method that will provide the default value for this parameter
-        // Name follows Scala spec --> {functionName}$$default$${parameterPosition} + 1
-        val defaultGetterMethod = ts.member(ru.TermName(s"$funcName$$default$$${pos + 1}")).asMethod
-        // Execute the method to get the default value for this parameter
-        stepObject.reflectMethod(defaultGetterMethod)()
+        val term = ts.member(ru.TermName(s"$funcName$$default$$${pos + 1}"))
+        if (term != NoSymbol) {
+          // Locate the generated method that will provide the default value for this parameter
+          // Name follows Scala spec --> {functionName}$$default$${parameterPosition} + 1
+          val defaultGetterMethod = term.asMethod
+          // Execute the method to get the default value for this parameter
+          stepObject.reflectMethod(defaultGetterMethod)()
+        } else {
+          // This is probably a constructor default parameter, so it needs to be invoked differently
+          Class.forName(funcName.replaceAll("\\.<init>", ""))
+            .getMethod(s"$$lessinit$$greater$$default$$${pos + 1}").invoke(null)
+        }
       } else {
         logger.debug("Using built in pipeline variable")
-        name match {
-          case "pipelineContext" => if (pipelineContext.isDefined) pipelineContext.get
-        }
+        getBuiltInParameter(pipelineContext, name)
       }
 
       val finalValue = if (pipelineContext.isDefined) {
@@ -227,10 +227,15 @@ object ReflectionUtils {
       if (validateParameterTypes) {
         validateParamTypeAssignment(runtimeMirror, param, optionType, finalValue, finalValueType, funcName, stepId, pipelineId)
       }
-
       logger.debug(s"Mapping parameter to method $funcName,paramName=$name,paramType=${param.typeSignature}," +
         s"valueType=$finalValueType,value=$finalValue")
       finalValue
+    }
+  }
+
+  private def getBuiltInParameter(pipelineContext: Option[PipelineContext], name: String) = {
+    name match {
+      case "pipelineContext" => if (pipelineContext.isDefined) pipelineContext.get
     }
   }
 

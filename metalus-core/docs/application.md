@@ -4,12 +4,23 @@ are provided that allow customization of the *PipelineContext*, *SparkConf*, glo
 
 ## Running
 There are two ways to run an application. Depending on where the configuration file is located dictates which command
-line parameters need to be provided. There are two sets of parameters that are used depending on where the file is located:
+line parameters need to be provided. There are several parameters that are used depending on where the file is located:
 
 * **applicationJson** - This parameter is useful when passing the contents of the configuration as a string. This is not 
 a recommended option since large configurations could have issues.
 * **applicationConfigPath** - This is the path to the configuration file on the file system. 
 * **applicationConfigurationLoader** - This is used to specify a different file manager. Default is local.
+* **authorization.class** - This is used to specify an authorization implementation when the *applicationConfigPath* is
+a URL. Any parameters required to instantiate the *Authorization* instance need to be prefixed with *authorization.* so
+they are identified and passed in. To use basic authorization, consider this class signature: 
+
+```scala
+class BasicAuthorization(username: String, password: String) extends Authorization
+```
+would need these command line parameters:
+```
+--application.class com.acxiom.pipeline.api.BasicAuthorization --authorization.username myuser --authorization.password mypasswd
+```
 
 ### Local Disk
 There are two ways to pull the configuration from the local disk, the first is using the *applicationJson* property. The 
@@ -117,6 +128,13 @@ The class represented by the fully qualified *className* must be available on th
 The optional *parameters* specified will be passed to the constructor. Currently only simple types and maps are
 supported, but more complex data types will be supported in the future.
 
+### sparkUdfs
+This is a list of classes that implement the PipelineUDF trait. 
+The class represented by the fully qualified *className* must be available on the class path.
+The optional *parameters* specified will be passed to the constructor. Currently only simple types and maps are
+supported, but more complex data types will be supported in the future.
+The register method will be called for each class info defined.
+
 ```json
 {
   "sparkListeners": [
@@ -216,7 +234,13 @@ A list of pipelines definitions that can be referenced in any defined execution.
     }
   ]
  }
-``` 
+```
+
+### pipelineManager
+The PipelineManager is used to perform lookups on pipelines for step groups and during execution setup. When overriding
+this class, be aware that when executions are being constructed, the execution pipelines will be used, then the application
+pipelines and finally the PipelineManager will be used. One note when *pipelineIds* is present, then the execution pipelines
+will be skipped.
 
 ### globals
 The globals object will be merged with the application parameters passed to the 'spark-submit' command. All elements are

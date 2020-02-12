@@ -41,9 +41,7 @@ class ScalaScriptEngine extends ScriptEngine {
     * @return The result of the execution.
     */
   override def executeScriptWithObject(script: String, userValue: Any, pipelineContext: PipelineContext): Any = {
-    val bindings = Some(createBindings("userValue", userValue))
-    val r = compileWithBindings(script, bindings)
-    r(bindings, pipelineContext)
+    executeScriptWithBindings(script, createBindings("userValue", userValue), pipelineContext)
   }
 
   /**
