@@ -21,7 +21,7 @@ Required parameters are indicated with a *:
 * **inputBufferSize** - The size of the buffer for the input stream. Defaults to 65536
 * **outputBufferSize** - The size of the buffer for the output stream. Defaults to 65536
 * **readBufferSize** - The size of the buffer used to transfer from input to output. Defaults to 32768
-* **inputReaderOptions** - The DataFrameReader options for the selected input file.
-* **bronzeZonePath** - The HDFS path for the root bronze zone folder
-* **fileId** - The unique id for the file being processed.
+* **inputReaderOptions** * - The DataFrameReader options for the selected input file.
+* **bronzeZonePath** * - The HDFS path for the root bronze zone folder
+* **fileId** * - The unique id for the file being processed.
 
