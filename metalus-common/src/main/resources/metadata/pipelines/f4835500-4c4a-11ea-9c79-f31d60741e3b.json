@@ -1,0 +1,197 @@
+{
+  "id": "f4835500-4c4a-11ea-9c79-f31d60741e3b",
+  "name": "DownloadToBronzeHdfs",
+  "category": "pipeline",
+  "layout": {
+    "DownloadToHdfs": {
+      "x": 193,
+      "y": 22
+    },
+    "StandardizeColumnNames": {
+      "x": 195,
+      "y": 141
+    },
+    "AddRecordId": {
+      "x": 197,
+      "y": 270
+    },
+    "AddFileId": {
+      "x": 398,
+      "y": 68
+    },
+    "WriteToParquetHdfs": {
+      "x": 351,
+      "y": 154
+    }
+  },
+  "steps": [
+    {
+      "id": "DownloadToHdfs",
+      "type": "step-group",
+      "displayName": "Step Group",
+      "description": "Allows pipelines to be executed as a single step within a parent pipeline.",
+      "category": "FlowControl",
+      "params": [
+        {
+          "name": "pipelineId",
+          "type": "text",
+          "required": false,
+          "value": "46f5e310-4c47-11ea-a0a7-a749c3ebbd62"
+        },
+        {
+          "name": "pipeline",
+          "type": "text",
+          "required": false,
+          "value": "&46f5e310-4c47-11ea-a0a7-a749c3ebbd62"
+        },
+        {
+          "name": "pipelineMappings",
+          "type": "object",
+          "required": false,
+          "value": {
+            "sftp_host": "!sftp_host",
+            "sftp_username": "!sftp_username",
+            "sftp_password": "!sftp_password",
+            "sftp_port": "!sftp_port || 22",
+            "sftp_input_path": "!sftp_input_path",
+            "landing_path": "!landing_path",
+            "fileId": "!fileId",
+            "input_buffer_size": "!input_buffer_size || 65536",
+            "output_buffer_size": "!output_buffer_size || 65536",
+            "read_buffer_size": "!read_buffer_size || 32768",
+            "inputReaderOptions": "!inputReaderOptions"
+          }
+        }
+      ],
+      "stepId": "f09b3b9c-82ac-56de-8dc8-f57c063dd4aa",
+      "nextStepId": "StandardizeColumnNames"
+    },
+    {
+      "id": "StandardizeColumnNames",
+      "displayName": "Standardize Column Names on a DataFrame",
+      "description": "This step will standardize columns names on existing dataframe",
+      "type": "Pipeline",
+      "category": "Transforms",
+      "params": [
+        {
+          "type": "text",
+          "name": "dataFrame",
+          "required": false,
+          "value": "@DownloadToHdfs.LandingFileToDataFrame.primaryReturn"
+        }
+      ],
+      "engineMeta": {
+        "spark": "TransformationSteps.standardizeColumnNames",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "creationDate": "2019-04-04T14:24:22.983Z",
+      "modifiedDate": "2019-06-19T18:25:47.973Z",
+      "stepId": "a981080d-714c-4d36-8b09-d95842ec5655",
+      "nextStepId": "AddRecordId"
+    },
+    {
+      "id": "AddRecordId",
+      "displayName": "Adds a Unique Identifier to a DataFrame",
+      "description": "This step will add a new unique identifier to an existing data frame",
+      "type": "Pipeline",
+      "category": "Transforms",
+      "params": [
+        {
+          "type": "text",
+          "name": "idColumnName",
+          "required": false,
+          "value": "metalus_record_id"
+        },
+        {
+          "type": "text",
+          "name": "dataFrame",
+          "required": false,
+          "value": "@StandardizeColumnNames"
+        }
+      ],
+      "engineMeta": {
+        "spark": "TransformationSteps.addUniqueIdToDataFrame",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "creationDate": "2019-06-04T19:45:30.021Z",
+      "modifiedDate": "2019-06-27T17:47:11.171Z",
+      "stepId": "9f7d84b0-ebab-57da-8b39-be4c47028242",
+      "nextStepId": "AddFileId"
+    },
+    {
+      "id": "AddFileId",
+      "displayName": "Add a Column with a Static Value to All Rows in a DataFrame",
+      "description": "This step will add a column with a static value to all rows in the provided data frame",
+      "type": "Pipeline",
+      "category": "Transforms",
+      "params": [
+        {
+          "type": "text",
+          "name": "dataFrame",
+          "required": false,
+          "value": "@AddRecordId"
+        },
+        {
+          "type": "text",
+          "name": "columnName",
+          "required": false,
+          "value": "metalus_file_id"
+        },
+        {
+          "type": "text",
+          "name": "columnValue",
+          "required": false,
+          "value": "!fileId"
+        }
+      ],
+      "engineMeta": {
+        "spark": "TransformationSteps.addStaticColumnToDataFrame",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "creationDate": "2019-06-04T19:45:30.013Z",
+      "modifiedDate": "2019-06-27T17:47:11.166Z",
+      "stepId": "37e10488-02c1-5c85-b47a-efecf681fdd4",
+      "nextStepId": "WriteToParquetHdfs"
+    },
+    {
+      "id": "WriteToParquetHdfs",
+      "displayName": "Write DataFrame to HDFS",
+      "description": "This step will write a dataFrame in a given format to HDFS",
+      "type": "Pipeline",
+      "category": "InputOutput",
+      "params": [
+        {
+          "type": "text",
+          "name": "dataFrame",
+          "required": false,
+          "value": "@AddFileId"
+        },
+        {
+          "type": "text",
+          "name": "path",
+          "required": false,
+          "value": "!{bronzeZonePath}/!{fileId}"
+        },
+        {
+          "type": "object",
+          "name": "options",
+          "value": "!bronzeWriterOptions",
+          "required": false,
+          "className": "com.acxiom.pipeline.steps.DataFrameWriterOptions"
+        }
+      ],
+      "engineMeta": {
+        "spark": "HDFSSteps.writeToPath",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "creationDate": "2019-04-04T14:24:22.889Z",
+      "modifiedDate": "2019-10-09T14:31:54.895Z",
+      "tags": [
+        "basic"
+      ],
+      "stepId": "0a296858-e8b7-43dd-9f55-88d00a7cd8fa"
+    }
+  ],
+  "creationDate": "2020-02-10T21:19:00.179Z",
+  "modifiedDate": "2020-02-12T18:41:05.337Z"
+}
