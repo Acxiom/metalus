@@ -1,3 +1,5 @@
+[Documentation Home](../../docs/readme.md) | [Common Home](../readme.md)
+
 # HDFSSteps
 This step object provides a way to read from and write to HDFS. There are several step functions provided:
 

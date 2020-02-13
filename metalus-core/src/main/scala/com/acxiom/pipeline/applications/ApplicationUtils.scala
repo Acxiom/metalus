@@ -44,7 +44,7 @@ object ApplicationUtils {
   def createExecutionPlan(application: Application,
                           globals: Option[Map[String, Any]],
                           sparkConf: SparkConf,
-                          pipelineListener: PipelineListener = DefaultPipelineListener(),
+                          pipelineListener: PipelineListener = PipelineListener(),
                           enableHiveSupport: Boolean = false,
                           parquetDictionaryEnabled: Boolean = true): List[PipelineExecution] = {
     // Create the SparkSession
@@ -148,7 +148,7 @@ object ApplicationUtils {
 
   private def generatePipelineManager(pipelineManagerInfo: Option[ClassInfo],
                                       pipelineManager: Option[PipelineManager]): Option[PipelineManager] = {
-    if (pipelineManagerInfo.isDefined) {
+    if (pipelineManagerInfo.isDefined && pipelineManagerInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(pipelineManagerInfo.get.className.getOrElse("com.acxiom.pipeline.CachedPipelineManager"),
         pipelineManagerInfo.get.parameters).asInstanceOf[PipelineManager])
     } else {
@@ -158,7 +158,7 @@ object ApplicationUtils {
 
   private def generatePipelineListener(pipelineListenerInfo: Option[ClassInfo],
                                        pipelineListener: Option[PipelineListener]): Option[PipelineListener] = {
-    if (pipelineListenerInfo.isDefined) {
+    if (pipelineListenerInfo.isDefined && pipelineListenerInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(pipelineListenerInfo.get.className.getOrElse("com.acxiom.pipeline.DefaultPipelineListener"),
         pipelineListenerInfo.get.parameters).asInstanceOf[PipelineListener])
     } else {
@@ -167,7 +167,7 @@ object ApplicationUtils {
   }
 
   private def generateSparkListeners(sparkListenerInfos: Option[List[ClassInfo]]): Option[List[SparkListener]] = {
-    if (sparkListenerInfos.isDefined) {
+    if (sparkListenerInfos.isDefined && sparkListenerInfos.get.nonEmpty) {
       Some(sparkListenerInfos.get.flatMap { info =>
         if (info.className.isDefined) {
           Some(ReflectionUtils.loadClass(info.className.get, info.parameters).asInstanceOf[SparkListener])
@@ -182,7 +182,7 @@ object ApplicationUtils {
 
   private def generateSecurityManager(securityManagerInfo: Option[ClassInfo],
                                       securityManager: Option[PipelineSecurityManager]): Option[PipelineSecurityManager] = {
-    if (securityManagerInfo.isDefined) {
+    if (securityManagerInfo.isDefined && securityManagerInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(securityManagerInfo.get.className.getOrElse("com.acxiom.pipeline.DefaultPipelineSecurityManager"),
         securityManagerInfo.get.parameters).asInstanceOf[PipelineSecurityManager])
     } else {
@@ -192,7 +192,7 @@ object ApplicationUtils {
 
   private def generateStepMapper(stepMapperInfo: Option[ClassInfo],
                                  stepMapper: Option[PipelineStepMapper]): Option[PipelineStepMapper] = {
-    if (stepMapperInfo.isDefined) {
+    if (stepMapperInfo.isDefined && stepMapperInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(stepMapperInfo.get.className.getOrElse("com.acxiom.pipeline.DefaultPipelineStepMapper"),
         stepMapperInfo.get.parameters).asInstanceOf[PipelineStepMapper])
     } else {
@@ -210,7 +210,7 @@ object ApplicationUtils {
   }
 
   private def registerSparkUDFs(globals: Option[Map[String, Any]], sparkSession: SparkSession, sparkUDFs: Option[List[ClassInfo]]): Unit = {
-    if (sparkUDFs.isDefined) {
+    if (sparkUDFs.isDefined && sparkUDFs.get.nonEmpty) {
       sparkUDFs.get.flatMap { info =>
         if (info.className.isDefined) {
           Some(ReflectionUtils.loadClass(info.className.get, info.parameters).asInstanceOf[PipelineUDF])

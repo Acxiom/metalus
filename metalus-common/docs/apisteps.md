@@ -1,3 +1,5 @@
+[Documentation Home](../../docs/readme.md) | [Common Home](../readme.md)
+
 # ApiSteps
 This step object provides generic steps for working with REST APIS. 
 There are two step functions provided:

@@ -4,8 +4,6 @@ import java.io.FileInputStream
 
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
-import com.mongodb.spark.MongoSpark
-import com.mongodb.spark.config.WriteConfig
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 
@@ -71,12 +69,4 @@ object InputOutputSteps {
   def createSchema(columnNames: List[String]): StructType = {
     StructType(columnNames.map(StructField(_, StringType, nullable = true)))
   }
-
-  @StepFunction("6b9db56d-bed7-5838-9ed4-7b5e216617c4",
-    "Writes a DataFrame to a Mongo database",
-    "This step will write the contents of a DataFrame to the Mongo database and collection specified",
-    "Pipeline",
-    "Example")
-  def writeDataFrameToMongo(dataFrame: DataFrame, uri: String, collectionName: String): Unit =
-    MongoSpark.save(dataFrame, WriteConfig(Map("collection" -> collectionName, "uri" -> uri)))
 }

@@ -1,3 +1,5 @@
+[Documentation Home](../../docs/readme.md) | [Common Home](../readme.md)
+
 # JavascriptSteps
 This step object provides a way for the application developer to define steps at runtime using the Javascript language
 without the need for writing and compiling Scala steps. This should only be used for simple step constructs such as 

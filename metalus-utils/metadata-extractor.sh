@@ -43,25 +43,30 @@ done
 # Add the provided jars to the classpath to make it easier to retrieve
 for i in $(echo ${jarFiles} | sed "s/,/ /g")
 do
-    # Add to the classPath
-    classPath="${classPath}:${i}"
+    params="--jar-files ${i}"
+    jarName=${i##*/}
+    dirName=${jarName%.jar}
+
+    echo "Processing ${jarName}"
+
+    if [[ -n "${outputPath}" ]]
+    then
+      params="${params} --output-path ${outputPath}/${dirName}"
+      mkdir -p "${outputPath}/${dirName}"
+    fi
+
+# TODO Once it has been decided how steps will be managed by jar, then add this back
+#    if [[ -n "${apiUrl}" ]]
+#    then
+#      params="${params} --api-url ${apiUrl}"
+#    fi
+
+    if [[ -n "${extractors}" ]]
+    then
+      params="${params} --extractors ${extractors}"
+    fi
+
+    scala -cp "${classPath}:${i}" com.acxiom.metalus.MetadataExtractor ${params} > /dev/null 2>&1
+
+    echo "${jarName} complete"
 done
-
-params="--jar-files ${jarFiles}"
-
-if [[ -n "${outputPath}" ]]
-then
-	params="${params} --output-path ${outputPath}"
-fi
-
-if [[ -n "${apiUrl}" ]]
-then
-  params="${params} --api-url ${apiUrl}"
-fi
-
-if [[ -n "${extractors}" ]]
-then
-  params="${params} --extractors ${extractors}"
-fi
-
-exec scala -cp ${classPath} com.acxiom.metalus.MetadataExtractor ${params}
