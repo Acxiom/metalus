@@ -17,5 +17,6 @@ using Spark.
 * [SFTPSteps](docs/sftpsteps.md)
 * [TransformationSteps](docs/transformationsteps.md)
 
-## Step Groups
+## Pipelines/Step Groups
 * [SFTP to HDFS](docs/sftp2hdfs.md)
+* [Download to Bronze HDFS](docs/downloadToBronzeHdfs.md)
