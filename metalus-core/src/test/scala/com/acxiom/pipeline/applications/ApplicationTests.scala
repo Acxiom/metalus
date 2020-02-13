@@ -47,7 +47,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
         .setMaster("local")
       val executionPlan = ApplicationUtils.createExecutionPlan(application, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf,
-        DefaultPipelineListener())
+        PipelineListener())
       verifyApplication(executionPlan)
       removeSparkListeners(executionPlan.head.pipelineContext.sparkSession.get)
       executionPlan.head.pipelineContext.sparkSession.get.stop()
@@ -58,7 +58,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
         .setMaster("local")
       val executionPlan = ApplicationUtils.createExecutionPlan(app, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf,
-        DefaultPipelineListener())
+        PipelineListener())
       verifyApplication(executionPlan)
       removeSparkListeners(executionPlan.head.pipelineContext.sparkSession.get)
       executionPlan.head.pipelineContext.sparkSession.get.stop()

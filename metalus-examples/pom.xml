@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.acxiom</groupId>
         <artifactId>metalus</artifactId>
-        <version>1.5.1-SNAPSHOT</version>
+        <version>1.6.0-SNAPSHOT</version>
     </parent>
 
     <properties>
@@ -37,11 +37,6 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming-kinesis-asl_${scala.compat.version}</artifactId>
             <version>${spark.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.mongodb.spark</groupId>
-            <artifactId>mongo-spark-connector_${scala.compat.version}</artifactId>
-            <version>2.4.1</version>
         </dependency>
     </dependencies>
 

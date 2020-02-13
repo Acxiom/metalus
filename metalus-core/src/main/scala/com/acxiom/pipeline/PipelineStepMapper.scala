@@ -207,7 +207,7 @@ trait PipelineStepMapper {
                            pipelineContext: PipelineContext): Option[Any] = {
     if (values.length > 0) {
       val bestValue = returnBestValue(values.head.trim, parameter, pipelineContext)
-      if (isValidOption(bestValue)) {
+      if (isValidOption(bestValue) && bestValue.get != None.orNull) {
         bestValue
       } else {
         getBestValue(values.slice(1, values.length), parameter, pipelineContext)

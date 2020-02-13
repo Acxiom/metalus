@@ -3,10 +3,12 @@ package com.acxiom.pipeline
 import java.io.File
 
 import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
+import com.acxiom.pipeline.utils.DriverUtils
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
+import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen, Suite}
 
 class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen with Suite {
@@ -60,7 +62,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
               )
             )
           )),
-          "step3" -> PipelineStepResponse(Some("fred"), None)
+          "step3" -> PipelineStepResponse(Some("fred"), None),
+          "nullValue" -> None.orNull
         )
       ),
       PipelineParameter("pipeline-id-2", Map("rawInteger" -> 2, "rawDecimal" -> 15.65)),
@@ -124,7 +127,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("resolve map", Parameter(value=Some(classMap)), classMap),
         ("resolve pipeline", Parameter(value=Some("&mypipeline")), subPipeline),
         ("fail to resolve pipeline", Parameter(value=Some("&mypipeline1")), None),
-        ("fail to get global string", Parameter(value=Some("!invalidGlobalString")), None)
+        ("fail to get global string", Parameter(value=Some("!invalidGlobalString")), None),
+        ("fail to detect null", Parameter(value=Some("$nullValue || default string")), "default string")
       )
 
       tests.foreach(test => {
@@ -234,6 +238,38 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       assert(list.head == "string")
       assert(list(1) == FIVE)
       assert(list(2) == Some("global->globalValue1->value"))
+    }
+
+    it("Should perform || logic") {
+      val json =
+        """
+          |{
+          |          "type": "text",
+          |          "name": "path",
+          |          "required": false,
+          |          "value": "$nv || default string"
+          |        }
+          |""".stripMargin
+
+      val mapJson =
+        s"""
+           |{
+           |  "int": 1,
+           |  "nv": null,
+           |  "string": "some string"
+           |}
+           |""".stripMargin
+
+      implicit val formats: Formats = DefaultFormats
+      val params = org.json4s.native.JsonMethods.parse(mapJson).extract[Map[String, Any]]
+      val param = DriverUtils.parseJson(json, "com.acxiom.pipeline.Parameter").asInstanceOf[Parameter]
+      val ctx = params.foldLeft(pipelineContext)((context, entry) => {
+        context.setParameterByPipelineId("test-pipeline", entry._1, entry._2)
+      })
+        .setGlobal("pipelineId", "test-pipeline")
+      assert(ctx.parameterMapper.mapParameter(param, ctx) == "default string")
+      assert(ctx.parameterMapper.mapParameter(Parameter(value = Some("$string")), ctx) == "some string")
+      assert(ctx.parameterMapper.mapParameter(Parameter(value = Some("$int")), ctx) == 1)
     }
   }
 }
