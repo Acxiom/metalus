@@ -49,16 +49,16 @@
           "type": "object",
           "required": false,
           "value": {
-            "sftp_host": "!sftp_host",
-            "sftp_username": "!sftp_username",
-            "sftp_password": "!sftp_password",
-            "sftp_port": "!sftp_port || 22",
-            "sftp_input_path": "!sftp_input_path",
-            "landing_path": "!landing_path",
+            "sftp_host": "!sftpHost",
+            "sftp_username": "!sftpUsername",
+            "sftp_password": "!sftpPassword",
+            "sftp_port": "!sftpPort || 22",
+            "sftp_input_path": "!sftpInputPath",
+            "landing_path": "!landingPath",
             "fileId": "!fileId",
-            "input_buffer_size": "!input_buffer_size || 65536",
-            "output_buffer_size": "!output_buffer_size || 65536",
-            "read_buffer_size": "!read_buffer_size || 32768",
+            "input_buffer_size": "!inputBufferSize || 65536",
+            "output_buffer_size": "!outputBufferSize || 65536",
+            "read_buffer_size": "!readBufferSize || 32768",
             "inputReaderOptions": "!inputReaderOptions"
           }
         }
@@ -175,7 +175,14 @@
         {
           "type": "object",
           "name": "options",
-          "value": "!bronzeWriterOptions",
+          "value": {
+            "format": "parquet",
+            "saveMode": "Overwrite",
+            "options": {},
+            "schema": {
+              "attributes": []
+            }
+          },
           "required": false,
           "className": "com.acxiom.pipeline.steps.DataFrameWriterOptions"
         }
