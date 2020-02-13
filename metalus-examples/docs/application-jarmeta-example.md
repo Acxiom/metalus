@@ -92,7 +92,7 @@ using the metadata found in common-steps
 }
 ```
 
-### Example spark-submit using application.json
+### Example Spark Submit
 Below is an example of a spark-submit call using an application.json file similar to above:
 
 ```bash
@@ -105,6 +105,9 @@ spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 --applicationConfigPath <path_to_application.json> \
 --logLevel INFO
 ```
+
+_**Note**: it may make sense to send some of the global parameters as command line parameters (eg. --fileId file-id-001)_ 
+
 
 ## Expected Results
 Upon successful completion of a the pipeline, two new data sets should be available:
