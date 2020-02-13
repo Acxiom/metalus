@@ -55,9 +55,11 @@
             "sftp_port": "!sftp_port || 22",
             "sftp_input_path": "!sftp_input_path",
             "landing_path": "!landing_path",
+            "fileId": "!fileId",
             "input_buffer_size": "!input_buffer_size || 65536",
             "output_buffer_size": "!output_buffer_size || 65536",
-            "read_buffer_size": "!read_buffer_size || 32768"
+            "read_buffer_size": "!read_buffer_size || 32768",
+            "inputReaderOptions": "!inputReaderOptions"
           }
         }
       ],
