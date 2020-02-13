@@ -1,0 +1,208 @@
+{
+  "id": "46f5e310-4c47-11ea-a0a7-a749c3ebbd62",
+  "name": "SG_SftpToHdfs",
+  "category": "step-group",
+  "layout": {
+    "CreateSFTPFileManager": {
+      "x": 267,
+      "y": 22
+    },
+    "CreateHDFSFileManager": {
+      "x": 267,
+      "y": 128
+    },
+    "DownloadFile": {
+      "x": 267,
+      "y": 236
+    },
+    "DisconnectSFTPFileManager": {
+      "x": 269,
+      "y": 348
+    },
+    "LandingFileToDataFrame": {
+      "x": 269,
+      "y": 460
+    }
+  },
+  "steps": [
+    {
+      "id": "CreateSFTPFileManager",
+      "displayName": "Create SFTP FileManager",
+      "description": "Simple function to generate the SFTPFileManager for the remote SFTP file system",
+      "type": "Pipeline",
+      "category": "InputOutput",
+      "params": [
+        {
+          "type": "text",
+          "name": "hostName",
+          "required": false,
+          "value": "!sftp_host"
+        },
+        {
+          "type": "text",
+          "name": "username",
+          "required": false,
+          "value": "!sftp_username"
+        },
+        {
+          "type": "text",
+          "name": "password",
+          "required": false,
+          "value": "!sftp_password"
+        },
+        {
+          "type": "integer",
+          "name": "port",
+          "required": false,
+          "value": "!sftp_port || 22"
+        },
+        {
+          "type": "text",
+          "name": "strictHostChecking",
+          "required": false,
+          "value": false
+        }
+      ],
+      "engineMeta": {
+        "spark": "SFTPSteps.createFileManager",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "creationDate": "2019-05-28T19:10:59.281Z",
+      "modifiedDate": "2019-06-19T18:25:48.034Z",
+      "stepId": "9d467cb0-8b3d-40a0-9ccd-9cf8c5b6cb38",
+      "nextStepId": "CreateHDFSFileManager"
+    },
+    {
+      "id": "CreateHDFSFileManager",
+      "displayName": "Create HDFS FileManager",
+      "description": "Simple function to generate the HDFSFileManager for the local HDFS file system",
+      "type": "Pipeline",
+      "category": "InputOutput",
+      "params": [],
+      "engineMeta": {
+        "spark": "HDFSSteps.createFileManager",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "creationDate": "2019-05-28T18:54:44.836Z",
+      "modifiedDate": "2019-06-19T18:25:47.904Z",
+      "stepId": "e4dad367-a506-5afd-86c0-82c2cf5cd15c",
+      "nextStepId": "DownloadFile"
+    },
+    {
+      "id": "DownloadFile",
+      "displayName": "Buffered file copy",
+      "description": "Copy the contents of the source path to the destination path using full buffer sizes. This function will call connect on both FileManagers.",
+      "type": "Pipeline",
+      "category": "InputOutput",
+      "params": [
+        {
+          "type": "text",
+          "name": "srcFS",
+          "required": false,
+          "value": "@CreateSFTPFileManager"
+        },
+        {
+          "type": "text",
+          "name": "srcPath",
+          "required": false,
+          "value": "!sftp_input_path"
+        },
+        {
+          "type": "text",
+          "name": "destFS",
+          "required": false,
+          "value": "@CreateHDFSFileManager"
+        },
+        {
+          "type": "text",
+          "name": "destPath",
+          "required": false,
+          "value": "!{landing_path}/!{fileId}"
+        },
+        {
+          "type": "text",
+          "name": "inputBufferSize",
+          "required": false,
+          "value": "!input_buffer_size || 65536"
+        },
+        {
+          "type": "text",
+          "name": "outputBufferSize",
+          "required": false,
+          "value": "!output_buffer_size || 65536"
+        },
+        {
+          "type": "text",
+          "name": "copyBufferSize",
+          "required": false,
+          "value": "!read_buffer_size || 32768"
+        }
+      ],
+      "engineMeta": {
+        "spark": "FileManagerSteps.copy",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "creationDate": "2019-05-28T18:54:44.883Z",
+      "modifiedDate": "2019-06-19T18:25:48.025Z",
+      "stepId": "f5a24db0-e91b-5c88-8e67-ab5cff09c883",
+      "nextStepId": "DisconnectSFTPFileManager"
+    },
+    {
+      "id": "DisconnectSFTPFileManager",
+      "displayName": "Disconnect a FileManager",
+      "description": "Disconnects a FileManager from the underlying file system",
+      "type": "Pipeline",
+      "category": "InputOutput",
+      "params": [
+        {
+          "type": "text",
+          "name": "fileManager",
+          "required": false,
+          "value": "@CreateSFTPFileManager"
+        }
+      ],
+      "engineMeta": {
+        "spark": "FileManagerSteps.disconnectFileManager",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "creationDate": "2019-05-28T18:54:44.887Z",
+      "modifiedDate": "2019-06-19T18:25:48.029Z",
+      "stepId": "3d1e8519-690c-55f0-bd05-1e7b97fb6633",
+      "nextStepId": "LandingFileToDataFrame"
+    },
+    {
+      "id": "LandingFileToDataFrame",
+      "displayName": "Load DataFrame from HDFS path",
+      "description": "This step will read a dataFrame from the given HDFS path",
+      "type": "Pipeline",
+      "category": "InputOutput",
+      "params": [
+        {
+          "type": "text",
+          "name": "path",
+          "required": false,
+          "value": "!{landing_path}/!{fileId}"
+        },
+        {
+          "name": "options",
+          "type": "object",
+          "value": "!inputReaderOptions",
+          "className": "com.acxiom.pipeline.steps.DataFrameReaderOptions",
+          "required": false
+        }
+      ],
+      "engineMeta": {
+        "spark": "HDFSSteps.readFromPath",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "creationDate": "2019-04-04T14:24:22.875Z",
+      "modifiedDate": "2019-10-09T14:34:20.731Z",
+      "tags": [
+        "basic"
+      ],
+      "stepId": "87db259d-606e-46eb-b723-82923349640f"
+    }
+  ],
+  "creationDate": "2020-02-10T20:52:40.517Z",
+  "modifiedDate": "2020-02-12T14:56:25.248Z"
+}
