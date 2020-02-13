@@ -49,4 +49,6 @@
     * [PipelineManager](pipeline-manager.md)
     * [Http Rest Client](httprestclient.md)
     * [Driver Utils](driver-utils.md)
+    * [Streaming Utils](streaming-utils.md)
+    * [Script Engine](script-engine.md)
 * [Contributing](contributions.md)

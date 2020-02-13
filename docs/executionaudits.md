@@ -33,6 +33,9 @@ event is fired.
 All of the steps contained in a fork, including the join, will be tracked based on the *groupId* and rolled up under the 
 fork step for analysis. The *groupId* of the step audit can be used to group all steps involved in a single execution.
 
+### Step Groups
+All of the audits for a step group pipeline will be children of the step group in the outer pipeline.
+
 ## Additional Classes
 ### PipelineContext
 The PipelineContext contains the *rootAudit* which holds all of the data related to the overall execution. Helper 

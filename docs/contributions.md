@@ -16,11 +16,14 @@ discussions.
 * Discuss contributions on [Slack](https://join.slack.com/t/acxiom-metalus/shared_invite/enQtODY3OTU0ODE5NzUwLTc2Zjc0MzE2MjYzZjBmZjJkODQxODhhOTM4N2VmZjNhZGVlN2Q3N2QzNWU3ZTk4NWExNWM2YzZkYTVjNjNiNWQ)
 
 ## New Step libraries
-Two step libraries are provided by metalus: metalus-common and metlaus-aws. Contributions should be made directly to the
-existing step libraries unless it represents specific functionality like support for Azure, GCP, etc.
+Three step libraries are provided by metalus: [metalus-common](../metalus-common/readme.md), [metalus-mongo](../metalus-mongo) 
+and [metlaus-aws](../metalus-aws/readme.md). Contributions should be made directly to the existing step libraries unless 
+it represents specific functionality like support for Azure, GCP, etc. Before starting, review the different projects to 
+get familiar with the coding style and learn if the functionality already exists.
 
 ## Building
 The project is built using [Apache Maven](http://maven.apache.org/).
+
 To build the project using Scala 2.11 and Spark 2.3 run:
 
 	mvn
