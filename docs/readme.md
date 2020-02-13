@@ -27,8 +27,9 @@
             * [ScalaSteps](../metalus-common/docs/scalascriptsteps.md)
             * [SFTPSteps](../metalus-common/docs/sftpsteps.md)
             * [TransformationSteps](../metalus-common/docs/transformationsteps.md)
-        * Step Groups
+        * Pipelines/Step Groups
             * [SFTP to HDFS](../metalus-common/docs/sftp2hdfs.md)
+            * [Download To Bronze HDFS](../metalus-common/docs/downloadToBronzeHdfs.md)
     * [Metalus AWS](../metalus-aws/readme.md)
         * Steps
             * [S3Steps](../metalus-aws/docs/s3steps.md)
