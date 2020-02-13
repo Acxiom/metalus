@@ -8,8 +8,8 @@ is access from the metadata stored in the metadata of metalus-common and all of 
 be found in the steps library of metalus-common.
 
 ## Bronze Zone Traits
-The "bronze" zone is intended to house data as close to the original file as possible.  To avoid data loss and introducing
-future intent that may change how the data is interpreted downstream, the "bronze" zone is setup as follows:
+The "bronze" zone is intended to house data as close to the original file as possible.  To avoid data loss and complications
+when introducing future intent that may change how the data is interpreted downstream, the "bronze" zone is setup as follows:
 
 * stored with the names provided in the header cleaned up to make them query friendly (remove special characters)
 * all data types should be STRING to avoid data loss during type conversion
@@ -17,7 +17,7 @@ future intent that may change how the data is interpreted downstream, the "bronz
 * stored by "fileId" which is provided as a global parameter and should be unique per file
 * saveMode is "overwrite" to allow for clean restarts (avoids accidental duplication of data)
 
-## Setup
+# Setup
 In order to run this pipeline, an input file will need to be stored on an SFTP site that is reachable from the and all
 the connection information will need to be made available through global parameters.
 
