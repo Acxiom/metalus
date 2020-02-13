@@ -128,3 +128,22 @@ and non-underscore characters (including whitespace) with an underscore (removin
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
 |dataFrame|DataFrame|a data frame containing columns to be standardized| n/a |
+
+#### addUniqueIdToDataFrame()
+This step will add a unique Id to an existing dataframe (using the 'monatonically_increase_id' spark udf)
+
+##### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|idColumnName|String|the name to use for the newly created attribute| n/a |
+|dataFrame|DataFrame|the data frame to modify| n/a |
+
+#### addStaticColumnToDataFrame()
+This step will add a static value to every row of an existing dataframe)
+
+##### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|DataFrame|the data frame to modify| n/a |
+|columnName|String|the name for the new attribute| n/a |
+|columnValue|String|the string value to set for the new attribute on each row| n/a |
