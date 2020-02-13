@@ -58,12 +58,44 @@
             "fileId": "!fileId",
             "input_buffer_size": "!inputBufferSize || 65536",
             "output_buffer_size": "!outputBufferSize || 65536",
-            "read_buffer_size": "!readBufferSize || 32768",
-            "inputReaderOptions": "!inputReaderOptions"
+            "read_buffer_size": "!readBufferSize || 32768"
           }
         }
       ],
       "stepId": "f09b3b9c-82ac-56de-8dc8-f57c063dd4aa",
+      "nextStepId": "LandingFileToDataFrame"
+    },
+    {
+      "id": "LandingFileToDataFrame",
+      "displayName": "Load DataFrame from HDFS path",
+      "description": "This step will read a dataFrame from the given HDFS path",
+      "type": "Pipeline",
+      "category": "InputOutput",
+      "params": [
+        {
+          "type": "text",
+          "name": "path",
+          "required": false,
+          "value": "!{landingPath}/!{fileId}"
+        },
+        {
+          "name": "options",
+          "type": "object",
+          "value": "!inputReaderOptions",
+          "className": "com.acxiom.pipeline.steps.DataFrameReaderOptions",
+          "required": false
+        }
+      ],
+      "engineMeta": {
+        "spark": "HDFSSteps.readFromPath",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "creationDate": "2019-04-04T14:24:22.875Z",
+      "modifiedDate": "2019-10-09T14:34:20.731Z",
+      "tags": [
+        "basic"
+      ],
+      "stepId": "87db259d-606e-46eb-b723-82923349640f",
       "nextStepId": "StandardizeColumnNames"
     },
     {
@@ -77,7 +109,7 @@
           "type": "text",
           "name": "dataFrame",
           "required": false,
-          "value": "@DownloadToHdfs.LandingFileToDataFrame.primaryReturn"
+          "value": "@LandingFileToDataFrame"
         }
       ],
       "engineMeta": {
