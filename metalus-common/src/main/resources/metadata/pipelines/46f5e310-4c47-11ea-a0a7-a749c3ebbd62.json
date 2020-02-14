@@ -4,24 +4,24 @@
   "category": "step-group",
   "layout": {
     "CreateSFTPFileManager": {
-      "x": 360,
-      "y": -6
+      "x": 267,
+      "y": 22
     },
     "CreateHDFSFileManager": {
-      "x": 360,
-      "y": 108
+      "x": 267,
+      "y": 128
     },
     "DownloadFile": {
-      "x": 394,
-      "y": 257
+      "x": 267,
+      "y": 236
     },
     "DisconnectSFTPFileManager": {
-      "x": 397,
-      "y": 367
+      "x": 269,
+      "y": 348
     },
     "LandingFileToDataFrame": {
-      "x": 396,
-      "y": 480
+      "x": 269,
+      "y": 460
     }
   },
   "steps": [
@@ -51,7 +51,7 @@
           "value": "!sftp_password"
         },
         {
-          "type": "text",
+          "type": "integer",
           "name": "port",
           "required": false,
           "value": "!sftp_port || 22"
@@ -60,7 +60,7 @@
           "type": "text",
           "name": "strictHostChecking",
           "required": false,
-          "value": "false"
+          "value": false
         }
       ],
       "engineMeta": {
@@ -117,7 +117,7 @@
           "type": "text",
           "name": "destPath",
           "required": false,
-          "value": "!landing_path"
+          "value": "!{landing_path}/!{fileId}"
         },
         {
           "type": "text",
@@ -167,51 +167,9 @@
       },
       "creationDate": "2019-05-28T18:54:44.887Z",
       "modifiedDate": "2019-06-19T18:25:48.029Z",
-      "stepId": "3d1e8519-690c-55f0-bd05-1e7b97fb6633",
-      "nextStepId": "LandingFileToDataFrame"
-    },
-    {
-      "id": "LandingFileToDataFrame",
-      "displayName": "Load DataFrame from HDFS path",
-      "description": "This step will read a dataFrame from the given HDFS path",
-      "type": "Pipeline",
-      "category": "InputOutput",
-      "params": [
-        {
-          "type": "text",
-          "name": "path",
-          "required": false,
-          "value": "!landing_path"
-        },
-        {
-          "name": "options",
-          "type": "object",
-          "value": {
-            "format": "csv",
-            "options": {
-              "header": "true",
-              "delimiter": "|"
-            },
-            "schema": {
-              "attributes": []
-            }
-          },
-          "className": "com.acxiom.pipeline.steps.DataFrameReaderOptions",
-          "required": false
-        }
-      ],
-      "engineMeta": {
-        "spark": "HDFSSteps.readFromPath",
-        "pkg": "com.acxiom.pipeline.steps"
-      },
-      "creationDate": "2019-04-04T14:24:22.875Z",
-      "modifiedDate": "2019-10-09T14:34:20.731Z",
-      "tags": [
-        "basic"
-      ],
-      "stepId": "87db259d-606e-46eb-b723-82923349640f"
+      "stepId": "3d1e8519-690c-55f0-bd05-1e7b97fb6633"
     }
   ],
   "creationDate": "2020-02-10T20:52:40.517Z",
-  "modifiedDate": "2020-02-10T20:54:08.746Z"
+  "modifiedDate": "2020-02-12T14:56:25.248Z"
 }

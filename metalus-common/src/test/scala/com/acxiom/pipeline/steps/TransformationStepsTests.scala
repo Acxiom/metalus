@@ -355,4 +355,38 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
     assert(newDF.where("id <= 0").count == 0)
   }
 
+  it("should add unique ids to each row of a dataframe") {
+    Given("a dataframe")
+    val df = sparkSession.createDataFrame(Seq(
+      ("buster", "dawg", 29483),
+      ("rascal", "dawg", 29483),
+      ("sophie", "dawg", 29483)
+    )).toDF(
+      "first_name", "1ast_name", "zip"
+    )
+    Then("add a unique id to the dataframe")
+    val idDf = TransformationSteps.addUniqueIdToDataFrame("id", df)
+    assert(idDf.count == df.count)
+    assert(idDf.columns.contains("ID"))
+    val results = idDf.collect
+    assert(results.exists(x => x.getLong(3) == 0 && x.getString(0) == "buster"))
+    assert(results.exists(x => x.getLong(3) == 1 && x.getString(0) == "rascal"))
+    assert(results.exists(x => x.getLong(3) == 2 && x.getString(0) == "sophie"))
+  }
+
+  it("should add a static value to each row of a dataframe") {
+    Given("a dataframe")
+    val df = sparkSession.createDataFrame(Seq(
+      ("buster", "dawg", 29483),
+      ("rascal", "dawg", 29483),
+      ("sophie", "dawg", 29483)
+    )).toDF(
+      "first_name", "1ast_name", "zip"
+    )
+    Then("add a unique id to the dataframe")
+    val newDf = TransformationSteps.addStaticColumnToDataFrame(df, "file-id", "file-id-0001")
+    assert(newDf.count == df.count)
+    assert(newDf.columns.contains("FILE_ID"))
+    assert(newDf.where("FILE_ID == 'file-id-0001'").count == df.count)
+  }
 }
