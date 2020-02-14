@@ -47,73 +47,88 @@
         }
       ]
     },
-    "pipelines": [
-      {
-        "id": "Pipeline1",
-        "name": "Pipeline 1",
-        "steps": [
+    "pipelineManager": {
+      "className": "com.acxiom.pipeline.CachedPipelineManager",
+      "parameters": {
+        "pipelines": [
           {
-            "id": "Pipeline1Step1",
-            "displayName": "Pipeline1Step1",
-            "type": "pipeline",
-            "params": [
-              {
-                "type": "text",
-                "name": "value",
-                "required": true,
-                "value": "!mappedObject"
-              }
-            ],
-            "engineMeta": {
-              "spark": "ExecutionSteps.normalFunction"
-            }
-          }
-        ]
-      },
-      {
-        "id": "Pipeline2",
-        "name": "Pipeline 2",
-        "steps": [
-          {
-            "id": "Pipeline2Step1",
-            "displayName": "Pipeline2Step1",
-            "type": "pipeline",
-            "params": [
-              {
-                "type": "text",
-                "name": "value",
-                "required": true,
-                "value": "CHICKEN"
-              },
-              {
-                "type": "object",
-                "name": "parameterObject",
-                "required": true,
-                "className": "com.acxiom.pipeline.applications.TestGlobalObject",
-                "value": {
-                  "name": "Parameter Mapped Object",
-                  "subObjects": [
+            "className": "com.acxiom.pipeline.DefaultPipeline",
+            "object": {
+              "id": "Pipeline1",
+              "name": "Pipeline 1",
+              "steps": [
+                {
+                  "id": "Pipeline1Step1",
+                  "displayName": "Pipeline1Step1",
+                  "type": "pipeline",
+                  "params": [
                     {
-                      "name": "Param Object 1"
+                      "type": "text",
+                      "name": "value",
+                      "required": true,
+                      "value": "!mappedObject"
+                    }
+                  ],
+                  "engineMeta": {
+                    "spark": "ExecutionSteps.normalFunction"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "className": "com.acxiom.pipeline.DefaultPipeline",
+            "object": {
+              "id": "Pipeline2",
+              "name": "Pipeline 2",
+              "steps": [
+                {
+                  "id": "Pipeline2Step1",
+                  "displayName": "Pipeline2Step1",
+                  "type": "pipeline",
+                  "params": [
+                    {
+                      "type": "text",
+                      "name": "value",
+                      "required": true,
+                      "value": "CHICKEN"
                     },
                     {
-                      "name": "Param Object 2"
+                      "type": "object",
+                      "name": "parameterObject",
+                      "required": true,
+                      "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+                      "value": {
+                        "name": "Parameter Mapped Object",
+                        "subObjects": [
+                          {
+                            "name": "Param Object 1"
+                          },
+                          {
+                            "name": "Param Object 2"
+                          }
+                        ]
+                      }
                     }
-                  ]
+                  ],
+                  "engineMeta": {
+                    "spark": "ExecutionSteps.normalFunction"
+                  }
                 }
-              }
-            ],
-            "engineMeta": {
-              "spark": "ExecutionSteps.normalFunction"
+              ]
             }
           }
         ]
       }
-    ],
+    },
     "globals": {
       "number": 1,
       "float": 1.5,
       "string": "some string",
+      "plainObject": [{
+        "some": "value",
+        "another": 5
+      }],
       "mappedObject": {
         "className": "com.acxiom.pipeline.applications.TestGlobalObject",
         "object": {
@@ -168,6 +183,7 @@
           "number": 2,
           "float": 3.5,
           "string": "sub string",
+          "stringList": ["someString"],
           "mappedObject": {
             "className": "com.acxiom.pipeline.applications.TestGlobalObject",
             "object": {
@@ -317,6 +333,11 @@
       },
       {
         "id": "3",
+        "pipelineIds": [
+          "Pipeline1",
+          "Pipeline2",
+          "Pipeline3"
+        ],
         "securityManager": {
           "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
           "parameters": {

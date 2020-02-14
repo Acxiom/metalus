@@ -150,7 +150,7 @@ object ApplicationUtils {
                                       pipelineManager: Option[PipelineManager]): Option[PipelineManager] = {
     if (pipelineManagerInfo.isDefined && pipelineManagerInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(pipelineManagerInfo.get.className.getOrElse("com.acxiom.pipeline.CachedPipelineManager"),
-        pipelineManagerInfo.get.parameters).asInstanceOf[PipelineManager])
+        Some(parseParameters(pipelineManagerInfo.get))).asInstanceOf[PipelineManager])
     } else {
       pipelineManager
     }
@@ -160,7 +160,7 @@ object ApplicationUtils {
                                        pipelineListener: Option[PipelineListener]): Option[PipelineListener] = {
     if (pipelineListenerInfo.isDefined && pipelineListenerInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(pipelineListenerInfo.get.className.getOrElse("com.acxiom.pipeline.DefaultPipelineListener"),
-        pipelineListenerInfo.get.parameters).asInstanceOf[PipelineListener])
+        Some(parseParameters(pipelineListenerInfo.get))).asInstanceOf[PipelineListener])
     } else {
       pipelineListener
     }
@@ -170,7 +170,7 @@ object ApplicationUtils {
     if (sparkListenerInfos.isDefined && sparkListenerInfos.get.nonEmpty) {
       Some(sparkListenerInfos.get.flatMap { info =>
         if (info.className.isDefined) {
-          Some(ReflectionUtils.loadClass(info.className.get, info.parameters).asInstanceOf[SparkListener])
+          Some(ReflectionUtils.loadClass(info.className.get, Some(parseParameters(info))).asInstanceOf[SparkListener])
         } else {
           None
         }
@@ -184,7 +184,7 @@ object ApplicationUtils {
                                       securityManager: Option[PipelineSecurityManager]): Option[PipelineSecurityManager] = {
     if (securityManagerInfo.isDefined && securityManagerInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(securityManagerInfo.get.className.getOrElse("com.acxiom.pipeline.DefaultPipelineSecurityManager"),
-        securityManagerInfo.get.parameters).asInstanceOf[PipelineSecurityManager])
+        Some(parseParameters(securityManagerInfo.get))).asInstanceOf[PipelineSecurityManager])
     } else {
       securityManager
     }
@@ -194,7 +194,7 @@ object ApplicationUtils {
                                  stepMapper: Option[PipelineStepMapper]): Option[PipelineStepMapper] = {
     if (stepMapperInfo.isDefined && stepMapperInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(stepMapperInfo.get.className.getOrElse("com.acxiom.pipeline.DefaultPipelineStepMapper"),
-        stepMapperInfo.get.parameters).asInstanceOf[PipelineStepMapper])
+        Some(parseParameters(stepMapperInfo.get))).asInstanceOf[PipelineStepMapper])
     } else {
       stepMapper
     }
@@ -213,7 +213,7 @@ object ApplicationUtils {
     if (sparkUDFs.isDefined && sparkUDFs.get.nonEmpty) {
       sparkUDFs.get.flatMap { info =>
         if (info.className.isDefined) {
-          Some(ReflectionUtils.loadClass(info.className.get, info.parameters).asInstanceOf[PipelineUDF])
+          Some(ReflectionUtils.loadClass(info.className.get, Some(parseParameters(info))).asInstanceOf[PipelineUDF])
         } else {
           None
         }
@@ -228,33 +228,39 @@ object ApplicationUtils {
     if (globals.isEmpty) {
       defaultGlobals
     } else {
-      implicit val formats: Formats = DefaultFormats
       val baseGlobals = globals.get
-      val result = baseGlobals.foldLeft(rootGlobals)((rootMap, entry) => {
-        // Handle lists of objects
-        entry._2 match {
-          case map: Map[String, Any] if map.contains("className") =>
-            val obj = DriverUtils.parseJson(Serialization.write(map("object").asInstanceOf[Map[String, Any]]), map("className").asInstanceOf[String])
-            rootMap + (entry._1 -> obj)
-          case listMap: List[Any] =>
-            val obj = listMap.map {
-              case m: Map[String, Any] =>
-                if (m.contains("className")) {
-                  DriverUtils.parseJson(Serialization.write(m("object").asInstanceOf[Map[String, Any]]), m("className").asInstanceOf[String])
-                } else {
-                  m
-                }
-              case any => any
-            }
-            rootMap + (entry._1 -> obj)
-          case _ => rootMap + (entry._1 -> entry._2)
-        }
-      })
+      val result = baseGlobals.foldLeft(rootGlobals)((rootMap, entry) => parseValue(rootMap, entry._1, entry._2))
       Some(if (merge) {
         defaultGlobals.getOrElse(Map[String, Any]()) ++ result
       } else {
         result
       })
+    }
+  }
+
+  private def parseParameters(classInfo: ClassInfo): Map[String, Any] = {
+    classInfo.parameters.getOrElse(Map[String, Any]())
+      .foldLeft(Map[String, Any]())((rootMap, entry) => parseValue(rootMap, entry._1, entry._2))
+  }
+
+  private def parseValue(rootMap: Map[String, Any], key: String, value: Any) = {
+    implicit val formats: Formats = DefaultFormats
+    value match {
+      case map: Map[String, Any] if map.contains("className") =>
+        val obj = DriverUtils.parseJson(Serialization.write(map("object").asInstanceOf[Map[String, Any]]), map("className").asInstanceOf[String])
+        rootMap + (key -> obj)
+      case listMap: List[Any] =>
+        val obj = listMap.map {
+          case m: Map[String, Any] =>
+            if (m.contains("className")) {
+              DriverUtils.parseJson(Serialization.write(m("object").asInstanceOf[Map[String, Any]]), m("className").asInstanceOf[String])
+            } else {
+              m
+            }
+          case any => any
+        }
+        rootMap + (key -> obj)
+      case _ => rootMap + (key -> value)
     }
   }
 }

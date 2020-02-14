@@ -50,13 +50,15 @@ implement the _SparkListener_ interface it will be registered with Spark.
 * _sparkListeners_ - A list of classes that implement the _SparkListener_ interface to register with the Spark session.
 * _securityManager_ - The _PipelineSecurityManager_ that is used when mapping parameters.
 * _stepMapper_ - The _PipelineStepMapper_ to perform mapping prior to execution of pipeline steps.
-* [pipelineManager](pipeline-manager.md) - Performs lookups based on pipeline ids.
+* [pipelineManager](pipeline-manager.md) - Performs lookups based on pipeline ids. Parameters for the _PipelineManager_ will
+attempt to parse objects and lists of objects.
 * _sparkUdfs_ - A list of UDF classes to register with the Spark session.
 
 Using any of the options listed requires a JSON object that contains two parameters:
 
 * **className** - The fully qualified class name to load
-* **parameters** - This is an object that contains attributes where the name matches the parameters of the constructor of the class.
+* **parameters** - This is an object that contains attributes where the name matches the parameters of the constructor 
+of the class. The parameters may also embed objects/list of objects using this same pattern.
 
 ### Application Properties
 The application properties section provides a location to place data that may need to be used when setting up the 
@@ -179,6 +181,9 @@ This section allows the developer to optionally establish _runtime_ parameters f
 The pipelines section should contain all pipelines that may be used by the executions. Executions may override pipelines
 directly, but it is advised to place all pipelines in this section and use the _pipelineIds_ array in the execution which
 will invoke the [PipelineManager](pipeline-manager.md) to fetch the pipeline.
+
+**Note:** When overriding the _PipelineManager_, it is advised that executions use _pipelineIds_ and not rely on the 
+_pipelines_ array.
 
 ### Executions
 The executions array contains definitions for how pipelines should be executed as well as dependencies. In addition to 
