@@ -58,7 +58,7 @@ Using any of the options listed requires a JSON object that contains two paramet
 
 * **className** - The fully qualified class name to load
 * **parameters** - This is an object that contains attributes where the name matches the parameters of the constructor 
-of the class. The parameters may also embed objects/list of objects using this sme pattern.
+of the class. The parameters may also embed objects/list of objects using this same pattern.
 
 ### Application Properties
 The application properties section provides a location to place data that may need to be used when setting up the 
