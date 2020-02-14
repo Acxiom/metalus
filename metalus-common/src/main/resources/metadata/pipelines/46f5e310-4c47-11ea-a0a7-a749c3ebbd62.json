@@ -167,40 +167,7 @@
       },
       "creationDate": "2019-05-28T18:54:44.887Z",
       "modifiedDate": "2019-06-19T18:25:48.029Z",
-      "stepId": "3d1e8519-690c-55f0-bd05-1e7b97fb6633",
-      "nextStepId": "LandingFileToDataFrame"
-    },
-    {
-      "id": "LandingFileToDataFrame",
-      "displayName": "Load DataFrame from HDFS path",
-      "description": "This step will read a dataFrame from the given HDFS path",
-      "type": "Pipeline",
-      "category": "InputOutput",
-      "params": [
-        {
-          "type": "text",
-          "name": "path",
-          "required": false,
-          "value": "!{landing_path}/!{fileId}"
-        },
-        {
-          "name": "options",
-          "type": "object",
-          "value": "!inputReaderOptions",
-          "className": "com.acxiom.pipeline.steps.DataFrameReaderOptions",
-          "required": false
-        }
-      ],
-      "engineMeta": {
-        "spark": "HDFSSteps.readFromPath",
-        "pkg": "com.acxiom.pipeline.steps"
-      },
-      "creationDate": "2019-04-04T14:24:22.875Z",
-      "modifiedDate": "2019-10-09T14:34:20.731Z",
-      "tags": [
-        "basic"
-      ],
-      "stepId": "87db259d-606e-46eb-b723-82923349640f"
+      "stepId": "3d1e8519-690c-55f0-bd05-1e7b97fb6633"
     }
   ],
   "creationDate": "2020-02-10T20:52:40.517Z",

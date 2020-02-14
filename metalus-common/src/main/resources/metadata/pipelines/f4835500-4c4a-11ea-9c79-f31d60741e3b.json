@@ -49,21 +49,53 @@
           "type": "object",
           "required": false,
           "value": {
-            "sftp_host": "!sftp_host",
-            "sftp_username": "!sftp_username",
-            "sftp_password": "!sftp_password",
-            "sftp_port": "!sftp_port || 22",
-            "sftp_input_path": "!sftp_input_path",
-            "landing_path": "!landing_path",
+            "sftp_host": "!sftpHost",
+            "sftp_username": "!sftpUsername",
+            "sftp_password": "!sftpPassword",
+            "sftp_port": "!sftpPort || 22",
+            "sftp_input_path": "!sftpInputPath",
+            "landing_path": "!landingPath",
             "fileId": "!fileId",
-            "input_buffer_size": "!input_buffer_size || 65536",
-            "output_buffer_size": "!output_buffer_size || 65536",
-            "read_buffer_size": "!read_buffer_size || 32768",
-            "inputReaderOptions": "!inputReaderOptions"
+            "input_buffer_size": "!inputBufferSize || 65536",
+            "output_buffer_size": "!outputBufferSize || 65536",
+            "read_buffer_size": "!readBufferSize || 32768"
           }
         }
       ],
       "stepId": "f09b3b9c-82ac-56de-8dc8-f57c063dd4aa",
+      "nextStepId": "LandingFileToDataFrame"
+    },
+    {
+      "id": "LandingFileToDataFrame",
+      "displayName": "Load DataFrame from HDFS path",
+      "description": "This step will read a dataFrame from the given HDFS path",
+      "type": "Pipeline",
+      "category": "InputOutput",
+      "params": [
+        {
+          "type": "text",
+          "name": "path",
+          "required": false,
+          "value": "!{landingPath}/!{fileId}"
+        },
+        {
+          "name": "options",
+          "type": "object",
+          "value": "!inputReaderOptions",
+          "className": "com.acxiom.pipeline.steps.DataFrameReaderOptions",
+          "required": false
+        }
+      ],
+      "engineMeta": {
+        "spark": "HDFSSteps.readFromPath",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "creationDate": "2019-04-04T14:24:22.875Z",
+      "modifiedDate": "2019-10-09T14:34:20.731Z",
+      "tags": [
+        "basic"
+      ],
+      "stepId": "87db259d-606e-46eb-b723-82923349640f",
       "nextStepId": "StandardizeColumnNames"
     },
     {
@@ -77,7 +109,7 @@
           "type": "text",
           "name": "dataFrame",
           "required": false,
-          "value": "@DownloadToHdfs.LandingFileToDataFrame.primaryReturn"
+          "value": "@LandingFileToDataFrame"
         }
       ],
       "engineMeta": {
@@ -175,7 +207,14 @@
         {
           "type": "object",
           "name": "options",
-          "value": "!bronzeWriterOptions",
+          "value": {
+            "format": "parquet",
+            "saveMode": "Overwrite",
+            "options": {},
+            "schema": {
+              "attributes": []
+            }
+          },
           "required": false,
           "className": "com.acxiom.pipeline.steps.DataFrameWriterOptions"
         }
