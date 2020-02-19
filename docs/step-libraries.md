@@ -26,3 +26,8 @@ in other documentation.
 [PipelineManager](pipeline-manager.md) will attempt to locate pipelines within the application configuration file and if 
 not found, will scan the step libraries **metadata/pipelines** path looking for the pipeline. The pipeline must be in a 
 JSON file with the following naming convention: ```<pipeline.id>.json```
+
+## Dependencies
+When preparing to use a step library, it is useful to know exactly what dependencies will be needed in addition to the 
+library jar. A _dependencies.json_ file may be included that contains information tht may be used to resolve dependent
+jars at run time. 

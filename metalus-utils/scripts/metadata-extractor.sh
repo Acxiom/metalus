@@ -2,7 +2,7 @@
 
 usage()
 {
-	echo "step-metadata-extractor.sh [OPTIONS]"
+	echo "metadata-extractor.sh [OPTIONS]"
 	echo "--output-path   -> A path to write the JSON output. This parameter is optional."
 	echo "--api-url       -> The base URL to use when pushing data to an API. This parameter is optional."
 	echo "--jar-files     -> A comma separated list of jar files to scan"
@@ -55,18 +55,17 @@ do
       mkdir -p "${outputPath}/${dirName}"
     fi
 
-# TODO Once it has been decided how steps will be managed by jar, then add this back
-#    if [[ -n "${apiUrl}" ]]
-#    then
-#      params="${params} --api-url ${apiUrl}"
-#    fi
+    if [[ -n "${apiUrl}" ]]
+    then
+      params="${params} --api-url ${apiUrl}/${dirName}"
+    fi
 
     if [[ -n "${extractors}" ]]
     then
       params="${params} --extractors ${extractors}"
     fi
 
-    scala -cp "${classPath}:${i}" com.acxiom.metalus.MetadataExtractor ${params} > /dev/null 2>&1
+    java -cp "${classPath}:${i}" com.acxiom.metalus.MetadataExtractor ${params} > /dev/null 2>&1
 
     echo "${jarName} complete"
 done

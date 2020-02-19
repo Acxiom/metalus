@@ -18,8 +18,8 @@ used to indicate whether the file should be overwritten or appended.
 * **getSize(path)** - Returns the size in bytes of the remote file
 * **getFileListing(path)** - Returns a list of files on the remote path.
 * **disconnect()** - Disconnects from the remote file system and releases any resources.
-* **copy(input, output, copyBufferSize)** - Copies the contents from the input to the output. This function
-does not close the stream.
+* **copy(input, output, copyBufferSize, closeStreams)** - Copies the contents from the input to the output. This function
+will close the streams if the closeStreams boolean is set to true. Default is false.
 
 ## Implementations
 The core project provides two implementations, **local** and **HDFS**.

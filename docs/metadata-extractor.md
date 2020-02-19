@@ -44,7 +44,7 @@ The script parameters are:
 Installation:
 * Download the tar file from the releases page
 * Expand the tar file (tar xzf metalus-utils_2.11-spark_2.3...)
-* Change to the bin directory (cd application-utilities/bin)
+* Change to the bin directory (cd metalus-utils/bin)
 * Example commands:
 
 Write to a file:

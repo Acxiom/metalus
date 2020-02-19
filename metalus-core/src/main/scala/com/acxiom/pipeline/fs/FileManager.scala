@@ -101,13 +101,25 @@ trait FileManager {
     * @param copyBufferSize The size in bytes of the copy buffer
     * @return True if the copy was successful
     */
-  def copy(input: InputStream, output: OutputStream, copyBufferSize: Int): Boolean = {
+  def copy(input: InputStream, output: OutputStream, copyBufferSize: Int, closeStreams: Boolean = false): Boolean = {
     try {
       val buffer = new Array[Byte](copyBufferSize)
       Stream.continually(input.read(buffer)).takeWhile(_ != -1).foreach(count => {
         output.write(buffer, 0, count)
       })
       output.flush()
+      if (closeStreams) {
+        try {
+          input.close()
+        } catch {
+          case t =>
+        }
+        try {
+          output.close()
+        } catch {
+          case t =>
+        }
+      }
       true
     } catch {
       case t: Throwable =>
