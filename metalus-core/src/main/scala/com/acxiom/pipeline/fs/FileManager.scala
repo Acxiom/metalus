@@ -111,13 +111,9 @@ trait FileManager {
       if (closeStreams) {
         try {
           input.close()
-        } catch {
-          case t =>
         }
         try {
           output.close()
-        } catch {
-          case t =>
         }
       }
       true
