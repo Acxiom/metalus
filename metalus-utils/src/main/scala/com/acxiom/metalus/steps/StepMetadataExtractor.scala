@@ -48,16 +48,28 @@ class StepMetadataExtractor extends Extractor {
     * @param metadata The metadata string to be written.
     * @param output   Information about how to output the metadata.
     */
-  override def writeOutputFile(metadata: Metadata, output: Output): Unit = {
+  override def writeOutput(metadata: Metadata, output: Output): Unit = {
     if (output.api.isDefined) {
       val http = output.api.get
       val definition = metadata.asInstanceOf[StepMetadata]
-      if (http.exists("/api/v1/package-objects")) {
-        http.postJsonContent("/api/v1/package-objects", Serialization.write(definition.pkgObjs))
+      if (http.exists("/package-objects")) {
+        definition.pkgObjs.foreach(pkg => {
+          if (http.exists(s"/package-objects/${pkg.id}")) {
+            http.putJsonContent(s"/package-objects/${pkg.id}", Serialization.write(pkg))
+          } else {
+            http.postJsonContent("/package-objects", Serialization.write(pkg))
+          }
+        })
       }
-      http.postJsonContent("/api/v1/steps", Serialization.write(definition.steps))
+      definition.steps.foreach(step => {
+        if (http.exists(s"/steps/${step.id}")) {
+          http.putJsonContent(s"/steps/${step.id}", Serialization.write(step))
+        } else {
+          http.postJsonContent("/steps", Serialization.write(step))
+        }
+      })
     } else {
-      super.writeOutputFile(metadata, output)
+      super.writeOutput(metadata, output)
     }
   }
 

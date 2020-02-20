@@ -2,7 +2,7 @@ package com.acxiom.metalus.pipelines
 
 import java.util.jar.JarFile
 
-import com.acxiom.metalus.{Extractor, Metadata}
+import com.acxiom.metalus.{Extractor, Metadata, Output}
 import com.acxiom.pipeline.Pipeline
 import com.acxiom.pipeline.utils.DriverUtils
 import org.json4s.native.Serialization
@@ -49,6 +49,28 @@ class PipelineMetadataExtractor extends Extractor {
     * @return A simple string name.
     */
   override def getMetaDataType: String = "pipelines"
+
+  /**
+    * Provides a basic function for handling output.
+    *
+    * @param metadata The metadata string to be written.
+    * @param output   Information about how to output the metadata.
+    */
+  override def writeOutput(metadata: Metadata, output: Output): Unit = {
+    if (output.api.isDefined) {
+      val http = output.api.get
+      val definition = metadata.asInstanceOf[PipelineMetadata]
+      definition.pipelines.foreach(pipeline => {
+        if (http.exists(s"/pipelines/${pipeline.id}")) {
+          http.putJsonContent(s"/pipelines/${pipeline.id}", Serialization.write(pipeline))
+        } else {
+          http.putJsonContent("/pipelines", Serialization.write(pipeline))
+        }
+      })
+    } else {
+      super.writeOutput(metadata, output)
+    }
+  }
 }
 
 case class PipelineMetadata(value: String, pipelines: List[Pipeline]) extends Metadata

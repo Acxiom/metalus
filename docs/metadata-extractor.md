@@ -14,11 +14,11 @@ and identifies objects with the annotation *StepObject*. Next the tool will look
 *StepFunction* annotation. Once a function has been identified, the parameters will be inspected to produce the **params**
 array. One additional annotation named *StepParameter* may be used to provide overrides:
 
-* type - This allows setting the type to **script** or **object** when the parser may miss it because the parameter is an option or string
-* required - Override the required parsing
-* defaultValue - Set a default value
-* language - This is only useful if the type is overridden to be **script**
-* className - Only set this if the case class type is wrapped in an Option. Do not override for any other types such as List.
+* **type** - This allows setting the type to **script** or **object** when the parser may miss it because the parameter is an option or string
+* **required** - Override the required parsing
+* **defaultValue** - Set a default value
+* **language** - This is only useful if the type is overridden to be **script**
+* **className** - Only set this if the case class type is wrapped in an Option. Do not override for any other types such as List.
 
 The output will contain the *pkgs* array with all of the packages that contained steps, the*steps* array that contains 
 the metadata generated for each step, and the *pkgObjs* array that contains schemas for all of the case classes used as 
@@ -32,14 +32,88 @@ be loaded and reconciled to a list. This list will be written to the *pipelines.
 API end point.
 
 ## Creating a Custom Extractor
-TODO Add proper content here
+Custom extractors may be created and used with or in place of the existing extractors. Three things are required in order
+to use a custom extractor:
+
+* **Custom Extractor class** - A class that extends the _com.acxiom.metalus.Extractor_ trait.
+* **Custom Extractor jar** - A jar file containing the custom extractor class. This jar should be copied to the 
+_metalus-utils/libraries_ directory.
+* **Command line parameter** - The _--extractors_ command line switch.
+
+### Custom Extractor Class
+A custom extractor must extend the _com.acxiom.metalus.Extractor_ trait. Two functions are required to be overridden:
+
+* **getMetaDataType** - This should return the type of extractor. This will also be used to build out URLs when push to 
+an API unless the _writeOutput_ is overridden to handle output.
+* **extractMetadata** - Contains the logic to generate the _Metadata_ object used to write the output. A custom _Metadata_
+object may be returned of the _JsonMetaData_ may be used. It is expected that the contents of _Metadata.value_ are a 
+valid JSON string. 
+
+An example extractor:
+```scala
+import com.acxiom.metalus.{Extractor, Metadata, Output}
+class ExampleMetadataExtractor extends Extractor {
+
+  override def getMetaDataType: String = "examples"
+
+  override def extractMetadata(jarFiles: List[JarFile]): Metadata = {
+    val exampleMetadata = jarFiles.foldLeft(List[Example]())((examples, file) => {
+      val updatedExamples = file.entries().toList
+        .filter(f => f.getName.startsWith("metadata/examples") && f.getName.endsWith(".json"))
+        .foldLeft(examples)((exampleList, json) => {
+          val example = DriverUtils.parseJson(
+              Source.fromInputStream(
+                file.getInputStream(file.getEntry(json.getName))).mkString, "com.acxiom.example.Example").asInstanceOf[Example]
+          if (example.isDefined) {
+            exampleList.foldLeft(example.get)((examples, example) => {
+              if (examples.exists(p => p.id == example.id)) {
+                examples
+              } else {
+                examples :+ example
+              }
+            })
+            exampleList ::: example.get
+          } else {
+            exampleList
+          }
+        })
+      examples ::: updatedExamples
+    })
+    PipelineMetadata(Serialization.write(exampleMetadata), exampleMetadata)
+  }
+
+  // Only override to provide custom output handling. This example overrides standard API handling.
+  override def writeOutput(metadata: Metadata, output: Output): Unit = {
+    if (output.api.isDefined) {
+      val http = output.api.get
+      val definition = metadata.asInstanceOf[ExampleMetadata]
+      definition.examples.foreach(example => {
+        if (http.exists(s"/examples/${example.id}")) {
+          http.putJsonContent(s"/examples/${example.id}", Serialization.write(example))
+        } else {
+          http.putJsonContent("/examples", Serialization.write(example))
+        }
+      })
+    } else {
+      super.writeOutputFile(metadata, output)
+    }
+  }
+}
+
+case class ExampleMetadata(value: String, examples: List[Example]) extends Metadata
+```
 
 ## Running
 The script parameters are:
 * --jar-files - A comma separated list of jar files. This should be the full path.
 * --api-url The base URL to use when pushing data to an API. This parameter is optional.
+* --api-path The base path to use when pushing data to an API. This parameter is optional and defaults to '/api/v1'.
 * --output-path - A path to write the JSON output. This parameter is optional.
 * --extractors - An optional comma separated list of extractor class names.
+
+**Authorization**:
+When pushing metadata to an API, [authorization](httprestclient.md#authorization) is not used unless the authorization 
+parameters are provided.
 
 Installation:
 * Download the tar file from the releases page
@@ -54,7 +128,7 @@ Write to a file:
 
 Write to an api:
 ```bash
-./metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --api-url htp://localhost:8000
+./metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --api-url http://localhost:8000
 ```
 
 Write to a file with an additional Extractor:

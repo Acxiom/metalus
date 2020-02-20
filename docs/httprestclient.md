@@ -7,8 +7,7 @@ _Authorization_ class.
 ## Authorization
 The _Authorization_ trait provides a single function named _authorize_ that is provided a URL Connection.
 
-This is used to specify an authorization implementation when the _applicationConfigPath_ is
-a URL. Any parameters required to instantiate the _Authorization_ instance need to be prefixed with _authorization._ so
+Any parameters required to instantiate the _Authorization_ instance need to be prefixed with _authorization._ so
 they are identified and passed in. To use basic authorization, consider this class signature: 
 
 ```scala
@@ -34,7 +33,10 @@ This function will open an output stream to the provided path. Calling functions
 This function will perform a GET against the provided path and return the body as a string.
 
 ## Post JSON Content
-This function will take a given string and post it to a path as the provided content type. The default is JSON.
+This function will take a given string and _POST_ it to a path as the provided content type. The default is JSON.
+
+## Put JSON Content
+This function will take a given string and _PUT_ it to a path as the provided content type. The default is JSON.
 
 ### Delete
 This function will attempt to run a DELETE operation against the provided path.
