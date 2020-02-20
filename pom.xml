@@ -154,6 +154,12 @@
         <defaultGoal>clean scoverage:report install scala:doc scalastyle:check</defaultGoal>
         <sourceDirectory>${basedir}/src/main/scala</sourceDirectory>
         <testSourceDirectory>${basedir}/src/test/scala</testSourceDirectory>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <!-- see http://davidb.github.com/scala-maven-plugin -->

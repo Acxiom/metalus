@@ -43,6 +43,7 @@
         * [Step Annotations](step-annotations.md)
 * Advanced
     * [Metadata Extractor](metadata-extractor.md)
+    * [Dependency Manager](dependency-manager.md)
     * [File Manager](filemanager.md)
     * [Drivers](pipeline-drivers.md)
     * [Audits](executionaudits.md)

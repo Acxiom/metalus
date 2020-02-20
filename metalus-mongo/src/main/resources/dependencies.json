@@ -1,0 +1,16 @@
+{
+  "maven": {
+    "libraries": [
+      {
+        "groupId": "org.mongodb.spark",
+        "artifactId": "mongo-spark-connector_${scala.compat.version}",
+        "version": "${mongo.version}"
+      },
+      {
+        "groupId": "org.mongodb",
+        "artifactId": "mongo-java-driver",
+        "version": "3.11.2"
+      }
+    ]
+  }
+}
