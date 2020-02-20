@@ -7,7 +7,11 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <files>
         <file>
-            <source>metadata-extractor.sh</source>
+            <source>scripts/metadata-extractor.sh</source>
+            <outputDirectory>metalus-utils/bin</outputDirectory>
+        </file>
+        <file>
+            <source>scripts/dependency-resolver.sh</source>
             <outputDirectory>metalus-utils/bin</outputDirectory>
         </file>
     </files>

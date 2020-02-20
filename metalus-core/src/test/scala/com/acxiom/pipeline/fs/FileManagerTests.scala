@@ -81,7 +81,7 @@ class FileManagerTests extends FunSpec with Suite {
       assert(FileManager().copy(new ByteArrayInputStream(data.getBytes), defaultBufferSizeOutput))
       assert(defaultBufferSizeOutput.toString == data)
       val specificBufferSizeOutput = new ByteArrayOutputStream()
-      assert(FileManager().copy(new ByteArrayInputStream(data.getBytes), specificBufferSizeOutput, FileManager.DEFAULT_BUFFER_SIZE / 2))
+      assert(FileManager().copy(new ByteArrayInputStream(data.getBytes), specificBufferSizeOutput, FileManager.DEFAULT_BUFFER_SIZE / 2, closeStreams = true))
       assert(specificBufferSizeOutput.toString == data)
       // Should fail to copy
       assert(!FileManager().copy(new ByteArrayInputStream(data.getBytes), specificBufferSizeOutput, -1))
