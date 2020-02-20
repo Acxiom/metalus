@@ -110,3 +110,8 @@ The local maven cache may also be used by passing in the command line parameter:
 ```shell script
 --maven.repo file://home/user/.m2/repository
 ```
+
+Multiple repos may be provided by separating the paths with a comma:
+```shell script
+--maven.repo http://localhost/maven2,file://home/user/.m2/repository
+```
