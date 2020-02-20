@@ -1,22 +1,22 @@
 package com.acxiom.pipeline
 
 object PipelineDefs {
-  val GLOBAL_VALUE_STEP = PipelineStep(Some("GLOBALVALUESTEP"), Some("Global Value Step"), None, Some("Pipeline"),
+  val GLOBAL_VALUE_STEP: PipelineStep = PipelineStep(Some("GLOBALVALUESTEP"), Some("Global Value Step"), None, Some("Pipeline"),
     Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("!globalInput")))),
     Some(EngineMeta(Some("MockPipelineSteps.globalVariableStep"))), None)
-  val PAUSE_STEP = PipelineStep(Some("PAUSESTEP"), Some("Pause Step"), None, Some("Pipeline"),
+  val PAUSE_STEP: PipelineStep = PipelineStep(Some("PAUSESTEP"), Some("Pause Step"), None, Some("Pipeline"),
     Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("@GLOBALVALUESTEP")))),
     Some(EngineMeta(Some("MockPipelineSteps.pauseStep"))))
-  val GLOBAL_SINGLE_STEP = PipelineStep(Some("GLOBALVALUESTEP"), Some("Global Value Step"), None, Some("Pipeline"),
+  val GLOBAL_SINGLE_STEP: PipelineStep = PipelineStep(Some("GLOBALVALUESTEP"), Some("Global Value Step"), None, Some("Pipeline"),
     Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("!globalInput")))),
     Some(EngineMeta(Some("MockPipelineSteps.globalVariableStep"))), None)
-  val RETURN_NOTHING_STEP = PipelineStep(Some("RETURNNONESTEP"), Some("Return No Value"), None, Some("Pipeline"),
+  val RETURN_NOTHING_STEP: PipelineStep = PipelineStep(Some("RETURNNONESTEP"), Some("Return No Value"), None, Some("Pipeline"),
     Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("string")))),
     Some(EngineMeta(Some("MockPipelineSteps.returnNothingStep"))), None)
-  val DYNAMIC_BRANCH_STEP = PipelineStep(Some("DYNAMICBRANCHSTEP"), Some("Global Value Step"), None, Some("Pipeline"),
+  val DYNAMIC_BRANCH_STEP: PipelineStep = PipelineStep(Some("DYNAMICBRANCHSTEP"), Some("Global Value Step"), None, Some("Pipeline"),
     Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("!globalInput")))),
     Some(EngineMeta(Some("MockPipelineSteps.globalVariableStep"))), None, Some("@RETURNNONESTEP || !NON_EXISTENT_VALUE"))
-  val DYNAMIC_BRANCH2_STEP = PipelineStep(Some("DYNAMICBRANCH2STEP"), Some("Global Value Step"), None, Some("Pipeline"),
+  val DYNAMIC_BRANCH2_STEP: PipelineStep = PipelineStep(Some("DYNAMICBRANCH2STEP"), Some("Global Value Step"), None, Some("Pipeline"),
     Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("!globalInput")))),
     Some(EngineMeta(Some("MockPipelineSteps.globalVariableStep"))), None, Some("!NON_EXISTENT_VALUE || @DYNAMICBRANCHSTEP"))
 
@@ -41,5 +41,4 @@ object PipelineDefs {
 
 case class TestPipeline(override val id: Option[String] = None,
                         override val name: Option[String] = None,
-                        override val steps: Option[List[PipelineStep]] = None,
-                        override val typeClass: String = "TestPipeline") extends JsonPipeline
+                        override val steps: Option[List[PipelineStep]] = None) extends Pipeline
