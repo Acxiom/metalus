@@ -52,20 +52,20 @@ class StepMetadataExtractor extends Extractor {
     if (output.api.isDefined) {
       val http = output.api.get
       val definition = metadata.asInstanceOf[StepMetadata]
-      if (http.exists("/package-objects")) {
+      if (http.exists("package-objects")) {
         definition.pkgObjs.foreach(pkg => {
-          if (http.exists(s"/package-objects/${pkg.id}")) {
-            http.putJsonContent(s"/package-objects/${pkg.id}", Serialization.write(pkg))
+          if (http.getContentLength(s"package-objects/${pkg.id}") > 0) {
+            http.putJsonContent(s"package-objects/${pkg.id}", Serialization.write(pkg))
           } else {
-            http.postJsonContent("/package-objects", Serialization.write(pkg))
+            http.postJsonContent("package-objects", Serialization.write(pkg))
           }
         })
       }
       definition.steps.foreach(step => {
-        if (http.exists(s"/steps/${step.id}")) {
-          http.putJsonContent(s"/steps/${step.id}", Serialization.write(step))
+        if (http.getContentLength(s"steps/${step.id}") > 0) {
+          http.putJsonContent(s"steps/${step.id}", Serialization.write(step))
         } else {
-          http.postJsonContent("/steps", Serialization.write(step))
+          http.postJsonContent("steps", Serialization.write(step))
         }
       })
     } else {

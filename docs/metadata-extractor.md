@@ -88,10 +88,10 @@ class ExampleMetadataExtractor extends Extractor {
       val http = output.api.get
       val definition = metadata.asInstanceOf[ExampleMetadata]
       definition.examples.foreach(example => {
-        if (http.exists(s"/examples/${example.id}")) {
-          http.putJsonContent(s"/examples/${example.id}", Serialization.write(example))
+        if (http.getContentLength(s"examples/${example.id}") > 0) {
+          http.putJsonContent(s"examples/${example.id}", Serialization.write(example))
         } else {
-          http.putJsonContent("/examples", Serialization.write(example))
+          http.postJsonContent("examples", Serialization.write(example))
         }
       })
     } else {

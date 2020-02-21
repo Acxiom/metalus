@@ -61,10 +61,10 @@ class PipelineMetadataExtractor extends Extractor {
       val http = output.api.get
       val definition = metadata.asInstanceOf[PipelineMetadata]
       definition.pipelines.foreach(pipeline => {
-        if (http.exists(s"/pipelines/${pipeline.id}")) {
-          http.putJsonContent(s"/pipelines/${pipeline.id}", Serialization.write(pipeline))
+        if (http.getContentLength(s"pipelines/${pipeline.id.getOrElse("none")}") > 0) {
+          http.putJsonContent(s"pipelines/${pipeline.id.getOrElse("none")}", Serialization.write(pipeline))
         } else {
-          http.putJsonContent("/pipelines", Serialization.write(pipeline))
+          http.postJsonContent("pipelines", Serialization.write(pipeline))
         }
       })
     } else {
