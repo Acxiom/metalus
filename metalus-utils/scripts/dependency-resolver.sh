@@ -28,7 +28,7 @@ while [[ "$1" != "" ]]; do
         						pathPrefix=$1
         						params="${params} --path-prefix ${pathPrefix}"
                                 ;;
-        * )                     usage
+        --help )                usage
                                 exit 1
     esac
     shift
