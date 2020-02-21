@@ -69,6 +69,16 @@ class FileManagerStepsTests extends FunSpec with BeforeAndAfterAll {
   }
 
   describe("FileManagerSteps - Copy") {
+    it("Should fail when strict host checking is enabled against localhost") {
+      val sftp = SFTPSteps.createFileManager("localhost", "tester", "testing", SFTP_PORT, Some(true), pipelineContext)
+      assert(sftp.isDefined)
+      val exception = intercept[com.jcraft.jsch.JSchException] {
+        sftp.get.connect()
+      }
+      assert(Option(exception).nonEmpty)
+      assert(exception.getMessage == "reject HostKey: localhost")
+    }
+
     it("Should copy from/to SFTP to HDFS") {
       val hdfs = HDFSSteps.createFileManager(pipelineContext)
       val sftp = SFTPSteps.createFileManager("localhost", "tester", "testing", SFTP_PORT, Some(false), pipelineContext)

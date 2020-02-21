@@ -5,6 +5,7 @@ usage()
 	echo "metadata-extractor.sh [OPTIONS]"
 	echo "--output-path   -> A path to write the JSON output. This parameter is optional."
 	echo "--api-url       -> The base URL to use when pushing data to an API. This parameter is optional."
+	echo "--api-path      -> The base path to use when pushing data to an API. This parameter is optional and defaults to /api/v1."
 	echo "--jar-files     -> A comma separated list of jar files to scan"
 }
 
@@ -17,13 +18,16 @@ while [[ "$1" != "" ]]; do
         --api-url )           shift
                     apiUrl=$1
                                 ;;
+        --api-path )           shift
+                    apiPath=$1
+                                ;;
         --extractors )        shift
                     extractors=$1
                                 ;;
         --jar-files )           shift
         						jarFiles=$1
                                 ;;
-        * )                     usage
+        --help )                usage
                                 exit 1
     esac
     shift
@@ -57,12 +61,17 @@ do
 
     if [[ -n "${apiUrl}" ]]
     then
-      params="${params} --api-url ${apiUrl}/${dirName}"
+      params="${params} --api-url ${apiUrl}"
     fi
 
     if [[ -n "${extractors}" ]]
     then
       params="${params} --extractors ${extractors}"
+    fi
+
+    if [[ -n "${apiPath}" ]]
+    then
+      params="${params} --api-path ${apiPath}"
     fi
 
     java -cp "${classPath}:${i}" com.acxiom.metalus.MetadataExtractor ${params} > /dev/null 2>&1

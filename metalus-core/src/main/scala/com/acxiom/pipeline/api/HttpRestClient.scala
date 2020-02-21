@@ -106,10 +106,25 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @return The String output of the command.
     */
   def postJsonContent(path: String, body: String, contentType: String = "application/json"): String = {
+    upsertJsonContent(path, body, "POST", contentType)
+  }
+
+  /**
+    * Simple method to put string content.
+    * @param path The path to put the content
+    * @param body The body to put
+    * @param contentType The content type to put. Defaults to JSON.
+    * @return The String output of the command.
+    */
+  def putJsonContent(path: String, body: String, contentType: String = "application/json"): String = {
+    upsertJsonContent(path, body, "PUT", contentType)
+  }
+
+  private def upsertJsonContent(path: String, body: String, method: String, contentType: String): String = {
     val connection = this.openUrlConnection(path)
     connection.setDoOutput(true)
     connection.setRequestProperty("Content-Type", contentType)
-    connection.setRequestMethod("POST")
+    connection.setRequestMethod(method)
     val output = connection.getOutputStream
     output.write(body.getBytes, 0, body.length)
     output.flush()

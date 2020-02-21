@@ -38,14 +38,6 @@ case class DefaultPipeline(override val id: Option[String] = None,
                            override val category: Option[String] = Some("pipeline")) extends Pipeline
 
 /**
-  * Extends the Pipeline trait and adds the additional "typeClass" field that can be overridden and used when parsing
-  * from JSON.
-  */
-trait JsonPipeline extends Pipeline {
-  def typeClass: String = "Pipeline"
-}
-
-/**
   * Global object that may be passed to step functions.
   *
   * @param sparkConf        The Spark Configuration Object.
