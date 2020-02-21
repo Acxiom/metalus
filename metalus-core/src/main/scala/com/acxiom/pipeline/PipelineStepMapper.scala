@@ -346,13 +346,13 @@ trait PipelineStepMapper {
     // the value is marked as a global parameter, get it from pipelineContext.globals
     logger.debug(s"Fetching global value for $value.$extractPath")
     val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
-    val flatGlobals = if(globals.contains("Broadcast")) {
+    val flatGlobals = if(globals.contains("GlobalLinks")) {
       // check for conflicting globals in Broadcast
-      val broadcast = globals("Broadcast").asInstanceOf[Map[String, String]].map(b => {
+      val broadcast = globals("GlobalLinks").asInstanceOf[Map[String, String]].map(b => {
         if(globals.contains(b._1)) {
-          logger.warn(s"duplicate global [${b._1}] found in Broadcast...using Broadcast global over root")
+          logger.warn(s"duplicate global [${b._1}] found in GlobalLinks...using Broadcast global over root")
         }
-        b._1 -> returnBestValue(b._2, Parameter(), pipelineContext.copy(globals=Some(globals - "Broadcast")))
+        b._1 -> returnBestValue(b._2, Parameter(), pipelineContext.copy(globals=Some(globals - "GlobalLinks")))
       })
       globals ++ broadcast
     } else { globals }
