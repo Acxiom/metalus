@@ -29,8 +29,7 @@ while [[ "$1" != "" ]]; do
     shift
 done
 
-script=${BASH_SOURCE[0]}
-bindir=$(cd `dirname ${script}` && pwd)
+bindir=$(cd `dirname ${BASH_SOURCE[0]}` && pwd)
 dir=$(dirname "${bindir}")
 
 # Create the initial classPath
