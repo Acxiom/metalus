@@ -278,6 +278,60 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
       val validResults = List("Pipeline1", "PipelineChain2", "PipelineChain3", "PipelineChain5")
       assert(resultBuffer.diff(validResults).isEmpty)
     }
+
+    it("Should handle GlobalLinks") {
+      val results = new ListenerValidations
+      val listener = new PipelineListener {
+        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+          val pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
+          pipelineId match {
+            case "Pipeline0" =>
+              // shared parameter is overridden with globallink
+              results.addValidation(s"Execution failed for shared GlobalLink in Pipeline0",
+                getStringValue(pipelineContext, "Pipeline0", "Pipeline0StepA") == "pipeline0_override")
+            case "Pipeline1" =>  // parent is 0
+              // shared parameter is overridden with globallink
+              results.addValidation(s"Execution failed for shared GlobalLink in Pipeline1",
+                getStringValue(pipelineContext, "Pipeline1", "Pipeline1StepA") == "pipeline1_override")
+              // able to access parent global link
+              results.addValidation(s"Execution failed for Pipeline0 GlobalLink on Pipeline1",
+                getStringValue(pipelineContext, "Pipeline1", "Pipeline1StepB") == "pipeline0_original")
+            case "Pipeline2" =>  // parent is 0
+              // not overriding shared global link, so it reverts to how the parent set it
+              results.addValidation(s"Execution failed for shared GlobalLink in Pipeline2",
+                getStringValue(pipelineContext, "Pipeline2", "Pipeline2StepA") == "pipeline0_override")
+              // able to access parent global link
+              results.addValidation(s"Execution failed for Pipeline0 GlobalLink on Pipeline2",
+                getStringValue(pipelineContext, "Pipeline2", "Pipeline2StepB") == "pipeline0_original")
+            case "Pipeline3" =>  // parent is 0, 1
+              // shared parameter is taken from 1 since it overrode 0
+              results.addValidation(s"Execution failed for shared GlobalLink in Pipeline3",
+                getStringValue(pipelineContext, "Pipeline3", "Pipeline3StepA") == "pipeline1_override")
+              // able to access grand-parent global link
+              results.addValidation(s"Execution failed for Pipeline0 GlobalLink on Pipeline3",
+                getStringValue(pipelineContext, "Pipeline3", "Pipeline3StepB") == "pipeline0_original")
+              // able to access parent global link
+              results.addValidation(s"Execution failed for Pipeline1 GlobalLink on Pipeline3",
+                getStringValue(pipelineContext, "Pipeline3", "Pipeline3StepC") == "pipeline1_original")
+            case "Pipeline4" =>  // parent is 0, 2
+              // shared parameter is overridden with global link
+              results.addValidation(s"Execution failed for shared GlobalLink in Pipeline4",
+                getStringValue(pipelineContext, "Pipeline4", "Pipeline4StepA") == "pipeline4_override")
+              // able to access grand-parent global link
+              results.addValidation(s"Execution failed for Pipeline0 GlobalLink on Pipeline4",
+                getStringValue(pipelineContext, "Pipeline4", "Pipeline4StepB") == "pipeline0_original")
+              // unable to access global link from pipeline1
+              results.addValidation(s"Execution failed for Pipeline1 GlobalLink on Pipeline4",
+                getStringValue(pipelineContext, "Pipeline4", "Pipeline4StepC") == "unknown")
+          }
+          None
+        }
+      }
+
+      val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/global-links.json")).mkString)
+      PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
+      results.validate()
+    }
   }
 
   describe("Negative Tests") {

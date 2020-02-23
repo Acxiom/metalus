@@ -154,7 +154,11 @@ object PipelineDependencyExecutor {
         val params = parentContext.parameters.parameters.foldLeft(Map[String, Any]())((m, param) => {
           m + (param.pipelineId -> param.parameters)
         })
-        context.setGlobal(parentId, Map[String, Any]("pipelineParameters" -> params, "globals" -> parentContext.globals.get))
+        // merge current broadcast globals with parent broadcast globals (keeping current over parent if conflicts)
+        val bGlobalsFinal = parentContext.globals.get.getOrElse("GlobalLinks", Map()).asInstanceOf[Map[String, Any]] ++
+          execution.pipelineContext.globals.get.getOrElse("GlobalLinks", Map()).asInstanceOf[Map[String, Any]]
+        context.setGlobal("GlobalLinks", bGlobalsFinal)
+          .setGlobal(parentId, Map[String, Any]("pipelineParameters" -> params, "globals" -> parentContext.globals.get))
       })
       startExecution(PipelineExecution(execution.id, execution.pipelines, execution.initialPipelineId, ctx, execution.parents))
     }

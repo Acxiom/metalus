@@ -1,0 +1,276 @@
+{
+  "stepPackages": [
+    "com.acxiom.pipeline.steps",
+    "com.acxiom.pipeline"
+  ],
+  "executions": [
+    {
+      "id": "0",
+      "globals": {
+        "GlobalLinks": {
+          "sharedShortName": "pipeline0_override",
+          "pipeline0ShortName": "pipeline0_original"
+        }
+      },
+      "pipelines": [
+        {
+          "id": "Pipeline0",
+          "name": "Pipeline 0",
+          "steps": [
+            {
+              "id": "Pipeline0StepA",
+              "displayName": "Pipeline 0 Step A",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!sharedShortName"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "1",
+      "globals": {
+        "GlobalLinks": {
+          "sharedShortName": "pipeline1_override",
+          "pipeline1ShortName": "pipeline1_original"
+        }
+      },
+      "pipelines": [
+        {
+          "id": "Pipeline1",
+          "name": "Pipeline 1",
+          "steps": [
+            {
+              "id": "Pipeline1StepA",
+              "displayName": "Pipeline 1 Step A",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!sharedShortName"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              },
+              "nextStepId": "Pipeline1StepB"
+            },
+            {
+              "id": "Pipeline1StepB",
+              "displayName": "Pipeline 1 Step B",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!pipeline0ShortName"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "0"
+      ]
+    },
+    {
+      "id": "2",
+      "globals": {},
+      "pipelines": [
+        {
+          "id": "Pipeline2",
+          "name": "Pipeline 2",
+          "steps": [
+            {
+              "id": "Pipeline2StepA",
+              "displayName": "Pipeline 2 Step A",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!sharedShortName"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              },
+              "nextStepId": "Pipeline2StepB"
+            },
+            {
+              "id": "Pipeline2StepB",
+              "displayName": "Pipeline 2 Step B",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!pipeline0ShortName"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "0"
+      ]
+    },
+    {
+      "id": "3",
+      "globals": {},
+      "pipelines": [
+        {
+          "id": "Pipeline3",
+          "name": "Pipeline 3",
+          "steps": [
+            {
+              "id": "Pipeline3StepA",
+              "displayName": "Pipeline 3 Step A",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!sharedShortName"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              },
+              "nextStepId": "Pipeline3StepB"
+            },
+            {
+              "id": "Pipeline3StepB",
+              "displayName": "Pipeline 3 Step B",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!pipeline0ShortName"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              },
+              "nextStepId": "Pipeline3StepC"
+            },
+            {
+              "id": "Pipeline3StepC",
+              "displayName": "Pipeline 3 Step C",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!pipeline1ShortName"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "0", "1"
+      ]
+    },
+    {
+      "id": "4",
+      "globals": {
+        "GlobalLinks": {
+          "sharedShortName": "pipeline4_override"
+        }
+      },
+      "pipelines": [
+        {
+          "id": "Pipeline4",
+          "name": "Pipeline 4",
+          "steps": [
+            {
+              "id": "Pipeline4StepA",
+              "displayName": "Pipeline 4 Step A",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!sharedShortName"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              },
+              "nextStepId": "Pipeline4StepB"
+            },
+            {
+              "id": "Pipeline4StepB",
+              "displayName": "Pipeline 4 Step B",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!pipeline0ShortName"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              },
+              "nextStepId": "Pipeline4StepC"
+            },
+            {
+              "id": "Pipeline4StepC",
+              "displayName": "Pipeline 4 Step B",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "!pipeline1ShortName || unknown"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": [
+        "0", "2"
+      ]
+    }
+  ]
+}
