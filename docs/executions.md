@@ -42,12 +42,12 @@ Access a global:
 In the event that the result of an execution plan results in an exception or one of the pipelines being paused or errored,
 then downstream executions will not run.
 
-## Global Links ##
+## Global Links
 Global Links can be created to provide a shortened name that points to an object from a different pipeline or execution to
 prevent the pipeline designer from having to type in the long name in multiple places in their application.  These abbreviated
-names are stored in the pipelineContext.globals under the name "GlobalLinks".  It contains key/value pairs where the key is
+names are stored in the _pipelineContext.globals_ under the name "GlobalLinks".  It contains key/value pairs where the key is
 the shortened name and the value is the fully qualified parameter name (with executionIds, pipelineIds, etc... as stated above).
-These are access as typical globals in the step values using the !<shortenedName> syntax.
+These are accessed as typical globals in the step values using the _!shortenedName_ syntax.
 
 ```json
 "globals": {
@@ -57,7 +57,7 @@ These are access as typical globals in the step values using the !<shortenedName
   }
 }
 ```
-To access the value of myPrimaryReturn in a future step, the user would use !myPrimaryReturn and would get the value returned
+To access the value of myPrimaryReturn in a future step, the user would use _!myPrimaryReturn_ and would get the value returned
 from the parameter in the value.
  
 _**Note:**_ in the case of global name collision, the latest value (child over parent) for a shortened name will be used.
