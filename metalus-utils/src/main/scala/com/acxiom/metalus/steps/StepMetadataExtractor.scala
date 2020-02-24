@@ -54,7 +54,7 @@ class StepMetadataExtractor extends Extractor {
       val definition = metadata.asInstanceOf[StepMetadata]
       if (http.exists("package-objects")) {
         definition.pkgObjs.foreach(pkg => {
-          if (http.getContentLength(s"package-objects/${pkg.id}") > 0) {
+          if (http.exists(s"package-objects/${pkg.id}")) {
             http.putJsonContent(s"package-objects/${pkg.id}", Serialization.write(pkg))
           } else {
             http.postJsonContent("package-objects", Serialization.write(pkg))

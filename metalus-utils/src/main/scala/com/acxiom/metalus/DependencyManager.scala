@@ -21,7 +21,7 @@ object DependencyManager {
     val fileList = parameters("jar-files").asInstanceOf[String].split(",").toList
     val initialClassPath = fileList.foldLeft(ResolvedClasspath(List()))((cp, file) => {
       val fileName = file.substring(file.lastIndexOf("/") + 1)
-      val artifactName = fileName.split("\\.").head
+      val artifactName = fileName.substring(0, fileName.lastIndexOf("."))
       val srcFile = new File(file)
       val destFile = new File(output, fileName)
       copyStepJarToLocal(localFileManager, new JarFile(srcFile), destFile)

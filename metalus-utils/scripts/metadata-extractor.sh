@@ -39,11 +39,14 @@ do
     # Add to the classPath
     classPath="${classPath}:${dir}/libraries/${i}"
 done
-echo "Root Params: ${rootParams}"
+
 # Add the provided jars to the classpath to make it easier to retrieve
 for i in $(echo ${jarFiles} | sed "s/,/ /g")
 do
-    params="--jar-files ${i} ${rootParams}"
+    # Resolve the dependencies and add to the class path
+    stagingDir="${dir}/staging"
+    dependencies=`exec ${dir}/bin/dependency-resolver.sh --output-path $stagingDir --jar-files ${i} --path-prefix $stagingDir`
+    params="--jar-files ${dependencies} ${rootParams}"
     jarName=${i##*/}
     dirName=${jarName%.jar}
 
@@ -53,9 +56,8 @@ do
         mkdir -p "${outputPath}/${dirName}"
     fi
 
-    echo "Processing ${jarName}"
-    echo "Params ${params}"
-    java -cp "${classPath}:${i}" com.acxiom.metalus.MetadataExtractor ${params}
+    extraClasspath=$(echo ${dependencies} | sed "s/,/:/g")
+    java -cp "${classPath}:${extraClasspath}" com.acxiom.metalus.MetadataExtractor $params
 
     echo "${jarName} complete"
 done

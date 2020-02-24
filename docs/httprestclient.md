@@ -15,7 +15,7 @@ class BasicAuthorization(username: String, password: String) extends Authorizati
 ```
 would need these command line parameters:
 ```
---application.class com.acxiom.pipeline.api.BasicAuthorization --authorization.username myuser --authorization.password mypasswd
+--authorization.class com.acxiom.pipeline.api.BasicAuthorization --authorization.username myuser --authorization.password mypasswd
 ```
 
 ## Functions

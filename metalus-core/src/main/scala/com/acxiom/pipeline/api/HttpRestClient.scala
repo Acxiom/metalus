@@ -79,7 +79,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @return
     */
   def getOutputStream(path: String, bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): OutputStream = {
-    val connection =this.openUrlConnection(path)
+    val connection = this.openUrlConnection(path)
     connection.setDoOutput(true)
     connection.setRequestProperty("Content-Type", "multipart/form-data")
     new BufferedOutputStream(connection.getOutputStream, bufferSize)
@@ -100,8 +100,9 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
 
   /**
     * Simple method to post string content.
-    * @param path The path to post the content
-    * @param body The body to post
+    *
+    * @param path        The path to post the content
+    * @param body        The body to post
     * @param contentType The content type to post. Defaults to JSON.
     * @return The String output of the command.
     */
@@ -111,8 +112,9 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
 
   /**
     * Simple method to put string content.
-    * @param path The path to put the content
-    * @param body The body to put
+    *
+    * @param path        The path to put the content
+    * @param body        The body to put
     * @param contentType The content type to put. Defaults to JSON.
     * @return The String output of the command.
     */
