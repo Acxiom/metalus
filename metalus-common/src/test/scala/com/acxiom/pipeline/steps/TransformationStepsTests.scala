@@ -1,8 +1,6 @@
 package com.acxiom.pipeline.steps
 
 import java.nio.file.{Files, Path}
-import java.util
-
 import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
