@@ -12,30 +12,18 @@ usage()
 # Parse the parameters
 while [[ "$1" != "" ]]; do
     case $1 in
-        --output-path )    		shift
-        						outputPath=$1
-        						params="${params} --output-path ${outputPath}"
-                                ;;
-        --jar-files )           shift
-        						jarFiles=$1
-        						params="${params} --jar-files ${jarFiles}"
-                                ;;
-        --jar-separator )           shift
-        						jarSeparator=$1
-        						params="${params} --jar-separator ${jarSeparator}"
-                                ;;
-        --path-prefix )           shift
-        						pathPrefix=$1
-        						params="${params} --path-prefix ${pathPrefix}"
-                                ;;
         --help )                usage
                                 exit 1
+                                ;;
+        * )                     params="${params} ${1}"
+                                shift
+                                params="${params} ${1}"
+                                ;;
     esac
     shift
 done
 
-script=${BASH_SOURCE[0]}
-bindir=$(cd `dirname ${script}` && pwd)
+bindir=$(cd `dirname ${BASH_SOURCE[0]}` && pwd)
 dir=$(dirname "${bindir}")
 
 # Create the classPath

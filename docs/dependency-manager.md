@@ -1,4 +1,4 @@
-[Documentation Home](readme.md)
+[Documentation Home](readme.md) | [Metalus Utils Home](../metalus-utils/readme.md)
 
 # Dependency Manager
 The dependency manager is a tool used to resolve dependent jars for [step libraries](step-libraries.md). Each step 
@@ -38,36 +38,38 @@ The resolver is set to _maven_ and each library entry provides a structure defin
 the jars have been processed, a classpath will be printed to the console. All jars will be copied to the _output-path_.
 
 ## Running
+Metalus Utils must be [installed](../metalus-utils/readme.md#installation) before running the script. 
+
 The script parameters are:
 * --jar-files - A comma separated list of jar files. This should be the full path.
 * --output-path - A path to write the jar files.
 * --path-prefix - An optional path prefix to add to each jar in the classpath
 * --jar-separator - An optional separator character to use when building the classpath
 
-Installation:
-* Download the tar file from the releases page
-* Expand the tar file (tar xzf metalus-utils_2.11-spark_2.3...)
-* Change to the bin directory (cd metalus-utils/bin)
-* Example commands:
+**Authorization**:
+When pushing metadata to an API, [authorization](httprestclient.md#authorization) is not used unless the authorization 
+parameters are provided.
+
+**Example commands**:
 
 Generate the classpath:
 ```bash
-./dependency-resolver.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp
+bin/dependency-resolver.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp
 ```
 
 Generate the classpath with custom separator:
 ```bash
-./dependency-resolver.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp --jar-separator :
+bin/dependency-resolver.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp --jar-separator :
 ```
 
 Generate the classpath overriding the maven repo:
 ```bash
-./dependency-resolver.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp --maven.repo http://localhost/maven2
+bin/dependency-resolver.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp --maven.repo http://localhost/maven2
 ```
 
 Generate the classpath overriding the maven repo to use the local:
 ```bash
-./dependency-resolver.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp --maven.repo file://home/user/.m2/repository
+bin/dependency-resolver.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp --maven.repo file://home/user/.m2/repository
 ```
 
 Example Output with a _path-prefix_ of _hdfs://acxiom/jars/udl_:

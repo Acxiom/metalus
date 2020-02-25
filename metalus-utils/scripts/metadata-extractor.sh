@@ -12,29 +12,24 @@ usage()
 # Parse the parameters
 while [[ "$1" != "" ]]; do
     case $1 in
-        --output-path )    		shift
-        						outputPath=$1
-                                ;;
-        --api-url )           shift
-                    apiUrl=$1
-                                ;;
-        --api-path )           shift
-                    apiPath=$1
-                                ;;
-        --extractors )        shift
-                    extractors=$1
+        --output-path )         shift
+                                outputPath=$1
                                 ;;
         --jar-files )           shift
-        						jarFiles=$1
+                                jarFiles=$1
                                 ;;
         --help )                usage
                                 exit 1
+                                ;;
+        * )                     rootParams="${rootParams} ${1}"
+                                shift
+                                rootParams="${rootParams} ${1}"
+                                ;;
     esac
     shift
 done
 
-script=${BASH_SOURCE[0]}
-bindir=$(cd `dirname ${script}` && pwd)
+bindir=$(cd `dirname ${BASH_SOURCE[0]}` && pwd)
 dir=$(dirname "${bindir}")
 
 # Create the initial classPath
@@ -44,37 +39,25 @@ do
     # Add to the classPath
     classPath="${classPath}:${dir}/libraries/${i}"
 done
+
 # Add the provided jars to the classpath to make it easier to retrieve
 for i in $(echo ${jarFiles} | sed "s/,/ /g")
 do
-    params="--jar-files ${i}"
+    # Resolve the dependencies and add to the class path
+    stagingDir="${dir}/staging"
+    dependencies=`exec ${dir}/bin/dependency-resolver.sh --output-path $stagingDir --jar-files ${i} --path-prefix $stagingDir`
+    params="--jar-files ${dependencies} ${rootParams}"
     jarName=${i##*/}
     dirName=${jarName%.jar}
 
-    echo "Processing ${jarName}"
-
     if [[ -n "${outputPath}" ]]
     then
-      params="${params} --output-path ${outputPath}/${dirName}"
-      mkdir -p "${outputPath}/${dirName}"
+        params="${params} --output-path ${outputPath}/${dirName}"
+        mkdir -p "${outputPath}/${dirName}"
     fi
 
-    if [[ -n "${apiUrl}" ]]
-    then
-      params="${params} --api-url ${apiUrl}"
-    fi
-
-    if [[ -n "${extractors}" ]]
-    then
-      params="${params} --extractors ${extractors}"
-    fi
-
-    if [[ -n "${apiPath}" ]]
-    then
-      params="${params} --api-path ${apiPath}"
-    fi
-
-    java -cp "${classPath}:${i}" com.acxiom.metalus.MetadataExtractor ${params} > /dev/null 2>&1
+    extraClasspath=$(echo ${dependencies} | sed "s/,/:/g")
+    java -cp "${classPath}:${extraClasspath}" com.acxiom.metalus.MetadataExtractor $params
 
     echo "${jarName} complete"
 done
