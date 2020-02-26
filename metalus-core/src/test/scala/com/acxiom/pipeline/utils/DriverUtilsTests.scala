@@ -29,15 +29,6 @@ class DriverUtilsTests extends FunSpec {
   describe("DriverUtils - parsePipelineJson") {
     implicit val formats: Formats = DefaultFormats
 
-    it("Should throw an exception when the json is not valid") {
-      val json = s"""{"id": "1"}"""
-      val thrown = intercept[ParseException] {
-        DriverUtils.parsePipelineJson(json)
-      }
-      assert(thrown.getMessage.contains(json))
-      assert(thrown.getErrorOffset == 0)
-    }
-
     it("Should parse a basic pipeline json returning a list of Pipeline objects") {
       val json = Serialization.write(PipelineDefs.TWO_PIPELINE)
       val pipelineList = DriverUtils.parsePipelineJson(json)
@@ -45,13 +36,6 @@ class DriverUtilsTests extends FunSpec {
       assert(pipelineList.get.lengthCompare(2) == 0)
       verifyParsedPipelines(pipelineList.get.head, PipelineDefs.TWO_PIPELINE.head)
       verifyParsedPipelines(pipelineList.get(1), PipelineDefs.TWO_PIPELINE(1))
-    }
-
-    it("Should throw and error when json is invalid") {
-      val thrown = intercept[RuntimeException] {
-        DriverUtils.parsePipelineJson("")
-      }
-      assert(Option(thrown).isDefined)
     }
 
     def verifyParsedPipelines(pipeline1: Pipeline, pipeline2: Pipeline): Unit = {

@@ -30,7 +30,8 @@
       "parameters": {
         "name": "Listener1"
       }
-    }
+    },
+    {}
   ],
   "sparkUdfs": [
     {
@@ -38,7 +39,8 @@
       "parameters": {
         "name": "chicken"
       }
-    }
+    },
+    {}
   ],
   "securityManager": {
     "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
@@ -129,6 +131,10 @@
     "number": 1,
     "float": 1.5,
     "string": "some string",
+    "plainObject": [{
+      "some": "value",
+      "another": 5
+    }],
     "mappedObject": {
       "className": "com.acxiom.pipeline.applications.TestGlobalObject",
       "object": {
@@ -170,7 +176,7 @@
   "executions": [
     {
       "id": "0",
-      "pipelineIds": ["Pipeline1"],
+      "pipelineIds": ["9ecbaee7-ba8d-4520-815b-e5e5a24b1872"],
       "securityManager": {
         "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
         "parameters": {
@@ -181,6 +187,7 @@
         "number": 2,
         "float": 3.5,
         "string": "sub string",
+        "stringList": ["someString"],
         "mappedObject": {
           "className": "com.acxiom.pipeline.applications.TestGlobalObject",
           "object": {

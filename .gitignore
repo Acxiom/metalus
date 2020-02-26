@@ -5,3 +5,6 @@
 **/target/
 /pom.xml.versionsBackup
 **/pom.xml.versionsBackup
+.classpath
+.project
+.settings/

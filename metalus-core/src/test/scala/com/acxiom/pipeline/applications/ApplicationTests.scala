@@ -29,10 +29,11 @@ import scala.io.Source
 class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
   private val FIVE = 5
-  private val SEVEN = 7
+  private val SIX = 6
   private val EIGHT = 8
-  private val TEN = 10
+  private val NINE = 9
   private val ELEVEN = 11
+  private val TWELVE = 12
 
   override def beforeAll() {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
@@ -47,7 +48,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
         .setMaster("local")
       val executionPlan = ApplicationUtils.createExecutionPlan(application, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf,
-        DefaultPipelineListener())
+        PipelineListener())
       verifyApplication(executionPlan)
       removeSparkListeners(executionPlan.head.pipelineContext.sparkSession.get)
       executionPlan.head.pipelineContext.sparkSession.get.stop()
@@ -58,7 +59,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
         .setMaster("local")
       val executionPlan = ApplicationUtils.createExecutionPlan(app, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf,
-        DefaultPipelineListener())
+        PipelineListener())
       verifyApplication(executionPlan)
       removeSparkListeners(executionPlan.head.pipelineContext.sparkSession.get)
       executionPlan.head.pipelineContext.sparkSession.get.stop()
@@ -277,6 +278,11 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution2.pipelineContext.globals.get("authorization").isInstanceOf[BasicAuthorization])
     assert(execution2.pipelineContext.globals.get("authorization").asInstanceOf[BasicAuthorization].username == "myuser")
     assert(execution2.pipelineContext.globals.get("authorization").asInstanceOf[BasicAuthorization].password == "mypassword")
+    assert(execution2.pipelineContext.getGlobal("plainObject").isDefined)
+    assert(execution2.pipelineContext.getGlobal("plainObject").get.isInstanceOf[List[Map[String, Any]]])
+    assert(execution2.pipelineContext.getGlobal("plainObject").get.asInstanceOf[List[Map[String, Any]]].head("some") == "value")
+    assert(execution2.pipelineContext.getGlobal("plainObject").get.asInstanceOf[List[Map[String, Any]]].head("another") == 5)
+
 
     // Third Execution
     val execution3 = executionPlan(2)
@@ -313,7 +319,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution4.parents.isEmpty)
     // Verify the globals object was properly merged
     val globals = ctx3.globals.get
-    val globalCount = if (globals.contains("authorization.class")) { ELEVEN } else { EIGHT }
+    val globalCount = if (globals.contains("authorization.class")) { TWELVE } else { NINE }
     assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
@@ -405,7 +411,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution2.parents.isDefined)
     assert(execution2.parents.get.head == "0")
     val globals1 = ctx2.globals.get
-    val globalCount = if (globals1.contains("authorization.class")) { TEN } else { SEVEN }
+    val globalCount = if (globals1.contains("authorization.class")) { ELEVEN } else { EIGHT }
     assert(globals1.size == globalCount)
     assert(globals1.contains("rootLogLevel"))
     assert(globals1.contains("rootLogLevel"))
@@ -477,7 +483,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution1.parents.isEmpty)
     // Verify the globals object was properly constructed
     val globals = ctx1.globals.get
-    val globalCount = if (globals.contains("authorization.class")) { EIGHT } else { FIVE }
+    val globalCount = if (globals.contains("authorization.class")) { NINE } else { SIX }
     assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
@@ -487,6 +493,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(globals("float").asInstanceOf[Double] == 3.5)
     assert(globals.contains("string"))
     assert(globals("string").asInstanceOf[String] == "sub string")
+    assert(globals("stringList").isInstanceOf[List[String]])
+    assert(globals("stringList").asInstanceOf[List[String]].head == "someString")
     assert(globals.contains("mappedObject"))
     val subGlobalObject = globals("mappedObject").asInstanceOf[TestGlobalObject]
     assert(subGlobalObject.name.getOrElse("") == "Execution Mapped Object")

@@ -46,12 +46,20 @@ object MockStepObject {
   def mockStepSetGlobal(string: String, globalName: String): PipelineStepResponse = {
     PipelineStepResponse(Some(string), Some(Map[String, Any]("$globals." + globalName -> string)))
   }
+  def mockStepSetMetric(string: String, metricName: String): PipelineStepResponse = {
+    PipelineStepResponse(Some(string), Some(Map[String, Any](s"$$metrics.$metricName" -> string)))
+  }
 }
 
 case class MockClass(string: String)
 
 class MockNoParams {
   def string: String = "no-constructor-string"
+}
+
+class MockDefaultParam(flag: Boolean = false, secondParam: String = "none") {
+  def getFlag: Boolean = flag
+  def getSecondParam: String = secondParam
 }
 
 case class MockDriverSetup(parameters: Map[String, Any]) extends DriverSetup {

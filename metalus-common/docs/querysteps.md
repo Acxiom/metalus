@@ -1,3 +1,5 @@
+[Documentation Home](../../docs/readme.md) | [Common Home](../readme.md)
+
 # QuerySteps
 QuerySteps provides the user with a way to run queries in spark using Spark TempViews to store logic in the current
 session.  This library provides steps to load dataframes into a Spark TempView and run queries against those
@@ -66,4 +68,3 @@ step.
 ##### cacheTempView()
 This step will cache the results of an existing temporary view named with the *viewName* provided.
 
-  

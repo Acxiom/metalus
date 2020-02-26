@@ -18,17 +18,7 @@ trait ApplicationDriverSetup extends DriverSetup {
     } else if (parameters.contains("applicationConfigPath")) {
       val path = parameters("applicationConfigPath").toString
       if (path.startsWith("http")) {
-        val authorizationClass = "authorization.class"
-        if (parameters.contains(authorizationClass)) {
-          val authorizationParameters = parameters.filter(entry =>
-            entry._1.startsWith("authorization.") && entry._1 != authorizationClass)
-            .map(entry => entry._1.substring("authorization.".length) -> entry._2)
-          HttpRestClient(path,
-            ReflectionUtils.loadClass(parameters(authorizationClass).asInstanceOf[String], Some(authorizationParameters))
-              .asInstanceOf[Authorization]).getStringContent("")
-        } else {
-          HttpRestClient(path).getStringContent("")
-        }
+        DriverUtils.getHttpRestClient(path, parameters).getStringContent("")
       } else {
         val className = parameters.getOrElse("applicationConfigurationLoader", "com.acxiom.pipeline.fs.LocalFileManager").asInstanceOf[String]
         DriverUtils.loadJsonFromFile(path, className, parameters)

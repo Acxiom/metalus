@@ -57,8 +57,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @return True if the path exists, otherwise false.
     */
   def exists(path: String): Boolean = {
-    val contentType = this.openUrlConnection(path).getContentType
-    Option(contentType).isDefined
+    this.openUrlConnection(path).getResponseCode != 404
   }
 
   /**
@@ -80,7 +79,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @return
     */
   def getOutputStream(path: String, bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): OutputStream = {
-    val connection =this.openUrlConnection(path)
+    val connection = this.openUrlConnection(path)
     connection.setDoOutput(true)
     connection.setRequestProperty("Content-Type", "multipart/form-data")
     new BufferedOutputStream(connection.getOutputStream, bufferSize)
@@ -94,6 +93,45 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     */
   def getStringContent(path: String): String = {
     val input = getInputStream(path)
+    val content = Source.fromInputStream(input).mkString
+    input.close()
+    content
+  }
+
+  /**
+    * Simple method to post string content.
+    *
+    * @param path        The path to post the content
+    * @param body        The body to post
+    * @param contentType The content type to post. Defaults to JSON.
+    * @return The String output of the command.
+    */
+  def postJsonContent(path: String, body: String, contentType: String = "application/json"): String = {
+    upsertJsonContent(path, body, "POST", contentType)
+  }
+
+  /**
+    * Simple method to put string content.
+    *
+    * @param path        The path to put the content
+    * @param body        The body to put
+    * @param contentType The content type to put. Defaults to JSON.
+    * @return The String output of the command.
+    */
+  def putJsonContent(path: String, body: String, contentType: String = "application/json"): String = {
+    upsertJsonContent(path, body, "PUT", contentType)
+  }
+
+  private def upsertJsonContent(path: String, body: String, method: String, contentType: String): String = {
+    val connection = this.openUrlConnection(path)
+    connection.setDoOutput(true)
+    connection.setRequestProperty("Content-Type", contentType)
+    connection.setRequestMethod(method)
+    val output = connection.getOutputStream
+    output.write(body.getBytes, 0, body.length)
+    output.flush()
+    output.close()
+    val input = connection.getInputStream
     val content = Source.fromInputStream(input).mkString
     input.close()
     content

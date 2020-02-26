@@ -308,4 +308,117 @@ class GlobalStepUpdateTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(ctx.globals.get("redonthehead2") == "fred2")
     }
   }
+
+  describe("Metric Value Manipulation") {
+    val pipelineJson =
+      """
+        |[
+        | {
+        |   "id": "Pipeline1",
+        |   "name": "Pipeline 1",
+        |   "steps": [
+        |     {
+        |       "id": "Pipeline1Step1",
+        |       "displayName": "Pipeline1Step1",
+        |       "type": "pipeline",
+        |       "nextStepId": "Pipeline1Step2",
+        |       "params": [
+        |         {
+        |           "type": "text",
+        |           "name": "string",
+        |           "required": true,
+        |           "value": "fred"
+        |         },
+        |         {
+        |           "type": "text",
+        |           "name": "globalName",
+        |           "required": true,
+        |           "value": "redonthehead"
+        |         }
+        |       ],
+        |       "engineMeta": {
+        |         "spark": "MockStepObject.mockStepSetGlobal"
+        |       }
+        |     },
+        |     {
+        |       "id": "Pipeline1Step2",
+        |       "displayName": "Pipeline1Step1",
+        |       "type": "pipeline",
+        |       "nextStepId": "Pipeline1Step3",
+        |       "params": [
+        |         {
+        |           "type": "text",
+        |           "name": "string",
+        |           "required": true,
+        |           "value": "fred1"
+        |         },
+        |         {
+        |           "type": "text",
+        |           "name": "globalName",
+        |           "required": true,
+        |           "value": "redonthehead1"
+        |         }
+        |       ],
+        |       "engineMeta": {
+        |         "spark": "MockStepObject.mockStepSetGlobal"
+        |       }
+        |     },
+        |     {
+        |       "id": "Pipeline1Step3",
+        |       "displayName": "Pipeline1Step1",
+        |       "type": "pipeline",
+        |       "nextStepId": "Pipeline1Step4",
+        |       "params": [
+        |         {
+        |           "type": "text",
+        |           "name": "string",
+        |           "required": true,
+        |           "value": "fred1"
+        |         }
+        |       ],
+        |       "engineMeta": {
+        |         "spark": "MockStepObject.mockStepFunctionAnyResponse"
+        |       }
+        |     },
+        |     {
+        |       "id": "Pipeline1Step4",
+        |       "displayName": "Pipeline1Step4",
+        |       "type": "pipeline",
+        |       "params": [
+        |         {
+        |           "type": "text",
+        |           "name": "string",
+        |           "required": true,
+        |           "value": "2"
+        |         },
+        |         {
+        |           "type": "text",
+        |           "name": "metricName",
+        |           "required": true,
+        |           "value": "chickenCount"
+        |         }
+        |       ],
+        |       "engineMeta": {
+        |         "spark": "MockStepObject.mockStepSetMetric"
+        |       }
+        |     }
+        |   ]
+        | }
+        |]
+    """.stripMargin
+    it("Should allow steps to add metrics") {
+      val context = SparkTestHelper.generatePipelineContext()
+      val pipelines = DriverUtils.parsePipelineJson(pipelineJson)
+      val result = PipelineExecutor.executePipelines(pipelines.get, None, context)
+      assert(result.success)
+      val ctx = result.pipelineContext
+      assert(ctx.rootAudit.children.isDefined && ctx.rootAudit.children.get.length == 1)
+      val pAudit = ctx.rootAudit.children.get.head
+      val stepAudit = pAudit.getChildAudit("Pipeline1Step4")
+      assert(stepAudit.isDefined)
+      val metric = stepAudit.get.getMetric("chickenCount")
+      assert(metric.isDefined)
+      assert(metric.get.isInstanceOf[String] && metric.get.asInstanceOf[String] == "2")
+    }
+  }
 }

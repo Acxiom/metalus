@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.acxiom</groupId>
     <artifactId>metalus</artifactId>
-    <version>1.5.0-SNAPSHOT</version>
+    <version>1.6.0-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <packaging>pom</packaging>
     <description>Metalus Pipeline Library</description>
@@ -37,6 +37,12 @@
             <organization>Acxiom</organization>
             <organizationUrl>http://acxiom.com</organizationUrl>
         </developer>
+        <developer>
+            <name>David Freels Jr.</name>
+            <email>david.a.freels@acxiom.com</email>
+            <organization>Acxiom</organization>
+            <organizationUrl>http://acxiom.com</organizationUrl>
+        </developer>
     </developers>
 
     <properties>
@@ -48,6 +54,7 @@
         <spark.compat.version>2.3</spark.compat.version>
         <spark.version>2.3.3</spark.version>
         <json4s.version>3.2.11</json4s.version>
+        <mongo.version>2.3.2</mongo.version>
         <scala.style.config>${basedir}/scalastyle_config.xml</scala.style.config>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <sonar.core.codeCoveragePlugin>scoverage</sonar.core.codeCoveragePlugin>
@@ -62,6 +69,7 @@
         <module>metalus-core</module>
         <module>metalus-common</module>
         <module>metalus-examples</module>
+        <module>metalus-mongo</module>
         <module>metalus-utils</module>
     </modules>
 
@@ -146,6 +154,12 @@
         <defaultGoal>clean scoverage:report install scala:doc scalastyle:check</defaultGoal>
         <sourceDirectory>${basedir}/src/main/scala</sourceDirectory>
         <testSourceDirectory>${basedir}/src/test/scala</testSourceDirectory>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <!-- see http://davidb.github.com/scala-maven-plugin -->
@@ -316,6 +330,31 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <id>spark_2.3</id>
+            <properties>
+                <spark.compat.version>2.3</spark.compat.version>
+                <spark.version>2.3.3</spark.version>
+                <json4s.version>3.2.11</json4s.version>
+                <mongo.version>2.3.2</mongo.version>
+            </properties>
+        </profile>
+        <profile>
+            <id>spark_2.4</id>
+            <properties>
+                <spark.compat.version>2.4</spark.compat.version>
+                <spark.version>2.4.3</spark.version>
+                <json4s.version>3.5.3</json4s.version>
+                <mongo.version>2.4.1</mongo.version>
+            </properties>
+        </profile>
+        <profile>
+            <id>scala_2.12</id>
+            <properties>
+                <scala.compat.version>2.12</scala.compat.version>
+                <scala.version>2.12.8</scala.version>
+            </properties>
         </profile>
     </profiles>
 

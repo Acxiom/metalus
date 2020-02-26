@@ -44,7 +44,7 @@ object ApplicationUtils {
   def createExecutionPlan(application: Application,
                           globals: Option[Map[String, Any]],
                           sparkConf: SparkConf,
-                          pipelineListener: PipelineListener = DefaultPipelineListener(),
+                          pipelineListener: PipelineListener = PipelineListener(),
                           enableHiveSupport: Boolean = false,
                           parquetDictionaryEnabled: Boolean = true): List[PipelineExecution] = {
     // Create the SparkSession
@@ -88,7 +88,8 @@ object ApplicationUtils {
         Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")),
         ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
         pipelineManager)
-      PipelineExecution(execution.id.getOrElse(""), generatePipelines(execution, application), execution.initialPipelineId, ctx, execution.parents)
+      PipelineExecution(execution.id.getOrElse(""),
+        generatePipelines(execution, application, pipelineManager), execution.initialPipelineId, ctx, execution.parents)
     })
   }
 
@@ -113,17 +114,29 @@ object ApplicationUtils {
     pipelineExecution.asInstanceOf[DefaultPipelineExecution].copy(pipelineContext = ctx)
   }
 
-  private def generatePipelines(execution: Execution, application: Application): List[Pipeline] = {
-    val executionPipelines = execution.pipelines.getOrElse(List[DefaultPipeline]())
+  private def generatePipelines(execution: Execution, application: Application, pipelineManager: PipelineManager): List[Pipeline] = {
+    val executionPipelines = execution.pipelines.getOrElse(List[Pipeline]())
     val pipelineIds = execution.pipelineIds.getOrElse(List[String]())
-    val applicationPipelines = application.pipelines.getOrElse(List[DefaultPipeline]())
+    val applicationPipelines = application.pipelines.getOrElse(List[Pipeline]())
 
     if (pipelineIds.nonEmpty) {
+      // Start with any pipelines that are part of the execution and listed in the pipelineIds
       val filteredExecutionPipelines = executionPipelines.filter(p => pipelineIds.contains(p.id.getOrElse("")))
-      filteredExecutionPipelines ++ applicationPipelines
-        .filter(p => {
-          !filteredExecutionPipelines.exists(e => e.id.getOrElse("") == p.id.getOrElse("")) && pipelineIds.contains(p.id.get)
-        })
+      // Get the remaining pipelines listed in pipelineIds
+      pipelineIds.filter(id => !filteredExecutionPipelines.exists(_.id.getOrElse("") == id))
+        .foldLeft(filteredExecutionPipelines)((pipelines, pipelineId) => {
+        val pipeline = applicationPipelines.find(p => p.id.getOrElse("") == pipelineId)
+        if (pipeline.isDefined) {
+          pipelines :+ pipeline.get
+        } else {
+          val lookupPipeline = pipelineManager.getPipeline(pipelineId)
+          if (lookupPipeline.isDefined) {
+            pipelines :+ lookupPipeline.get
+          } else {
+            pipelines
+          }
+        }
+      })
     } else if (executionPipelines.nonEmpty) {
       executionPipelines
     } else if (applicationPipelines.nonEmpty) {
@@ -135,9 +148,9 @@ object ApplicationUtils {
 
   private def generatePipelineManager(pipelineManagerInfo: Option[ClassInfo],
                                       pipelineManager: Option[PipelineManager]): Option[PipelineManager] = {
-    if (pipelineManagerInfo.isDefined) {
+    if (pipelineManagerInfo.isDefined && pipelineManagerInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(pipelineManagerInfo.get.className.getOrElse("com.acxiom.pipeline.CachedPipelineManager"),
-        pipelineManagerInfo.get.parameters).asInstanceOf[PipelineManager])
+        Some(parseParameters(pipelineManagerInfo.get))).asInstanceOf[PipelineManager])
     } else {
       pipelineManager
     }
@@ -145,19 +158,19 @@ object ApplicationUtils {
 
   private def generatePipelineListener(pipelineListenerInfo: Option[ClassInfo],
                                        pipelineListener: Option[PipelineListener]): Option[PipelineListener] = {
-    if (pipelineListenerInfo.isDefined) {
+    if (pipelineListenerInfo.isDefined && pipelineListenerInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(pipelineListenerInfo.get.className.getOrElse("com.acxiom.pipeline.DefaultPipelineListener"),
-        pipelineListenerInfo.get.parameters).asInstanceOf[PipelineListener])
+        Some(parseParameters(pipelineListenerInfo.get))).asInstanceOf[PipelineListener])
     } else {
       pipelineListener
     }
   }
 
   private def generateSparkListeners(sparkListenerInfos: Option[List[ClassInfo]]): Option[List[SparkListener]] = {
-    if (sparkListenerInfos.isDefined) {
+    if (sparkListenerInfos.isDefined && sparkListenerInfos.get.nonEmpty) {
       Some(sparkListenerInfos.get.flatMap { info =>
         if (info.className.isDefined) {
-          Some(ReflectionUtils.loadClass(info.className.get, info.parameters).asInstanceOf[SparkListener])
+          Some(ReflectionUtils.loadClass(info.className.get, Some(parseParameters(info))).asInstanceOf[SparkListener])
         } else {
           None
         }
@@ -169,9 +182,9 @@ object ApplicationUtils {
 
   private def generateSecurityManager(securityManagerInfo: Option[ClassInfo],
                                       securityManager: Option[PipelineSecurityManager]): Option[PipelineSecurityManager] = {
-    if (securityManagerInfo.isDefined) {
+    if (securityManagerInfo.isDefined && securityManagerInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(securityManagerInfo.get.className.getOrElse("com.acxiom.pipeline.DefaultPipelineSecurityManager"),
-        securityManagerInfo.get.parameters).asInstanceOf[PipelineSecurityManager])
+        Some(parseParameters(securityManagerInfo.get))).asInstanceOf[PipelineSecurityManager])
     } else {
       securityManager
     }
@@ -179,9 +192,9 @@ object ApplicationUtils {
 
   private def generateStepMapper(stepMapperInfo: Option[ClassInfo],
                                  stepMapper: Option[PipelineStepMapper]): Option[PipelineStepMapper] = {
-    if (stepMapperInfo.isDefined) {
+    if (stepMapperInfo.isDefined && stepMapperInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(stepMapperInfo.get.className.getOrElse("com.acxiom.pipeline.DefaultPipelineStepMapper"),
-        stepMapperInfo.get.parameters).asInstanceOf[PipelineStepMapper])
+        Some(parseParameters(stepMapperInfo.get))).asInstanceOf[PipelineStepMapper])
     } else {
       stepMapper
     }
@@ -197,10 +210,10 @@ object ApplicationUtils {
   }
 
   private def registerSparkUDFs(globals: Option[Map[String, Any]], sparkSession: SparkSession, sparkUDFs: Option[List[ClassInfo]]): Unit = {
-    if (sparkUDFs.isDefined) {
+    if (sparkUDFs.isDefined && sparkUDFs.get.nonEmpty) {
       sparkUDFs.get.flatMap { info =>
         if (info.className.isDefined) {
-          Some(ReflectionUtils.loadClass(info.className.get, info.parameters).asInstanceOf[PipelineUDF])
+          Some(ReflectionUtils.loadClass(info.className.get, Some(parseParameters(info))).asInstanceOf[PipelineUDF])
         } else {
           None
         }
@@ -215,33 +228,39 @@ object ApplicationUtils {
     if (globals.isEmpty) {
       defaultGlobals
     } else {
-      implicit val formats: Formats = DefaultFormats
       val baseGlobals = globals.get
-      val result = baseGlobals.foldLeft(rootGlobals)((rootMap, entry) => {
-        // Handle lists of objects
-        entry._2 match {
-          case map: Map[String, Any] if map.contains("className") =>
-            val obj = DriverUtils.parseJson(Serialization.write(map("object").asInstanceOf[Map[String, Any]]), map("className").asInstanceOf[String])
-            rootMap + (entry._1 -> obj)
-          case listMap: List[Any] =>
-            val obj = listMap.map {
-              case m: Map[String, Any] =>
-                if (m.contains("className")) {
-                  DriverUtils.parseJson(Serialization.write(m("object").asInstanceOf[Map[String, Any]]), m("className").asInstanceOf[String])
-                } else {
-                  m
-                }
-              case any => any
-            }
-            rootMap + (entry._1 -> obj)
-          case _ => rootMap + (entry._1 -> entry._2)
-        }
-      })
+      val result = baseGlobals.foldLeft(rootGlobals)((rootMap, entry) => parseValue(rootMap, entry._1, entry._2))
       Some(if (merge) {
         defaultGlobals.getOrElse(Map[String, Any]()) ++ result
       } else {
         result
       })
+    }
+  }
+
+  private def parseParameters(classInfo: ClassInfo): Map[String, Any] = {
+    classInfo.parameters.getOrElse(Map[String, Any]())
+      .foldLeft(Map[String, Any]())((rootMap, entry) => parseValue(rootMap, entry._1, entry._2))
+  }
+
+  private def parseValue(rootMap: Map[String, Any], key: String, value: Any) = {
+    implicit val formats: Formats = DefaultFormats
+    value match {
+      case map: Map[String, Any] if map.contains("className") =>
+        val obj = DriverUtils.parseJson(Serialization.write(map("object").asInstanceOf[Map[String, Any]]), map("className").asInstanceOf[String])
+        rootMap + (key -> obj)
+      case listMap: List[Any] =>
+        val obj = listMap.map {
+          case m: Map[String, Any] =>
+            if (m.contains("className")) {
+              DriverUtils.parseJson(Serialization.write(m("object").asInstanceOf[Map[String, Any]]), m("className").asInstanceOf[String])
+            } else {
+              m
+            }
+          case any => any
+        }
+        rootMap + (key -> obj)
+      case _ => rootMap + (key -> value)
     }
   }
 }

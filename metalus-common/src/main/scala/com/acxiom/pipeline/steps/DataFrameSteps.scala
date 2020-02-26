@@ -3,6 +3,7 @@ package com.acxiom.pipeline.steps
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import org.apache.spark.sql._
+import org.apache.spark.storage.StorageLevel
 
 @StepObject
 object DataFrameSteps {
@@ -25,6 +26,24 @@ object DataFrameSteps {
   def getDataFrameWriter(dataFrame: DataFrame,
                      options: DataFrameWriterOptions): DataFrameWriter[Row] = {
     buildDataFrameWriter(dataFrame, options)
+  }
+
+  @StepFunction("fa05a970-476d-4617-be4d-950cfa65f2f8",
+    "Persist DataFrame",
+    "Persist a DataFrame to provided storage level.",
+    "Pipeline",
+    "InputOutput")
+  def persistDataFrame(dataFrame: DataFrame, storageLevel: String = "MEMORY_AND_DISK"): DataFrame = {
+    dataFrame.persist(StorageLevel.fromString(storageLevel.toUpperCase))
+  }
+
+  @StepFunction("e6fe074e-a1fa-476f-9569-d37295062186",
+    "Unpersist DataFrame",
+    "Unpersist a DataFrame.",
+    "Pipeline",
+    "InputOutput")
+  def unpersistDataFrame(dataFrame: DataFrame, blocking: Boolean = false): DataFrame = {
+    dataFrame.unpersist(blocking)
   }
 
   /**

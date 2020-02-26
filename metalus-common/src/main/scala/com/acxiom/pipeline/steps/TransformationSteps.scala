@@ -1,10 +1,10 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.{BranchResults, StepFunction, StepObject}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import org.apache.log4j.Logger
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.StructType
 
 @StepObject
 object TransformationSteps {
@@ -155,6 +155,38 @@ object TransformationSteps {
     val nameMap = dataFrame.columns.map(c => col(c).as(cleanColumnName(c)))
     // TODO: handle duplicate column names after cleaning
     dataFrame.select(nameMap: _*)
+  }
+
+  /**
+    * This function will prepend a new column to the provided data frame with a unique id.
+    * @param idColumnName The name to provide the id column.
+    * @param dataFrame    The data frame to add the column
+    * @return A DataFrame with the newly added unique id column.
+    */
+  @StepFunction("e625eed6-51f0-44e7-870b-91c960cdc93d",
+    "Adds a Unique Identifier to a DataFrame (metalus-common)",
+    "This step will add a new unique identifier to an existing data frame using the monotonically_increasing_id method",
+    "Pipeline", "Transforms")
+  def addUniqueIdToDataFrame(idColumnName: String, dataFrame: DataFrame): DataFrame = {
+    logger.info(s"adding unique id,name=$idColumnName")
+    dataFrame.withColumn(cleanColumnName(idColumnName), monotonically_increasing_id)
+  }
+
+  /**
+    * This function will add a new column to each row of data with the provided value.
+    * @param dataFrame   The data frame to add the column
+    * @param columnName  The name of the new column
+    * @param columnValue The value to add
+    * @return A new data frame with the new column
+    */
+  @StepFunction("80583aa9-41b7-4906-8357-cc2d3670d970",
+    "Add a Column with a Static Value to All Rows in a DataFrame (metalus-common)",
+    "This step will add a column with a static value to all rows in the provided data frame",
+    "Pipeline", "Transforms")
+  def addStaticColumnToDataFrame(dataFrame: DataFrame, columnName: String, columnValue: String): DataFrame = {
+
+    logger.info(s"adding static column,name=$columnName,value=$columnValue")
+    dataFrame.withColumn(cleanColumnName(columnName), lit(columnValue))
   }
 
   /**

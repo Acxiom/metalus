@@ -207,7 +207,7 @@ trait PipelineStepMapper {
                            pipelineContext: PipelineContext): Option[Any] = {
     if (values.length > 0) {
       val bestValue = returnBestValue(values.head.trim, parameter, pipelineContext)
-      if (isValidOption(bestValue)) {
+      if (isValidOption(bestValue) && bestValue.get != None.orNull) {
         bestValue
       } else {
         getBestValue(values.slice(1, values.length), parameter, pipelineContext)
@@ -346,8 +346,19 @@ trait PipelineStepMapper {
     // the value is marked as a global parameter, get it from pipelineContext.globals
     logger.debug(s"Fetching global value for $value.$extractPath")
     val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
-    if (globals.contains(value.substring(1))) {
-      val global = globals(value.substring(1))
+    val flatGlobals = if(globals.contains("GlobalLinks")) {
+      // check for conflicting globals in Broadcast
+      val broadcast = globals("GlobalLinks").asInstanceOf[Map[String, String]].map(b => {
+        if(globals.contains(b._1)) {
+          logger.warn(s"duplicate global [${b._1}] found in GlobalLinks...using Broadcast global over root")
+        }
+        b._1 -> returnBestValue(b._2, Parameter(), pipelineContext.copy(globals=Some(globals - "GlobalLinks")))
+      })
+      globals ++ broadcast
+    } else { globals }
+
+    if (flatGlobals.contains(value.substring(1))) {
+      val global = flatGlobals(value.substring(1))
       global match {
         case g: Option[_] if g.isDefined => Some(ReflectionUtils.extractField(g.get, extractPath))
         case _: Option[_] => None

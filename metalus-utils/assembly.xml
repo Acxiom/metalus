@@ -7,13 +7,17 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <files>
         <file>
-            <source>step-metadata-extractor.sh</source>
+            <source>scripts/metadata-extractor.sh</source>
+            <outputDirectory>metalus-utils/bin</outputDirectory>
+        </file>
+        <file>
+            <source>scripts/dependency-resolver.sh</source>
             <outputDirectory>metalus-utils/bin</outputDirectory>
         </file>
     </files>
     <fileSets>
         <fileSet>
-            <directory>libraries</directory>
+            <directory>target/libraries</directory>
             <outputDirectory>metalus-utils/libraries</outputDirectory>
         </fileSet>
     </fileSets>
