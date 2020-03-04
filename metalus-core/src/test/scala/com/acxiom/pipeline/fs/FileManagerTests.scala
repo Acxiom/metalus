@@ -55,7 +55,7 @@ class FileManagerTests extends FunSpec with Suite {
       dir.mkdir()
       val dirList = fileManager.getDirectoryListing(file.getParentFile.getAbsolutePath)
       assert(dirList.length == 1)
-      assert(dirList.head.isDirectory)
+      assert(dirList.head.directory)
       assert(dirList.head.fileName == dir.getName)
       assert(dirList.head.size == dir.length())
 
@@ -170,7 +170,7 @@ class FileManagerTests extends FunSpec with Suite {
       fs.mkdirs(new Path("hdfs:///new-dir"))
       val dirList = fileManager.getDirectoryListing("/")
       assert(dirList.length == 1)
-      assert(dirList.head.isDirectory)
+      assert(dirList.head.directory)
       assert(dirList.head.fileName == "new-dir")
       assert(dirList.head.size == 0)
       // Rename the file
@@ -298,7 +298,7 @@ class FileManagerTests extends FunSpec with Suite {
         "localhost", PORT, Some("testing"), None,
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
-      val listings = sftp.getFileListing("/").filterNot(_.isDirectory)
+      val listings = sftp.getFileListing("/").filterNot(_.directory)
       assert(listings.size == 1)
       assert(listings.head.fileName == "chicken5.txt")
       sftp.disconnect()
@@ -316,7 +316,7 @@ class FileManagerTests extends FunSpec with Suite {
       val listings = sftp.getDirectoryListing("/").filterNot(_.fileName == ".")
       assert(listings.size == 1)
       assert(listings.head.fileName == "chicken_dir")
-      assert(listings.head.isDirectory)
+      assert(listings.head.directory)
       sftp.disconnect()
       server.stop()
     }

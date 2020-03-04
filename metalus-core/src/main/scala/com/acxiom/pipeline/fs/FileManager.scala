@@ -84,7 +84,7 @@ trait FileManager {
    * @param path The path to list.
    * @return A list of directories at the given path.
    */
-  def getDirectoryListing(path: String): List[FileInfo] = getFileListing(path).filter(_.isDirectory)
+  def getDirectoryListing(path: String): List[FileInfo] = getFileListing(path).filter(_.directory)
 
   /**
     * Disconnect from the file system
@@ -132,7 +132,7 @@ trait FileManager {
   }
 }
 
-case class FileInfo(fileName: String, size: Long, isDirectory: Boolean)
+case class FileInfo(fileName: String, size: Long, directory: Boolean)
 
 /**
   * Default implementation of the FileManager that works with local files.
