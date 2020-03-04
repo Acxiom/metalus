@@ -136,7 +136,7 @@ class S3FileManager(accessKeyId: String, secretAccessKey: String, region: String
 
   @tailrec
   private def nextObjectBatch(s3Client: AmazonS3, listing: ObjectListing, keys: List[FileInfo] = Nil): List[FileInfo] = {
-    val pageKeys = listing.getObjectSummaries.asScala.map(summary => FileInfo(summary.getKey, summary.getSize)).toList
+    val pageKeys = listing.getObjectSummaries.asScala.map(summary => FileInfo(summary.getKey, summary.getSize, isDirectory = false)).toList
 
     if (listing.isTruncated) {
       nextObjectBatch(s3Client, s3Client.listNextBatchOfObjects(listing), pageKeys ::: keys)

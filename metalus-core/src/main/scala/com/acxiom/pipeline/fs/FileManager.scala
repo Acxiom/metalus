@@ -67,17 +67,24 @@ trait FileManager {
 
   /**
     * Get the size of the file at the given path. If the path is not a file, an exception will be thrown.
-    * @param path The path to the file
-    * @return size of the given file
+    * @param path The path to the file.
+    * @return size of the given file.
     */
   def getSize(path: String): Long
 
   /**
     * Returns a list of file names at the given path.
     * @param path The path to list.
-    * @return A list of files at the given path
+    * @return A list of files at the given path.
     */
   def getFileListing(path: String): List[FileInfo]
+
+  /**
+   * Returns a list of directory names at the given path.
+   * @param path The path to list.
+   * @return A list of directories at the given path.
+   */
+  def getDirectoryListing(path: String): List[FileInfo] = getFileListing(path).filter(_.isDirectory)
 
   /**
     * Disconnect from the file system
@@ -96,10 +103,10 @@ trait FileManager {
 
   /**
     * Copies all of the contents of the input stream to the output stream.
-    * @param input The input contents to copy
-    * @param output The output to copy to
-    * @param copyBufferSize The size in bytes of the copy buffer
-    * @return True if the copy was successful
+    * @param input The input contents to copy.
+    * @param output The output to copy to.
+    * @param copyBufferSize The size in bytes of the copy buffer.
+    * @return True if the copy was successful.
     */
   def copy(input: InputStream, output: OutputStream, copyBufferSize: Int, closeStreams: Boolean = false): Boolean = {
     try {
@@ -125,7 +132,7 @@ trait FileManager {
   }
 }
 
-case class FileInfo(fileName: String, size: Long)
+case class FileInfo(fileName: String, size: Long, isDirectory: Boolean)
 
 /**
   * Default implementation of the FileManager that works with local files.
@@ -174,7 +181,7 @@ class LocalFileManager extends FileManager {
     * @return A list of files at the given path
     */
   override def getFileListing(path: String): List[FileInfo] =
-    new File(path).listFiles().foldLeft(List[FileInfo]())((list, file) => FileInfo(file.getName, file.length()) :: list)
+    new File(path).listFiles().foldLeft(List[FileInfo]())((list, file) => FileInfo(file.getName, file.length(), file.isDirectory) :: list)
 
   /**
     * Disconnect from the file system
