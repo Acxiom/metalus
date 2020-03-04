@@ -173,6 +173,13 @@ class FileManagerTests extends FunSpec with Suite {
       assert(dirList.head.directory)
       assert(dirList.head.fileName == "new-dir")
       assert(dirList.head.size == 0)
+
+      // Fail to get a directory listing
+      val dirListingException = intercept[FileNotFoundException] {
+        fileManager.getDirectoryListing("/missing-directory")
+      }
+      assert(dirListingException.getMessage.startsWith("Path not found when attempting to get listing,inputPath="))
+
       // Rename the file
       assert(!fs.exists(file1))
       assert(fileManager.rename(file.toUri.toString, file1.toUri.toString))
