@@ -62,7 +62,7 @@ do
 
     if [[ $ret -ne 0 ]]
     then
-      echo "Failed to extract metadata due to unhandled exception in jar: ${jarName}"
+      echo "Failed to extract metadata due to unhandled exception for jar: ${jarName}"
       exit $ret
     fi
 
