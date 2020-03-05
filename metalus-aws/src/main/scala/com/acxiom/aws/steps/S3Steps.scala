@@ -14,11 +14,13 @@ object S3Steps {
     "Pipeline",
     "AWS")
   def readFromPath(path: String,
-                   accessKeyId: String,
-                   secretAccessKey: String,
+                   accessKeyId: Option[String] = None,
+                   secretAccessKey: Option[String] = None,
                    options: DataFrameReaderOptions = DataFrameReaderOptions(),
                    pipelineContext: PipelineContext): DataFrame = {
-    S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, pipelineContext)
+    if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+      S3Utilities.setS3Authorization(path, accessKeyId.get, secretAccessKey.get, pipelineContext)
+    }
     DataFrameSteps.getDataFrameReader(options, pipelineContext)
       .load(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
@@ -29,11 +31,13 @@ object S3Steps {
     "Pipeline",
     "AWS")
   def readFromPaths(paths: List[String],
-                    accessKeyId: String,
-                    secretAccessKey: String,
+                    accessKeyId: Option[String] = None,
+                    secretAccessKey: Option[String] = None,
                     options: DataFrameReaderOptions = DataFrameReaderOptions(),
                     pipelineContext: PipelineContext): DataFrame = {
-    S3Utilities.setS3Authorization(paths.head, accessKeyId, secretAccessKey, pipelineContext)
+    if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+      S3Utilities.setS3Authorization(paths.head, accessKeyId.get, secretAccessKey.get, pipelineContext)
+    }
     DataFrameSteps.getDataFrameReader(options, pipelineContext)
       .load(paths.map(p => S3Utilities.replaceProtocol(p, S3Utilities.deriveProtocol(p))): _*)
   }
@@ -45,31 +49,36 @@ object S3Steps {
     "AWS")
   def writeToPath(dataFrame: DataFrame,
                   path: String,
-                  accessKeyId: String,
-                  secretAccessKey: String,
+                  accessKeyId: Option[String] = None,
+                  secretAccessKey: Option[String] = None,
                   options: DataFrameWriterOptions = DataFrameWriterOptions(),
                   pipelineContext: PipelineContext): Unit = {
-    S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, pipelineContext)
+    if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+      S3Utilities.setS3Authorization(path, accessKeyId.get, secretAccessKey.get, pipelineContext)
+    }
     DataFrameSteps.getDataFrameWriter(dataFrame, options)
       .save(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
 
   /**
-    * Simple function to generate the HDFSFileManager for the local S3 file system.
-    *
-    * @param accessKeyId     The AWS access key to use when interacting with the S3 bucket
-    * @param secretAccessKey The AWS secret to use when interactin with the S3 bucket
-    * @param region          The AWS region this bucket should be accessed in
-    * @param bucket          The bucket to use for this file system.
-    * @return A FileManager that can interact with the specified S3 bucket.
-    */
+   * Simple function to generate the HDFSFileManager for the local S3 file system.
+   *
+   * @param accessKeyId     The AWS access key to use when interacting with the S3 bucket
+   * @param secretAccessKey The AWS secret to use when interactin with the S3 bucket
+   * @param region          The AWS region this bucket should be accessed in
+   * @param bucket          The bucket to use for this file system.
+   * @return A FileManager that can interact with the specified S3 bucket.
+   */
   @StepFunction("cc4694b9-5e54-4b12-8088-ed4ced056efd",
     "Create S3 FileManager",
     "Simple function to generate the S3FileManager for a S3 file system",
     "Pipeline",
     "AWS"
   )
-  def createFileManager(accessKeyId: String, secretAccessKey: String, region: String, bucket: String): Option[S3FileManager] = {
-    Some(new S3FileManager(accessKeyId, secretAccessKey, region, bucket))
+  def createFileManager(region: String,
+                        bucket: String,
+                        accessKeyId: Option[String] = None,
+                        secretAccessKey: Option[String] = None): Option[S3FileManager] = {
+    Some(new S3FileManager(region, bucket, accessKeyId, secretAccessKey))
   }
 }

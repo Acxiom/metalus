@@ -125,7 +125,7 @@ class SFTPFileManager(user: String,
   override def getFileListing(path: String): List[FileInfo] = {
     channel.ls(path).map(e => {
       val entry = e.asInstanceOf[channel.LsEntry]
-      FileInfo(entry.getFilename, entry.getAttrs.getSize)
+      FileInfo(entry.getFilename, entry.getAttrs.getSize, entry.getAttrs.isDir)
     }).toList
   }
 

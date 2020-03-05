@@ -11,10 +11,17 @@ import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 
-class S3FileManager(accessKeyId: String, secretAccessKey: String, region: String, bucket: String) extends FileManager {
-  private lazy val s3Client: AmazonS3 = {
+class S3FileManager(region: String,
+                    bucket: String,
+                    accessKeyId: Option[String] = None,
+                    secretAccessKey: Option[String] = None) extends FileManager {
+  private lazy val s3Client: AmazonS3 = if (accessKeyId.isDefined && secretAccessKey.isDefined) {
     AmazonS3ClientBuilder.standard()
-      .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKeyId, secretAccessKey)))
+      .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKeyId.get, secretAccessKey.get)))
+      .withRegion(region)
+      .build()
+  } else {
+    AmazonS3ClientBuilder.standard()
       .withRegion(region)
       .build()
   }
@@ -136,7 +143,7 @@ class S3FileManager(accessKeyId: String, secretAccessKey: String, region: String
 
   @tailrec
   private def nextObjectBatch(s3Client: AmazonS3, listing: ObjectListing, keys: List[FileInfo] = Nil): List[FileInfo] = {
-    val pageKeys = listing.getObjectSummaries.asScala.map(summary => FileInfo(summary.getKey, summary.getSize)).toList
+    val pageKeys = listing.getObjectSummaries.asScala.map(summary => FileInfo(summary.getKey, summary.getSize, directory = false)).toList
 
     if (listing.isTruncated) {
       nextObjectBatch(s3Client, s3Client.listNextBatchOfObjects(listing), pageKeys ::: keys)

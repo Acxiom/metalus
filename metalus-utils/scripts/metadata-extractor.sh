@@ -46,7 +46,7 @@ do
     # Resolve the dependencies and add to the class path
     stagingDir="${dir}/staging"
     dependencies=`exec ${dir}/bin/dependency-resolver.sh --output-path $stagingDir --jar-files ${i} --path-prefix $stagingDir`
-    params="--jar-files ${dependencies} ${rootParams}"
+    params="--jar-files ${i} ${rootParams}"
     jarName=${i##*/}
     dirName=${jarName%.jar}
 
@@ -58,6 +58,13 @@ do
 
     extraClasspath=$(echo ${dependencies} | sed "s/,/:/g")
     java -cp "${classPath}:${extraClasspath}" com.acxiom.metalus.MetadataExtractor $params
+    ret=${?}
+
+    if [[ $ret -ne 0 ]]
+    then
+      echo "Failed to extract metadata due to unhandled exception for jar: ${jarName}"
+      exit $ret
+    fi
 
     echo "${jarName} complete"
 done
