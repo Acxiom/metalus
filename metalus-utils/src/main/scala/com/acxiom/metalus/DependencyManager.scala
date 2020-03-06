@@ -1,11 +1,13 @@
 package com.acxiom.metalus
 
-import java.io.File
+import java.io.{File, FileOutputStream}
+import java.nio.file.Files
 import java.util.jar.JarFile
 
 import com.acxiom.metalus.resolvers.{Dependency, DependencyResolver}
 import com.acxiom.pipeline.fs.{FileManager, LocalFileManager}
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
+import org.apache.log4j.Logger
 
 object DependencyManager {
 
@@ -18,11 +20,23 @@ object DependencyManager {
       output.mkdirs()
     }
     // Initialize the Jar files
+    val noAuthDownload = parameters.getOrElse("no-auth-download", "false") == "true"
     val fileList = parameters("jar-files").asInstanceOf[String].split(",").toList
     val initialClassPath = fileList.foldLeft(ResolvedClasspath(List()))((cp, file) => {
       val fileName = file.substring(file.lastIndexOf("/") + 1)
       val artifactName = fileName.substring(0, fileName.lastIndexOf("."))
-      val srcFile = new File(file)
+      val srcFile = if (file.startsWith("http")) {
+        val http = DriverUtils.getHttpRestClient(file, parameters, Some(noAuthDownload))
+        val input = http.getInputStream("")
+        val dir = Files.createTempDirectory("metalusJarDownloads").toFile
+        val localFile = new File(dir, fileName)
+        localFile.deleteOnExit()
+        dir.deleteOnExit()
+        new LocalFileManager().copy(input, new FileOutputStream(localFile), FileManager.DEFAULT_COPY_BUFFER_SIZE, true)
+        localFile
+      } else {
+        new File(file)
+      }
       val destFile = new File(output, fileName)
       copyStepJarToLocal(localFileManager, new JarFile(srcFile), destFile)
       cp.addDependency(Dependency(artifactName, artifactName.split("-")(1), destFile))
@@ -74,6 +88,7 @@ object DependencyManager {
 }
 
 case class ResolvedClasspath(dependencies: List[Dependency]) {
+  private val logger = Logger.getLogger(getClass)
   def generateClassPath(jarPrefix: String, separator: String = ","): String = {
     dependencies.foldLeft("")((cp, dep) => s"$cp$jarPrefix/${dep.localFile.getName}$separator").dropRight(1)
   }
@@ -85,7 +100,7 @@ case class ResolvedClasspath(dependencies: List[Dependency]) {
           val version1 = dep.version
           val version2 = dependency.version
           // TODO This handles numbered versions and not things like alpha, beta, etc.
-          if (version1.split("\\.")
+          val finalDependency = if (version1.split("\\.")
             .zipAll(version2.split("\\."), "0", "0")
             .find { case (a, b) => a != b }
             .fold(0) { case (a, b) => a.toInt - b.toInt } > 0) {
@@ -93,6 +108,8 @@ case class ResolvedClasspath(dependencies: List[Dependency]) {
           } else {
             dependency
           }
+          logger.warn(s"Found two versions of ${dependency.name} (${dep.version} / ${dependency.version}) using ${finalDependency.version}")
+          finalDependency
         } else {
           dep
         }
