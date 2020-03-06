@@ -6,6 +6,7 @@ import java.util.jar.JarFile
 import com.acxiom.metalus.resolvers.{Dependency, DependencyResolver}
 import com.acxiom.pipeline.fs.{FileManager, LocalFileManager}
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
+import org.apache.log4j.Logger
 
 object DependencyManager {
 
@@ -74,6 +75,7 @@ object DependencyManager {
 }
 
 case class ResolvedClasspath(dependencies: List[Dependency]) {
+  private val logger = Logger.getLogger(getClass)
   def generateClassPath(jarPrefix: String, separator: String = ","): String = {
     dependencies.foldLeft("")((cp, dep) => s"$cp$jarPrefix/${dep.localFile.getName}$separator").dropRight(1)
   }
@@ -85,7 +87,7 @@ case class ResolvedClasspath(dependencies: List[Dependency]) {
           val version1 = dep.version
           val version2 = dependency.version
           // TODO This handles numbered versions and not things like alpha, beta, etc.
-          if (version1.split("\\.")
+          val finalDependency = if (version1.split("\\.")
             .zipAll(version2.split("\\."), "0", "0")
             .find { case (a, b) => a != b }
             .fold(0) { case (a, b) => a.toInt - b.toInt } > 0) {
@@ -93,6 +95,8 @@ case class ResolvedClasspath(dependencies: List[Dependency]) {
           } else {
             dependency
           }
+          logger.warn(s"Found two versions of ${dependency.name} (${dep.version} / ${dependency.version}) using ${finalDependency.version}")
+          finalDependency
         } else {
           dep
         }
