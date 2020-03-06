@@ -78,9 +78,9 @@ object DriverUtils {
     parameters
   }
 
-  def getHttpRestClient(url: String, parameters: Map[String, Any]): HttpRestClient = {
+  def getHttpRestClient(url: String, parameters: Map[String, Any], skipAuth: Option[Boolean] = None): HttpRestClient = {
     val authorizationClass = "authorization.class"
-    if (parameters.contains(authorizationClass)) {
+    if (parameters.contains(authorizationClass).&&(!skipAuth.getOrElse(false))) {
       val authorizationParameters = parameters.filter(entry =>
         entry._1.startsWith("authorization.") && entry._1 != authorizationClass)
         .map(entry => entry._1.substring("authorization.".length) -> entry._2)

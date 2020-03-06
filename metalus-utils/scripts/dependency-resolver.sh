@@ -24,14 +24,15 @@ while [[ "$1" != "" ]]; do
   shift
 done
 
-bindir=$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)
+bindir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 dir=$(dirname "${bindir}")
 
 # Create the classPath
 classPath=""
-for i in $(ls ${dir}/libraries); do
+for i in "${dir}"/libraries/*.jar
+do
   # Add to the classPath
-  classPath="${classPath}:${dir}/libraries/${i}"
+  classPath="${classPath}:${i}"
 done
 
 java -cp $classPath com.acxiom.metalus.DependencyManager $params

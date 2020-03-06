@@ -18,7 +18,7 @@ object MetadataExtractor {
     val output = if(parameters.contains("output-path")) {
       Output(None, Some(new File(parameters("output-path").asInstanceOf[String])))
     } else if(parameters.contains("api-url")) {
-      val apiPath = s"${parameters("api-url").asInstanceOf[String]}/${parameters.getOrElse("api-path", "/api/v1").asInstanceOf[String]}"
+      val apiPath = s"${parameters("api-url").asInstanceOf[String]}/${parameters.getOrElse("api-path", "/api/v1/").asInstanceOf[String]}"
       Output(Some(DriverUtils.getHttpRestClient(new URI(apiPath).normalize().toString, parameters)), None)
     } else {
       Output(None, None)
