@@ -32,7 +32,7 @@ object DependencyManager {
         val localFile = new File(dir, fileName)
         localFile.deleteOnExit()
         dir.deleteOnExit()
-        new LocalFileManager().copy(input, new FileOutputStream(localFile), FileManager.DEFAULT_COPY_BUFFER_SIZE, true)
+        new LocalFileManager().copy(input, new FileOutputStream(localFile), FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)
         localFile
       } else {
         new File(file)
@@ -76,7 +76,7 @@ object DependencyManager {
   private def resolveDependency(dependency: Dependency, output: File, parameters: Map[String, Any]): List[Dependency] = {
     val dependencyMap: Option[Map[String, Any]] = DependencyResolver.getDependencyJson(dependency.localFile.getAbsolutePath, parameters)
     if (dependencyMap.isDefined) {
-      // TODO Currently only support one dependency within the json
+      // Currently only support one dependency within the json
       val dependencyType = dependencyMap.get.head._1
       val resolverName = s"com.acxiom.metalus.resolvers.${dependencyType.toLowerCase.capitalize}DependencyResolver"
       val resolver = ReflectionUtils.loadClass(resolverName).asInstanceOf[DependencyResolver]
@@ -89,8 +89,14 @@ object DependencyManager {
 
 case class ResolvedClasspath(dependencies: List[Dependency]) {
   private val logger = Logger.getLogger(getClass)
+
   def generateClassPath(jarPrefix: String, separator: String = ","): String = {
-    dependencies.foldLeft("")((cp, dep) => s"$cp$jarPrefix/${dep.localFile.getName}$separator").dropRight(1)
+    val prefix = if (jarPrefix.endsWith("/")) {
+      jarPrefix
+    } else {
+      s"$jarPrefix/"
+    }
+      dependencies.foldLeft("")((cp, dep) => s"$cp$prefix${dep.localFile.getName}$separator").dropRight(1)
   }
 
   def addDependency(dependency: Dependency): ResolvedClasspath = {
@@ -99,11 +105,14 @@ case class ResolvedClasspath(dependencies: List[Dependency]) {
         if (dep.name == dependency.name) {
           val version1 = dep.version
           val version2 = dependency.version
-          // TODO This handles numbered versions and not things like alpha, beta, etc.
           val finalDependency = if (version1.split("\\.")
             .zipAll(version2.split("\\."), "0", "0")
             .find { case (a, b) => a != b }
-            .fold(0) { case (a, b) => a.toInt - b.toInt } > 0) {
+            .fold(0) {
+              case (a, b) if a.forall(_.isDigit) && b.forall(_.isDigit) => a.toInt - b.toInt
+              case a if a._1.forall(_.isDigit) => 1
+              case (a, b) => a.compareTo(b)
+            } > 0) {
             dep
           } else {
             dependency
