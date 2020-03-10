@@ -110,6 +110,7 @@ case class ResolvedClasspath(dependencies: List[Dependency]) {
             .find { case (a, b) => a != b }
             .fold(0) {
               case (a, b) if a.forall(_.isDigit) && b.forall(_.isDigit) => a.toInt - b.toInt
+              case a if a._1.forall(_.isDigit) => 1
               case (a, b) => a.compareTo(b)
             } > 0) {
             dep
