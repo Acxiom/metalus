@@ -29,6 +29,9 @@ while [[ "$1" != "" ]]; do
         --authorization.password ) shift
                                 authorization="${authorization} --authorization.password ${1}"
                                 ;;
+        --no-auth-download)     shift
+                                authorization="${authorization} --no-auth-download ${1}"
+                                ;;
         --help )                usage
                                 exit 1
                                 ;;

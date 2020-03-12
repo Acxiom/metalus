@@ -32,10 +32,16 @@ This function will open an output stream to the provided path. Calling functions
 ### Get String Content
 This function will perform a GET against the provided path and return the body as a string.
 
-## Post JSON Content
+### Post JSON Content
+This function will take a given string and _POST_ it to a path as JSON.
+
+### Put JSON Content
+This function will take a given string and _PUT_ it to a path as JSON.
+
+### Post String Content
 This function will take a given string and _POST_ it to a path as the provided content type. The default is JSON.
 
-## Put JSON Content
+### Put String Content
 This function will take a given string and _PUT_ it to a path as the provided content type. The default is JSON.
 
 ### Delete
