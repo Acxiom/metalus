@@ -60,12 +60,8 @@ object ReflectionUtils {
     logger.info(s"Preparing to run step $objName.$funcName")
     // Get the reflection information for the object and method
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
-    val stepPackage = pipelineContext.stepPackages.get.find(pkg => {
-      Try(mirror.staticModule(s"$pkg.$objName")) match {
-        case Success(_) => true
-        case Failure(_) => false
-      }
-    })
+
+    val stepPackage = getStepPackage(objName, mirror, step.engineMeta.get.pkg, pipelineContext)
     val module = mirror.staticModule(s"${stepPackage.getOrElse("")}.$objName")
     val im = mirror.reflectModule(module)
     val method = getMethod(funcName, im, parameterValues)
@@ -236,6 +232,7 @@ object ReflectionUtils {
   private def getBuiltInParameter(pipelineContext: Option[PipelineContext], name: String) = {
     name match {
       case "pipelineContext" => if (pipelineContext.isDefined) pipelineContext.get
+      case _ => None
     }
   }
 
@@ -367,5 +364,24 @@ object ReflectionUtils {
     paramType.typeArgs.head <:< typeOf[Seq[_]]
   } else {
     paramType <:< typeOf[Seq[_]]
+  }
+
+  private def getStepPackage(objName: String, mirror: Mirror, pkg: Option[String], pipelineContext: PipelineContext): Option[String] = {
+    val stepPackages = pipelineContext.stepPackages.getOrElse(List())
+    if (pkg.isDefined && pkg.get.nonEmpty) {
+      val res = stepPackages.find(p => p == pkg.get)
+      if (res.isEmpty) {
+        throw new IllegalArgumentException(s"Package: [${pkg.get}] was not found among step packages:" +
+          s" [${stepPackages.mkString(", ")}]")
+      }
+      res
+    } else {
+      stepPackages.find(pkg => {
+        Try(mirror.staticModule(s"$pkg.$objName")) match {
+          case Success(_) => true
+          case Failure(_) => false
+        }
+      })
+    }
   }
 }
