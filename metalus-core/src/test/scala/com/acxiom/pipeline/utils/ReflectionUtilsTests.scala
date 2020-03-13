@@ -11,7 +11,7 @@ class ReflectionUtilsTests extends FunSpec {
     val pipeline = Pipeline(Some("TestPipeline"))
     val globals = Map[String, Any]("validateStepParameterTypes" -> true)
     val pipelineContext = PipelineContext(None, None, Some(globals), PipelineSecurityManager(), PipelineParameters(),
-      Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(), None, None)
+      Some(List("com.acxiom.pipeline", "com.acxiom.pipeline.steps")), PipelineStepMapper(), None, None)
     it("Should process step function") {
       val step = PipelineStep(None, None, None, None, None, Some(EngineMeta(Some("MockStepObject.mockStepFunction"))))
       val response = ReflectionUtils.processStep(step, pipeline,
@@ -25,7 +25,7 @@ class ReflectionUtilsTests extends FunSpec {
 
     it("Should process step function with non-PipelineStepResponse") {
       val step = PipelineStep(None, None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepFunctionAnyResponse"))))
+        Some(EngineMeta(Some("MockStepObject.mockStepFunctionAnyResponse"), Some("com.acxiom.pipeline.steps"))))
       val response = ReflectionUtils.processStep(step, pipeline, Map[String, Any]("string" -> "string"), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
@@ -122,6 +122,24 @@ class ReflectionUtilsTests extends FunSpec {
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == 1)
+    }
+
+    it("Should respect the pkg setting on EngineMeta") {
+      val step = PipelineStep(None, None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.mockStepFunctionAnyResponse"), Some("com.acxiom.pipeline.steps"))))
+      val response = ReflectionUtils.processStep(step, pipeline, Map[String, Any]("string" -> "string"), pipelineContext)
+      assert(response.isInstanceOf[PipelineStepResponse])
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.getOrElse("") == "string")
+    }
+
+    it("Should inject None for missing parameters") {
+      val step = PipelineStep(None, None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
+      val response = ReflectionUtils.processStep(step, pipeline, Map[String, Any](), pipelineContext)
+      assert(response.isInstanceOf[PipelineStepResponse])
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.getOrElse("") == "chicken")
     }
   }
 
