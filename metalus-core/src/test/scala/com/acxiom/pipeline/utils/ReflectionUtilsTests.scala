@@ -141,16 +141,6 @@ class ReflectionUtilsTests extends FunSpec {
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.getOrElse("") == "chicken")
     }
-
-    it("Should throw an exception if the package is not among listed step packages") {
-      val step = PipelineStep(None, None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepFunctionAnyResponse"), Some("com.acxiom.pipeline.fake"))))
-      val thrown = intercept[IllegalArgumentException] {
-        ReflectionUtils.processStep(step, pipeline, Map[String, Any]("string" -> "string"), pipelineContext)
-      }
-      assert(thrown.getMessage == "Package: [com.acxiom.pipeline.fake] was not found among step packages:" +
-        " [com.acxiom.pipeline, com.acxiom.pipeline.steps]")
-    }
   }
 
   describe("ReflectionUtils - loadClass") {

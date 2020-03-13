@@ -369,12 +369,7 @@ object ReflectionUtils {
   private def getStepPackage(objName: String, mirror: Mirror, pkg: Option[String], pipelineContext: PipelineContext): Option[String] = {
     val stepPackages = pipelineContext.stepPackages.getOrElse(List())
     if (pkg.isDefined && pkg.get.nonEmpty) {
-      val res = stepPackages.find(p => p == pkg.get)
-      if (res.isEmpty) {
-        throw new IllegalArgumentException(s"Package: [${pkg.get}] was not found among step packages:" +
-          s" [${stepPackages.mkString(", ")}]")
-      }
-      res
+      pkg
     } else {
       stepPackages.find(pkg => {
         Try(mirror.staticModule(s"$pkg.$objName")) match {
