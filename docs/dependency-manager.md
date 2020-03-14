@@ -41,14 +41,17 @@ the jars have been processed, a classpath will be printed to the console. All ja
 Metalus Utils must be [installed](../metalus-utils/readme.md#installation) before running the script. 
 
 The script parameters are:
-* --jar-files - A comma separated list of jar files. This should be the full path.
+* --jar-files - A comma separated list of jar files. This should be the full path. Paths starting with _http_ will attempt
+to download the jars. The authorization parameters will be used if provided unless the _no-auth-download_ is provided.
+* --no-auth-download - An optional parameter which when set to true will not use the authorization parameters when 
+downloading jars.
 * --output-path - A path to write the jar files.
 * --path-prefix - An optional path prefix to add to each jar in the classpath
 * --jar-separator - An optional separator character to use when building the classpath
 
 **Authorization**:
-When pushing metadata to an API, [authorization](httprestclient.md#authorization) is not used unless the authorization 
-parameters are provided.
+When pushing metadata to an API or downloading jars, [authorization](httprestclient.md#authorization) is not used unless 
+the authorization parameters are provided.
 
 **Example commands**:
 

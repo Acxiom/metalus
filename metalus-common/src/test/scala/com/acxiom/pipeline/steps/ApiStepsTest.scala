@@ -2,9 +2,9 @@ package com.acxiom.pipeline.steps
 
 import java.net.HttpURLConnection
 
-import com.acxiom.pipeline.api.BasicAuthorization
+import com.acxiom.pipeline.api.{BasicAuthorization, HttpRestClient}
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.{aMultipart, aResponse, containing, delete, equalTo, get, post, urlPathEqualTo}
+import com.github.tomakehurst.wiremock.client.WireMock.{aMultipart, aResponse, containing, delete, equalTo, get, post, put, urlPathEqualTo}
 import org.scalatest.{BeforeAndAfterAll, FunSpec}
 
 import scala.io.Source
@@ -26,46 +26,66 @@ class ApiStepsTest extends FunSpec with BeforeAndAfterAll {
     it("Should validate different functions") {
       val http = ApiSteps.createHttpRestClient(wireMockServer.baseUrl(), Some(BasicAuthorization("myuser", "mypassword")))
       // Call connect and disconnect to ensure they do not change any behaviors
-      wireMockServer.addStubMapping(get(urlPathEqualTo("/files"))
+      wireMockServer.addStubMapping(get(urlPathEqualTo("/redirect"))
+        .withBasicAuth("myuser", "mypassword")
+        .willReturn(aResponse()
+          .withHeader("Location", "/redirect1/files")
+          .withStatus(HttpURLConnection.HTTP_MOVED_PERM)
+        ).build())
+      wireMockServer.addStubMapping(get(urlPathEqualTo("/redirect1/files"))
         .withBasicAuth("myuser", "mypassword")
         .willReturn(aResponse()
           .withStatus(HttpURLConnection.HTTP_OK)
           .withHeader("content-type", "application/json")
           .withHeader("content-length", "500")
         ).build())
-      assert(http.exists("/files"))
-      assert(http.getContentLength("/files") == 500)
+      assert(ApiSteps.exists(http, "/redirect"))
+      assert(ApiSteps.getContentLength(http, "/redirect") == 500)
 
       wireMockServer.addStubMapping(get(urlPathEqualTo("/files/testFile"))
         .withBasicAuth("myuser", "mypassword")
         .willReturn(aResponse()
           .withHeader("content-type", "application/octet-stream")
           .withBody("this is some content")).build())
-      val inputStream = http.getInputStream("/files/testFile")
+      val inputStream = ApiSteps.getInputStream(http, "/files/testFile")
       val content = Source.fromInputStream(inputStream).mkString
       inputStream.close()
       assert(content == "this is some content")
-      assert(http.getStringContent("/files/testFile") == "this is some content")
+      assert(ApiSteps.getStringContent(http, "/files/testFile") == "this is some content")
+
+      wireMockServer.addStubMapping(post(urlPathEqualTo("/files"))
+        .withBasicAuth("myuser", "mypassword")
+        .withRequestBody(equalTo("{body: {} }"))
+        .willReturn(aResponse()
+          .withBody("this is some returned content")).build())
+      assert(ApiSteps.postStringContent(http, "/files", "{body: {} }", "application/json") == "this is some returned content")
+
+      wireMockServer.addStubMapping(put(urlPathEqualTo("/files/update"))
+        .withBasicAuth("myuser", "mypassword")
+        .withRequestBody(equalTo("{body: {} }"))
+        .willReturn(aResponse()
+          .withBody("this is some returned content")).build())
+      assert(ApiSteps.putStringContent(http, "/files/update", "{body: {} }") == "this is some returned content")
 
       wireMockServer.addStubMapping(delete(urlPathEqualTo("/files/deleteFile"))
         .withBasicAuth("myuser", "mypassword")
         .willReturn(aResponse().withStatus(HttpURLConnection.HTTP_NO_CONTENT)).build())
-      assert(http.delete("/files/deleteFile"))
+      assert(ApiSteps.delete(http, "/files/deleteFile"))
 
       wireMockServer.addStubMapping(delete(urlPathEqualTo("/files/deleteFileFail"))
         .withBasicAuth("myuser", "mypassword")
         .withHeader("content-type", equalTo("application/x-www-form-urlencoded"))
         .willReturn(aResponse().withStatus(HttpURLConnection.HTTP_NOT_FOUND)).build())
-      assert(!http.delete("/files/deleteFileFail"))
+      assert(!ApiSteps.delete(http, "/files/deleteFileFail"))
 
-      val http1 = ApiSteps.createHttpRestClientFromParameters("http", "localhost", wireMockServer.port())
+      val http1 = HttpRestClient("http", "localhost", wireMockServer.port())
       wireMockServer.addStubMapping(post(urlPathEqualTo("/files/testFileUpload"))
         .withBasicAuth("myuser", "mypassword")
         .withMultipartRequestBody(aMultipart()
           .withBody(containing("uploaded content")))
         .willReturn(aResponse()
           .withStatus(HttpURLConnection.HTTP_OK)).build())
-      val outputStream = http1.getOutputStream("/files/testFileUpload")
+      val outputStream = ApiSteps.getOutputStream(http1, "/files/testFileUpload")
       outputStream.write("uploaded content".getBytes)
       outputStream.flush()
       outputStream.close()

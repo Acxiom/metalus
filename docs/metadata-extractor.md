@@ -107,7 +107,11 @@ case class ExampleMetadata(value: String, examples: List[Example]) extends Metad
 Metalus Utils must be [installed](../metalus-utils/readme.md#installation) before running the script. 
 
 The script parameters are:
-* --jar-files - A comma separated list of jar files. This should be the full path.
+* --jar-files - A comma separated list of jar files. This should be the full path. Paths starting with _http_ will 
+attempt to download the jars. The authorization parameters will be used if provided unless the _no-auth-download_ is 
+provided.
+* --no-auth-download - An optional parameter which when set to true will not use the authorization parameters when 
+downloading jars.
 * --api-url The base URL to use when pushing data to an API. This parameter is optional.
 * --api-path The base path to use when pushing data to an API. This parameter is optional and defaults to '/api/v1'.
 * --output-path - A path to write the JSON output. This parameter is optional and the jar name will be appended to the end.

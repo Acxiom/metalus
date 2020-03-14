@@ -9,6 +9,8 @@ usage()
 	echo "--jar-files     -> A comma separated list of jar files to scan"
 }
 
+authorization=""
+
 # Parse the parameters
 while [[ "$1" != "" ]]; do
     case $1 in
@@ -17,6 +19,18 @@ while [[ "$1" != "" ]]; do
                                 ;;
         --jar-files )           shift
                                 jarFiles=$1
+                                ;;
+        --authorization.class ) shift
+                                authorization="--authorization.class ${1}"
+                                ;;
+        --authorization.username ) shift
+                                authorization="${authorization} --authorization.username ${1}"
+                                ;;
+        --authorization.password ) shift
+                                authorization="${authorization} --authorization.password ${1}"
+                                ;;
+        --no-auth-download)     shift
+                                authorization="${authorization} --no-auth-download ${1}"
                                 ;;
         --help )                usage
                                 exit 1
@@ -29,26 +43,26 @@ while [[ "$1" != "" ]]; do
     shift
 done
 
-bindir=$(cd `dirname ${BASH_SOURCE[0]}` && pwd)
+bindir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 dir=$(dirname "${bindir}")
 
 # Create the initial classPath
 classPath=""
-for i in $(ls ${dir}/libraries)
+for i in "${dir}"/libraries/*.jar
 do
     # Add to the classPath
-    classPath="${classPath}:${dir}/libraries/${i}"
+    classPath="${classPath}:${i}"
 done
 
 # Add the provided jars to the classpath to make it easier to retrieve
-for i in $(echo ${jarFiles} | sed "s/,/ /g")
+for i in ${jarFiles//,/ /g}
 do
     # Resolve the dependencies and add to the class path
     stagingDir="${dir}/staging"
-    dependencies=`exec ${dir}/bin/dependency-resolver.sh --output-path $stagingDir --jar-files ${i} --path-prefix $stagingDir`
-    params="--jar-files ${dependencies} ${rootParams}"
+    dependencies=$(exec $dir/bin/dependency-resolver.sh $authorization --output-path $stagingDir --jar-files $i --path-prefix $stagingDir)
     jarName=${i##*/}
     dirName=${jarName%.jar}
+    params="--jar-files ${stagingDir}/${jarName} ${rootParams}"
 
     if [[ -n "${outputPath}" ]]
     then
@@ -56,8 +70,15 @@ do
         mkdir -p "${outputPath}/${dirName}"
     fi
 
-    extraClasspath=$(echo ${dependencies} | sed "s/,/:/g")
-    java -cp "${classPath}:${extraClasspath}" com.acxiom.metalus.MetadataExtractor $params
+    extraClasspath=${dependencies//,/:/g}
+    java -cp "${classPath}:${extraClasspath}" com.acxiom.metalus.MetadataExtractor $params $authorization
+    ret=${?}
+
+    if [[ $ret -ne 0 ]]
+    then
+      echo "Failed to extract metadata due to unhandled exception for jar: ${jarName}"
+      exit $ret
+    fi
 
     echo "${jarName} complete"
 done

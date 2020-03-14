@@ -24,7 +24,7 @@ object MockStepObject {
   }
 
   def mockStepFunctionAnyResponse(string: String): String = {
-    string
+    s"string: $string"
   }
 
   def mockStepFunctionWithOptionalGenericParams(string: Option[String]): String ={

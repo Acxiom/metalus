@@ -63,11 +63,12 @@ case class HDFSFileManager(conf: SparkConf) extends FileManager {
   }
 
   /**
-    * Returns a list of file names at the given path. An exception will be thrown if the path is invalid.
-    *
-    * @param path The path to list.
-    * @return A list of files at the given path
-    */
+   * Returns a list of file names at the given path. An exception will be thrown if the path is invalid.
+   * Directories will not be included in this listing.
+   *
+   * @param path The path to list.
+   * @return A list of files at the given path
+   */
   override def getFileListing(path: String): List[FileInfo] = {
     val filePath = new Path(path)
     if (fileSystem.exists(filePath)) {
@@ -77,11 +78,29 @@ case class HDFSFileManager(conf: SparkConf) extends FileManager {
     }
   }
 
+  /**
+   * Returns a list of directory names at the given path. An exception will be thrown if the path is invalid.
+   *
+   * @param path The path to list.
+   * @return A list of directories at the given path.
+   */
+  override def getDirectoryListing(path: String): List[FileInfo] = {
+    val filePath = new Path(path)
+    if (fileSystem.exists(filePath)) {
+      fileSystem.listStatus(filePath)
+        .filter(_.isDirectory)
+        .map(s => FileInfo(s.getPath.getName, s.getLen, s.isDirectory))
+        .toList
+    } else {
+      throw new FileNotFoundException(s"Path not found when attempting to get listing,inputPath=$path")
+    }
+  }
+
   @tailrec
   private def iterateRemoteIterator(iterator: RemoteIterator[LocatedFileStatus], list: List[FileInfo]): List[FileInfo] = {
     if (iterator.hasNext) {
       val status = iterator.next()
-      iterateRemoteIterator(iterator, FileInfo(status.getPath.getName, status.getLen) :: list)
+      iterateRemoteIterator(iterator, FileInfo(status.getPath.getName, status.getLen, status.isDirectory) :: list)
     } else {
       list
     }

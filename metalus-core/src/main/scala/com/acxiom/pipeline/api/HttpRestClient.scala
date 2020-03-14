@@ -103,10 +103,32 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     *
     * @param path        The path to post the content
     * @param body        The body to post
+    * @return The String output of the command.
+    */
+  def postJsonContent(path: String, body: String): String = {
+    upsertJsonContent(path, body, "POST", "application/json")
+  }
+
+  /**
+    * Simple method to put string content.
+    *
+    * @param path        The path to put the content
+    * @param body        The body to put
+    * @return The String output of the command.
+    */
+  def putJsonContent(path: String, body: String): String = {
+    upsertJsonContent(path, body, "PUT", "application/json")
+  }
+
+  /**
+    * Simple method to post string content.
+    *
+    * @param path        The path to post the content
+    * @param body        The body to post
     * @param contentType The content type to post. Defaults to JSON.
     * @return The String output of the command.
     */
-  def postJsonContent(path: String, body: String, contentType: String = "application/json"): String = {
+  def postStringContent(path: String, body: String, contentType: String = "application/json"): String = {
     upsertJsonContent(path, body, "POST", contentType)
   }
 
@@ -118,7 +140,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @param contentType The content type to put. Defaults to JSON.
     * @return The String output of the command.
     */
-  def putJsonContent(path: String, body: String, contentType: String = "application/json"): String = {
+  def putStringContent(path: String, body: String, contentType: String = "application/json"): String = {
     upsertJsonContent(path, body, "PUT", contentType)
   }
 
@@ -155,10 +177,10 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
   }
 
   /**
-    * Get the size of the file at the given path. If the path is not a file, an exception will be thrown.
+    * Get the size of the content at the given path.
     *
-    * @param path The path to the file
-    * @return size of the given file
+    * @param path The path to the content
+    * @return size of the given content
     */
   def getContentLength(path: String): Long = {
     this.openUrlConnection(path).getContentLength
