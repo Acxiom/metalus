@@ -52,12 +52,19 @@ class MavenDependencyResolver extends DependencyResolver {
   }
 
   private def getInputStream(repos: List[Repo], path: String): Option[InputStream] = {
-    val repo = repos.find(repo => repo.exists(path))
-    if (repo.isDefined) {
-      Some(repo.get.getInputStream(path))
-    } else {
-      None
-    }
+    val initial: Option[InputStream] = None
+    repos.foldLeft(initial)((result, repo) => {
+      if(result.isDefined) {
+        result
+      } else {
+        try {
+          logger.info(s"Resolving maven dependency path: $path against $repo")
+          Some(repo.getInputStream(path))
+        } catch {
+          case _: Throwable => None
+        }
+      }
+    })
   }
 }
 
