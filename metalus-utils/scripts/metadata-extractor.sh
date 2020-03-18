@@ -60,6 +60,7 @@ do
     # Resolve the dependencies and add to the class path
     stagingDir="${dir}/staging"
     dependencies=$(exec $dir/bin/dependency-resolver.sh $authorization --output-path $stagingDir --jar-files $i --path-prefix $stagingDir)
+    dependencies=$(echo "${dependencies}" | tail -n1)
     jarName=${i##*/}
     dirName=${jarName%.jar}
     params="--jar-files ${stagingDir}/${jarName} ${rootParams}"
@@ -70,7 +71,7 @@ do
         mkdir -p "${outputPath}/${dirName}"
     fi
 
-    extraClasspath=${dependencies//,/:/g}
+    extraClasspath=${dependencies//,/:}
     java -cp "${classPath}:${extraClasspath}" com.acxiom.metalus.MetadataExtractor $params $authorization
     ret=${?}
 

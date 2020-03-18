@@ -24,10 +24,12 @@ would need these command line parameters:
 This function will attempt to open a connection to the provided path to ensure it exists.
 
 ### Get Input Stream
-This function will open an input stream to the provided path. Calling functions are required to close the stream.
+This function will open an input stream to the provided path. Calling functions are required to close the stream which
+will close the connection.
 
 ### Get Output Stream
-This function will open an output stream to the provided path. Calling functions are required to close the stream.
+This function will open an output stream to the provided path. Calling functions are required to close the stream which
+will close the connection.
 
 ### Get String Content
 This function will perform a GET against the provided path and return the body as a string.
