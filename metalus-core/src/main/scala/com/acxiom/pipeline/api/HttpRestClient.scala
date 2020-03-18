@@ -57,22 +57,25 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @return True if the path exists, otherwise false.
     */
   def exists(path: String): Boolean = {
-    this.openUrlConnection(path).getResponseCode != 404
+    val connection = this.openUrlConnection(path)
+    val exists = connection.getResponseCode != 404
+    connection.disconnect()
+    exists
   }
 
   /**
-    * Creates a buffered input stream for the provided path.
+    * Creates a buffered input stream for the provided path. Closing this stream will close the connection.
     *
     * @param path       The path to read data from
     * @param bufferSize The buffer size to apply to the stream
     * @return A buffered input stream
     */
   def getInputStream(path: String, bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): InputStream = {
-    new BufferedInputStream(this.openUrlConnection(path).getInputStream, bufferSize)
+    new BufferedInputStream(HttpInputStream(this.openUrlConnection(path)), bufferSize)
   }
 
   /**
-    * Creates a buffered output stream for the provided path.
+    * Creates a buffered output stream for the provided path. Closing this stream will close the connection.
     *
     * @param path       The path where data will be written.
     * @param bufferSize The buffer size to apply to the stream
@@ -82,7 +85,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     val connection = this.openUrlConnection(path)
     connection.setDoOutput(true)
     connection.setRequestProperty("Content-Type", "multipart/form-data")
-    new BufferedOutputStream(connection.getOutputStream, bufferSize)
+    new BufferedOutputStream(HttpOutputStream(connection), bufferSize)
   }
 
   /**
@@ -156,6 +159,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     val input = connection.getInputStream
     val content = Source.fromInputStream(input).mkString
     input.close()
+    connection.disconnect()
     content
   }
 
@@ -183,7 +187,10 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @return size of the given content
     */
   def getContentLength(path: String): Long = {
-    this.openUrlConnection(path).getContentLength
+    val connection = this.openUrlConnection(path)
+    val length = connection.getContentLength
+    connection.disconnect()
+    length
   }
 
   private def openUrlConnection(path: String): HttpURLConnection = {
@@ -192,5 +199,25 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
       authorization.get.authorize(connection)
     }
     connection
+  }
+}
+
+case class HttpInputStream(connection: HttpURLConnection) extends InputStream {
+  private val inputStream = connection.getInputStream
+  override def read(): Int = inputStream.read()
+
+  override def close(): Unit = {
+    inputStream.close()
+    connection.disconnect()
+  }
+}
+
+case class HttpOutputStream(connection: HttpURLConnection) extends OutputStream {
+  private val outputStream = connection.getOutputStream
+  override def write(b: Int): Unit = outputStream.write(b)
+
+  override def close(): Unit = {
+    outputStream.close()
+    connection.disconnect()
   }
 }
