@@ -46,8 +46,8 @@ class ApiStepsTest extends FunSpec with BeforeAndAfterAll {
         ).build())
       assert(ApiSteps.exists(http, "/redirect"))
       assert(ApiSteps.getContentLength(http, "/redirect") == 500)
-      assert(http.getLastModifiedDate("/redirect").getTime == date.getTime)
-      assert(http.getHeaders("/redirect")("Content-Type").head == "application/json")
+      assert(ApiSteps.getLastModifiedDate(http, "/redirect").getTime == date.getTime)
+      assert(ApiSteps.getHeaders(http, "/redirect")("Content-Type").head == "application/json")
 
       wireMockServer.addStubMapping(get(urlPathEqualTo("/files/testFile"))
         .withBasicAuth("myuser", "mypassword")
