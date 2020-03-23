@@ -1,6 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import java.io.{InputStream, OutputStream}
+import java.util.Date
 
 import com.acxiom.pipeline.annotations.StepFunction
 import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
@@ -36,13 +37,13 @@ object ApiSteps {
     httpRestClient.exists(path)
   }
 
-  @StepFunction("532f72dd-8443-481d-8406-b74cdc08e342",
-    "Delete Content",
-    "Attempts to delete the provided path..",
+  @StepFunction("7521ac47-84ec-4e50-b087-b9de4bf6d514",
+    "Get the last modified date",
+    "Gets the last modified date for the provided path",
     "Pipeline",
     "API")
-  def delete(httpRestClient: HttpRestClient, path: String): Boolean = {
-    httpRestClient.delete(path)
+  def getLastModifiedDate(httpRestClient: HttpRestClient, path: String): Date = {
+    httpRestClient.getLastModifiedDate(path)
   }
 
   @StepFunction("fff7f7b6-5d9a-40b3-8add-6432552920a8",
@@ -52,6 +53,24 @@ object ApiSteps {
     "API")
   def getContentLength(httpRestClient: HttpRestClient, path: String): Long = {
     httpRestClient.getContentLength(path)
+  }
+
+  @StepFunction("dd351d47-125d-47fa-bafd-203bebad82eb",
+    "Get Path Headers",
+    "Get the headers for the content at the given path.",
+    "Pipeline",
+    "API")
+  def getHeaders(httpRestClient: HttpRestClient, path: String): Map[String, List[String]] = {
+    httpRestClient.getHeaders(path)
+  }
+
+  @StepFunction("532f72dd-8443-481d-8406-b74cdc08e342",
+    "Delete Content",
+    "Attempts to delete the provided path..",
+    "Pipeline",
+    "API")
+  def delete(httpRestClient: HttpRestClient, path: String): Boolean = {
+    httpRestClient.delete(path)
   }
 
   @StepFunction("3b91e6e8-ec18-4468-9089-8474f4b4ba48",

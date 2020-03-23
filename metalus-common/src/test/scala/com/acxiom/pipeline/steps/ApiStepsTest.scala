@@ -1,6 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import java.net.HttpURLConnection
+import java.text.SimpleDateFormat
 
 import com.acxiom.pipeline.api.{BasicAuthorization, HttpRestClient}
 import com.github.tomakehurst.wiremock.WireMockServer
@@ -25,6 +26,9 @@ class ApiStepsTest extends FunSpec with BeforeAndAfterAll {
   describe("ApiSteps - HttpRestClient") {
     it("Should validate different functions") {
       val http = ApiSteps.createHttpRestClient(wireMockServer.baseUrl(), Some(BasicAuthorization("myuser", "mypassword")))
+      val dateFormat = new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss zzz")
+      val dateString = "Mon, 23 Mar 2020 07:26:45 GMT"
+      val date = dateFormat.parse(dateString)
       // Call connect and disconnect to ensure they do not change any behaviors
       wireMockServer.addStubMapping(get(urlPathEqualTo("/redirect"))
         .withBasicAuth("myuser", "mypassword")
@@ -38,9 +42,12 @@ class ApiStepsTest extends FunSpec with BeforeAndAfterAll {
           .withStatus(HttpURLConnection.HTTP_OK)
           .withHeader("content-type", "application/json")
           .withHeader("content-length", "500")
+          .withHeader("last-modified", dateString)
         ).build())
       assert(ApiSteps.exists(http, "/redirect"))
       assert(ApiSteps.getContentLength(http, "/redirect") == 500)
+      assert(http.getLastModifiedDate("/redirect").getTime == date.getTime)
+      assert(http.getHeaders("/redirect")("Content-Type").head == "application/json")
 
       wireMockServer.addStubMapping(get(urlPathEqualTo("/files/testFile"))
         .withBasicAuth("myuser", "mypassword")

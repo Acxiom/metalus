@@ -2,10 +2,12 @@ package com.acxiom.pipeline.api
 
 import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, OutputStream}
 import java.net.{HttpURLConnection, URL}
+import java.util.Date
 
 import org.json4s.{DefaultFormats, Formats}
 
 import scala.io.Source
+import scala.collection.JavaConverters._
 
 object HttpRestClient {
   val DEFAULT_BUFFER_SIZE: Int = 65536
@@ -61,6 +63,45 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     val exists = connection.getResponseCode != 404
     connection.disconnect()
     exists
+  }
+
+  /**
+    * Get the size of the content at the given path.
+    *
+    * @param path The path to the content
+    * @return size of the given content
+    */
+  def getContentLength(path: String): Long = {
+    val connection = this.openUrlConnection(path)
+    val length = connection.getContentLength
+    connection.disconnect()
+    length
+  }
+
+  /**
+    * Get the last modified date of the content at the given path.
+    *
+    * @param path The path to the content
+    * @return last modified date of the content
+    */
+  def getLastModifiedDate(path: String): Date = {
+    val connection = this.openUrlConnection(path)
+    val lastModified = new Date(connection.getLastModified)
+    connection.disconnect()
+    lastModified
+  }
+
+  /**
+    * Return all of the headers for the given path as a map.
+    *
+    * @param path The path to the content
+    * @return all of the headers for the given path
+    */
+  def getHeaders(path: String): Map[String, List[String]] = {
+    val connection = this.openUrlConnection(path)
+    val headers = connection.getHeaderFields
+    connection.disconnect()
+    headers.asScala.map(entry => (entry._1, entry._2.asScala.toList)).toMap
   }
 
   /**
@@ -178,19 +219,6 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     val responseCode = connection.getResponseCode
     connection.disconnect()
     responseCode < 300
-  }
-
-  /**
-    * Get the size of the content at the given path.
-    *
-    * @param path The path to the content
-    * @return size of the given content
-    */
-  def getContentLength(path: String): Long = {
-    val connection = this.openUrlConnection(path)
-    val length = connection.getContentLength
-    connection.disconnect()
-    length
   }
 
   private def openUrlConnection(path: String): HttpURLConnection = {
