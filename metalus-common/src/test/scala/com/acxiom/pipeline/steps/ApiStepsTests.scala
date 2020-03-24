@@ -10,7 +10,7 @@ import org.scalatest.{BeforeAndAfterAll, FunSpec}
 
 import scala.io.Source
 
-class ApiStepsTest extends FunSpec with BeforeAndAfterAll {
+class ApiStepsTests extends FunSpec with BeforeAndAfterAll {
   private val HTTP_PORT = 10293
 
   private val wireMockServer = new WireMockServer(HTTP_PORT)
