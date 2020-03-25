@@ -28,12 +28,12 @@ import scala.io.Source
 
 class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
-  private val FIVE = 5
   private val SIX = 6
-  private val EIGHT = 8
+  private val SEVEN = 7
   private val NINE = 9
-  private val ELEVEN = 11
+  private val TEN = 10
   private val TWELVE = 12
+  private val THIRTEEN = 13
 
   override def beforeAll() {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
@@ -47,7 +47,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     it("Should create an execution plan") {
       val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
         .setMaster("local")
-      val executionPlan = ApplicationUtils.createExecutionPlan(application, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf,
+      val executionPlan = ApplicationUtils.createExecutionPlan(application, Some(Map[String, Any]("rootLogLevel" -> true,
+        "customLogLevels" -> "")), sparkConf,
         PipelineListener())
       verifyApplication(executionPlan)
       removeSparkListeners(executionPlan.head.pipelineContext.sparkSession.get)
@@ -58,7 +59,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val app = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/application-response-test.json")).mkString)
       val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
         .setMaster("local")
-      val executionPlan = ApplicationUtils.createExecutionPlan(app, Some(Map[String, Any]("rootLogLevel" -> true)), sparkConf,
+      val executionPlan = ApplicationUtils.createExecutionPlan(app, Some(Map[String, Any]("rootLogLevel" -> true,
+        "customLogLevels" -> "")), sparkConf,
         PipelineListener())
       verifyApplication(executionPlan)
       removeSparkListeners(executionPlan.head.pipelineContext.sparkSession.get)
@@ -83,7 +85,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
   describe("ApplicationDriverSetup") {
     val applicationJson = Source.fromInputStream(getClass.getResourceAsStream("/application-test.json")).mkString
     it("Should load and create an Application from the parameters") {
-      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "rootLogLevel" -> "OFF"))
+      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "rootLogLevel" -> "OFF",
+        "customLogLevels" -> ""))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       verifyListeners(setup.pipelineContext.sparkSession.get)
@@ -106,7 +109,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
       val setup = ApplicationDriverSetup(Map[String, Any](
         "applicationConfigPath" -> file.getAbsolutePath,
-        "rootLogLevel" -> "ERROR"))
+        "rootLogLevel" -> "ERROR",
+        "customLogLevels" -> "com.test:INFO,com.test1:DEBUG"))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       verifyListeners(setup.pipelineContext.sparkSession.get)
@@ -114,6 +118,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
+      assert(Logger.getLogger("com.test").getLevel.toString == "INFO")
+      assert(Logger.getLogger("com.test1").getLevel.toString == "DEBUG")
 
       removeSparkListeners(setup.pipelineContext.sparkSession.get)
       setup.pipelineContext.sparkSession.get.stop()
@@ -149,7 +155,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
         "applicationConfigPath" -> "hdfs:///application-test.json",
         "applicationConfigurationLoader" -> "com.acxiom.pipeline.fs.HDFSFileManager",
         "dfs-cluster" -> miniCluster.getFileSystem().getUri.toString,
-        "rootLogLevel" -> "INFO"))
+        "rootLogLevel" -> "INFO",
+        "customLogLevels" -> ""))
       verifyDriverSetup(setup)
       verifyApplication(setup.executionPlan.get)
       verifyListeners(setup.pipelineContext.sparkSession.get)
@@ -179,6 +186,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       val setup = ApplicationDriverSetup(Map[String, Any](
         "applicationConfigPath" -> s"${wireMockServer.baseUrl()}/applications/12345",
         "rootLogLevel" -> "ERROR",
+        "customLogLevels" -> "",
         "authorization.class" -> "com.acxiom.pipeline.api.BasicAuthorization",
         "authorization.username" -> "cli-user",
         "authorization.password" -> "cli-password"))
@@ -206,7 +214,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
 
       val setup1 = ApplicationDriverSetup(Map[String, Any](
         "applicationConfigPath" -> s"${wireMockServer.baseUrl()}/applications/54321",
-        "rootLogLevel" -> "ERROR"))
+        "rootLogLevel" -> "ERROR",
+        "customLogLevels" -> ""))
       verifyDriverSetup(setup1)
       verifyApplication(setup1.executionPlan.get)
       verifyListeners(setup1.pipelineContext.sparkSession.get)
@@ -232,7 +241,9 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     }
 
     it("Should refresh an application") {
-      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson, "rootLogLevel" -> "DEBUG"))
+      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson,
+        "rootLogLevel" -> "DEBUG",
+        "customLogLevels" -> ""))
       val executionPlan = setup.executionPlan.get
       verifyApplication(setup.refreshExecutionPlan(executionPlan))
       removeSparkListeners(setup.pipelineContext.sparkSession.get)
@@ -319,7 +330,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution4.parents.isEmpty)
     // Verify the globals object was properly merged
     val globals = ctx3.globals.get
-    val globalCount = if (globals.contains("authorization.class")) { TWELVE } else { NINE }
+    val globalCount = if (globals.contains("authorization.class")) { THIRTEEN } else { TEN }
     assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
@@ -371,7 +382,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution3.parents.isEmpty)
     // Verify the globals object was properly constructed
     val globals = ctx3.globals.get
-    val globalCount = if (globals.contains("authorization.class")) { EIGHT } else { FIVE }
+    val globalCount = if (globals.contains("authorization.class")) { NINE } else { SIX }
     assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
@@ -411,7 +422,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution2.parents.isDefined)
     assert(execution2.parents.get.head == "0")
     val globals1 = ctx2.globals.get
-    val globalCount = if (globals1.contains("authorization.class")) { ELEVEN } else { EIGHT }
+    val globalCount = if (globals1.contains("authorization.class")) { TWELVE } else { NINE }
     assert(globals1.size == globalCount)
     assert(globals1.contains("rootLogLevel"))
     assert(globals1.contains("rootLogLevel"))
@@ -483,7 +494,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution1.parents.isEmpty)
     // Verify the globals object was properly constructed
     val globals = ctx1.globals.get
-    val globalCount = if (globals.contains("authorization.class")) { NINE } else { SIX }
+    val globalCount = if (globals.contains("authorization.class")) { TEN } else { SEVEN }
     assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))

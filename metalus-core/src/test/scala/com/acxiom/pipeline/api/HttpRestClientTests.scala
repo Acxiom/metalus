@@ -2,7 +2,6 @@ package com.acxiom.pipeline.api
 
 import java.net.HttpURLConnection
 import java.text.SimpleDateFormat
-import java.util.Date
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock._
