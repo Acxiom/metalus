@@ -23,18 +23,17 @@ object SFTPSteps {
     "InputOutput"
   )
   def createFileManager(hostName: String,
-                        username: String,
-                        password: String,
-                        port: Int = SFTPFileManager.DEFAULT_PORT,
-                        strictHostChecking: Option[Boolean] = Some(true),
+                        username: Option[String] = None,
+                        password: Option[String] = None,
+                        port: Option[Int] = None,
+                        strictHostChecking: Option[Boolean] = None,
                         pipelineContext: PipelineContext): Option[SFTPFileManager] = {
     val hostChecking = if (strictHostChecking.getOrElse(true)) {
       "yes"
     } else {
       "no"
     }
-    Some(new SFTPFileManager(user = username, password = Some(password), hostName = hostName,
-      port = port,
+    Some(SFTPFileManager(hostName, port, username, password = password,
       config = Some(Map[String, String]("StrictHostKeyChecking" -> hostChecking))))
   }
 }

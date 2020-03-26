@@ -1,5 +1,7 @@
 package com.acxiom.pipeline.steps
 
+import java.util.Properties
+
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import org.apache.spark.sql.DataFrame
@@ -40,8 +42,8 @@ object JDBCSteps {
     "InputOutput")
   def readWithStepOptions(jDBCStepsOptions: JDBCDataFrameReaderOptions,
                           pipelineContext: PipelineContext): DataFrame = {
-    val map = jDBCStepsOptions.readerOptions.options.getOrElse(Map[String, String]())
-    val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
+    val properties = new Properties()
+    properties.putAll(jDBCStepsOptions.readerOptions.options.getOrElse(Map[String, String]()))
     val reader = DataFrameSteps.getDataFrameReader(jDBCStepsOptions.readerOptions, pipelineContext)
     if (jDBCStepsOptions.predicates.isDefined) {
       reader.jdbc(
@@ -79,8 +81,8 @@ object JDBCSteps {
                          connectionProperties: Option[Map[String, String]] = None,
                          pipelineContext: PipelineContext): DataFrame = {
     val spark = pipelineContext.sparkSession.get
-    val map = connectionProperties.getOrElse(Map[String, String]())
-    val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
+    val properties = new Properties()
+    properties.putAll(connectionProperties.getOrElse(Map[String, String]()))
 
     if (predicates.isDefined) {
       spark.read.jdbc(url, table, predicates.get.toArray, properties)
@@ -125,8 +127,8 @@ object JDBCSteps {
                           table: String,
                           connectionProperties: Option[Map[String, String]] = None,
                           saveMode: String = "Overwrite"): Unit = {
-    val map = connectionProperties.getOrElse(Map[String, String]())
-    val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
+    val properties = new Properties()
+    properties.putAll(connectionProperties.getOrElse(Map[String, String]()))
     dataFrame.write
       .mode(saveMode)
       .jdbc(url, table, properties)
@@ -145,8 +147,8 @@ object JDBCSteps {
     "InputOutput")
   def writeWithStepOptions(dataFrame: DataFrame,
                            jDBCStepsOptions: JDBCDataFrameWriterOptions): Unit = {
-    val map = jDBCStepsOptions.writerOptions.options.getOrElse(Map[String, String]())
-    val properties = (new java.util.Properties /: map) { case (props, (k, v)) => props.put(k, v); props }
+    val properties = new Properties()
+    properties.putAll(jDBCStepsOptions.writerOptions.options.getOrElse(Map[String, String]()))
     DataFrameSteps.getDataFrameWriter(dataFrame, jDBCStepsOptions.writerOptions)
       .jdbc(jDBCStepsOptions.url, jDBCStepsOptions.table, properties)
   }

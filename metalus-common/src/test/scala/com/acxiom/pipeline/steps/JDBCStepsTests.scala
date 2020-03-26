@@ -92,6 +92,7 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       val df = JDBCSteps.readWithStepOptions(JDBCDataFrameReaderOptions(
         url = "jdbc:derby:memory:test",
         table = "(SELECT NAME, COLOR FROM CHICKEN) t1",
+        Some(List("COLOR = 'WHITE'", "COLOR = 'BUFF'")),
         readerOptions = DataFrameReaderOptions("jdbc", Some(properties))),
         pipelineContext = pipelineContext
       )
@@ -100,6 +101,8 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       val count = df.count
       assert(columns == 2)
       assert(count == 3)
+      // validate that the predicates used created the correct number of partitions.
+      assert(df.rdd.getNumPartitions == 2)
     }
     it("should work using properties") {
       val properties = Map[String, String](
