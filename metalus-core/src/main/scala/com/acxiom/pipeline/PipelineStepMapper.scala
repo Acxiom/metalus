@@ -180,7 +180,7 @@ trait PipelineStepMapper {
   }
 
   /**
-    * Iterates a map prior to converting to a case class and substitutes values marked with special characters: @,#,$,!
+    * Iterates a map prior to converting to a case class and substitutes values marked with special characters: @,#,$,!,&,?
     * @param classMap The object map
     * @param pipelineContext The pipelineContext
     * @return A map with substituted values
@@ -198,7 +198,7 @@ trait PipelineStepMapper {
   }
 
   private def containsSpecialCharacters(value: String): Boolean = {
-    "([!@$#])".r.findAllIn(value).nonEmpty
+    "([!@$#&?])".r.findAllIn(value).nonEmpty
   }
 
   @tailrec
@@ -221,7 +221,7 @@ trait PipelineStepMapper {
   private def returnBestValue(value: String,
                               parameter: Parameter,
                               pipelineContext: PipelineContext): Option[Any] = {
-    val embeddedVariables = "([!@$#&]\\{.*?\\})".r.findAllIn(value).toList
+    val embeddedVariables = "([!@$#&?]\\{.*?\\})".r.findAllIn(value).toList
 
     if (embeddedVariables.nonEmpty) {
       embeddedVariables.foldLeft(Option[Any](value))((finalValue, embeddedValue) => {
@@ -252,7 +252,8 @@ trait PipelineStepMapper {
   private def processValue(parameter: Parameter, pipelineContext: PipelineContext, pipelinePath: PipelinePath) = {
     pipelinePath.mainValue match {
       case p if List('@', '#').contains(p.headOption.getOrElse("")) => getPipelineParameterValue(pipelinePath, pipelineContext)
-      case r if r.startsWith("$") => mapRuntimeParameter(pipelinePath, parameter, pipelineContext)
+      case r if r.startsWith("$") => mapRuntimeParameter(pipelinePath, parameter, recursive = false, pipelineContext)
+      case r if r.startsWith("?") => mapRuntimeParameter(pipelinePath, parameter, recursive = true, pipelineContext)
       case g if g.startsWith("!") => getGlobalParameterValue(g, pipelinePath.extraPath.getOrElse(""), pipelineContext)
       case g if g.startsWith("&") =>
         logger.debug(s"Fetching pipeline value for ${pipelinePath.mainValue.substring(1)}")
@@ -262,12 +263,13 @@ trait PipelineStepMapper {
     }
   }
 
-  private def mapRuntimeParameter(pipelinePath: PipelinePath, parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
+  private def mapRuntimeParameter(pipelinePath: PipelinePath, parameter: Parameter, recursive: Boolean, pipelineContext: PipelineContext): Option[Any] = {
     val value = getPipelineParameterValue(pipelinePath, pipelineContext)
 
     if (value.isDefined) {
       value.get match {
-        case s: String => Some(mapParameter(parameter.copy(value = Some(s)), pipelineContext))
+        case s: String if recursive => Some(mapParameter(parameter.copy(value = Some(s)), pipelineContext))
+        case s: String => Some(s)
         case _ => value
       }
     } else {
@@ -291,6 +293,7 @@ trait PipelineStepMapper {
         case '@' => getSpecificValue(parameters.get.parameters(paramName).asInstanceOf[PipelineStepResponse].primaryReturn, pipelinePath)
         case '#' => getSpecificValue(parameters.get.parameters(paramName).asInstanceOf[PipelineStepResponse].namedReturns, pipelinePath)
         case '$' => getSpecificValue(parameters.get.parameters(paramName), pipelinePath)
+        case '?' => getSpecificValue(parameters.get.parameters(paramName), pipelinePath)
       }
     } else {
       None
@@ -327,7 +330,7 @@ trait PipelineStepMapper {
   }
 
   private def getSpecialCharacter(value: String): String = {
-    if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!") || value.startsWith("#") || value.startsWith("&")) {
+    if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!") || value.startsWith("#") || value.startsWith("&") || value.startsWith("?")) {
       value.substring(0, 1)
     } else {
       ""

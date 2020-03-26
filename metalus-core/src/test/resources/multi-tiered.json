@@ -244,6 +244,28 @@
               }
             }
           ]
+        },
+        {
+          "id": "PipelineChain5a",
+          "name": "Pipeline 1a",
+          "steps": [
+            {
+              "id": "Pipeline1Step1",
+              "displayName": "Pipeline1Step1",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "Chain5a"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
         }
       ]
     }

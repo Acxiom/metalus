@@ -63,7 +63,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
             )
           )),
           "step3" -> PipelineStepResponse(Some("fred"), None),
-          "nullValue" -> None.orNull
+          "nullValue" -> None.orNull,
+          "recursiveTest" -> "$pipeline-id-1.rawKey1"
         )
       ),
       PipelineParameter("pipeline-id-2", Map("rawInteger" -> 2, "rawDecimal" -> 15.65)),
@@ -145,7 +146,9 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("resolve pipeline", Parameter(value=Some("&mypipeline")), subPipeline),
         ("fail to resolve pipeline", Parameter(value=Some("&mypipeline1")), None),
         ("fail to get global string", Parameter(value=Some("!invalidGlobalString")), None),
-        ("fail to detect null", Parameter(value=Some("$nullValue || default string")), "default string")
+        ("fail to detect null", Parameter(value=Some("$nullValue || default string")), "default string"),
+        ("recursive test", Parameter(value=Some("?pipeline-id-1.recursiveTest")), "rawValue1"),
+        ("recursive test", Parameter(value=Some("$pipeline-id-1.recursiveTest")), "$pipeline-id-1.rawKey1")
       )
 
       tests.foreach(test => {
