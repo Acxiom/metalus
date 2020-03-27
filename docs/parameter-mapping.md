@@ -18,6 +18,9 @@ dynamic:
 that value to the step function.
 * **$** - When the value begins with this character, the system will search the parameters for the named parameter and 
 pass that value to the step function.
+* **?** - When the value begins with this character, the system will search the parameters for the named parameter and 
+pass that value to the step function. Additionally, the value returned will be recursively processed and template
+replacement performed.
 * **@** - When the value begins with this character, the system will search the parameters for the named parameter and 
 pass the primaryReturn value to the step function.
 * **#** - When the value begins with this character, the system will search the parameters for the named parameter and 
@@ -29,7 +32,7 @@ and pass the pipeline or None to the step function. This is usually used in a st
 The **@** and **#** symbols are shortcuts that assume the value in parameters is a PipelineStepResponse.
  
 In addition to searching the parameters for the current pipeline, the user has the option of specifying a pipelineId in 
-the syntax for *@* and *$* to specify any previous pipeline value. *Example: @p1.StepOne*
+the syntax for *@*, *?* and *$* to specify any previous pipeline value. *Example: @p1.StepOne*
 
 ## Types
 The type attribute on the pipeline step parameter is used for parsing the value/defaultValue when the type cannot be
