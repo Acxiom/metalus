@@ -1,6 +1,6 @@
 # FileManager
 The FileManager framework provides an abstraction for working with files across different file systems. The core project
-provides two implementations, local and HDFS.
+provides three implementations, local, HDFS, and SFTP.
 
 ## Functions
 
@@ -13,6 +13,7 @@ used to indicate whether the file should be overwritten or appended.
 * **deleteFile(path)** - Deletes the path.
 * **getSize(path)** - Returns the size in bytes of the remote file
 * **getFileListing(path)** - Returns a list of files on the remote path.
+* **getDirectoryListing(path)** - Returns a list of directories on the remote path.
 * **disconnect()** - Disconnects from the remote file system and releases any resources.
 * **copy(input, output, copyBufferSize)** - Copies the contents from the input to the output. This function
 does not close the stream.
@@ -23,5 +24,20 @@ does not close the stream.
 The *LocalFileManager* implementation is used for Spark applications running in client mode.
 
 ### HDFSFileManager
-The *HDFSFileManager* implementation is used for accessing files stored on the Hadoop file system. A valid *SparkSession*
-is required to to use this implementation.
+The *HDFSFileManager* implementation is used for accessing files stored on the Hadoop file system.
+
+#### HDFS Parameters
+* **conf** - A valid spark conf to extract file system information from.
+
+### SFTPFileManager
+The *SFTPFileManager* implementation is used for accessing files via a SFTP connection.
+
+#### SFTP Parameters
+* **hostName** - Host name of an sftp server.
+* **port** - Optional port. Defaults to 22.
+* **user** - Optional user name. Defaults to System.getProperties().get("user.name")
+* **password** - Optional password.
+* **knownHosts** - Optional path to a known hosts file.
+* **bulkRequests** - Optional number of bulk requests. Defaults to 128.
+* **config** - Optional map of additional configurations that will get passed to the underlying sftp client.
+* **timeout** - Optional timeout. Defaults to 0.
