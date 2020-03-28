@@ -4,6 +4,7 @@ import java.io.File
 import java.util.Date
 
 import com.acxiom.pipeline.applications.ApplicationUtils
+import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import com.acxiom.pipeline.utils.DriverUtils
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
@@ -122,6 +123,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
     it("Should execute a multi-tiered chain of dependencies") {
       val results = new ListenerValidations
       val resultBuffer = mutable.ListBuffer[String]()
+      var audits = ExecutionAudit("NONE", AuditType.EXECUTION, Map(), System.currentTimeMillis())
       val listener = new PipelineListener {
         override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
           var pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
@@ -151,8 +153,14 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
             case "PipelineChain5" =>
               results.addValidation(s"Execution failed for $pipelineId",
                 getStringValue(pipelineContext, "PipelineChain5", "Pipeline1Step1") == "Chain5")
+            case "PipelineChain5a" =>
+              results.addValidation(s"Execution failed for $pipelineId",
+                getStringValue(pipelineContext, "PipelineChain5a", "Pipeline1Step1") == "Chain5a")
           }
           resultBuffer += pipelineId
+          if (pipelineContext.getGlobalString("executionId").getOrElse("") == "5") {
+            audits = pipelineContext.rootAudit
+          }
           None
         }
 
@@ -169,8 +177,14 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
       PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
       results.validate()
 
-      val validResults = List("Pipeline1", "PipelineChain1", "PipelineChain2", "PipelineChain3", "PipelineChain5", "Pipeline3")
+      val validResults = List("Pipeline1", "PipelineChain1", "PipelineChain2", "PipelineChain3", "PipelineChain5", "PipelineChain5a", "Pipeline3")
       assert(resultBuffer.diff(validResults).isEmpty)
+
+      assert(audits.children.isDefined && audits.children.get.length == 2)
+      assert(audits.children.get.head.children.isDefined)
+      assert(audits.children.get.head.children.get.head.metrics("funcMetric") == "Chain5")
+      assert(audits.children.get(1).children.isDefined)
+      assert(audits.children.get(1).children.get.head.metrics("funcMetric") == "Chain5a")
     }
 
     it("Should not execute child when one parent fails with an exception") {
@@ -375,7 +389,7 @@ object ExecutionSteps {
   }
 
   def normalFunction(value: String, pipelineContext: PipelineContext): PipelineStepResponse = {
-    PipelineStepResponse(Some(value), Some(Map[String, Any]("time" -> new Date())))
+    PipelineStepResponse(Some(value), Some(Map[String, Any]("time" -> new Date(), "$metrics.funcMetric" -> value)))
   }
 
   def exceptionStep(value: String, pipelineContext: PipelineContext): PipelineStepResponse = {

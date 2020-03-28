@@ -27,6 +27,27 @@ Full parameter descriptions are listed below:
 * **httpRestClient** - The HttpRestClient to use when making calls.
 * **path** - The path to operate against.
 
+### Get Last Modified Date
+This function will open a connection to the provided path and return the last modified date.
+
+Full parameter descriptions are listed below:
+* **httpRestClient** - The HttpRestClient to use when making calls.
+* **path** - The path to operate against.
+
+### Get Content Length
+This function will open a connection to the provided path and return the content length.
+
+Full parameter descriptions are listed below:
+* **httpRestClient** - The HttpRestClient to use when making calls.
+* **path** - The path to operate against.
+
+### Get Headers
+This function will open a connection to the provided path and return the headers.
+
+Full parameter descriptions are listed below:
+* **httpRestClient** - The HttpRestClient to use when making calls.
+* **path** - The path to operate against.
+
 ## Get Input Stream
 This function will open an input stream to the provided path. Calling functions are required to close the stream.
 
@@ -68,13 +89,6 @@ Full parameter descriptions are listed below:
 
 ### Delete
 This function will attempt to run a DELETE operation against the provided path.
-
-Full parameter descriptions are listed below:
-* **httpRestClient** - The HttpRestClient to use when making calls.
-* **path** - The path to operate against.
-
-### Get Content Length
-This function will open a connection to the provided path and return the content length.
 
 Full parameter descriptions are listed below:
 * **httpRestClient** - The HttpRestClient to use when making calls.

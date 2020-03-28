@@ -59,6 +59,13 @@ trait DriverSetup {
     logger.info("Setting logging level")
     Logger.getRootLogger.setLevel(getLogLevel(parameters.getOrElse("rootLogLevel", "WARN").asInstanceOf[String]))
     Logger.getLogger("com.acxiom").setLevel(getLogLevel(parameters.getOrElse("logLevel", "INFO").asInstanceOf[String]))
+    if (parameters.contains("customLogLevels") && parameters("customLogLevels").toString.trim.nonEmpty) {
+      val customLogLevels = parameters("customLogLevels").asInstanceOf[String]
+      customLogLevels.split(",").foreach(level => {
+        val logParams = level.split(":")
+        Logger.getLogger(logParams.head).setLevel(getLogLevel(logParams(1)))
+      })
+    }
   }
 
   private def getLogLevel(level: String): Level = {

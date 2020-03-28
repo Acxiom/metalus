@@ -25,6 +25,7 @@ object DependencyManager {
     val initialClassPath = fileList.foldLeft(ResolvedClasspath(List()))((cp, file) => {
       val fileName = file.substring(file.lastIndexOf("/") + 1)
       val artifactName = fileName.substring(0, fileName.lastIndexOf("."))
+      val destFile = new File(output, fileName)
       val srcFile = if (file.startsWith("http")) {
         val http = DriverUtils.getHttpRestClient(file, parameters, Some(noAuthDownload))
         val input = http.getInputStream("")
@@ -32,12 +33,15 @@ object DependencyManager {
         val localFile = new File(dir, fileName)
         localFile.deleteOnExit()
         dir.deleteOnExit()
+        val remoteDate = http.getLastModifiedDate("")
+        if (destFile.exists() && remoteDate.getTime > destFile.lastModified()) {
+          destFile.delete()
+        }
         new LocalFileManager().copy(input, new FileOutputStream(localFile), FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)
         localFile
       } else {
         new File(file)
       }
-      val destFile = new File(output, fileName)
       copyStepJarToLocal(localFileManager, new JarFile(srcFile), destFile)
       cp.addDependency(Dependency(artifactName, artifactName.split("-")(1), destFile))
     })
