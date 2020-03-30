@@ -1,4 +1,4 @@
-[Documentation Home](readme.md)
+[Documentation Home](readme.md) | [Metalus Utils Home](../metalus-utils/readme.md)
 
 # Metadata Extractor
 The MetadataExtractor is a generic tool which will scan the provided jar files and extract specific metadata. The 
@@ -104,36 +104,38 @@ case class ExampleMetadata(value: String, examples: List[Example]) extends Metad
 ```
 
 ## Running
+Metalus Utils must be [installed](../metalus-utils/readme.md#installation) before running the script. 
+
 The script parameters are:
-* --jar-files - A comma separated list of jar files. This should be the full path.
+* --jar-files - A comma separated list of jar files. This should be the full path. Paths starting with _http_ will 
+attempt to download the jars. The authorization parameters will be used if provided unless the _no-auth-download_ is 
+provided.
+* --no-auth-download - An optional parameter which when set to true will not use the authorization parameters when 
+downloading jars.
 * --api-url The base URL to use when pushing data to an API. This parameter is optional.
 * --api-path The base path to use when pushing data to an API. This parameter is optional and defaults to '/api/v1'.
-* --output-path - A path to write the JSON output. This parameter is optional.
+* --output-path - A path to write the JSON output. This parameter is optional and the jar name will be appended to the end.
 * --extractors - An optional comma separated list of extractor class names.
 
 **Authorization**:
 When pushing metadata to an API, [authorization](httprestclient.md#authorization) is not used unless the authorization 
 parameters are provided.
 
-Installation:
-* Download the tar file from the releases page
-* Expand the tar file (tar xzf metalus-utils_2.11-spark_2.3...)
-* Change to the bin directory (cd metalus-utils/bin)
-* Example commands:
+**Example commands**:
 
 Write to a file:
 ```bash
-./metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp
+bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp
 ```
 
 Write to an api:
 ```bash
-./metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --api-url http://localhost:8000
+bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --api-url http://localhost:8000
 ```
 
 Write to a file with an additional Extractor:
 ```bash
-./metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp --extractors com.acxiom.metalus.MyExampleExtractor
+bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --output-path /tmp --extractors com.acxiom.metalus.MyExampleExtractor
 ```
 
 ## Example using common steps

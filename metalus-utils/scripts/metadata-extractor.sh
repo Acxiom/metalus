@@ -9,72 +9,77 @@ usage()
 	echo "--jar-files     -> A comma separated list of jar files to scan"
 }
 
+authorization=""
+
 # Parse the parameters
 while [[ "$1" != "" ]]; do
     case $1 in
-        --output-path )    		shift
-        						outputPath=$1
-                                ;;
-        --api-url )           shift
-                    apiUrl=$1
-                                ;;
-        --api-path )           shift
-                    apiPath=$1
-                                ;;
-        --extractors )        shift
-                    extractors=$1
+        --output-path )         shift
+                                outputPath=$1
                                 ;;
         --jar-files )           shift
-        						jarFiles=$1
+                                jarFiles=$1
+                                ;;
+        --authorization.class ) shift
+                                authorization="--authorization.class ${1}"
+                                ;;
+        --authorization.username ) shift
+                                authorization="${authorization} --authorization.username ${1}"
+                                ;;
+        --authorization.password ) shift
+                                authorization="${authorization} --authorization.password ${1}"
+                                ;;
+        --no-auth-download)     shift
+                                authorization="${authorization} --no-auth-download ${1}"
                                 ;;
         --help )                usage
                                 exit 1
+                                ;;
+        * )                     rootParams="${rootParams} ${1}"
+                                shift
+                                rootParams="${rootParams} ${1}"
+                                ;;
     esac
     shift
 done
 
-script=${BASH_SOURCE[0]}
-bindir=$(cd `dirname ${script}` && pwd)
+bindir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 dir=$(dirname "${bindir}")
 
 # Create the initial classPath
 classPath=""
-for i in $(ls ${dir}/libraries)
+for i in "${dir}"/libraries/*.jar
 do
     # Add to the classPath
-    classPath="${classPath}:${dir}/libraries/${i}"
+    classPath="${classPath}:${i}"
 done
+
 # Add the provided jars to the classpath to make it easier to retrieve
-for i in $(echo ${jarFiles} | sed "s/,/ /g")
+for i in ${jarFiles//,/ /g}
 do
-    params="--jar-files ${i}"
+    # Resolve the dependencies and add to the class path
+    stagingDir="${dir}/staging"
+    dependencies=$(exec $dir/bin/dependency-resolver.sh $authorization --output-path $stagingDir --jar-files $i --path-prefix $stagingDir)
+    dependencies=$(echo "${dependencies}" | tail -n1)
     jarName=${i##*/}
     dirName=${jarName%.jar}
-
-    echo "Processing ${jarName}"
+    params="--jar-files ${stagingDir}/${jarName} ${rootParams}"
 
     if [[ -n "${outputPath}" ]]
     then
-      params="${params} --output-path ${outputPath}/${dirName}"
-      mkdir -p "${outputPath}/${dirName}"
+        params="${params} --output-path ${outputPath}/${dirName}"
+        mkdir -p "${outputPath}/${dirName}"
     fi
 
-    if [[ -n "${apiUrl}" ]]
+    extraClasspath=${dependencies//,/:}
+    java -cp "${classPath}:${extraClasspath}" com.acxiom.metalus.MetadataExtractor $params $authorization
+    ret=${?}
+
+    if [[ $ret -ne 0 ]]
     then
-      params="${params} --api-url ${apiUrl}"
+      echo "Failed to extract metadata due to unhandled exception for jar: ${jarName}"
+      exit $ret
     fi
-
-    if [[ -n "${extractors}" ]]
-    then
-      params="${params} --extractors ${extractors}"
-    fi
-
-    if [[ -n "${apiPath}" ]]
-    then
-      params="${params} --api-path ${apiPath}"
-    fi
-
-    java -cp "${classPath}:${i}" com.acxiom.metalus.MetadataExtractor ${params} > /dev/null 2>&1
 
     echo "${jarName} complete"
 done

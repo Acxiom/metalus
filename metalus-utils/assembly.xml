@@ -17,7 +17,7 @@
     </files>
     <fileSets>
         <fileSet>
-            <directory>libraries</directory>
+            <directory>target/libraries</directory>
             <outputDirectory>metalus-utils/libraries</outputDirectory>
         </fileSet>
     </fileSets>

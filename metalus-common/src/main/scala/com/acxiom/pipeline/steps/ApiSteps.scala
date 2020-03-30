@@ -1,5 +1,8 @@
 package com.acxiom.pipeline.steps
 
+import java.io.{InputStream, OutputStream}
+import java.util.Date
+
 import com.acxiom.pipeline.annotations.StepFunction
 import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
 
@@ -23,5 +26,95 @@ object ApiSteps {
                            port: Int,
                            authorization: Option[Authorization] = None): HttpRestClient = {
     createHttpRestClient(s"$protocol://$host:$port", authorization)
+  }
+
+  @StepFunction("b59f0486-78aa-4bd4-baf5-5c7d7c648ff0",
+    "Check Path Exists",
+    "Checks the path to determine whether it exists or not.",
+    "Pipeline",
+    "API")
+  def exists(httpRestClient: HttpRestClient, path: String): Boolean = {
+    httpRestClient.exists(path)
+  }
+
+  @StepFunction("7521ac47-84ec-4e50-b087-b9de4bf6d514",
+    "Get the last modified date",
+    "Gets the last modified date for the provided path",
+    "Pipeline",
+    "API")
+  def getLastModifiedDate(httpRestClient: HttpRestClient, path: String): Date = {
+    httpRestClient.getLastModifiedDate(path)
+  }
+
+  @StepFunction("fff7f7b6-5d9a-40b3-8add-6432552920a8",
+    "Get Path Content Length",
+    "Get the size of the content at the given path.",
+    "Pipeline",
+    "API")
+  def getContentLength(httpRestClient: HttpRestClient, path: String): Long = {
+    httpRestClient.getContentLength(path)
+  }
+
+  @StepFunction("dd351d47-125d-47fa-bafd-203bebad82eb",
+    "Get Path Headers",
+    "Get the headers for the content at the given path.",
+    "Pipeline",
+    "API")
+  def getHeaders(httpRestClient: HttpRestClient, path: String): Map[String, List[String]] = {
+    httpRestClient.getHeaders(path)
+  }
+
+  @StepFunction("532f72dd-8443-481d-8406-b74cdc08e342",
+    "Delete Content",
+    "Attempts to delete the provided path..",
+    "Pipeline",
+    "API")
+  def delete(httpRestClient: HttpRestClient, path: String): Boolean = {
+    httpRestClient.delete(path)
+  }
+
+  @StepFunction("3b91e6e8-ec18-4468-9089-8474f4b4ba48",
+    "GET String Content",
+    "Retrieves the value at the provided path as a string.",
+    "Pipeline",
+    "API")
+  def getStringContent(httpRestClient: HttpRestClient, path: String): String = {
+    httpRestClient.getStringContent(path)
+  }
+
+  @StepFunction("34c2fc9a-2502-4c79-a0cb-3f866a0a0d6e",
+    "POST String Content",
+    "POSTs the provided string to the provided path using the content type and returns the response as a string.",
+    "Pipeline",
+    "API")
+  def postStringContent(httpRestClient: HttpRestClient, path: String, content: String, contentType: String = "application/json"): String = {
+    httpRestClient.postStringContent(path, content, contentType)
+  }
+
+  @StepFunction("49ae38b3-cb41-4153-9111-aa6aacf6721d",
+    "PUT String Content",
+    "PUTs the provided string to the provided path using the content type and returns the response as a string.",
+    "Pipeline",
+    "API")
+  def putStringContent(httpRestClient: HttpRestClient, path: String, content: String, contentType: String = "application/json"): String = {
+    httpRestClient.putStringContent(path, content, contentType)
+  }
+
+  @StepFunction("99b20c23-722f-4862-9f47-bc9f72440ae6",
+    "GET Input Stream",
+    "Creates a buffered input stream for the provided path",
+    "Pipeline",
+    "API")
+  def getInputStream(httpRestClient: HttpRestClient, path: String, bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): InputStream = {
+    httpRestClient.getInputStream(path, bufferSize)
+  }
+
+  @StepFunction("f4120b1c-91df-452f-9589-b77f8555ba44",
+    "GET Output Stream",
+    "Creates a buffered output stream for the provided path.",
+    "Pipeline",
+    "API")
+  def getOutputStream(httpRestClient: HttpRestClient, path: String, bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): OutputStream = {
+    httpRestClient.getOutputStream(path, bufferSize)
   }
 }

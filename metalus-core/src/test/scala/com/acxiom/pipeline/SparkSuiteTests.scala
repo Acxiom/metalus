@@ -291,7 +291,7 @@ object SparkTestHelper {
           .split(",").toList
       }
       else {
-        List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")
+        List("com.acxiom.pipeline", "com.acxiom.pipeline.steps")
       }),
       PipelineStepMapper(),
       Some(SparkTestHelper.pipelineListener),

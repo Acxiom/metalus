@@ -22,7 +22,7 @@ This project contains the core library and is the minimum requirement for any ap
 
 [Maven 2.11 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-core_2.11-spark_2.3)
 
-[Maven 2.12 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-core_2.12-spark_2.3)
+[Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-core_2.11-spark_2.4)
 
 [Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-core_2.12-spark_2.4)
 
@@ -41,7 +41,7 @@ basic implementation that gathers data and then initiates the Metalus Pipeline C
 
 [Maven 2.11 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-aws_2.11-spark_2.3)
 
-[Maven 2.12 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_2.3)
+[Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-aws_2.11-spark_2.4)
 
 [Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_2.4)
 
@@ -50,7 +50,7 @@ This step library adds support for working with Mongo.
 
 [Maven 2.11 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-mongo_2.11-spark_2.3)
 
-[Maven 2.12 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-mongo_2.12-spark_2.3)
+[Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-mongo_2.11-spark_2.4)
 
 [Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-mongo_2.12-spark_2.4)
 
@@ -59,6 +59,12 @@ This project provides several examples to help demonstrate how to use the librar
 
 ### [Metalus Utilities](metalus-utils/readme.md)
 This project provides utilities that help work with the project.
+
+[Maven 2.11 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-utils_2.11-spark_2.3)
+
+[Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-utils_2.11-spark_2.4)
+
+[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-utils_2.12-spark_2.4)
 
 ### [Metalus Application](metalus-application/readme.md)
 This project provides a single jar that can be used to run the application. Additional components provide jars that can be

@@ -1,11 +1,13 @@
 package com.acxiom.metalus
 
-import java.io.File
+import java.io.{File, FileOutputStream}
+import java.nio.file.Files
 import java.util.jar.JarFile
 
 import com.acxiom.metalus.resolvers.{Dependency, DependencyResolver}
 import com.acxiom.pipeline.fs.{FileManager, LocalFileManager}
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
+import org.apache.log4j.Logger
 
 object DependencyManager {
 
@@ -18,12 +20,28 @@ object DependencyManager {
       output.mkdirs()
     }
     // Initialize the Jar files
+    val noAuthDownload = parameters.getOrElse("no-auth-download", "false") == "true"
     val fileList = parameters("jar-files").asInstanceOf[String].split(",").toList
     val initialClassPath = fileList.foldLeft(ResolvedClasspath(List()))((cp, file) => {
       val fileName = file.substring(file.lastIndexOf("/") + 1)
-      val artifactName = fileName.split("\\.").head
-      val srcFile = new File(file)
+      val artifactName = fileName.substring(0, fileName.lastIndexOf("."))
       val destFile = new File(output, fileName)
+      val srcFile = if (file.startsWith("http")) {
+        val http = DriverUtils.getHttpRestClient(file, parameters, Some(noAuthDownload))
+        val input = http.getInputStream("")
+        val dir = Files.createTempDirectory("metalusJarDownloads").toFile
+        val localFile = new File(dir, fileName)
+        localFile.deleteOnExit()
+        dir.deleteOnExit()
+        val remoteDate = http.getLastModifiedDate("")
+        if (destFile.exists() && remoteDate.getTime > destFile.lastModified()) {
+          destFile.delete()
+        }
+        new LocalFileManager().copy(input, new FileOutputStream(localFile), FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)
+        localFile
+      } else {
+        new File(file)
+      }
       copyStepJarToLocal(localFileManager, new JarFile(srcFile), destFile)
       cp.addDependency(Dependency(artifactName, artifactName.split("-")(1), destFile))
     })
@@ -62,7 +80,7 @@ object DependencyManager {
   private def resolveDependency(dependency: Dependency, output: File, parameters: Map[String, Any]): List[Dependency] = {
     val dependencyMap: Option[Map[String, Any]] = DependencyResolver.getDependencyJson(dependency.localFile.getAbsolutePath, parameters)
     if (dependencyMap.isDefined) {
-      // TODO Currently only support one dependency within the json
+      // Currently only support one dependency within the json
       val dependencyType = dependencyMap.get.head._1
       val resolverName = s"com.acxiom.metalus.resolvers.${dependencyType.toLowerCase.capitalize}DependencyResolver"
       val resolver = ReflectionUtils.loadClass(resolverName).asInstanceOf[DependencyResolver]
@@ -74,8 +92,15 @@ object DependencyManager {
 }
 
 case class ResolvedClasspath(dependencies: List[Dependency]) {
+  private val logger = Logger.getLogger(getClass)
+
   def generateClassPath(jarPrefix: String, separator: String = ","): String = {
-    dependencies.foldLeft("")((cp, dep) => s"$cp$jarPrefix/${dep.localFile.getName}$separator").dropRight(1)
+    val prefix = if (jarPrefix.endsWith("/")) {
+      jarPrefix
+    } else {
+      s"$jarPrefix/"
+    }
+      dependencies.foldLeft("")((cp, dep) => s"$cp$prefix${dep.localFile.getName}$separator").dropRight(1)
   }
 
   def addDependency(dependency: Dependency): ResolvedClasspath = {
@@ -84,15 +109,20 @@ case class ResolvedClasspath(dependencies: List[Dependency]) {
         if (dep.name == dependency.name) {
           val version1 = dep.version
           val version2 = dependency.version
-          // TODO This handles numbered versions and not things like alpha, beta, etc.
-          if (version1.split("\\.")
+          val finalDependency = if (version1.split("\\.")
             .zipAll(version2.split("\\."), "0", "0")
             .find { case (a, b) => a != b }
-            .fold(0) { case (a, b) => a.toInt - b.toInt } > 0) {
+            .fold(0) {
+              case (a, b) if a.forall(_.isDigit) && b.forall(_.isDigit) => a.toInt - b.toInt
+              case a if a._1.forall(_.isDigit) => 1
+              case (a, b) => a.compareTo(b)
+            } > 0) {
             dep
           } else {
             dependency
           }
+          logger.warn(s"Found two versions of ${dependency.name} (${dep.version} / ${dependency.version}) using ${finalDependency.version}")
+          finalDependency
         } else {
           dep
         }

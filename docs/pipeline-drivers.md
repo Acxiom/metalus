@@ -17,6 +17,18 @@ This flow demonstrates how the chosen driver interacts with the *DriverSetup*:
 There are no special instructions for creating the *SparkSession*. Both the *SparkSession* and *SparkConf* are required
 by the [PipelineContext](pipeline-context.md).
 
+### Logging Parameters 
+There are several command line parameters provided to help control the application log levels:
+
+* **logLevel** - This parameter will set the log level for all Metalus classes. Standard log4j levels are used. Default
+is _INFO_.
+* **rootLogLevel** - This parameter controls the global logging level. Default is _WARN_.
+* **customLogLevels** - This parameter allows controlling log levels for different packages. Example:
+
+```shell script
+--customLogLevels com.test:INFO,com.another.test:DEBUG,org.apache:WARN
+```
+
 ## DriverSetup - Streaming
 Using Spark Streaming API, additional drivers provide streaming functionality. As data is consumed, it is converted to a 
 DataFrame and the pipelines are executed to process the data. Application developers will need to create a step that 

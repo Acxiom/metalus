@@ -6,6 +6,7 @@ import java.nio.file.Files
 import com.jcraft.jsch.{JSchException, SftpException}
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
@@ -49,6 +50,14 @@ class FileManagerTests extends FunSpec with Suite {
       assert(fileList.head.fileName == file.getName)
 
       assert(fileManager.getSize(file.getAbsolutePath) == file.length())
+
+      val dir = new File(testDirectory.toFile + "/tmp-dir")
+      dir.mkdir()
+      val dirList = fileManager.getDirectoryListing(file.getParentFile.getAbsolutePath)
+      assert(dirList.length == 1)
+      assert(dirList.head.directory)
+      assert(dirList.head.fileName == dir.getName)
+      assert(dirList.head.size == dir.length())
 
       // Read the data
       val input = Source.fromInputStream(fileManager.getInputStream(file.getAbsolutePath, BUFFER)).getLines().toList
@@ -157,6 +166,19 @@ class FileManagerTests extends FunSpec with Suite {
         fileManager.getFileListing("/missing-directory")
       }
       assert(listingException.getMessage.startsWith("Path not found when attempting to get listing,inputPath="))
+
+      fs.mkdirs(new Path("hdfs:///new-dir"))
+      val dirList = fileManager.getDirectoryListing("/")
+      assert(dirList.length == 1)
+      assert(dirList.head.directory)
+      assert(dirList.head.fileName == "new-dir")
+      assert(dirList.head.size == 0)
+
+      // Fail to get a directory listing
+      val dirListingException = intercept[FileNotFoundException] {
+        fileManager.getDirectoryListing("/missing-directory")
+      }
+      assert(dirListingException.getMessage.startsWith("Path not found when attempting to get listing,inputPath="))
 
       // Rename the file
       assert(!fs.exists(file1))
@@ -283,9 +305,25 @@ class FileManagerTests extends FunSpec with Suite {
         "localhost", PORT, Some("testing"), None,
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
-      val listings = sftp.getFileListing("/")
-      assert(listings.size == 2)
-      assert(listings(1).fileName == "chicken5.txt")
+      val listings = sftp.getFileListing("/").filterNot(_.directory)
+      assert(listings.size == 1)
+      assert(listings.head.fileName == "chicken5.txt")
+      sftp.disconnect()
+      server.stop()
+    }
+
+    it("Should be able to get directory listings") {
+      val server = new MockSftpServer(PORT)
+      val dir = new File(s"${server.getBaseDirectory}/chicken_dir")
+      dir.mkdir()
+      val sftp = new SFTPFileManager("tester",
+        "localhost", PORT, Some("testing"), None,
+        config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
+      sftp.connect()
+      val listings = sftp.getDirectoryListing("/").filterNot(_.fileName == ".")
+      assert(listings.size == 1)
+      assert(listings.head.fileName == "chicken_dir")
+      assert(listings.head.directory)
       sftp.disconnect()
       server.stop()
     }
