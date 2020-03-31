@@ -32,23 +32,22 @@ class MavenDependencyResolver extends DependencyResolver {
       val artifactName = s"$artifactId-$version.jar"
       val path = s"${library("groupId").asInstanceOf[String].replaceAll("\\.", "/")}/$artifactId/$version/$artifactName"
       val repoResult = getInputStream(repoList, path)
-      if (repoResult.input.isDefined &&
-        (!dependencyFile.exists() ||
-          repoResult.lastModifiedDate.get.getTime > dependencyFile.lastModified())) {
-        val output = localFileManager.getOutputStream(dependencyFile.getAbsolutePath)
-        val updatedFiles = if (localFileManager.copy(repoResult.input.get, output, FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)) {
-          dependencies :+ Dependency(artifactId, version, dependencyFile)
+      if (repoResult.input.isDefined) {
+        val updatedFiles = if (!dependencyFile.exists() ||
+          repoResult.lastModifiedDate.get.getTime > dependencyFile.lastModified()) {
+          val output = localFileManager.getOutputStream(dependencyFile.getAbsolutePath)
+          if (localFileManager.copy(repoResult.input.get, output, FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)) {
+            dependencies :+ Dependency(artifactId, version, dependencyFile)
+          } else {
+            logger.warn(s"Failed to copy file: $dependencyFileName")
+            dependencies
+          }
         } else {
-          logger.warn(s"Failed to copy file: $dependencyFileName")
-          dependencies
+          dependencies :+ Dependency(artifactId, version, dependencyFile)
         }
         updatedFiles
       } else {
-        if (repoResult.input.isDefined) {
-          repoResult.input.get.close()
-        } else {
-          logger.warn(s"Failed to find file $dependencyFileName in any of the provided repos")
-        }
+        logger.warn(s"Failed to find file $dependencyFileName in any of the provided repos")
         dependencies
       }
     })
