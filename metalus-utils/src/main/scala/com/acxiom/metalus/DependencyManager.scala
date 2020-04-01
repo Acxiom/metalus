@@ -84,7 +84,7 @@ object DependencyManager {
       val dependencyType = dependencyMap.get.head._1
       val resolverName = s"com.acxiom.metalus.resolvers.${dependencyType.toLowerCase.capitalize}DependencyResolver"
       val resolver = ReflectionUtils.loadClass(resolverName).asInstanceOf[DependencyResolver]
-      resolver.copyResources(output, dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]])
+      resolver.copyResources(output, dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]], parameters)
     } else {
       List()
     }
@@ -100,7 +100,7 @@ case class ResolvedClasspath(dependencies: List[Dependency]) {
     } else {
       s"$jarPrefix/"
     }
-      dependencies.foldLeft("")((cp, dep) => s"$cp$prefix${dep.localFile.getName}$separator").dropRight(1)
+    dependencies.foldLeft("")((cp, dep) => s"$cp$prefix${dep.localFile.getName}$separator").dropRight(1)
   }
 
   def addDependency(dependency: Dependency): ResolvedClasspath = {
