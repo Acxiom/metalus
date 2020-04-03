@@ -55,11 +55,11 @@ do
 done
 
 # Add the provided jars to the classpath to make it easier to retrieve
-for i in ${jarFiles//,/ /g}
+for i in ${jarFiles//,/ }
 do
     # Resolve the dependencies and add to the class path
     stagingDir="${dir}/staging"
-    dependencies=$(exec $dir/bin/dependency-resolver.sh $authorization --output-path $stagingDir --jar-files $i --path-prefix $stagingDir)
+    dependencies=$(exec $dir/bin/dependency-resolver.sh --output-path $stagingDir --jar-files $i --path-prefix $stagingDir $authorization)
     dependencies=$(echo "${dependencies}" | tail -n1)
     jarName=${i##*/}
     dirName=${jarName%.jar}
