@@ -7,6 +7,7 @@ usage()
 	echo "--api-url       -> The base URL to use when pushing data to an API. This parameter is optional."
 	echo "--api-path      -> The base path to use when pushing data to an API. This parameter is optional and defaults to /api/v1."
 	echo "--jar-files     -> A comma separated list of jar files to scan"
+	echo "--repo          -> An optional comma separated list of repositories to scan for dependencies"
 }
 
 authorization=""
@@ -30,7 +31,11 @@ while [[ "$1" != "" ]]; do
                                 authorization="${authorization} --authorization.password ${1}"
                                 ;;
         --no-auth-download)     shift
+                                noAuthDownload=true
                                 authorization="${authorization} --no-auth-download ${1}"
+                                ;;
+        --repo)                 shift
+                                repo="--repo ${1}"
                                 ;;
         --help )                usage
                                 exit 1
@@ -54,12 +59,18 @@ do
     classPath="${classPath}:${i}"
 done
 
+downloadAuth=$authorization
+if [[ -n "${noAuthDownload}" ]]
+then
+  downloadAuth=""
+fi
+
 # Add the provided jars to the classpath to make it easier to retrieve
 for i in ${jarFiles//,/ }
 do
     # Resolve the dependencies and add to the class path
     stagingDir="${dir}/staging"
-    dependencies=$(exec $dir/bin/dependency-resolver.sh --output-path $stagingDir --jar-files $i --path-prefix $stagingDir $authorization)
+    dependencies=$(exec $dir/bin/dependency-resolver.sh --output-path $stagingDir --jar-files $i --path-prefix $stagingDir $downloadAuth $repo)
     dependencies=$(echo "${dependencies}" | tail -n1)
     jarName=${i##*/}
     dirName=${jarName%.jar}
