@@ -2,7 +2,6 @@ package com.acxiom.pipeline.steps
 
 import java.nio.file.{Files, Path}
 
-import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
@@ -15,7 +14,6 @@ class DataFrameStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenT
   val APPNAME = "data-frame-steps-spark"
   var sparkConf: SparkConf = _
   var sparkSession: SparkSession = _
-  var pipelineContext: PipelineContext = _
   val sparkLocalDir: Path = Files.createTempDirectory("sparkLocal")
   val data = Seq((1, "v4"), (2, "v3"), (3, "v1"), (4, "v2"), (5, "v4"))
 
@@ -29,14 +27,6 @@ class DataFrameStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenT
       .setAppName(APPNAME)
       .set("spark.local.dir", sparkLocalDir.toFile.getAbsolutePath)
     sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
-
-    pipelineContext = PipelineContext(Some(sparkConf), Some(sparkSession), Some(Map[String, Any]()),
-      PipelineSecurityManager(),
-      PipelineParameters(List(PipelineParameter("0", Map[String, Any]()), PipelineParameter("1", Map[String, Any]()))),
-      Some(List("com.acxiom.pipeline.steps")),
-      PipelineStepMapper(),
-      Some(DefaultPipelineListener()),
-      Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
   }
 
   override def afterAll(): Unit = {
