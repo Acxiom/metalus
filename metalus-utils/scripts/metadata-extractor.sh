@@ -8,9 +8,12 @@ usage()
 	echo "--api-path      -> The base path to use when pushing data to an API. This parameter is optional and defaults to /api/v1."
 	echo "--jar-files     -> A comma separated list of jar files to scan"
 	echo "--repo          -> An optional comma separated list of repositories to scan for dependencies"
+	echo "--staging-dir   -> An optional directory path to stage jars"
+	echo "--clean-staging -> Indicates whether the staging directory should be cleaned"
 }
 
 authorization=""
+cleanStaging=false
 
 # Parse the parameters
 while [[ "$1" != "" ]]; do
@@ -33,6 +36,12 @@ while [[ "$1" != "" ]]; do
         --no-auth-download)     shift
                                 noAuthDownload=true
                                 authorization="${authorization} --no-auth-download ${1}"
+                                ;;
+        --staging-dir)          shift
+                                stagingDirectory=$1
+                                ;;
+        --clean-staging)        shift
+                                cleanStaging=$1
                                 ;;
         --repo)                 shift
                                 repo="--repo ${1}"
@@ -70,6 +79,17 @@ for i in ${jarFiles//,/ }
 do
     # Resolve the dependencies and add to the class path
     stagingDir="${dir}/staging"
+    if [[ -n "${stagingDirectory}" ]]
+    then
+      stagingDir="${stagingDirectory}"
+    fi
+
+    # Clean the staging directory before starting
+    if $cleanStaging
+    then
+      rm -rf "${stagingDir:?}/*"
+    fi
+
     dependencies=$(exec $dir/bin/dependency-resolver.sh --output-path $stagingDir --jar-files $i --path-prefix $stagingDir $downloadAuth $repo)
     dependencies=$(echo "${dependencies}" | tail -n1)
     jarName=${i##*/}
@@ -90,6 +110,12 @@ do
     then
       echo "Failed to extract metadata due to unhandled exception for jar: ${jarName}"
       exit $ret
+    fi
+
+    # Clean the staging directory
+    if $cleanStaging
+    then
+      rm -rf "${stagingDir:?}/*"
     fi
 
     echo "${jarName} complete"
