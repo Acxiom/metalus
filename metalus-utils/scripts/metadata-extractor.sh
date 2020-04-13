@@ -74,22 +74,22 @@ then
   downloadAuth=""
 fi
 
+# Resolve the dependencies and add to the class path
+stagingDir="${dir}/staging"
+if [[ -n "${stagingDirectory}" ]]
+then
+  stagingDir="${stagingDirectory}"
+fi
+
+# Clean the staging directory before starting
+if [ "${cleanStaging}" = true ]
+then
+  rm -f ${stagingDir:?}/*.jar
+fi
+
 # Add the provided jars to the classpath to make it easier to retrieve
 for i in ${jarFiles//,/ }
 do
-    # Resolve the dependencies and add to the class path
-    stagingDir="${dir}/staging"
-    if [[ -n "${stagingDirectory}" ]]
-    then
-      stagingDir="${stagingDirectory}"
-    fi
-
-    # Clean the staging directory before starting
-    if $cleanStaging
-    then
-      rm -rf "${stagingDir:?}/*"
-    fi
-
     dependencies=$(exec $dir/bin/dependency-resolver.sh --output-path $stagingDir --jar-files $i --path-prefix $stagingDir $downloadAuth $repo)
     dependencies=$(echo "${dependencies}" | tail -n1)
     jarName=${i##*/}
@@ -109,14 +109,21 @@ do
     if [[ $ret -ne 0 ]]
     then
       echo "Failed to extract metadata due to unhandled exception for jar: ${jarName}"
-      exit $ret
-    fi
 
-    # Clean the staging directory
-    if $cleanStaging
-    then
-      rm -rf "${stagingDir:?}/*"
+      # Clean the staging directory
+      if $cleanStaging
+      then
+        rm -rf "${stagingDir:?}/*"
+      fi
+
+      exit $ret
     fi
 
     echo "${jarName} complete"
 done
+
+# Clean the staging directory
+if [ "${cleanStaging}" = true ]
+then
+  rm -f ${stagingDir:?}/*.jar
+fi
