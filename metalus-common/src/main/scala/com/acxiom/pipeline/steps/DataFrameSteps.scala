@@ -3,7 +3,9 @@ package com.acxiom.pipeline.steps
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import org.apache.spark.sql._
+import org.apache.spark.sql.catalyst.expressions.SortOrder
 import org.apache.spark.storage.StorageLevel
+import org.apache.spark.sql.functions.expr
 
 @StepObject
 object DataFrameSteps {
@@ -44,6 +46,38 @@ object DataFrameSteps {
     "InputOutput")
   def unpersistDataFrame(dataFrame: DataFrame, blocking: Boolean = false): DataFrame = {
     dataFrame.unpersist(blocking)
+  }
+
+  @StepFunction("71323226-bcfd-4fa1-bf9e-24e455e41144",
+    "RepartitionDataFrame",
+    "Repartition a DataFrame",
+    "Pipeline",
+    "Transformation")
+  def repartitionDataFrame(dataFrame: DataFrame,
+                           partitions: Int,
+                           shuffle: Option[Boolean] = None,
+                           partitionExpressions: Option[List[String]] = None): DataFrame = {
+    if (partitionExpressions.isDefined) {
+      dataFrame.repartition(partitions, partitionExpressions.get.map(expr): _*)
+    } else if (shuffle.getOrElse(true)) {
+      dataFrame.repartition(partitions)
+    } else {
+      dataFrame.coalesce(partitions)
+    }
+  }
+
+  @StepFunction("71323226-bcfd-4fa1-bf9e-24e455e41144",
+    "SortDataFrame",
+    "Sort a DataFrame",
+    "Pipeline",
+    "Transformation")
+  def sortDataFrame(dataFrame: DataFrame, expressions: List[String], descending: Option[Boolean] = None): DataFrame = {
+    val sortOrders = if (descending.getOrElse(false)) {
+      expressions.map(e => expr(e).desc)
+    } else {
+      expressions.map(expr)
+    }
+    dataFrame.sort(sortOrders: _*)
   }
 
   /**
