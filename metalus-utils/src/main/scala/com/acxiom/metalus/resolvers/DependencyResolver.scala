@@ -35,7 +35,7 @@ object DependencyResolver {
   }
 }
 trait DependencyResolver {
-  def copyResources(outputPath: File, dependencies: Map[String, Any]): List[Dependency]
+  def copyResources(outputPath: File, dependencies: Map[String, Any], parameters: Map[String, Any]): List[Dependency]
 }
 
 case class Dependency(name: String, version: String, localFile: File)
