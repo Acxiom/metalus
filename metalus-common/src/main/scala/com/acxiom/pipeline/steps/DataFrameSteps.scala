@@ -55,12 +55,14 @@ object DataFrameSteps {
     "Transformation")
   def repartitionDataFrame(dataFrame: DataFrame,
                            partitions: Int,
+                           rangePartition: Option[Boolean] = None,
                            shuffle: Option[Boolean] = None,
                            partitionExpressions: Option[List[String]] = None): DataFrame = {
-    if (partitionExpressions.isDefined) {
-      dataFrame.repartition(partitions, partitionExpressions.get.map(expr): _*)
+    val expressions = partitionExpressions.map(e => e.map(expr))
+    if (rangePartition.getOrElse(false)) {
+      repartitionByRange(dataFrame, partitions, expressions)
     } else if (shuffle.getOrElse(true)) {
-      dataFrame.repartition(partitions)
+      repartition(dataFrame, partitions, expressions)
     } else {
       dataFrame.coalesce(partitions)
     }
@@ -78,6 +80,22 @@ object DataFrameSteps {
       expressions.map(expr)
     }
     dataFrame.sort(sortOrders: _*)
+  }
+
+  private def repartitionByRange(dataFrame: DataFrame, partitions: Int, partitionExpressions: Option[List[Column]] = None): DataFrame = {
+    if (partitionExpressions.isDefined) {
+      dataFrame.repartitionByRange(partitions, partitionExpressions.get: _*)
+    } else {
+      dataFrame.repartitionByRange(partitions)
+    }
+  }
+
+  private def repartition(dataFrame: DataFrame, partitions: Int, partitionExpressions: Option[List[Column]] = None): DataFrame = {
+    if (partitionExpressions.isDefined) {
+      dataFrame.repartition(partitions, partitionExpressions.get: _*)
+    } else {
+      dataFrame.repartition(partitions)
+    }
   }
 
   /**
