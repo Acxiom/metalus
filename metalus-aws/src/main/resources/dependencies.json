@@ -2,6 +2,11 @@
   "maven": {
     "libraries": [
       {
+        "groupId": "com.acxiom",
+        "artifactId": "metalus-common_${scala.compat.version}-spark_${spark.compat.version}",
+        "version": "${parent.version}"
+      },
+      {
         "groupId": "org.apache.spark",
         "artifactId": "spark-streaming-kinesis-asl_${scala.compat.version}",
         "version": "${spark.version}"

@@ -3,10 +3,11 @@ package com.acxiom.aws.steps
 import com.acxiom.aws.fs.S3FileManager
 import com.acxiom.aws.utils.S3Utilities
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.StepFunction
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameSteps, DataFrameWriterOptions}
 import org.apache.spark.sql.DataFrame
 
+@StepObject
 object S3Steps {
   @StepFunction("bd4a944f-39ad-4b9c-8bf7-6d3c1f356510",
     "Load DataFrame from S3 path",
