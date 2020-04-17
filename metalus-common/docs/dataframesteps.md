@@ -35,6 +35,7 @@ Repartition the dataFrame to have the provided number of partitions. Full parame
 
 * **dataFrame** - The DataFrame to repartition.
 * **partitions** - The desired number of partitions.
+* **rangePartition** - Optional flag to indicate whether partitionByRange should be used. Defaults to false.
 * **shuffle** - Optional flag to indicate whether a shuffle needs to be performed. Defaults to true.
 * **partitionExpressions** - Optional list of expressions used to sort data into partitions.
 
