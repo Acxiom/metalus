@@ -16,12 +16,12 @@ object S3Steps {
   def readFromPath(path: String,
                    accessKeyId: Option[String] = None,
                    secretAccessKey: Option[String] = None,
-                   options: DataFrameReaderOptions = DataFrameReaderOptions(),
+                   options: Option[DataFrameReaderOptions] = None,
                    pipelineContext: PipelineContext): DataFrame = {
     if (accessKeyId.isDefined && secretAccessKey.isDefined) {
       S3Utilities.setS3Authorization(path, accessKeyId.get, secretAccessKey.get, pipelineContext)
     }
-    DataFrameSteps.getDataFrameReader(options, pipelineContext)
+    DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext)
       .load(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
 
@@ -33,12 +33,12 @@ object S3Steps {
   def readFromPaths(paths: List[String],
                     accessKeyId: Option[String] = None,
                     secretAccessKey: Option[String] = None,
-                    options: DataFrameReaderOptions = DataFrameReaderOptions(),
+                    options: Option[DataFrameReaderOptions] = None,
                     pipelineContext: PipelineContext): DataFrame = {
     if (accessKeyId.isDefined && secretAccessKey.isDefined) {
       S3Utilities.setS3Authorization(paths.head, accessKeyId.get, secretAccessKey.get, pipelineContext)
     }
-    DataFrameSteps.getDataFrameReader(options, pipelineContext)
+    DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext)
       .load(paths.map(p => S3Utilities.replaceProtocol(p, S3Utilities.deriveProtocol(p))): _*)
   }
 
@@ -51,12 +51,12 @@ object S3Steps {
                   path: String,
                   accessKeyId: Option[String] = None,
                   secretAccessKey: Option[String] = None,
-                  options: DataFrameWriterOptions = DataFrameWriterOptions(),
+                  options: Option[DataFrameWriterOptions] = None,
                   pipelineContext: PipelineContext): Unit = {
     if (accessKeyId.isDefined && secretAccessKey.isDefined) {
       S3Utilities.setS3Authorization(path, accessKeyId.get, secretAccessKey.get, pipelineContext)
     }
-    DataFrameSteps.getDataFrameWriter(dataFrame, options)
+    DataFrameSteps.getDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions()))
       .save(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
 
