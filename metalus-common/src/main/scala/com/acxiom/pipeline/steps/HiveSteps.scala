@@ -12,8 +12,8 @@ object HiveSteps {
     "This step will read a dataFrame in a given format from Hive",
     "Pipeline",
     "InputOutput")
-  def readDataFrame(table: String, options: DataFrameReaderOptions, pipelineContext: PipelineContext): DataFrame ={
-    DataFrameSteps.getDataFrameReader(options, pipelineContext).table(table)
+  def readDataFrame(table: String, options: Option[DataFrameReaderOptions] = None, pipelineContext: PipelineContext): DataFrame ={
+    DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext).table(table)
   }
 
   @StepFunction("e2b4c011-e71b-46f9-a8be-cf937abc2ec4",
@@ -21,7 +21,7 @@ object HiveSteps {
     "This step will write a dataFrame in a given format to Hive",
     "Pipeline",
     "InputOutput")
-  def writeDataFrame(dataFrame: DataFrame, table: String, options: DataFrameWriterOptions): Unit = {
-    DataFrameSteps.getDataFrameWriter(dataFrame, options).saveAsTable(table)
+  def writeDataFrame(dataFrame: DataFrame, table: String, options: Option[DataFrameWriterOptions] = None): Unit = {
+    DataFrameSteps.getDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions())).saveAsTable(table)
   }
 }
