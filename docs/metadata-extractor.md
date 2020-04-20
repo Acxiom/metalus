@@ -117,6 +117,8 @@ downloading jars.
 * --output-path - A path to write the JSON output. This parameter is optional and the jar name will be appended to the end.
 * --extractors - An optional comma separated list of extractor class names.
 * --repo - An optional comma separated list of repositories to scan for dependencies
+* --extra-classpath - An optional classpath to append to the normal classpath. This will only be used during metadata 
+extraction and not dependency resolution.
 * --staging-dir - An optional directory path to stage jars
 * --clean-staging - Indicates whether the staging directory should be cleaned. Defaults to false.
 * --no-auth-download - Boolean indicating that the jar download should not use the auth parameters meant for metadata extraction.
