@@ -9,11 +9,13 @@ Calls the toString method of any object passed. Can unwrap options.
 * **value** - Object to call toString on.
 * **unwrapOption** - Optional flag to enable Option unwrapping. Defaulted to false.
 
-## Make String
+## List To String
 Given a list, will call the mkString function.
 
 * **list** - List to call mkString on.
 * **separator** - Optional separator to be used.
+* **unwrapOption** - Optional flag to enable Option unwrapping. Defaulted to false.
+
 
 ##Uppercase
 Calls "uppercase" on the given string.

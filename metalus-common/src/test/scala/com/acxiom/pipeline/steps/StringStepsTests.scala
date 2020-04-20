@@ -25,22 +25,31 @@ class StringStepsTests extends FunSpec with GivenWhenThen {
       assert(res2 == "None")
     }
 
-    it("Should call mkString") {
+    it("Should call makeString") {
       Given("A list")
       val list = List("c", "hi", "cken")
       When("Make string is called")
-      val res = StringSteps.makeString(list)
+      val res = StringSteps.listToString(list)
       Then("the resulting string is correct")
       assert(res == "chicken")
     }
 
-    it("Should call mkString with a separator") {
+    it("Should call makeString with a separator") {
       Given("A list")
       val list = List("c", "hi", "cken")
       When("Make string is called")
-      val res = StringSteps.makeString(list, Some(","))
+      val res = StringSteps.listToString(list, Some(","))
       Then("The resulting string is separated correctly")
       assert(res == "c,hi,cken")
+    }
+
+    it("should call makeString with unwrapOptions set") {
+      Given("A list with options")
+      val list = List("c", Some("hi"), "cken", None)
+      When("Make string is called")
+      val res = StringSteps.listToString(list, None, Some(true))
+      Then("the resulting string is correct")
+      assert(res == "chickenNone")
     }
 
     it("Should uppercase and lowercase string") {

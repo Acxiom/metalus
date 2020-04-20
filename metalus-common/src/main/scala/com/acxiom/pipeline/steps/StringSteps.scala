@@ -11,24 +11,26 @@ object StringSteps {
     "Pipeline", "String")
   def toString(value: Any, unwrapOption: Option[Boolean] = None): String = {
     if(unwrapOption.getOrElse(false)) {
-      value match {
-        case o: Some[_] => o.get.toString
-        case v => v.toString
-      }
+      unwrap(value).toString
     } else {
       value.toString
     }
   }
 
   @StepFunction("78e817ec-2bf2-4cbe-acba-e5bc9bdcffc5",
-    "Make String",
+    "List To String",
     "Returns the result of the mkString method",
     "Pipeline", "String")
-  def makeString(list: List[Any], separator: Option[String] = None): String = {
-    if (separator.isDefined) {
-      list.mkString(separator.get)
+  def listToString(list: List[Any], separator: Option[String] = None, unwrapOptions: Option[Boolean] = None): String = {
+    val finalList = if(unwrapOptions.getOrElse(false)) {
+      list.map(unwrap)
     } else {
-      list.mkString
+      list
+    }
+    if (separator.isDefined) {
+      finalList.mkString(separator.get)
+    } else {
+      finalList.mkString
     }
   }
 
@@ -92,5 +94,10 @@ object StringSteps {
   @BranchResults(List("true", "false"))
   def stringMatches(string: String, regex: String): Boolean = {
     string.matches(regex)
+  }
+
+  private def unwrap(value: Any): Any = value match {
+    case v: Some[_] => v.get
+    case v => v
   }
 }
