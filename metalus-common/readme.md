@@ -15,6 +15,7 @@ using Spark.
 * [QuerySteps](docs/querysteps.md)
 * [ScalaSteps](docs/scalascriptsteps.md)
 * [SFTPSteps](docs/sftpsteps.md)
+* [StringSteps](docs/stringsteps.md)
 * [TransformationSteps](docs/transformationsteps.md)
 
 ## Pipelines/Step Groups
