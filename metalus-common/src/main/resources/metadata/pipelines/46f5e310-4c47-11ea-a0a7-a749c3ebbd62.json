@@ -18,10 +18,6 @@
     "DisconnectSFTPFileManager": {
       "x": 269,
       "y": 348
-    },
-    "LandingFileToDataFrame": {
-      "x": 269,
-      "y": 460
     }
   },
   "steps": [

@@ -46,6 +46,9 @@ while [[ "$1" != "" ]]; do
         --repo)                 shift
                                 repo="--repo ${1}"
                                 ;;
+        --extra-classpath)      shift
+                                extraCP="${1}"
+                                ;;
         --help )                usage
                                 exit 1
                                 ;;
@@ -67,6 +70,11 @@ do
     # Add to the classPath
     classPath="${classPath}:${i}"
 done
+
+if [[ -n "${extraCP}" ]]
+then
+  classPath="${classPath}:${extraCP}"
+fi
 
 downloadAuth=$authorization
 if [[ -n "${noAuthDownload}" ]]
