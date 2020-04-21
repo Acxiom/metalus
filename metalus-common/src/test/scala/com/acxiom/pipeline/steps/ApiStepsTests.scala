@@ -96,15 +96,6 @@ class ApiStepsTests extends FunSpec with BeforeAndAfterAll {
       outputStream.write("uploaded content".getBytes)
       outputStream.flush()
       outputStream.close()
-
-      wireMockServer.addStubMapping(post(urlPathEqualTo("/api/v1/users/login"))
-        .willReturn(aResponse()
-        .withHeader("Set-Cookie", "somevalue=session_id")).build())
-
-      val sessionAuth = SessionAuthorization("test", "test", s"${wireMockServer.baseUrl()}/api/v1/users/login")
-      val connection = new URL(wireMockServer.baseUrl()).openConnection()
-      sessionAuth.authorize(connection)
-      assert(connection.getRequestProperty("Cookie") == "somevalue=session_id")
     }
   }
 }

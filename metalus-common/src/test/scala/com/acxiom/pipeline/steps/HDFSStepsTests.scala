@@ -84,7 +84,7 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       HDFSSteps.writeToPath(dataFrame = dataFrame,
         path = miniCluster.getURI + "/data/chickens.csv",
-        options = DataFrameWriterOptions(format = "csv")
+        options = Some(DataFrameWriterOptions(format = "csv"))
       )
       val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
 
@@ -108,7 +108,7 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       DataFrameSteps.persistDataFrame(dataFrame, "MEMORY_ONLY")
       HDFSSteps.writeToPath(
         dataFrame = dataFrame,
-        options = DataFrameWriterOptions(format = "csv").setOption("delimiter", "þ"),
+        options = Some(DataFrameWriterOptions(format = "csv").setOption("delimiter", "þ")),
         path = miniCluster.getURI + "/data/chickens.csv"
       )
       DataFrameSteps.unpersistDataFrame(dataFrame)
@@ -141,7 +141,7 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       writeHDFSContext(fs, path, csv)
 
       val dataFrame = HDFSSteps.readFromPath(path = path,
-        options = DataFrameReaderOptions(format = "csv"),
+        options = Some(DataFrameReaderOptions(format = "csv")),
         pipelineContext = pipelineContext)
       DataFrameSteps.persistDataFrame(dataFrame)
       assert(dataFrame.count() == 3)
@@ -159,9 +159,9 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       val dataFrame = HDFSSteps.readFromPaths(
         List(p1, p2),
-        DataFrameReaderOptions(format = "csv",
+        Some(DataFrameReaderOptions(format = "csv",
           schema = Some(Schema(List(Attribute("id", AttributeType("string")), Attribute("chicken", AttributeType("string"))))))
-          .setOption("header", "true"),
+          .setOption("header", "true")),
         pipelineContext)
       assert(dataFrame.count() == 3)
       val result = dataFrame.take(3).map(r => (r.getString(0), r.getString(1))).toSeq.sortBy(t => t._1)
@@ -175,8 +175,8 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       val dataFrame = HDFSSteps.readFromPath(
         path = path,
-        options = DataFrameReaderOptions(format = "csv").setOptions(Map[String, String]("header" -> "true", "delimiter" -> "þ")
-        ),
+        options = Some(DataFrameReaderOptions(format = "csv").setOptions(Map[String, String]("header" -> "true", "delimiter" -> "þ")
+        )),
         pipelineContext = pipelineContext)
 
       assert(dataFrame.count() == 3)

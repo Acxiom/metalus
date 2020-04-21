@@ -1,0 +1,31 @@
+{
+  "maven": {
+    "libraries": [
+      {
+        "groupId": "com.acxiom",
+        "artifactId": "metalus-common_${scala.compat.version}-spark_${spark.compat.version}",
+        "version": "${parent.version}"
+      },
+      {
+        "groupId": "org.apache.spark",
+        "artifactId": "spark-streaming-kinesis-asl_${scala.compat.version}",
+        "version": "${spark.version}"
+      },
+      {
+        "groupId": "com.amazonaws",
+        "artifactId": "amazon-kinesis-client",
+        "version": "1.8.10"
+      },
+      {
+        "groupId": "com.amazonaws",
+        "artifactId": "aws-java-sdk-s3",
+        "version": "1.11.271"
+      },
+      {
+        "groupId": "com.amazonaws",
+        "artifactId": "aws-java-sdk-core",
+        "version": "1.11.76"
+      }
+    ]
+  }
+}
