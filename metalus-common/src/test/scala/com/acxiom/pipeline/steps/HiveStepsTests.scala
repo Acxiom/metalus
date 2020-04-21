@@ -69,14 +69,14 @@ class HiveStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       val spark = this.sparkSession
       import spark.implicits._
       val dataFrame = chickens.toDF("id", "chicken")
-      HiveSteps.writeDataFrame(dataFrame, "chickens", DataFrameWriterOptions())
+      HiveSteps.writeDataFrame(dataFrame, "chickens", None)
 
       val result = spark.sql("select * from chickens")
       assert(result.count() == 3)
     }
 
     it("should read a dataFrame from hive"){
-      val frame = HiveSteps.readDataFrame("breeds", DataFrameReaderOptions(), pipelineContext)
+      val frame = HiveSteps.readDataFrame("breeds", None, pipelineContext)
       assert(frame.count() == 3)
       assert(frame.where("breed = 'leghorn'").count() == 1)
     }

@@ -11,17 +11,12 @@ import org.apache.log4j.Logger
 class MavenDependencyResolver extends DependencyResolver {
   private val logger = Logger.getLogger(getClass)
   private val defaultMavenRepo = ApiRepo(HttpRestClient("https://repo1.maven.org/maven2/"))
+  private val localFileManager = new LocalFileManager
 
-  override def copyResources(outputPath: File, dependencies: Map[String, Any]): List[Dependency] = {
-    val localFileManager = new LocalFileManager
-    val repos = dependencies.getOrElse("repo", "https://repo1.maven.org/maven2/").asInstanceOf[String]
-    val repoList = (repos.split(",").map(repo => {
-      if (repo.trim.startsWith("http")) {
-        ApiRepo(HttpRestClient(repo))
-      } else {
-        LocalRepo(localFileManager, repo)
-      }
-    }) :+ defaultMavenRepo).toList
+  override def copyResources(outputPath: File, dependencies: Map[String, Any], parameters: Map[String, Any]): List[Dependency] = {
+    val providedRepos = getRepos(parameters)
+    val dependencyRepos = getRepos(dependencies)
+    val repoList = providedRepos ::: dependencyRepos
 
     val libraries = dependencies.getOrElse("libraries", List[Map[String, Any]]()).asInstanceOf[List[Map[String, Any]]]
     libraries.foldLeft(List[Dependency]())((dependencies, library) => {
@@ -32,26 +27,36 @@ class MavenDependencyResolver extends DependencyResolver {
       val artifactName = s"$artifactId-$version.jar"
       val path = s"${library("groupId").asInstanceOf[String].replaceAll("\\.", "/")}/$artifactId/$version/$artifactName"
       val repoResult = getInputStream(repoList, path)
-      if (repoResult.input.isDefined &&
-        (!dependencyFile.exists() ||
-          repoResult.lastModifiedDate.get.getTime > dependencyFile.lastModified())) {
-        val output = localFileManager.getOutputStream(dependencyFile.getAbsolutePath)
-        val updatedFiles = if (localFileManager.copy(repoResult.input.get, output, FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)) {
-          dependencies :+ Dependency(artifactId, version, dependencyFile)
+      if (repoResult.input.isDefined) {
+        val updatedFiles = if (!dependencyFile.exists() ||
+          repoResult.lastModifiedDate.get.getTime > dependencyFile.lastModified()) {
+          val output = localFileManager.getOutputStream(dependencyFile.getAbsolutePath)
+          if (localFileManager.copy(repoResult.input.get, output, FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)) {
+            dependencies :+ Dependency(artifactId, version, dependencyFile)
+          } else {
+            logger.warn(s"Failed to copy file: $dependencyFileName")
+            dependencies
+          }
         } else {
-          logger.warn(s"Failed to copy file: $dependencyFileName")
-          dependencies
+          dependencies :+ Dependency(artifactId, version, dependencyFile)
         }
         updatedFiles
       } else {
-        if (repoResult.input.isDefined) {
-          repoResult.input.get.close()
-        } else {
-          logger.warn(s"Failed to find file $dependencyFileName in any of the provided repos")
-        }
+        logger.warn(s"Failed to find file $dependencyFileName in any of the provided repos")
         dependencies
       }
     })
+  }
+
+  private def getRepos(parameters: Map[String, Any]): List[Repo] = {
+    val repos = parameters.getOrElse("repo", "https://repo1.maven.org/maven2/").asInstanceOf[String]
+    (repos.split(",").map(repo => {
+      if (repo.trim.startsWith("http")) {
+        ApiRepo(HttpRestClient(repo))
+      } else {
+        LocalRepo(localFileManager, repo)
+      }
+    }) :+ defaultMavenRepo).toList
   }
 
   private def getInputStream(repos: List[Repo], path: String): RepoResult = {
@@ -84,9 +89,10 @@ case class ApiRepo(http: HttpRestClient) extends Repo {
 }
 
 case class LocalRepo(fileManager: FileManager, rootPath: String) extends Repo {
-  override def exists(path: String): Boolean = fileManager.exists(new URI(s"$rootPath/$path").normalize().getPath)
-  override def getInputStream(path: String): InputStream = fileManager.getInputStream(new URI(s"$rootPath/$path").normalize().getPath)
-  override def getLastModifiedDate(path: String): Date = new Date(new File(new URI(s"$rootPath/$path").normalize().getPath).lastModified())
+  override def exists(path: String): Boolean = fileManager.exists(new URI(s"$rootPath/${normalizePath(path)}").normalize().getPath)
+  override def getInputStream(path: String): InputStream = fileManager.getInputStream(new URI(s"$rootPath/${normalizePath(path)}").normalize().getPath)
+  override def getLastModifiedDate(path: String): Date = new Date(new File(new URI(s"$rootPath/${normalizePath(path)}").normalize().getPath).lastModified())
+  private def normalizePath(path: String) = path.substring(path.lastIndexOf("/") + 1)
 }
 
 case class RepoResult(input: Option[InputStream], lastModifiedDate: Option[Date])

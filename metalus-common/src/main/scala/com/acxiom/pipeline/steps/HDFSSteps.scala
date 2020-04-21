@@ -14,9 +14,9 @@ object HDFSSteps {
     "Pipeline",
     "InputOutput")
   def readFromPath(path: String,
-                   options: DataFrameReaderOptions = DataFrameReaderOptions(),
+                   options: Option[DataFrameReaderOptions] = None,
                    pipelineContext: PipelineContext): DataFrame = {
-    DataFrameSteps.getDataFrameReader(options, pipelineContext).load(path)
+    DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext).load(path)
   }
 
   @StepFunction("8daea683-ecde-44ce-988e-41630d251cb8",
@@ -25,9 +25,9 @@ object HDFSSteps {
     "Pipeline",
     "InputOutput")
   def readFromPaths(paths: List[String],
-                    options: DataFrameReaderOptions = DataFrameReaderOptions(),
+                    options: Option[DataFrameReaderOptions] = None,
                     pipelineContext: PipelineContext): DataFrame = {
-    DataFrameSteps.getDataFrameReader(options, pipelineContext).load(paths: _*)
+    DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext).load(paths: _*)
   }
 
   @StepFunction("0a296858-e8b7-43dd-9f55-88d00a7cd8fa",
@@ -37,8 +37,8 @@ object HDFSSteps {
     "InputOutput")
   def writeToPath(dataFrame: DataFrame,
                      path: String,
-                     options: DataFrameWriterOptions = DataFrameWriterOptions()): Unit = {
-    DataFrameSteps.getDataFrameWriter(dataFrame, options).save(path)
+                     options: Option[DataFrameWriterOptions] = None): Unit = {
+    DataFrameSteps.getDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions())).save(path)
   }
 
   /**

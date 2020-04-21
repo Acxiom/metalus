@@ -61,9 +61,11 @@ object DependencyManager {
     }
   }
 
-  private def resolveDependencies(dependencies: List[Dependency], output: File, parameters: Map[String, Any]): List[Dependency] = {
+  private def resolveDependencies(dependencies: List[Dependency],
+                                  output: File,
+                                  parameters: Map[String, Any]): List[Dependency] = {
     dependencies.foldLeft(List[Dependency]())((deps, dep) => {
-      val dependencyList = resolveDependency(dep, output, parameters)
+      val dependencyList = resolveDependency(dep, output, parameters, deps)
       if (dependencyList.nonEmpty) {
         val childDeps = resolveDependencies(dependencyList, output, parameters)
         if (childDeps.nonEmpty) {
@@ -77,14 +79,21 @@ object DependencyManager {
     })
   }
 
-  private def resolveDependency(dependency: Dependency, output: File, parameters: Map[String, Any]): List[Dependency] = {
+  private def resolveDependency(dependency: Dependency, output: File, parameters: Map[String, Any], dependencies: List[Dependency]): List[Dependency] = {
     val dependencyMap: Option[Map[String, Any]] = DependencyResolver.getDependencyJson(dependency.localFile.getAbsolutePath, parameters)
     if (dependencyMap.isDefined) {
       // Currently only support one dependency within the json
       val dependencyType = dependencyMap.get.head._1
       val resolverName = s"com.acxiom.metalus.resolvers.${dependencyType.toLowerCase.capitalize}DependencyResolver"
       val resolver = ReflectionUtils.loadClass(resolverName).asInstanceOf[DependencyResolver]
-      resolver.copyResources(output, dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]])
+      val filteredLIbraries = dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]]
+        .getOrElse("libraries", List[Map[String, Any]]()).asInstanceOf[List[Map[String, Any]]].filter(library => {
+        val artifactId = library("artifactId").asInstanceOf[String]
+        val version = library("version").asInstanceOf[String]
+        !dependencies.exists(dep => dep.name == artifactId && dep.version == version)
+      })
+      val updatedDependencyMap = dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]] + ("libraries" -> filteredLIbraries)
+      resolver.copyResources(output, updatedDependencyMap, parameters)
     } else {
       List()
     }
@@ -100,7 +109,7 @@ case class ResolvedClasspath(dependencies: List[Dependency]) {
     } else {
       s"$jarPrefix/"
     }
-      dependencies.foldLeft("")((cp, dep) => s"$cp$prefix${dep.localFile.getName}$separator").dropRight(1)
+    dependencies.foldLeft("")((cp, dep) => s"$cp$prefix${dep.localFile.getName}$separator").dropRight(1)
   }
 
   def addDependency(dependency: Dependency): ResolvedClasspath = {
