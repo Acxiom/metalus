@@ -7,7 +7,7 @@ with a pipeline context with no pipeline parameters and globals that are only po
 pipelineMappings parameter. 
 
 ## Parameters
-There are three parameters for a step-group:
+There are four parameters for a step-group:
 
 ### pipelineId
 This parameter must be a pipeline id that is accessible to the [PipelineManager](pipeline-manager.md) within the 
@@ -21,6 +21,11 @@ parameter is used.
 ### pipelineMappings
 This optional parameter provides a mechanism for mapping values from the outer pipeline to the globals object accessible 
 to the embedded pipeline.
+
+### useParentGlobals
+This boolean parameter indicates whether the step group should have access to the parent globals. The default value of 
+false will seed the globals from the _pipelineMappings_ only. When true, the parent globals will be used as a base with the
+_pipelineMappings_ applied as an addition and override. 
 
 ## Return
 A _PipelineStepResponse_ containing a map as the primary return type and nothing for the secondary return type. The map
