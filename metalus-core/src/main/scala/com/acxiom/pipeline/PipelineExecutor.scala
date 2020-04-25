@@ -348,15 +348,17 @@ object PipelineExecutor {
     val resultCtx = executeStep(firstStep, subPipeline, stepLookup, ctx)
     val pipelineParams = resultCtx.parameters.getParametersByPipelineId(subPipeline.id.getOrElse(""))
     val response = if (pipelineParams.isDefined) {
-      PipelineStepResponse(Some(subPipeline.steps.get.map(step => {
-        step.id.getOrElse("") -> pipelineParams.get.parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse]
-      }).toMap), None)
+      PipelineStepResponse(Some(subPipeline.steps.get.map { step =>
+        step.id.getOrElse("") -> pipelineParams.get.parameters.get(step.id.getOrElse("")).map(_.asInstanceOf[PipelineStepResponse])
+      }.toMap.collect { case (k, v: Some[_]) => k -> v.get }), None)
     } else {
       PipelineStepResponse(None, None)
     }
     val updates = subPipeline.steps.get
-      .filter(step => pipelineParams.get.parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse].namedReturns.isDefined)
-      .foldLeft(List[GlobalUpdates]())((updates, step) => {
+      .filter { step =>
+        pipelineParams.isDefined && pipelineParams.get.parameters.get(step.id.getOrElse(""))
+          .exists(r => r.isInstanceOf[PipelineStepResponse] && r.asInstanceOf[PipelineStepResponse].namedReturns.isDefined)
+      }.foldLeft(List[GlobalUpdates]())((updates, step) => {
         val updateList = pipelineParams.get.parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse]
           .namedReturns.get.foldLeft(List[GlobalUpdates]())((list, entry) => {
           if (entry._1.startsWith("$globals.")) {
