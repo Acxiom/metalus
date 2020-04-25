@@ -339,8 +339,13 @@ object PipelineExecutor {
     val pipelineAudit = ExecutionAudit(subPipeline.id.getOrElse(""), AuditType.PIPELINE, Map[String, Any](),
       System.currentTimeMillis(), None, None, Some(List(stepAudit)))
     // Inject the mappings into the globals object of the PipelineContext
-    val ctx = pipelineContext.copy(globals = Some(parameterValues.getOrElse("pipelineMappings", Map[String, Any]()).asInstanceOf[Map[String, Any]]))
-      .setGlobal("pipelineId", subPipeline.id.getOrElse(""))
+    val ctx = (if (parameterValues.getOrElse("useParentGlobals", false).asInstanceOf[Boolean]) {
+      pipelineContext.copy(globals =
+        Some(pipelineContext.globals.get ++
+          parameterValues.getOrElse("pipelineMappings", Map[String, Any]()).asInstanceOf[Map[String, Any]]))
+    } else {
+      pipelineContext.copy(globals = Some(parameterValues.getOrElse("pipelineMappings", Map[String, Any]()).asInstanceOf[Map[String, Any]]))
+    }).setGlobal("pipelineId", subPipeline.id.getOrElse(""))
       .setGlobal("stepId", firstStep.id.getOrElse(""))
       .setGlobal("groupId", s"$pipelineId::$stepId")
       .setRootAudit(pipelineContext.getStepAudit(pipelineId, stepId, groupId).get.setChildAudit(pipelineAudit))
@@ -351,9 +356,7 @@ object PipelineExecutor {
       PipelineStepResponse(Some(subPipeline.steps.get.map(step => {
         step.id.getOrElse("") -> pipelineParams.get.parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse]
       }).toMap), None)
-    } else {
-      PipelineStepResponse(None, None)
-    }
+    } else { PipelineStepResponse(None, None) }
     val updates = subPipeline.steps.get
       .filter(step => pipelineParams.get.parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse].namedReturns.isDefined)
       .foldLeft(List[GlobalUpdates]())((updates, step) => {
@@ -361,9 +364,7 @@ object PipelineExecutor {
           .namedReturns.get.foldLeft(List[GlobalUpdates]())((list, entry) => {
           if (entry._1.startsWith("$globals.")) {
             list :+ GlobalUpdates(step.displayName.get, subPipeline.id.get, entry._1.substring(NINE), entry._2)
-          } else {
-            list
-          }
+          } else { list }
         })
         updates ++ updateList
       })
