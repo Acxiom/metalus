@@ -326,9 +326,7 @@ object PipelineExecutor {
       pipelineContext.pipelineManager.getPipeline(parameterValues("pipelineId").toString)
         .getOrElse(throw PipelineException(message = Some(s"Unable to retrieve required step group id ${parameterValues("pipelineId")}"),
           pipelineId = pipeline.id, stepId = step.id))
-    } else {
-      parameterValues("pipeline").asInstanceOf[Pipeline]
-    }
+    } else { parameterValues("pipeline").asInstanceOf[Pipeline] }
     val firstStep = subPipeline.steps.get.head
     val stepLookup = createStepLookup(subPipeline)
     val pipelineId = pipeline.id.getOrElse("")

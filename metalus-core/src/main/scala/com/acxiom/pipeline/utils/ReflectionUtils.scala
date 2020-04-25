@@ -293,9 +293,9 @@ object ReflectionUtils {
     val typeName = if (isOption) paramType.typeArgs.head.toString else paramType.toString
     if (collectionType) {
       typeName match {
-        case t if t.startsWith("List[") && !value.isInstanceOf[List[_]] =>
+        case t if (t.startsWith("List[") || t.startsWith("scala.List[")) && !value.isInstanceOf[List[_]] =>
           List(value)
-        case t if t.startsWith("Seq[") && !value.isInstanceOf[Seq[_]] =>
+        case t if (t.startsWith("Seq[") || t.startsWith("scala.Seq[")) && !value.isInstanceOf[Seq[_]] =>
           Seq(value)
         case _ => value
       }
