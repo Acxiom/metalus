@@ -1,8 +1,7 @@
 package com.acxiom.pipeline.applications
 
-import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
 import com.acxiom.pipeline.drivers.DriverSetup
-import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
+import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline.{Pipeline, PipelineContext, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
@@ -64,12 +63,14 @@ trait ApplicationDriverSetup extends DriverSetup {
           "hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec")
     }
     ApplicationUtils.createExecutionPlan(
-    application = application,
-    globals = Some(params),
-    sparkConf = sparkConf,
-    enableHiveSupport = parameters.getOrElse("enableHiveSupport", false).asInstanceOf[Boolean],
-    parquetDictionaryEnabled = parameters.getOrElse("parquetDictionaryEnabled", true).asInstanceOf[Boolean]
-  )}
+      application = application,
+      globals = Some(params),
+      sparkConf = sparkConf,
+      enableHiveSupport = parameters.getOrElse("enableHiveSupport", false).asInstanceOf[Boolean],
+      parquetDictionaryEnabled = parameters.getOrElse("parquetDictionaryEnabled", true).asInstanceOf[Boolean],
+      validateArgumentTypes = parameters.getOrElse("validateStepParameterTypes", false).asInstanceOf[Boolean]
+    )
+  }
 
   /**
     * This function will return the execution plan to be used for the driver.
