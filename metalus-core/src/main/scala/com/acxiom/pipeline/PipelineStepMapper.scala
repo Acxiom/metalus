@@ -362,10 +362,14 @@ trait PipelineStepMapper {
 
     if (flatGlobals.contains(value.substring(1))) {
       val global = flatGlobals(value.substring(1))
-      global match {
-        case g: Option[_] if g.isDefined => Some(ReflectionUtils.extractField(g.get, extractPath))
+      val ret = global match {
+        case g: Option[_] if g.isDefined => ReflectionUtils.extractField(g.get, extractPath)
         case _: Option[_] => None
-        case _ => Some(ReflectionUtils.extractField(global, extractPath))
+        case _ => ReflectionUtils.extractField(global, extractPath)
+      }
+      ret match {
+        case ret: Option[_] => ret
+        case _ => Some(ret)
       }
     } else {
       logger.debug(s"globals does not contain the requested value: $value.$extractPath")

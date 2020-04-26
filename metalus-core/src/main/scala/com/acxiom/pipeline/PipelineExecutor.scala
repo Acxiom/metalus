@@ -326,9 +326,7 @@ object PipelineExecutor {
       pipelineContext.pipelineManager.getPipeline(parameterValues("pipelineId").toString)
         .getOrElse(throw PipelineException(message = Some(s"Unable to retrieve required step group id ${parameterValues("pipelineId")}"),
           pipelineId = pipeline.id, stepId = step.id))
-    } else {
-      parameterValues("pipeline").asInstanceOf[Pipeline]
-    }
+    } else { parameterValues("pipeline").asInstanceOf[Pipeline] }
     val firstStep = subPipeline.steps.get.head
     val stepLookup = createStepLookup(subPipeline)
     val pipelineId = pipeline.id.getOrElse("")
@@ -339,8 +337,13 @@ object PipelineExecutor {
     val pipelineAudit = ExecutionAudit(subPipeline.id.getOrElse(""), AuditType.PIPELINE, Map[String, Any](),
       System.currentTimeMillis(), None, None, Some(List(stepAudit)))
     // Inject the mappings into the globals object of the PipelineContext
-    val ctx = pipelineContext.copy(globals = Some(parameterValues.getOrElse("pipelineMappings", Map[String, Any]()).asInstanceOf[Map[String, Any]]))
-      .setGlobal("pipelineId", subPipeline.id.getOrElse(""))
+    val ctx = (if (parameterValues.getOrElse("useParentGlobals", false).asInstanceOf[Boolean]) {
+      pipelineContext.copy(globals =
+        Some(pipelineContext.globals.get ++
+          parameterValues.getOrElse("pipelineMappings", Map[String, Any]()).asInstanceOf[Map[String, Any]]))
+    } else {
+      pipelineContext.copy(globals = Some(parameterValues.getOrElse("pipelineMappings", Map[String, Any]()).asInstanceOf[Map[String, Any]]))
+    }).setGlobal("pipelineId", subPipeline.id.getOrElse(""))
       .setGlobal("stepId", firstStep.id.getOrElse(""))
       .setGlobal("groupId", s"$pipelineId::$stepId")
       .setRootAudit(pipelineContext.getStepAudit(pipelineId, stepId, groupId).get.setChildAudit(pipelineAudit))
@@ -348,22 +351,20 @@ object PipelineExecutor {
     val resultCtx = executeStep(firstStep, subPipeline, stepLookup, ctx)
     val pipelineParams = resultCtx.parameters.getParametersByPipelineId(subPipeline.id.getOrElse(""))
     val response = if (pipelineParams.isDefined) {
-      PipelineStepResponse(Some(subPipeline.steps.get.map(step => {
-        step.id.getOrElse("") -> pipelineParams.get.parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse]
-      }).toMap), None)
-    } else {
-      PipelineStepResponse(None, None)
-    }
+      PipelineStepResponse(Some(subPipeline.steps.get.map { step =>
+        step.id.getOrElse("") -> pipelineParams.get.parameters.get(step.id.getOrElse("")).map(_.asInstanceOf[PipelineStepResponse])
+      }.toMap.collect { case (k, v: Some[_]) => k -> v.get }), None)
+    } else { PipelineStepResponse(None, None) }
     val updates = subPipeline.steps.get
-      .filter(step => pipelineParams.get.parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse].namedReturns.isDefined)
-      .foldLeft(List[GlobalUpdates]())((updates, step) => {
+      .filter { step =>
+        pipelineParams.isDefined && pipelineParams.get.parameters.get(step.id.getOrElse(""))
+          .exists(r => r.isInstanceOf[PipelineStepResponse] && r.asInstanceOf[PipelineStepResponse].namedReturns.isDefined)
+      }.foldLeft(List[GlobalUpdates]())((updates, step) => {
         val updateList = pipelineParams.get.parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse]
           .namedReturns.get.foldLeft(List[GlobalUpdates]())((list, entry) => {
           if (entry._1.startsWith("$globals.")) {
             list :+ GlobalUpdates(step.displayName.get, subPipeline.id.get, entry._1.substring(NINE), entry._2)
-          } else {
-            list
-          }
+          } else { list }
         })
         updates ++ updateList
       })

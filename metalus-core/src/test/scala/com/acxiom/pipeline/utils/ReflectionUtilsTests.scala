@@ -3,6 +3,7 @@ package com.acxiom.pipeline.utils
 import java.util
 
 import com.acxiom.pipeline.{PipelineStepResponse, _}
+import org.apache.spark.sql.SparkSession
 import org.scalatest.FunSpec
 
 class ReflectionUtilsTests extends FunSpec {
@@ -64,6 +65,19 @@ class ReflectionUtilsTests extends FunSpec {
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "Some(l1),Some(1),None")
+    }
+
+    it("Should handle scala.List prefix") {
+      val ret = ReflectionUtils.loadClass("com.acxiom.pipeline.utils.ClassWithOptionList", Some(Map[String, Any](
+        "list" -> "moo",
+        "optionList" -> Some(List[String]()),
+        "optionList2" -> List[String]("moo2")
+      )))
+      assert(ret.isInstanceOf[ClassWithOptionList])
+      val opList = ret.asInstanceOf[ClassWithOptionList]
+      assert(opList.optionList.isDefined)
+      assert(opList.list.headOption.contains("moo"))
+      assert(opList.optionList2.getOrElse(List()).headOption.contains("moo2"))
     }
 
     it("Should unwrap an option passed to a non option param"){
@@ -213,3 +227,5 @@ class ReflectionUtilsTests extends FunSpec {
 
 case class MockParent(mock: MockObject)
 case class MockObject(string: String, num: Int, opt: Option[String] = None)
+class ClassWithOptionList(val list: List[String], val optionList: Option[scala.List[Any]], val optionList2: Option[scala.List[Any]]) {
+}

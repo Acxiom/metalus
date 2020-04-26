@@ -275,16 +275,12 @@ object ReflectionUtils {
 
   private def getFinalValue(paramType: ru.Type, value: Any): Any = {
     val optionType = paramType.toString.startsWith("Option[") || paramType.toString.startsWith("scala.Option[")
-    if (optionType && !value.isInstanceOf[Option[_]]) {
-      Some(wrapValueInCollection(paramType, optionType, value))
-    } else if (!optionType && value.isInstanceOf[Option[_]]) {
-      if (value.asInstanceOf[Option[_]].isDefined) {
-        wrapValueInCollection(paramType, optionType, value.asInstanceOf[Option[_]].get)
-      } else {
-        value
-      }
-    } else {
-      wrapValueInCollection(paramType, optionType, value)
+    (optionType, value) match {
+      case (_, v: Option[_]) if v.isEmpty => v
+      case (true, v) if !v.isInstanceOf[Option[_]] => Some(wrapValueInCollection(paramType, optionType, v))
+      case (false, v: Some[_]) => wrapValueInCollection(paramType, optionType, v.get)
+      case (true, v: Some[_]) => Some(wrapValueInCollection(paramType, optionType, v.get))
+      case (_, v) => wrapValueInCollection(paramType, optionType, v)
     }
   }
 
@@ -293,9 +289,9 @@ object ReflectionUtils {
     val typeName = if (isOption) paramType.typeArgs.head.toString else paramType.toString
     if (collectionType) {
       typeName match {
-        case t if t.startsWith("List[") && !value.isInstanceOf[List[_]] =>
+        case t if (t.startsWith("List[") || t.startsWith("scala.List[")) && !value.isInstanceOf[List[_]] =>
           List(value)
-        case t if t.startsWith("Seq[") && !value.isInstanceOf[Seq[_]] =>
+        case t if (t.startsWith("Seq[") || t.startsWith("scala.Seq[")) && !value.isInstanceOf[Seq[_]] =>
           Seq(value)
         case _ => value
       }
