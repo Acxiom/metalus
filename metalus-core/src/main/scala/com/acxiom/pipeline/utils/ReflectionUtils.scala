@@ -46,10 +46,10 @@ object ReflectionUtils {
    * @param parameterValues A map of named parameter values to map to the step function parameters.
    * @return The result of the step function execution.
    */
-  def processSimpleStep(step: PipelineStep,
-                        pipeline: Pipeline,
-                        parameterValues: Map[String, Any],
-                        pipelineContext: PipelineContext): Any = {
+  def processStep(step: PipelineStep,
+                  pipeline: Pipeline,
+                  parameterValues: Map[String, Any],
+                  pipelineContext: PipelineContext): Any = {
     logger.debug(s"processing step,stepObject=$step")
     // Get the step directive which should follow the pattern "Object.function"
     val executionObject = step.engineMeta.get.spark.get

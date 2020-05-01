@@ -101,7 +101,7 @@ object PipelineExecutor {
     logger.debug(s"Executing Step (${step.id.getOrElse("")}) ${step.displayName.getOrElse("")}")
     val ssContext = handleEvent(pipelineContext, "pipelineStepStarted", List(pipeline, step, pipelineContext))
     val (nextStepId, sfContext) = try {
-      val result = processStep(step, pipeline, steps, pipelineContext)
+      val result = processPipelineStep(step, pipeline, steps, pipelineContext)
       // setup the next step
       val nextStepId = getNextStepId(step, result)
       val newPipelineContext = updatePipelineContext(step, result, nextStepId, ssContext)
@@ -115,6 +115,7 @@ object PipelineExecutor {
         // put exception on the context as the "result" for this step.
         val updateContext = updatePipelineContext(step, PipelineStepResponse(Some(ex), None), step.nextStepOnError, ssContext)
         (step.nextStepOnError, updateContext)
+      case e => throw e
     }
     // Call the next step here
     if (steps.contains(nextStepId.getOrElse("")) && steps(nextStepId.getOrElse("")).`type`.getOrElse("") == "join") {
@@ -129,7 +130,7 @@ object PipelineExecutor {
     }
   }
 
-  private def processStep(step: PipelineStep, pipeline: Pipeline, steps: Map[String, PipelineStep],
+  private def processPipelineStep(step: PipelineStep, pipeline: Pipeline, steps: Map[String, PipelineStep],
                   pipelineContext: PipelineContext): Any = {
     // Create a map of values for each defined parameter
     val parameterValues: Map[String, Any] = pipelineContext.parameterMapper.createStepParameterMap(step, pipelineContext)
@@ -137,7 +138,7 @@ object PipelineExecutor {
       // process step normally if empty
       case "" if step.`type`.getOrElse("") == "fork" => processForkStep(step, pipeline, steps, parameterValues, pipelineContext)
       case "" if step.`type`.getOrElse("") == STEPGROUP => processStepGroup(step, pipeline, steps, parameterValues, pipelineContext)
-      case "" => ReflectionUtils.processSimpleStep(step, pipeline, parameterValues, pipelineContext)
+      case "" => ReflectionUtils.processStep(step, pipeline, parameterValues, pipelineContext)
       case value: String =>
         logger.debug(s"Evaluating execute if empty: $value")
         // wrap the value in a parameter object
@@ -149,7 +150,7 @@ object PipelineExecutor {
             PipelineStepResponse(some, None)
           case None =>
             logger.debug("Executing step normally")
-            ReflectionUtils.processSimpleStep(step, pipeline, parameterValues, pipelineContext)
+            ReflectionUtils.processStep(step, pipeline, parameterValues, pipelineContext)
           case _ =>
             logger.debug("Returning existing value")
             PipelineStepResponse(Some(ret), None)
