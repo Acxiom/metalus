@@ -87,10 +87,17 @@ trait PipelineStepMapper {
     * @return
     */
   def mapByType(value: Option[String], parameter: Parameter): Any = {
-    parameter.`type`.getOrElse("") match {
-      case "integer" => value.getOrElse("0").toInt
-      case "boolean" => value.getOrElse("false") == "true"
-      case _ => mapByValue(value, parameter)
+    if(value.isDefined) {
+      parameter.`type`.getOrElse("").toLowerCase match {
+        case "integer" => value.get.toInt
+        case "long" => value.get.toLong
+        case "float" => value.get.toFloat
+        case "double" => value.get.toDouble
+        case "boolean" => value.get.toBoolean
+        case _ => mapByValue(value, parameter)
+      }
+    } else {
+      mapByValue(value, parameter)
     }
   }
 
