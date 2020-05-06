@@ -88,6 +88,19 @@ class PipelineValidationTests extends FunSpec with BeforeAndAfterAll with Suite 
       val resultBadType = PipelineExecutor.executePipelines(List(pipelineBadType), None, SparkTestHelper.generatePipelineContext())
       assert(!resultBadType.success)
     }
+
+    it("Should prevent the use of lastStepId") {
+      val pipelineSteps = List(PipelineStep(id = Some("lastStepId"),
+        displayName = None,
+        description = None,
+        `type` = Some("pipeline"),
+        params = None,
+        engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionAnyResponse")))))
+      val pipeline = Pipeline(Some("TEST_P"), Some("Test_P"), Some(pipelineSteps))
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val result = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      assert(!result.success)
+    }
   }
 
 }

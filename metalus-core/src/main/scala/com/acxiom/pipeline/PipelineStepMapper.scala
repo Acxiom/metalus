@@ -285,7 +285,10 @@ trait PipelineStepMapper {
   }
 
   private def getPipelineParameterValue(pipelinePath: PipelinePath, pipelineContext: PipelineContext): Option[Any] = {
-    val paramName = pipelinePath.mainValue.substring(1)
+    val paramName = pipelinePath.mainValue.toLowerCase match {
+      case "@laststepid" | "#laststepid" => pipelineContext.getGlobalString("lastStepId").getOrElse("")
+      case _ => pipelinePath.mainValue.substring(1)
+    }
     // See if the paramName is a pipelineId
     val pipelineId = if (pipelinePath.pipelineId.isDefined) {
       pipelinePath.pipelineId.get

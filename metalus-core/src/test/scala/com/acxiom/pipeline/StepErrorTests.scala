@@ -43,7 +43,7 @@ class StepErrorTests extends FunSpec with BeforeAndAfterAll with Suite {
       Some(List(Parameter(Some("text"), Some("string"), value = Some("RAW_DATA")))),
       engineMeta = Some(EngineMeta(Some("MockStepObject.mockExceptionStepFunction"))), nextStepOnError = Some("HANDLE_ERROR"))
     val errorHandlingStep = PipelineStep(Some("HANDLE_ERROR"), None, None, Some("Pipeline"),
-      Some(List(Parameter(Some("text"), Some("ex"), value = Some("@PROCESS_RAW_VALUE")))),
+      Some(List(Parameter(Some("text"), Some("ex"), value = Some("@LastStepId")))),
       engineMeta = Some(EngineMeta(Some("MockStepObject.errorHandlingStep"))))
 
     it("Should move execute nextStepOnError") {

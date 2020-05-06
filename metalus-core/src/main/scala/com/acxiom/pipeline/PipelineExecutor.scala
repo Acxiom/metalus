@@ -160,12 +160,7 @@ object PipelineExecutor {
 
   @throws(classOf[PipelineException])
   private def validateStep(step: PipelineStep, pipeline: Pipeline): Unit = {
-    if(step.id.getOrElse("") == ""){
-      throw PipelineException(
-        message = Some(s"Step is missing id in pipeline [${pipeline.id.get}]."),
-        pipelineId = pipeline.id,
-        stepId = step.id)
-    }
+    validatePipelineStep(step, pipeline)
     step.`type`.getOrElse("").toLowerCase match {
       case s if s == "pipeline" || s == "branch" =>
         if(step.engineMeta.isEmpty || step.engineMeta.get.spark.getOrElse("") == "") {
@@ -194,6 +189,22 @@ object PipelineExecutor {
           Some(s"Unknown pipeline type: [$unknown] for step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
           pipelineId = pipeline.id,
           stepId = step.id)
+    }
+  }
+
+  @throws(classOf[PipelineException])
+  private def validatePipelineStep(step: PipelineStep, pipeline: Pipeline): Unit = {
+    if(step.id.getOrElse("") == ""){
+      throw PipelineException(
+        message = Some(s"Step is missing id in pipeline [${pipeline.id.get}]."),
+        pipelineId = pipeline.id,
+        stepId = step.id)
+    }
+    if(step.id.get.toLowerCase == "laststepid") {
+      throw PipelineException(
+        message = Some(s"Step id [${step.id.get}] is a reserved id in pipeline [${pipeline.id.get}]."),
+        pipelineId = pipeline.id,
+        stepId = step.id)
     }
   }
 
@@ -240,6 +251,7 @@ object PipelineExecutor {
         val updatedCtx = pipelineContext.setStepAudit(pipelineId, groupResult.audit)
           .setParameterByPipelineId(pipelineId, step.id.getOrElse(""), groupResult.pipelineStepResponse)
           .setGlobal("pipelineId", pipelineId)
+          .setGlobal("lastStepId", step.id.getOrElse(""))
           .setGlobal("stepId", nextStepId)
         if (groupResult.globalUpdates.nonEmpty) {
           groupResult.globalUpdates.foldLeft(updatedCtx)((ctx, update) => {
@@ -252,6 +264,7 @@ object PipelineExecutor {
         processResponseGlobals(step, result, pipelineId, pipelineContext)
           .setParameterByPipelineId(pipelineId, step.id.getOrElse(""), result)
           .setGlobal("pipelineId", pipelineId)
+          .setGlobal("lastStepId", step.id.getOrElse(""))
           .setGlobal("stepId", nextStepId)
     }
 
