@@ -78,7 +78,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       "link5" -> "$pipeline-id-1.step1.primaryReturn.primaryKey1String", "link6" -> "$pipeline-id-1.step2.namedReturns.namedKey2String",
       "link7" -> "#pipeline-id-1.step2.namedKey2String", "link8" -> "embedded!{pipelineId}::concat_value", "link9" -> "link_override"
     )
-    val globalParameters = Map("pipelineId" -> "pipeline-id-3", "globalString" -> "globalValue1", "globalInteger" -> FIVE,
+    val globalParameters = Map("pipelineId" -> "pipeline-id-3", "lastStepId" -> "step1", "globalString" -> "globalValue1", "globalInteger" -> FIVE,
       "globalBoolean" -> true, "globalTestObject" -> globalTestObject, "GlobalLinks" -> broadCastGlobal, "link9" -> "root_value")
 
     val subPipeline = Pipeline(Some("mypipeline"), Some("My Pipeline"))
@@ -148,7 +148,9 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("fail to get global string", Parameter(value=Some("!invalidGlobalString")), None),
         ("fail to detect null", Parameter(value=Some("$nullValue || default string")), "default string"),
         ("recursive test", Parameter(value=Some("?pipeline-id-1.recursiveTest")), "rawValue1"),
-        ("recursive test", Parameter(value=Some("$pipeline-id-1.recursiveTest")), "$pipeline-id-1.rawKey1")
+        ("recursive test", Parameter(value=Some("$pipeline-id-1.recursiveTest")), "$pipeline-id-1.rawKey1"),
+        ("lastStepId test", Parameter(value=Some("@LastStepId"),`type`=Some("string")), List(1,2,3)),
+        ("lastStepId with or", Parameter(value=Some("!not_here || @LastStepId"),`type`=Some("string")), List(1,2,3))
       )
 
       tests.foreach(test => {

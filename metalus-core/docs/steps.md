@@ -103,3 +103,10 @@ The join step only requires two parameters:
 Example of a fork/join operation:
 
 ![Fork Join Step Overview](../../docs/images/Fork_Join_Overview.png "Fork Join Step Overview")
+
+## Error handling
+
+Steps can be executed based on the occurrence of an unhandled exception. Setting the *nextStepOnError* option with a step id
+will cause that stepId to get executed as the next step should an exception be thrown.
+A PipelineStepException will be set as the PrimaryStepResponse for the failed step.
+Normal step execution will continue from the step provided in *nextStepOnError*.

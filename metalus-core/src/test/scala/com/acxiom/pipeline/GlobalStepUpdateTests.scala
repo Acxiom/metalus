@@ -121,7 +121,7 @@ class GlobalStepUpdateTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(result.success)
       val ctx = result.pipelineContext
       assert(ctx.globals.isDefined)
-      assert(ctx.globals.get.size == 4)
+      assert(ctx.globals.get.size == 5)
       assert(ctx.globals.get.contains("redonthehead"))
       assert(ctx.globals.get("redonthehead") == "fred")
       assert(ctx.globals.get.contains("redonthehead1"))
@@ -135,9 +135,21 @@ class GlobalStepUpdateTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(result.success)
       val ctx = result.pipelineContext
       assert(ctx.globals.isDefined)
-      assert(ctx.globals.get.size == 3)
+      assert(ctx.globals.get.size == 4)
       assert(ctx.globals.get.contains("redonthehead"))
       assert(ctx.globals.get("redonthehead") == "fred1")
+    }
+
+    it("Should set the last step id as a global") {
+      val context = SparkTestHelper.generatePipelineContext()
+      val pipelines = DriverUtils.parsePipelineJson(pipelineJson)
+      val result = PipelineExecutor.executePipelines(pipelines.get, None, context)
+      assert(result.success)
+      val ctx = result.pipelineContext
+      assert(ctx.globals.isDefined)
+      assert(ctx.globals.get.size == 5)
+      assert(ctx.globals.get.contains("lastStepId"))
+      assert(ctx.globals.get("lastStepId") == "Pipeline1Step3")
     }
   }
 
@@ -285,7 +297,7 @@ class GlobalStepUpdateTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(result.success)
       val ctx = result.pipelineContext
       assert(ctx.globals.isDefined)
-      assert(ctx.globals.get.size == 5)
+      assert(ctx.globals.get.size == 6)
       assert(ctx.globals.get.contains("redonthehead"))
       assert(ctx.globals.get("redonthehead") == "fred")
       assert(ctx.globals.get.contains("redonthehead1"))
@@ -301,7 +313,7 @@ class GlobalStepUpdateTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(result.success)
       val ctx = result.pipelineContext
       assert(ctx.globals.isDefined)
-      assert(ctx.globals.get.size == 4)
+      assert(ctx.globals.get.size == 5)
       assert(ctx.globals.get.contains("redonthehead"))
       assert(ctx.globals.get("redonthehead") == "fred1")
       assert(ctx.globals.get.contains("redonthehead2"))
