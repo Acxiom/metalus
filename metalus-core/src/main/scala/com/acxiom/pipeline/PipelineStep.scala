@@ -25,7 +25,8 @@ case class PipelineStep(id: Option[String] = None,
                         engineMeta: Option[EngineMeta] = None,
                         nextStepId: Option[String] = None,
                         executeIfEmpty: Option[String] = None,
-                        stepId: Option[String] = None)
+                        stepId: Option[String] = None,
+                        nextStepOnError: Option[String] = None)
 
 /**
   * Represents a single parameter in a step.

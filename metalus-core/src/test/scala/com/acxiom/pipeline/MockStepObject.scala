@@ -43,6 +43,10 @@ object MockStepObject {
     throw new IllegalArgumentException(s"exception thrown for string value ($string)")
   }
 
+  def errorHandlingStep(ex: PipelineStepException): String = {
+    ex.message.getOrElse("")
+  }
+
   def mockStepSetGlobal(string: String, globalName: String): PipelineStepResponse = {
     PipelineStepResponse(Some(string), Some(Map[String, Any]("$globals." + globalName -> string)))
   }
