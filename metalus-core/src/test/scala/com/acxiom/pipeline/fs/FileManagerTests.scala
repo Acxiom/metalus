@@ -6,7 +6,6 @@ import java.nio.file.Files
 import com.jcraft.jsch.{JSchException, SftpException}
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession

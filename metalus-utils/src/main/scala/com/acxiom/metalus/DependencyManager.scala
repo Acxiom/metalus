@@ -56,7 +56,7 @@ object DependencyManager {
 
   private def copyStepJarToLocal(localFileManager: LocalFileManager, jar: JarFile, outputFile: File) = {
     if (!outputFile.exists()) {
-      val outputStream = localFileManager.getOutputStream(outputFile.getAbsolutePath)
+      val outputStream = localFileManager.getOutputStream(outputFile.getAbsolutePath, append = false)
       localFileManager.copy(localFileManager.getInputStream(jar.getName), outputStream, FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)
     }
   }
