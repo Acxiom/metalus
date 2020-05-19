@@ -31,7 +31,10 @@ class MavenDependencyResolver extends DependencyResolver {
         val updatedFiles = if (!dependencyFile.exists() ||
           repoResult.lastModifiedDate.get.getTime > dependencyFile.lastModified()) {
           logger.info(s"Copying file: $dependencyFileName")
-          val output = localFileManager.getOutputStream(dependencyFile.getAbsolutePath)
+          if (dependencyFile.exists()) {
+            dependencyFile.delete()
+          }
+          val output = localFileManager.getOutputStream(dependencyFile.getAbsolutePath, append = false)
           val deps = if (localFileManager.copy(repoResult.input.get, output, FileManager.DEFAULT_COPY_BUFFER_SIZE)) {
             dependencies :+ Dependency(artifactId, version, dependencyFile)
           } else {
