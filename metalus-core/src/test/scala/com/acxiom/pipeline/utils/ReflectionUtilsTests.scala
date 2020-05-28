@@ -3,7 +3,6 @@ package com.acxiom.pipeline.utils
 import java.util
 
 import com.acxiom.pipeline.{PipelineStepResponse, _}
-import org.apache.spark.sql.SparkSession
 import org.scalatest.FunSpec
 
 class ReflectionUtilsTests extends FunSpec {
@@ -55,6 +54,16 @@ class ReflectionUtilsTests extends FunSpec {
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "chicken")
+    }
+
+    it("Should process step with default value no option") {
+      val step = PipelineStep(None, None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithDefaultValueNoOption"))))
+      val response = ReflectionUtils.processStep(step, pipeline,
+        Map[String, Any]("string" -> "string", "default" -> None), pipelineContext)
+      assert(response.isInstanceOf[PipelineStepResponse])
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "default chicken")
     }
 
     it("Should wrap values in a List, Seq, or Array if passing a single element to a collection") {
