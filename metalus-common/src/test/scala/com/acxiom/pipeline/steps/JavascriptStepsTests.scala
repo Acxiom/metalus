@@ -96,5 +96,25 @@ class JavascriptStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhen
       assert(count == 1000)
       assert(df.schema.fields.length == 7)
     }
+
+    it("Should handle multiple values"){
+      val scriptWithDerivedTypes =
+        """
+          |if (v2) {
+          |   v1 + v3
+          |} else {
+          |   -1
+          |}
+          |""".stripMargin
+      val mappings: Map[String, Any] = Map(
+        "v1" -> 1,
+        "v2" -> true,
+        "v3" -> 3
+      )
+      val result = JavascriptSteps.processScriptWithValues(scriptWithDerivedTypes, mappings, pipelineContext)
+      assert(result.primaryReturn.isDefined)
+      val res = result.primaryReturn.get.asInstanceOf[Double]
+      assert(res == 4)
+    }
   }
 }
