@@ -104,13 +104,32 @@ class ScalaStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       val updatedScript = script.replaceAll("\\$path", "userValue")
       val result = ScalaSteps.processScriptWithValue(updatedScript,
         tempFile.getAbsolutePath,
-        "String",
+        Some("String"),
         pipelineContext)
       assert(result.primaryReturn.isDefined)
       val df = result.primaryReturn.get.asInstanceOf[DataFrame]
       val count = df.count()
       assert(count == 1000)
       assert(df.schema.fields.length == 7)
+    }
+
+    it("Should handle multiple values and derive types"){
+      val scriptWithDerivedTypes =
+        """
+          |val tmp = if (v2) v1 + v4.last.asInstanceOf[Int] else -1
+          |(v3.toUpperCase, tmp)
+          |""".stripMargin
+      val mappings: Map[String, Any] = Map(
+        "v1" -> 1,
+        "v2" -> true,
+        "v3" -> "chicken",
+        "v4" -> List(1,2,3)
+      )
+      val result = ScalaSteps.processScriptWithValues(scriptWithDerivedTypes, mappings, None, pipelineContext)
+      assert(result.primaryReturn.isDefined)
+      val pair = result.primaryReturn.get.asInstanceOf[(String, Int)]
+      assert(pair._1 == "CHICKEN")
+      assert(pair._2 == 4)
     }
   }
 }

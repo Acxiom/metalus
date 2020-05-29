@@ -70,7 +70,7 @@ class ScalaScriptEngineTests extends FunSpec with BeforeAndAfterAll {
           | "RedOnTheHead" + userValue.asInstanceOf[String]
         """.stripMargin
       val bindings = Bindings()
-      val result = scriptEngine.executeScriptWithBindings(script, bindings.setBinding("userValue", "Fred", "String"), pipelineContext)
+      val result = scriptEngine.executeScriptWithBindings(script, bindings.setBinding("userValue", "Fred", Some("String")), pipelineContext)
       assert(result == "RedOnTheHeadFred")
     }
   }
