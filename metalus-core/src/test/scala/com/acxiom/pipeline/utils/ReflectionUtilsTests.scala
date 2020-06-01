@@ -260,7 +260,6 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
       val spark = SparkTestHelper.sparkSession
       import spark.implicits._
       val df = Seq((1, "silkie"), (2, "polish"), (3, "buttercup")).toDF("id", "chicken")
-      assert(!ReflectionUtils.extractField(df, "isEmpty", applyMethod = Some(true)).asInstanceOf[Boolean])
       assert(ReflectionUtils.extractField(df, "count", applyMethod = Some(true)) == 3)
     }
 
