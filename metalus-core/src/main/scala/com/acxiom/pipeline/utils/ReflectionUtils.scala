@@ -119,11 +119,11 @@ object ReflectionUtils {
    * @param extractFromOption Setting this to true will see if the value is an option and extract the sub value.
    * @return The value from the field or an empty string
    */
-  def extractField(entity: Any, fieldName: String, extractFromOption: Boolean = true): Any = {
+  def extractField(entity: Any, fieldName: String, extractFromOption: Boolean = true, applyMethod: Option[Boolean] = None): Any = {
     if (fieldName == "") {
       entity
     } else {
-      val value = getField(entity, fieldName)
+      val value = getField(entity, fieldName, applyMethod.getOrElse(false))
       if (extractFromOption) {
         value match {
           case option: Option[_] if option.isDefined => option.get
@@ -136,7 +136,7 @@ object ReflectionUtils {
   }
 
   @tailrec
-  private def getField(entity: Any, fieldName: String): Any = {
+  private def getField(entity: Any, fieldName: String, applyMethod: Boolean): Any = {
     val obj = entity match {
       case option: Option[_] if option.isDefined =>
         option.get
@@ -155,26 +155,31 @@ object ReflectionUtils {
 
     val value = obj match {
       case map: Map[_, _] => map.asInstanceOf[Map[String, Any]].getOrElse(name, None)
-      case _ => getFieldValue(obj, name)
+      case _ => getMemberValue(obj, name, applyMethod)
     }
 
     if (value != None && embedded) {
-      getField(value, fieldName.substring(fieldName.indexOf(".") + 1))
+      getField(value, fieldName.substring(fieldName.indexOf(".") + 1), applyMethod)
     } else {
       value
     }
   }
 
-  private def getFieldValue(obj: Any, fieldName: String): Any = {
+  private def getMemberValue(obj: Any, fieldName: String, applyMethod: Boolean): Any = {
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     val im = mirror.reflect(obj)
-    val term = im.symbol.typeSignature.member(ru.TermName(fieldName))
-    if (term.isTerm) {
-      val field = term.asTerm
-      val fieldVal = im.reflectField(field)
-      fieldVal.get
-    } else {
-      None
+    val symbol = im.symbol.typeSignature.member(ru.TermName(fieldName))
+    symbol match {
+      case method: MethodSymbol if applyMethod =>
+        val methodVal = im.reflectMethod(method)
+        methodVal.apply()
+      case method: MethodSymbol if !method.isAccessor =>
+        val reason = s"${method.name} is a method. To enable method extraction, set the global [extractMethodsEnabled] to true."
+        throw new IllegalArgumentException(s"Unable to extract: [${im.symbol.name}.${method.name}]. $reason")
+      case term: TermSymbol =>
+        val fieldVal = im.reflectField(term)
+        fieldVal.get
+      case _ => None
     }
   }
 
