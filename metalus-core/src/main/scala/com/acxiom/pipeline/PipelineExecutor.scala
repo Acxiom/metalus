@@ -113,7 +113,9 @@ object PipelineExecutor {
         // handle exception
         val ex = handleStepExecutionExceptions(e, pipeline, pipelineContext)
         // put exception on the context as the "result" for this step.
-        val updateContext = updatePipelineContext(step, PipelineStepResponse(Some(ex), None), step.nextStepOnError, ssContext)
+        // also, changing the type to "pipeline" so that we handle the response correctly
+        val updateContext = updatePipelineContext(step.copy(`type` = Some("pipeline")),
+          PipelineStepResponse(Some(ex), None), step.nextStepOnError, ssContext)
         (step.nextStepOnError, updateContext)
       case e => throw e
     }
