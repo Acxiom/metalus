@@ -82,6 +82,14 @@ would return
 Multiple values may be embedded as long as the resulting value is a string, boolean
 or number. A return value of an object will log a warning and ignore string concatenation to return the object value.
 
+**Calling methods**
+In addition to accessing fields, methods can called using the same syntax: 
+```
+"!obj.subObj.getName"
+```
+This feature is limited to methods without parameters, and is disabled by default.
+To enable, set the global "**extractMethodsEnabled**" to "**true**"
+
 ## JSON Objects
 
 JSON object values may also be embedded as a pipeline step value. Two attributes must be provided in the JSON, 
