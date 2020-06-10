@@ -113,9 +113,7 @@ object PipelineExecutor {
         // handle exception
         val ex = handleStepExecutionExceptions(e, pipeline, pipelineContext)
         // put exception on the context as the "result" for this step.
-        // also, changing the type to "pipeline" so that we handle the response correctly
-        val updateContext = updatePipelineContext(step.copy(`type` = Some("pipeline")),
-          PipelineStepResponse(Some(ex), None), step.nextStepOnError, ssContext)
+        val updateContext = updatePipelineContext(step, PipelineStepResponse(Some(ex), None), step.nextStepOnError, ssContext)
         (step.nextStepOnError, updateContext)
       case e => throw e
     }
@@ -246,10 +244,9 @@ object PipelineExecutor {
   private def updatePipelineContext(step: PipelineStep, result: Any, nextStepId: Option[String], pipelineContext: PipelineContext): PipelineContext = {
     val pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
     val groupId = pipelineContext.getGlobalString("groupId")
-    val ctx = step match {
-      case PipelineStep(_, _, _, Some("fork"), _, _, _, _, _, _) => result.asInstanceOf[ForkStepResult].pipelineContext
-      case PipelineStep(_, _, _, Some(STEPGROUP), _, _, _, _, _, _) =>
-        val groupResult = result.asInstanceOf[StepGroupResult]
+    val ctx = result match {
+      case forkResult: ForkStepResult => forkResult.pipelineContext
+      case groupResult: StepGroupResult =>
         val updatedCtx = pipelineContext.setStepAudit(pipelineId, groupResult.audit)
           .setParameterByPipelineId(pipelineId, step.id.getOrElse(""), groupResult.pipelineStepResponse)
           .setGlobal("pipelineId", pipelineId)

@@ -3,20 +3,30 @@
 # ScalaSteps
 This step object provides a way for the application developer to define steps at runtime using the Scala language
 without the need for writing and compiling steps. This should only be used for simple step constructs such as 
-branching steps or basic processing. A PipelineContext object is provided, 
-and there is also the option to reference a user supplied value:
-
-* **pipelineContext** - The current *PipelineContext* is provided to allow access to current state. This object is read only.
-* **userValue** - Optional user provided value.
-
-There are two step functions provided:
+branching steps or basic processing. A PipelineContext object is provided for use in the script, bound as "pipelineContext".
+A loggger can also be referenced, bound as "logger"
+There are three step functions provided:
 
 ## Execute script 
 This step function will simply execute the script and return a *PipelineStepResponse*.
+Full parameter descriptions are listed below:
+* **script** - The script to execute.
 
 ## Execute script with value 
 This step function will execute the script making the value available in the script with the variable name **userValue**
-and return a *PipelineStepResponse*. The optional parameter **type** can be used to specify the type of the supplied value.
+and return a *PipelineStepResponse*.
+Full parameter descriptions are listed below: 
+* **script** - The script to execute.
+* **value** - The value that will be bound in the script as "userValue".
+* **type** - Optional type name can be used to explicitly specify the type of "userValue".
+
+## Execute script with values
+This step function will execute a script and bind each key/value pair in the provided values map to be usable in the script.
+Returns a *PipelineStepResponse*.
+Full parameter descriptions are listed below:
+* **script** - The script to execute.
+* **values** - Map of values to bind. Each key value pair will be bound to the script using the key.
+* **types** - Optional map of type name overrides, used to explicitly specify the type of the values in the values map.
 
 ## Example
 This example demonstrates how to read a file into a *DataFrame* using nothing but Scala. This script assumes the 

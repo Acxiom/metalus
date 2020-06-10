@@ -172,3 +172,14 @@ finally use the provided static text of _default string_.
 ## Pipeline Context Updates
 Once advanced feature of Metalus is to allow steps the ability to update _PipelineContext_ using the secondary returns.
 More information may be found [here](advanced-step-features.md).
+
+## Reserved Globals
+Below is a table of reserved globals with a summary of their usage.
+ 
+| Global                     | Use                                                 |
+|:---------------------------|:----------------------------------------------------|
+| lastStepId                 | lastStepId always refers to the last step executed. |
+| pipelineId                 | current executing pipeline id                       |
+| stepId                     | current executing step                              |
+| validateStepParameterTypes | enable/disable parameter type validation for steps  |
+| extractMethodsEnabled      | enable/disable method support for field extraction   |
