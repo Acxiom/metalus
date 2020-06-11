@@ -15,6 +15,10 @@ object MockStepObject {
     default
   }
 
+  def mockStepFunctionWithDefaultValueNoOption(string: String, default: String = "default chicken"): String = {
+    default
+  }
+
   def mockStepWithListOfOptions(s: List[Option[String]]): String ={
     s.flatten.mkString(",")
   }

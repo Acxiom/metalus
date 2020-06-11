@@ -134,12 +134,12 @@ object PipelineExecutor {
                   pipelineContext: PipelineContext): Any = {
     // Create a map of values for each defined parameter
     val parameterValues: Map[String, Any] = pipelineContext.parameterMapper.createStepParameterMap(step, pipelineContext)
-    step.executeIfEmpty.getOrElse("") match {
+    (step.executeIfEmpty.getOrElse(""), step.`type`.getOrElse("").toLowerCase) match {
       // process step normally if empty
-      case "" if step.`type`.getOrElse("") == "fork" => processForkStep(step, pipeline, steps, parameterValues, pipelineContext)
-      case "" if step.`type`.getOrElse("") == STEPGROUP => processStepGroup(step, pipeline, steps, parameterValues, pipelineContext)
-      case "" => ReflectionUtils.processStep(step, pipeline, parameterValues, pipelineContext)
-      case value: String =>
+      case ("", "fork") => processForkStep(step, pipeline, steps, parameterValues, pipelineContext)
+      case ("", STEPGROUP) => processStepGroup(step, pipeline, steps, parameterValues, pipelineContext)
+      case ("", _) => ReflectionUtils.processStep(step, pipeline, parameterValues, pipelineContext)
+      case (value, _) =>
         logger.debug(s"Evaluating execute if empty: $value")
         // wrap the value in a parameter object
         val param = Parameter(Some("text"), Some("dynamic"), Some(true), None, Some(value))
@@ -305,8 +305,8 @@ object PipelineExecutor {
   }
 
   private def getNextStepId(step: PipelineStep, result: Any): Option[String] = {
-    step match {
-      case PipelineStep(_, _, _, Some("branch"), _, _, _, _, _, _) =>
+    step.`type`.getOrElse("").toLowerCase match {
+      case "branch" =>
         // match the result against the step parameter name until we find a match
         val matchValue = result match {
           case response: PipelineStepResponse => response.primaryReturn.getOrElse("").toString
@@ -319,7 +319,7 @@ object PipelineExecutor {
         } else {
           None
         }
-      case PipelineStep(_, _, _, Some("fork"), _, _, _, _, _, _) => result.asInstanceOf[ForkStepResult].nextStepId
+      case "fork" => result.asInstanceOf[ForkStepResult].nextStepId
       case _ => step.nextStepId
     }
   }
@@ -417,7 +417,7 @@ object PipelineExecutor {
     // Create the list of steps that need to be executed starting with the "nextStepId"
     val newSteps = getForkSteps(firstStep, pipeline, steps, List())
     // Identify the join steps and verify that only one is present
-    val joinSteps = newSteps.filter(_.`type`.getOrElse("") == "join")
+    val joinSteps = newSteps.filter(_.`type`.getOrElse("").toLowerCase == "join")
     val newStepLookup = newSteps.foldLeft(Map[String, PipelineStep]())((map, s) => map + (s.id.get -> s))
     // See if the forks should be executed in threads or a loop
     val forkByValues = parameterValues("forkByValues").asInstanceOf[List[Any]]
@@ -654,7 +654,7 @@ object PipelineExecutor {
                            pipeline: Pipeline,
                            steps: Map[String, PipelineStep],
                            forkSteps: List[PipelineStep]): List[PipelineStep] = {
-    step.`type`.getOrElse("") match {
+    step.`type`.getOrElse("").toLowerCase match {
       case "fork" => throw PipelineException(message = Some("fork steps may not be embedded other fork steps!"),
         pipelineId = pipeline.id, stepId = step.id)
       case "branch" =>
