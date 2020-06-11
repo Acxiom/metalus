@@ -152,7 +152,9 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("recursive test", Parameter(value=Some("$pipeline-id-1.recursiveTest")), "$pipeline-id-1.rawKey1"),
         ("lastStepId test", Parameter(value=Some("@LastStepId"),`type`=Some("string")), List(1,2,3)),
         ("lastStepId with or", Parameter(value=Some("!not_here || @LastStepId"),`type`=Some("string")), List(1,2,3)),
-        ("lastStepId with method extraction", Parameter(value=Some("@LastStepId.nonEmpty"),`type`=Some("boolean")), true)
+        ("lastStepId with method extraction", Parameter(value=Some("@LastStepId.nonEmpty"),`type`=Some("boolean")), true),
+        ("inline list in inline map",
+          Parameter(value=Some(Map[String, Any]("list" -> List("!globalString"))),`type`=Some("text")), Map("list" -> List("globalValue1")))
       )
       tests.foreach(test => {
         Then(s"test ${test._1}")

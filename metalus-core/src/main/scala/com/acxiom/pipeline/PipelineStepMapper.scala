@@ -177,9 +177,9 @@ trait PipelineStepMapper {
     } else if (list.head.isInstanceOf[Map[_, _]]) {
       list.map(value => mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext))
     } else if(list.nonEmpty) {
-      list.map {
-        case s: String if containsSpecialCharacters(s) => returnBestValue(s, Parameter(), pipelineContext)
-        case a: Any => a
+      list.flatMap {
+        case s: String if containsSpecialCharacters(s) => getBestValue(s.split("\\|\\|"), Parameter(), pipelineContext)
+        case a: Any => Some(a)
       }
     } else {
       list
@@ -199,6 +199,7 @@ trait PipelineStepMapper {
           map + (entry._1 -> returnBestValue(s, Parameter(), pipelineContext))
         case m:  Map[_, _] =>
           map + (entry._1 -> mapEmbeddedVariables(m.asInstanceOf[Map[String, Any]], pipelineContext))
+        case l: List[_] => map ++ handleListParameter(l, Parameter(), pipelineContext).map(a => entry._1 -> a)
         case _ => map
       }
     })
