@@ -2,10 +2,11 @@
 
 usage() {
   echo "dependency-resolver.sh [OPTIONS]"
-  echo "--output-path   -> A path to write the jars"
-  echo "--jar-files     -> A comma separated list of jar files to scan"
-  echo "--jar-separator -> A single character that will be used to separate the jars when building the classpath"
-  echo "--path-prefix   -> The path to prepend to the jar files"
+  echo "--output-path    -> A path to write the jars"
+  echo "--jar-files      -> A comma separated list of jar files to scan"
+  echo "--jar-separator  -> A single character that will be used to separate the jars when building the classpath"
+  echo "--path-prefix    -> The path to prepend to the jar files"
+  echo "--include-scopes -> Optional comma separated list of scopes to include. runtime is always included."
 }
 
 # Parse the parameters
