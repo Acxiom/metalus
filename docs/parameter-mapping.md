@@ -83,7 +83,7 @@ Multiple values may be embedded as long as the resulting value is a string, bool
 or number. A return value of an object will log a warning and ignore string concatenation to return the object value.
 
 **Calling methods**
-In addition to accessing fields, methods can called using the same syntax: 
+In addition to accessing fields, methods can be called using the same syntax: 
 ```
 "!obj.subObj.getName"
 ```

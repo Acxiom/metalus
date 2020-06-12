@@ -270,16 +270,25 @@ object ReflectionUtils {
     }
   }
 
+  //noinspection ScalaStyle
   private def isAssignableFrom(paramClass: Class[_], value: Any): Boolean = {
     value match {
-      case b: java.lang.Boolean => paramClass.isAssignableFrom(b.asInstanceOf[Boolean].getClass)
-      case i: java.lang.Integer => paramClass.isAssignableFrom(i.asInstanceOf[Int].getClass)
-      case l: java.lang.Long => paramClass.isAssignableFrom(l.asInstanceOf[Long].getClass)
-      case s: java.lang.Short => paramClass.isAssignableFrom(s.asInstanceOf[Short].getClass)
-      case c: java.lang.Character => paramClass.isAssignableFrom(c.asInstanceOf[Char].getClass)
-      case d: java.lang.Double => paramClass.isAssignableFrom(d.asInstanceOf[Double].getClass)
-      case f: java.lang.Float => paramClass.isAssignableFrom(f.asInstanceOf[Float].getClass)
-      case by: java.lang.Byte => paramClass.isAssignableFrom(by.asInstanceOf[Byte].getClass)
+      case b: java.lang.Boolean =>
+        paramClass.isAssignableFrom(b.getClass) || paramClass.isAssignableFrom(b.asInstanceOf[Boolean].getClass)
+      case i: java.lang.Integer =>
+        paramClass.isAssignableFrom(i.getClass) || paramClass.isAssignableFrom(i.asInstanceOf[Int].getClass)
+      case l: java.lang.Long =>
+        paramClass.isAssignableFrom(l.getClass) || paramClass.isAssignableFrom(l.asInstanceOf[Long].getClass)
+      case s: java.lang.Short =>
+        paramClass.isAssignableFrom(s.getClass) || paramClass.isAssignableFrom(s.asInstanceOf[Short].getClass)
+      case c: java.lang.Character =>
+        paramClass.isAssignableFrom(c.getClass) || paramClass.isAssignableFrom(c.asInstanceOf[Char].getClass)
+      case d: java.lang.Double =>
+        paramClass.isAssignableFrom(d.getClass) || paramClass.isAssignableFrom(d.asInstanceOf[Double].getClass)
+      case f: java.lang.Float =>
+        paramClass.isAssignableFrom(f.getClass) || paramClass.isAssignableFrom(f.asInstanceOf[Float].getClass)
+      case by: java.lang.Byte =>
+        paramClass.isAssignableFrom(by.getClass) || paramClass.isAssignableFrom(by.asInstanceOf[Byte].getClass)
       case _ => paramClass.isAssignableFrom(value.getClass)
     }
   }

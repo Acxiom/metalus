@@ -181,6 +181,24 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == 1)
     }
 
+    it("should handle Boxed types") {
+      val step = PipelineStep(None, None, None, None, None,
+        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithBoxClasses"))))
+      val map = Map[String, Any]("i" -> "1".toInt,
+        "l" -> 1L,
+        "s" -> 1.toShort.asInstanceOf[java.lang.Short],
+        "d" -> 1.0D,
+        "f" -> 1.0F,
+        "c" -> '1',
+        "by" -> 1.toByte.asInstanceOf[java.lang.Byte],
+        "a" -> "anyValue"
+      )
+      val response = ReflectionUtils.processStep(step, pipeline, map, pipelineContext)
+      assert(response.isInstanceOf[PipelineStepResponse])
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
+      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == 1)
+    }
+
     it("Should respect the pkg setting on EngineMeta") {
       val step = PipelineStep(None, None, None, None, None,
         Some(EngineMeta(Some("MockStepObject.mockStepFunctionAnyResponse"), Some("com.acxiom.pipeline.steps"))))

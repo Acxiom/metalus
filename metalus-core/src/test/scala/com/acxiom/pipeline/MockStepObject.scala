@@ -39,6 +39,11 @@ object MockStepObject {
     i
   }
 
+  def mockStepFunctionWithBoxClasses(i: Integer, l: java.lang.Long, d: java.lang.Double, f: java.lang.Float, c: Character,
+                                     by: java.lang.Byte, s: java.lang.Short): Int = {
+    i
+  }
+
   def mockStringListStepFunction(listSize: Int): PipelineStepResponse = {
     PipelineStepResponse(Some(List.tabulate(listSize)(_.toString)), None)
   }
