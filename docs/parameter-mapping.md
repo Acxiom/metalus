@@ -176,10 +176,11 @@ More information may be found [here](advanced-step-features.md).
 ## Reserved Globals
 Below is a table of reserved globals with a summary of their usage.
  
-| Global                     | Use                                                 |
-|:---------------------------|:----------------------------------------------------|
-| lastStepId                 | lastStepId always refers to the last step executed. |
-| pipelineId                 | current executing pipeline id                       |
-| stepId                     | current executing step                              |
-| validateStepParameterTypes | enable/disable parameter type validation for steps  |
-| extractMethodsEnabled      | enable/disable method support for field extraction   |
+| Global                     | Use                                                     |
+|:---------------------------|:--------------------------------------------------------|
+| lastStepId                 | lastStepId always refers to the last step executed.     |
+| pipelineId                 | current executing pipeline id                           |
+| stepId                     | current executing step                                  |
+| validateStepParameterTypes | enable/disable parameter type validation for steps      |
+| extractMethodsEnabled      | enable/disable method support for field extraction       |
+| dropNoneFromLists          | when true, will remove "None" options from inline lists |

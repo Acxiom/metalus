@@ -262,7 +262,23 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       assert(list.length == 3)
       assert(list.head == "string")
       assert(list(1) == FIVE)
-      assert(list(2) == Some("global->globalValue1->value"))
+      assert(list(2) == "global->globalValue1->value")
+    }
+
+    it("Should respect the dropNoneFromLists option") {
+      val objectParameter = Parameter(value=Some(List("string", FIVE, "!NotHere")))
+      val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
+      val list = parameterValue.asInstanceOf[List[Any]]
+      assert(list.length == 2)
+      assert(list.head == "string")
+      assert(list(1) == FIVE)
+      val contextWithOption = pipelineContext.setGlobal("dropNoneFromLists", false)
+      val anotherValue = pipelineContext.parameterMapper.mapParameter(objectParameter, contextWithOption)
+      val anotherList = anotherValue.asInstanceOf[List[Any]]
+      assert(anotherList.length == 3)
+      assert(anotherList.head == "string")
+      assert(anotherList(1) == FIVE)
+      assert(anotherList(2) == null)
     }
 
     it("Should perform || logic") {

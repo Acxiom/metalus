@@ -170,6 +170,7 @@ trait PipelineStepMapper {
     * @return An expanded list
     */
   private def handleListParameter(list: List[_], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
+    val dropNone = pipelineContext.getGlobal("dropNoneFromLists").forall(_.asInstanceOf[Boolean])
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
       implicit val formats: Formats = DefaultFormats
       list.map(value =>
@@ -178,7 +179,11 @@ trait PipelineStepMapper {
       list.map(value => mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext))
     } else if(list.nonEmpty) {
       list.flatMap {
-        case s: String if containsSpecialCharacters(s) => getBestValue(s.split("\\|\\|"), Parameter(), pipelineContext)
+        case s: String if containsSpecialCharacters(s) =>
+          (dropNone, getBestValue(s.split("\\|\\|"), Parameter(), pipelineContext)) match {
+            case (false, None) => Some(null) // scalastyle:off null
+            case (_, v) => v
+          }
         case a: Any => Some(a)
       }
     } else {
