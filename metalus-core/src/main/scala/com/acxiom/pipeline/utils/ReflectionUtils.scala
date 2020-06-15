@@ -119,11 +119,11 @@ object ReflectionUtils {
    * @param extractFromOption Setting this to true will see if the value is an option and extract the sub value.
    * @return The value from the field or an empty string
    */
-  def extractField(entity: Any, fieldName: String, extractFromOption: Boolean = true): Any = {
+  def extractField(entity: Any, fieldName: String, extractFromOption: Boolean = true, applyMethod: Option[Boolean] = None): Any = {
     if (fieldName == "") {
       entity
     } else {
-      val value = getField(entity, fieldName)
+      val value = getField(entity, fieldName, applyMethod.getOrElse(false))
       if (extractFromOption) {
         value match {
           case option: Option[_] if option.isDefined => option.get
@@ -136,7 +136,7 @@ object ReflectionUtils {
   }
 
   @tailrec
-  private def getField(entity: Any, fieldName: String): Any = {
+  private def getField(entity: Any, fieldName: String, applyMethod: Boolean): Any = {
     val obj = entity match {
       case option: Option[_] if option.isDefined =>
         option.get
@@ -155,26 +155,31 @@ object ReflectionUtils {
 
     val value = obj match {
       case map: Map[_, _] => map.asInstanceOf[Map[String, Any]].getOrElse(name, None)
-      case _ => getFieldValue(obj, name)
+      case _ => getMemberValue(obj, name, applyMethod)
     }
 
     if (value != None && embedded) {
-      getField(value, fieldName.substring(fieldName.indexOf(".") + 1))
+      getField(value, fieldName.substring(fieldName.indexOf(".") + 1), applyMethod)
     } else {
       value
     }
   }
 
-  private def getFieldValue(obj: Any, fieldName: String): Any = {
+  private def getMemberValue(obj: Any, fieldName: String, applyMethod: Boolean): Any = {
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     val im = mirror.reflect(obj)
-    val term = im.symbol.typeSignature.member(ru.TermName(fieldName))
-    if (term.isTerm) {
-      val field = term.asTerm
-      val fieldVal = im.reflectField(field)
-      fieldVal.get
-    } else {
-      None
+    val symbol = im.symbol.typeSignature.member(ru.TermName(fieldName))
+    symbol match {
+      case method: MethodSymbol if applyMethod =>
+        val methodVal = im.reflectMethod(method)
+        methodVal.apply()
+      case method: MethodSymbol if !method.isAccessor =>
+        val reason = s"${method.name} is a method. To enable method extraction, set the global [extractMethodsEnabled] to true."
+        throw new IllegalArgumentException(s"Unable to extract: [${im.symbol.name}.${method.name}]. $reason")
+      case term: TermSymbol =>
+        val fieldVal = im.reflectField(term)
+        fieldVal.get
+      case _ => None
     }
   }
 
@@ -265,16 +270,25 @@ object ReflectionUtils {
     }
   }
 
+  //noinspection ScalaStyle
   private def isAssignableFrom(paramClass: Class[_], value: Any): Boolean = {
     value match {
-      case b: java.lang.Boolean => paramClass.isAssignableFrom(b.asInstanceOf[Boolean].getClass)
-      case i: java.lang.Integer => paramClass.isAssignableFrom(i.asInstanceOf[Int].getClass)
-      case l: java.lang.Long => paramClass.isAssignableFrom(l.asInstanceOf[Long].getClass)
-      case s: java.lang.Short => paramClass.isAssignableFrom(s.asInstanceOf[Short].getClass)
-      case c: java.lang.Character => paramClass.isAssignableFrom(c.asInstanceOf[Char].getClass)
-      case d: java.lang.Double => paramClass.isAssignableFrom(d.asInstanceOf[Double].getClass)
-      case f: java.lang.Float => paramClass.isAssignableFrom(f.asInstanceOf[Float].getClass)
-      case by: java.lang.Byte => paramClass.isAssignableFrom(by.asInstanceOf[Byte].getClass)
+      case b: java.lang.Boolean =>
+        paramClass.isAssignableFrom(b.getClass) || paramClass.isAssignableFrom(b.asInstanceOf[Boolean].getClass)
+      case i: java.lang.Integer =>
+        paramClass.isAssignableFrom(i.getClass) || paramClass.isAssignableFrom(i.asInstanceOf[Int].getClass)
+      case l: java.lang.Long =>
+        paramClass.isAssignableFrom(l.getClass) || paramClass.isAssignableFrom(l.asInstanceOf[Long].getClass)
+      case s: java.lang.Short =>
+        paramClass.isAssignableFrom(s.getClass) || paramClass.isAssignableFrom(s.asInstanceOf[Short].getClass)
+      case c: java.lang.Character =>
+        paramClass.isAssignableFrom(c.getClass) || paramClass.isAssignableFrom(c.asInstanceOf[Char].getClass)
+      case d: java.lang.Double =>
+        paramClass.isAssignableFrom(d.getClass) || paramClass.isAssignableFrom(d.asInstanceOf[Double].getClass)
+      case f: java.lang.Float =>
+        paramClass.isAssignableFrom(f.getClass) || paramClass.isAssignableFrom(f.asInstanceOf[Float].getClass)
+      case by: java.lang.Byte =>
+        paramClass.isAssignableFrom(by.getClass) || paramClass.isAssignableFrom(by.asInstanceOf[Byte].getClass)
       case _ => paramClass.isAssignableFrom(value.getClass)
     }
   }

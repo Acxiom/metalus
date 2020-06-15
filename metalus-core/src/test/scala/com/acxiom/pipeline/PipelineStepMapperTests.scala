@@ -79,7 +79,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       "link7" -> "#pipeline-id-1.step2.namedKey2String", "link8" -> "embedded!{pipelineId}::concat_value", "link9" -> "link_override"
     )
     val globalParameters = Map("pipelineId" -> "pipeline-id-3", "lastStepId" -> "step1", "globalString" -> "globalValue1", "globalInteger" -> FIVE,
-      "globalBoolean" -> true, "globalTestObject" -> globalTestObject, "GlobalLinks" -> broadCastGlobal, "link9" -> "root_value")
+      "globalBoolean" -> true, "globalTestObject" -> globalTestObject, "GlobalLinks" -> broadCastGlobal, "link9" -> "root_value",
+    "extractMethodsEnabled" -> true)
 
     val subPipeline = Pipeline(Some("mypipeline"), Some("My Pipeline"))
 
@@ -150,9 +151,11 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("recursive test", Parameter(value=Some("?pipeline-id-1.recursiveTest")), "rawValue1"),
         ("recursive test", Parameter(value=Some("$pipeline-id-1.recursiveTest")), "$pipeline-id-1.rawKey1"),
         ("lastStepId test", Parameter(value=Some("@LastStepId"),`type`=Some("string")), List(1,2,3)),
-        ("lastStepId with or", Parameter(value=Some("!not_here || @LastStepId"),`type`=Some("string")), List(1,2,3))
+        ("lastStepId with or", Parameter(value=Some("!not_here || @LastStepId"),`type`=Some("string")), List(1,2,3)),
+        ("lastStepId with method extraction", Parameter(value=Some("@LastStepId.nonEmpty"),`type`=Some("boolean")), true),
+        ("inline list in inline map",
+          Parameter(value=Some(Map[String, Any]("list" -> List("!globalString"))),`type`=Some("text")), Map("list" -> List("globalValue1")))
       )
-
       tests.foreach(test => {
         Then(s"test ${test._1}")
         assert(pipelineContext.parameterMapper.mapParameter(test._2, pipelineContext) == test._3)
@@ -259,7 +262,23 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       assert(list.length == 3)
       assert(list.head == "string")
       assert(list(1) == FIVE)
-      assert(list(2) == Some("global->globalValue1->value"))
+      assert(list(2) == "global->globalValue1->value")
+    }
+
+    it("Should respect the dropNoneFromLists option") {
+      val objectParameter = Parameter(value=Some(List("string", FIVE, "!NotHere")))
+      val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
+      val list = parameterValue.asInstanceOf[List[Any]]
+      assert(list.length == 2)
+      assert(list.head == "string")
+      assert(list(1) == FIVE)
+      val contextWithOption = pipelineContext.setGlobal("dropNoneFromLists", false)
+      val anotherValue = pipelineContext.parameterMapper.mapParameter(objectParameter, contextWithOption)
+      val anotherList = anotherValue.asInstanceOf[List[Any]]
+      assert(anotherList.length == 3)
+      assert(anotherList.head == "string")
+      assert(anotherList(1) == FIVE)
+      assert(anotherList(2) == null)
     }
 
     it("Should perform || logic") {

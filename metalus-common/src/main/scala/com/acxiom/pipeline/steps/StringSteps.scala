@@ -1,5 +1,7 @@
 package com.acxiom.pipeline.steps
 
+import java.util.regex.Pattern
+
 import com.acxiom.pipeline.annotations.{BranchResults, StepFunction, StepObject}
 
 @StepObject
@@ -94,6 +96,30 @@ object StringSteps {
   @BranchResults(List("true", "false"))
   def stringMatches(string: String, regex: String): Boolean = {
     string.matches(regex)
+  }
+
+  @StepFunction("416baf4e-a1dd-49fc-83a9-0f41b77e57b7",
+    "String Replace All",
+    "Perform a literal or regex replacement on a string",
+    "pipeline", "String")
+  def stringReplaceAll(string: String, matchString: String, replacement: String, literal: Option[Boolean] = None): String = {
+    if (literal.getOrElse(false)) {
+      string.replaceAllLiterally(matchString, replacement)
+    } else {
+      string.replaceAll(matchString, replacement)
+    }
+  }
+
+  @StepFunction("95438b82-8d50-41da-8094-c92449b9e7df",
+    "String Replace First",
+    "Perform a literal or regex replacement on the first occurrence in a string",
+    "pipeline", "String")
+  def stringReplaceFirst(string: String, matchString: String, replacement: String, literal: Option[Boolean] = None): String = {
+    if (literal.getOrElse(false)) {
+      string.replaceFirst(Pattern.quote(matchString), replacement)
+    } else {
+      string.replaceFirst(matchString, replacement)
+    }
   }
 
   private def unwrap(value: Any): Any = value match {

@@ -128,5 +128,14 @@ class StringStepsTests extends FunSpec with GivenWhenThen {
       Then("The correct regex is applied")
       assert(res)
     }
+
+    it("Should replace strings") {
+      val m = "chickens suck!"
+      assert(StringSteps.stringReplaceAll(m, "suck", "rule", Some(true)) == "chickens rule!")
+      assert(StringSteps.stringReplaceAll(m, "suck.", "rule!!!") == "chickens rule!!!")
+      val m2 = "chickens chickens rule!"
+      assert(StringSteps.stringReplaceFirst(m2, "chickens", "", Some(true)) == " chickens rule!")
+      assert(StringSteps.stringReplaceFirst(m2, "chickens\\s+", "") == "chickens rule!")
+    }
   }
 }
