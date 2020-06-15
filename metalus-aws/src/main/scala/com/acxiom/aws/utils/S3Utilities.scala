@@ -3,7 +3,7 @@ package com.acxiom.aws.utils
 import com.acxiom.pipeline.PipelineContext
 
 object S3Utilities {
-  val MULTIPART_UPLOAD_SIZE = 5242880
+  val MULTIPART_UPLOAD_SIZE = 52428800
   val MULTIPART_COPY_SIZE = 5368709120L
 
   /**
