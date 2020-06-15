@@ -82,6 +82,7 @@ object DependencyManager {
   private def resolveDependency(dependency: Dependency, output: File, parameters: Map[String, Any], dependencies: List[Dependency]): List[Dependency] = {
     val dependencyMap: Option[Map[String, Any]] = DependencyResolver.getDependencyJson(dependency.localFile.getAbsolutePath, parameters)
     if (dependencyMap.isDefined) {
+      val scopes = "runtime" :: parameters.getOrElse("include-scopes", "runtime").asInstanceOf[String].split(',').toList
       // Currently only support one dependency within the json
       val dependencyType = dependencyMap.get.head._1
       val resolverName = s"com.acxiom.metalus.resolvers.${dependencyType.toLowerCase.capitalize}DependencyResolver"
@@ -90,7 +91,8 @@ object DependencyManager {
         .getOrElse("libraries", List[Map[String, Any]]()).asInstanceOf[List[Map[String, Any]]].filter(library => {
         val artifactId = library("artifactId").asInstanceOf[String]
         val version = library("version").asInstanceOf[String]
-        !dependencies.exists(dep => dep.name == artifactId && dep.version == version)
+        val artifactScopes = library.getOrElse("scope", "runtime").asInstanceOf[String].split(',').toList
+        !dependencies.exists(dep => dep.name == artifactId && dep.version == version) && scopes.exists(artifactScopes.contains)
       })
       val updatedDependencyMap = dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]] + ("libraries" -> filteredLIbraries)
       resolver.copyResources(output, updatedDependencyMap, parameters)

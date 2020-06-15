@@ -98,7 +98,7 @@ fi
 # Add the provided jars to the classpath to make it easier to retrieve
 for i in ${jarFiles//,/ }
 do
-    dependencies=$(exec $dir/bin/dependency-resolver.sh --output-path $stagingDir --jar-files $i --path-prefix $stagingDir $downloadAuth $repo)
+    dependencies=$(exec $dir/bin/dependency-resolver.sh --include-scopes extraction --output-path $stagingDir --jar-files $i --path-prefix $stagingDir $downloadAuth $repo)
     dependencies=$(echo "${dependencies}" | tail -n1)
     jarName=${i##*/}
     dirName=${jarName%.jar}
