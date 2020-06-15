@@ -26,11 +26,30 @@ object ScalaSteps {
     "Pipeline",
     "Scripting")
   def processScriptWithValue(@StepParameter(Some("script"), Some(true), None, Some("scala"), None, None) script: String,
-                             value: Any, `type`: String = "Any",
+                             value: Any, `type`: Option[String] = None,
                              pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
-    val bindings = engine.createBindings("logger", logger, "org.apache.log4j.Logger")
+    val bindings = engine.createBindings("logger", logger, Some("org.apache.log4j.Logger"))
       .setBinding("userValue", value, `type`)
+    val result = engine.executeScriptWithBindings(script, bindings, pipelineContext)
+    handleResult(result)
+  }
+
+  @StepFunction("3ab721e8-0075-4418-aef1-26abdf3041be",
+    "Scala script Step with additional object provided",
+    "Executes a script with the provided object and returns the result",
+    "Pipeline",
+    "Scripting")
+  def processScriptWithValues(@StepParameter(Some("script"), Some(true), None, Some("scala"), None, None) script: String,
+                              values: Map[String, Any],
+                              types: Option[Map[String, String]] = None,
+                              pipelineContext: PipelineContext): PipelineStepResponse = {
+    val engine = new ScalaScriptEngine
+    val typeMappings = types.getOrElse(Map())
+    val initialBinding = engine.createBindings("logger", logger, Some("org.apache.log4j.Logger"))
+    val bindings = values.foldLeft(initialBinding) { (bindings, pair) =>
+      bindings.setBinding(pair._1, pair._2, typeMappings.get(pair._1))
+    }
     val result = engine.executeScriptWithBindings(script, bindings, pipelineContext)
     handleResult(result)
   }

@@ -82,6 +82,14 @@ would return
 Multiple values may be embedded as long as the resulting value is a string, boolean
 or number. A return value of an object will log a warning and ignore string concatenation to return the object value.
 
+**Calling methods**
+In addition to accessing fields, methods can be called using the same syntax: 
+```
+"!obj.subObj.getName"
+```
+This feature is limited to methods without parameters, and is disabled by default.
+To enable, set the global "**extractMethodsEnabled**" to "**true**"
+
 ## JSON Objects
 
 JSON object values may also be embedded as a pipeline step value. Two attributes must be provided in the JSON, 
@@ -164,3 +172,15 @@ finally use the provided static text of _default string_.
 ## Pipeline Context Updates
 Once advanced feature of Metalus is to allow steps the ability to update _PipelineContext_ using the secondary returns.
 More information may be found [here](advanced-step-features.md).
+
+## Reserved Globals
+Below is a table of reserved globals with a summary of their usage.
+ 
+| Global                     | Use                                                     |
+|:---------------------------|:--------------------------------------------------------|
+| lastStepId                 | lastStepId always refers to the last step executed.     |
+| pipelineId                 | current executing pipeline id                           |
+| stepId                     | current executing step                                  |
+| validateStepParameterTypes | enable/disable parameter type validation for steps      |
+| extractMethodsEnabled      | enable/disable method support for field extraction       |
+| dropNoneFromLists          | when true, will remove "None" options from inline lists |

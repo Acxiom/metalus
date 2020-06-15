@@ -37,6 +37,21 @@ object JavascriptSteps {
     handleResult(result)
   }
 
+  @StepFunction("f92d4816-3c62-4c29-b420-f00994bfcd86",
+    "Javascript Step with additional objects provided",
+    "Executes a script and returns the result",
+    "Pipeline",
+    "Scripting")
+  def processScriptWithValues(@StepParameter(Some("script"), Some(true), None, Some("javascript"), None, None) script: String,
+                             values: Map[String, Any], pipelineContext: PipelineContext): PipelineStepResponse = {
+    val engine = new JavaScriptEngine
+    val bindings = new SimpleBindings()
+    bindings.put("logger", logger)
+    values.foreach{case (name, value) => bindings.put(name, value)}
+    val result = engine.executeScript(script, bindings, pipelineContext)
+    handleResult(result)
+  }
+
   /**
     * This function will take the provided result value and wrap it in a PipelineStepResponse. If the result is already
     * wrapped in an Option, it will be used as is otherwise it will be wrapped in an Option.

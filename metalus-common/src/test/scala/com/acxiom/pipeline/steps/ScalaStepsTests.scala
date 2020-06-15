@@ -2,12 +2,13 @@ package com.acxiom.pipeline.steps
 
 import java.io.File
 import java.nio.file.{FileSystems, Files, Path, StandardCopyOption}
+import java.util
 
 import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 
 class ScalaStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
@@ -104,13 +105,36 @@ class ScalaStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       val updatedScript = script.replaceAll("\\$path", "userValue")
       val result = ScalaSteps.processScriptWithValue(updatedScript,
         tempFile.getAbsolutePath,
-        "String",
+        Some("String"),
         pipelineContext)
       assert(result.primaryReturn.isDefined)
       val df = result.primaryReturn.get.asInstanceOf[DataFrame]
       val count = df.count()
       assert(count == 1000)
       assert(df.schema.fields.length == 7)
+    }
+
+    it("Should handle multiple values and derive types"){
+      val scriptWithDerivedTypes =
+        """
+          |val tmp = if (v2) v1 + v4.last.asInstanceOf[Int] else -1
+          |(v3.toUpperCase, tmp, v5.collect().toList)
+          |""".stripMargin
+      val df = pipelineContext.sparkSession.get.sql("select 1 as id")
+      val mappings: Map[String, Any] = Map(
+        "v1" -> 1,
+        "v2" -> true,
+        "v3" -> "chicken",
+        "v4" -> List(1,2,3),
+        "v5" -> df
+      )
+      val result = ScalaSteps.processScriptWithValues(scriptWithDerivedTypes, mappings, None, pipelineContext)
+      assert(result.primaryReturn.isDefined)
+      val tuple = result.primaryReturn.get.asInstanceOf[(String, Int, List[Row])]
+      assert(tuple._1 == "CHICKEN")
+      assert(tuple._2 == 4)
+      assert(tuple._3.size == 1)
+      assert(tuple._3.head.getInt(0) == 1)
     }
   }
 }

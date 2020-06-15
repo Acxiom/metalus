@@ -64,7 +64,7 @@ class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
         Parameter(Some("boolean"), Some("boolean"), value = Some(false)))),
       engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunction"))))
     val subPipeline = DefaultPipeline(Some("subPipelineId"), Some("Sub Pipeline"), Some(List(
-      subPipelineStepOne, subPipelineStepTwo, subPipelineStepThree)))
+      subPipelineStepOne, subPipelineStepTwo, subPipelineStepThree)), category = Some("step-group"))
 
     implicit val formats: Formats = DefaultFormats
     val json = Serialization.write(subPipeline)
