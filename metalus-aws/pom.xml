@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>metalus-aws_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
     <name>${project.artifactId}</name>
-    <description>Metalus Pipeline AWS</description>
+    <description>Metalus AWS Step Library</description>
     <inceptionYear>2018</inceptionYear>
 
     <parent>

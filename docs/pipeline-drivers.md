@@ -42,6 +42,15 @@ This flow demonstrates how the chosen driver interacts with the *DriverSetup*:
 
 ![Streaming Driver Flow](images/Streaming_Driver_Flow.png "Streaming Driver Flow")
 
+### Streaming Data Parsers
+The default behavior of the provided streaming drivers when creating a data collection is to populate three fields: 
+topic, key and value. The pipeline is responsible for retrieving the value for each row and parsing. This behavior can
+be overridden by using the _StreamDataParsers_ trait. This trait provides two functions: _canParse_ and _parseRDD_. Both
+functions take the RDD provided by the streaming driver. The _canParse_ function is used by the driver to identify which
+parser to use when more than one parser is available. The _parseRDD_ function is called to create the DataFrame. Additional
+parsers are provided by using the _streaming-parsers_ command line parameter and providing a comma separated list containing
+the fully qualified classname of the parsers to use.
+
 ## KafkaPipelineDriver
 This driver provides basic support for streaming data from [Kafka](http://kafka.apache.org/) topics. As data is consumed,
 the RDD will be converted into a DataFrame with three columns:
