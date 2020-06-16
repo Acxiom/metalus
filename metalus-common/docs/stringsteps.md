@@ -54,3 +54,21 @@ Returns whether the given string is matched by the provided regex.
 
 * **string** - String to match.
 * **regex** - Pattern to use.
+
+##String Replace All
+Performs a replacement on a string. By default, this will treat the match string as a regex.
+A literal match can be performed by setting the literal flag to true.
+
+* **string** - String to perform the replace on.
+* **matchString** - Pattern or literal string to be replaced.
+* **replacement** - The replacement string.
+* **literal** - Optional boolean flag to indicate whether match string is a regex. Default is false.
+
+##String Replace First
+Performs a replacement on the first match on a given string. By default, this will treat the match string as a regex.
+A literal match can be performed by setting the literal flag to true.
+
+* **string** - String to perform the replace on.
+* **matchString** - Pattern or literal string to be replaced.
+* **replacement** - The replacement string.
+* **literal** - Optional boolean flag to indicate whether match string is a regex. Default is false.
