@@ -69,6 +69,7 @@
         <module>metalus-core</module>
         <module>metalus-common</module>
         <module>metalus-examples</module>
+        <module>metalus-gcp</module>
         <module>metalus-mongo</module>
         <module>metalus-utils</module>
     </modules>
