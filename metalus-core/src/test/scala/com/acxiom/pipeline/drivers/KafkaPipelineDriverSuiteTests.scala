@@ -45,9 +45,6 @@ class KafkaPipelineDriverSuiteTests extends FunSpec with BeforeAndAfterAll with 
   kafkaProducerProperties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
   kafkaProducerProperties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
 
-  val FIVE = 5
-  val TEN = 10
-
   override def beforeAll(): Unit = {
     testingServer.start()
     server.startup()
@@ -111,7 +108,7 @@ class KafkaPipelineDriverSuiteTests extends FunSpec with BeforeAndAfterAll with 
       val args = List("--driverSetupClass", "com.acxiom.pipeline.drivers.SparkTestDriverSetup", "--pipeline", "basic",
         "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", "localhost:9092",
         "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds",
-      "--duration", "1", "--expectedCount", "5")
+        "--duration", "1", "--expectedCount", "5", "--expectedAttrCount", "5")
       KafkaPipelineDriver.main(args.toArray)
       Then("5 records should be processed")
       assert(executionComplete)
@@ -145,13 +142,13 @@ class KafkaPipelineDriverSuiteTests extends FunSpec with BeforeAndAfterAll with 
         "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", "localhost:9092",
         "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "1", "--streaming-parsers",
         "com.acxiom.pipeline.drivers.TestKafkaStreamingDataParserPipe,com.acxiom.pipeline.drivers.TestKafkaStreamingDataParserPipe",
-        "--expectedCount", "5")
+        "--expectedCount", "5", "--expectedAttrCount", "5")
       KafkaPipelineDriver.main(args.toArray)
       Then("5 records should be processed")
       assert(executionComplete)
     }
 
-    it("Should process records using multiple data parsers") {
+    it("Should process records using alternate data parsers") {
       When("5 kafka messages are posted with comma delimiter")
       val topic = sendKafkaMessages(",")
       var executionComplete = false
@@ -179,9 +176,43 @@ class KafkaPipelineDriverSuiteTests extends FunSpec with BeforeAndAfterAll with 
         "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", "localhost:9092",
         "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "1",
         "--streaming-parsers", "com.acxiom.pipeline.drivers.TestKafkaStreamingDataParserPipe,com.acxiom.pipeline.drivers.TestKafkaStreamingDataParserComma",
-        "--expectedCount", "5")
+        "--expectedCount", "5", "--expectedAttrCount", "5")
       KafkaPipelineDriver.main(args.toArray)
       Then("5 records should be processed")
+      assert(executionComplete)
+    }
+
+    it("Should process records using default data parser") {
+      When("5 kafka messages are posted with other delimiter")
+      val topic = sendKafkaMessages(":")
+      var executionComplete = false
+      SparkTestHelper.pipelineListener = new PipelineListener {
+        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+          assert(pipelines.lengthCompare(1) == 0)
+          val params = pipelineContext.parameters.getParametersByPipelineId("1")
+          assert(params.isDefined)
+          assert(params.get.parameters.contains("PROCESS_KAFKA_DATA"))
+          assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
+          assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse]
+            .primaryReturn.getOrElse(false).asInstanceOf[Boolean])
+          executionComplete = true
+          None
+        }
+        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+          exception match {
+            case t: Throwable => fail(s"Pipeline Failed to run: ${t.getMessage}")
+          }
+        }
+      }
+
+      And("the kafka spark listener is running expecting either comma or pipe delimiter")
+      val args = List("--driverSetupClass", "com.acxiom.pipeline.drivers.SparkTestDriverSetup", "--pipeline", "parser",
+        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", "localhost:9092",
+        "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "1",
+        "--streaming-parsers", "com.acxiom.pipeline.drivers.TestKafkaStreamingDataParserPipe,com.acxiom.pipeline.drivers.TestKafkaStreamingDataParserComma",
+        "--expectedCount", "5", "--expectedAttrCount", "3")
+      KafkaPipelineDriver.main(args.toArray)
+      Then("5 records should be processed with 3 attributes")
       assert(executionComplete)
     }
   }
@@ -289,10 +320,11 @@ object MockTestSteps {
 
     val fieldDelimiter = pipelineContext.getGlobalString("fieldDelimiter").getOrElse(",")
     val stepMessages = pipelineContext.stepMessages.get
+    val expectedAttrCount = pipelineContext.getGlobalString("expectedAttrCount").getOrElse("0").toInt
     dataFrame.foreach(row => {
       val columns = row.getString(ONE).split(fieldDelimiter.toCharArray()(0))
-      if (columns.lengthCompare(FIVE) != ZERO) {
-        stepMessages.add(PipelineStepMessage(s"Column count was wrong: ${columns.length}",
+      if (columns.lengthCompare(expectedAttrCount) != ZERO) {
+        stepMessages.add(PipelineStepMessage(s"Column count was wrong,expected=$expectedAttrCount,actual=${columns.length}",
           stepId, pipelineId, PipelineStepMessageType.error))
       }
     })
@@ -313,11 +345,12 @@ object MockTestSteps {
         PipelineStepMessageType.error))
     }
 
+    val expectedAttrCount = pipelineContext.getGlobalString("expectedAttrCount").getOrElse("0").toInt
     val stepMessages = pipelineContext.stepMessages.get
     dataFrame.foreach(row => {
       val columnLength = row.length
-      if (columnLength != FIVE) {
-        stepMessages.add(PipelineStepMessage(s"Column count was wrong: $columnLength",
+      if (columnLength != expectedAttrCount) {
+        stepMessages.add(PipelineStepMessage(s"Column count was wrong,expected=$expectedAttrCount,actual=$columnLength",
           stepId, pipelineId, PipelineStepMessageType.error))
       }
     })
