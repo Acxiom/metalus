@@ -1,22 +1,19 @@
 package com.acxiom.gcp.fs
 
-import java.io.OutputStreamWriter
+import java.io.{ByteArrayInputStream, OutputStreamWriter}
 
+import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.storage.contrib.nio.testing.LocalStorageHelper
-import com.google.cloud.storage.{BlobId, BlobInfo}
-import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
+import com.google.cloud.storage.{BlobId, BlobInfo, StorageOptions}
+import org.scalatest.{FunSpec, Suite}
 
 import scala.io.Source
 
-class GCSFileManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
+class GCSFileManagerTests extends FunSpec with Suite {
   private val localStorage = LocalStorageHelper.getOptions.getService
   private val MAIN_BUCKET_NAME = "gcpBucket"
   private val BUFFER = 8192
   private val FOUR = 4
-
-  override def beforeAll(): Unit = {
-//    localStorage.create(BucketInfo.of(MAIN_BUCKET_NAME))
-  }
 
   describe("FileManager - GCP Storage") {
     it("Should perform proper file operations against a GCP file system") {
@@ -43,7 +40,7 @@ class GCSFileManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(createdFile.exists())
       assert(fileManager.exists(fileName))
 
-      // Get a fie listing
+      // Get a fie listing NOTE: the extra slash is required by the unit test library and not needed at runtime
       val fileList = fileManager.getFileListing("//testDir")
       assert(fileList.length == 1)
       assert(fileList.head.size == createdFile.getSize)
