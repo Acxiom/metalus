@@ -68,16 +68,16 @@ object KinesisPipelineDriver {
     // Create the Kinesis DStreams
     val kinesisStreams = createKinesisDStreams(awsAccessKey, awsAccessSecret, appName, duration, streamingContext, numStreams, parameters)
     logger.info("Created " + kinesisStreams.size + " Kinesis DStreams")
-
+    val defaultParser = new KinesisStreamingDataParser
+    val streamingParsers = DriverUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))
     // Union all the streams (in case numStreams > 1)
     val allStreams = streamingContext.union(kinesisStreams)
     allStreams.foreachRDD { rdd: RDD[Row] =>
       if (!rdd.isEmpty()) {
         logger.debug("RDD received")
         // Convert the RDD into a dataFrame
-        val dataFrame = sparkSession.createDataFrame(rdd,
-          StructType(List(StructField("key", StringType), StructField("value", StringType),
-            StructField("topic", StringType)))).toDF()
+        val parser = DriverUtils.getStreamingParser[Row](rdd, streamingParsers)
+        val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)
         // Refresh the execution plan prior to processing new data
         PipelineDependencyExecutor.executePlan(DriverUtils.addInitialDataFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame))
         logger.debug("Completing RDD")
