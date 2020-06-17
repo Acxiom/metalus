@@ -1,12 +1,14 @@
 package com.acxiom.pipeline.utils
 
 import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
+import com.acxiom.pipeline.drivers.StreamingDataParser
 import com.acxiom.pipeline.fs.FileManager
 import com.acxiom.pipeline.{DefaultPipeline, Pipeline, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.DataFrame
 import org.json4s.native.JsonMethods.parse
 import org.json4s.reflect.Reflector
@@ -152,6 +154,38 @@ object DriverUtils {
       execution.pipelineContext.setGlobal("initialDataFrame", initialDataFrame),
       execution.parents))
   }
+
+  /**
+    * Helper function to parse and initialize the StreamingParsers from the command line.
+    * @param parameters The input parameters
+    * @param parsers An initial list of parsers. The new parsers will be prepended to this list.
+    * @return A list of streaming parsers
+    */
+  def generateStreamingDataParsers[T](parameters: Map[String, Any],
+                                   parsers: Option[List[StreamingDataParser[T]]] = None): List[StreamingDataParser[T]] = {
+    val parsersList = if (parsers.isDefined) {
+      parsers.get
+    } else {
+      List[StreamingDataParser[T]]()
+    }
+    // Add any parsers to the head of the list
+    if (parameters.contains("streaming-parsers")) {
+      parameters("streaming-parsers").asInstanceOf[String].split(',').foldLeft(parsersList)((list, p) => {
+        ReflectionUtils.loadClass(p, Some(parameters)).asInstanceOf[StreamingDataParser[T]] :: list
+      })
+    } else {
+      parsersList
+    }
+  }
+
+  /**
+    * Helper function that will attempt to find the appropriate parse for the provided RDD.
+    * @param rdd The RDD to parse.
+    * @param parsers A list of parsers tp consider.
+    * @return The first parser that indicates it can parse the RDD.
+    */
+  def getStreamingParser[T](rdd: RDD[T], parsers: List[StreamingDataParser[T]]): Option[StreamingDataParser[T]] =
+    parsers.find(p => p.canParse(rdd))
 
   def loadJsonFromFile(path: String,
                        fileLoaderClassName: String = "com.acxiom.pipeline.fs.LocalFileManager",

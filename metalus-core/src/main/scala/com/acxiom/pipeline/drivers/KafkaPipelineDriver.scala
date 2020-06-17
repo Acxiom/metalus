@@ -6,8 +6,6 @@ import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Row
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.streaming.kafka010._
 
 /**
@@ -58,16 +56,16 @@ object KafkaPipelineDriver {
       LocationStrategies.PreferConsistent,
       ConsumerStrategies.Subscribe[String, String](topics, kafkaParams))
 
+    val defaultParser = new KafkaStreamingDataParser
+    val streamingParsers = DriverUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))
     stream.foreachRDD { rdd: RDD[ConsumerRecord[String, String]] =>
       if (!rdd.isEmpty()) {
         logger.debug("RDD received")
         // Need to commit the offsets in Kafka that we have consumed
         val offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
         // Convert the RDD into a dataFrame
-        val dataFrame = sparkSession.createDataFrame(rdd.map(r => Row(r.key(), r.value(), r.topic())),
-          StructType(List(StructField("key", StringType),
-            StructField("value", StringType),
-            StructField("topic", StringType)))).toDF()
+        val parser = DriverUtils.getStreamingParser[ConsumerRecord[String, String]](rdd, streamingParsers)
+        val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)
         // Refresh the execution plan prior to processing new data
         PipelineDependencyExecutor.executePlan(DriverUtils.addInitialDataFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame))
         // commit offsets after pipeline(s) completes
