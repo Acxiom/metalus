@@ -1,5 +1,7 @@
 package com.acxiom.aws.utils
 
+import java.net.URI
+
 import com.acxiom.pipeline.PipelineContext
 
 object S3Utilities {
@@ -59,11 +61,11 @@ object S3Utilities {
     * @param bucket An optional bucket name
     * @return A raw path with no protocol information
     */
-  def prepareS3FilePath(path: String, bucket: Option[String] = None): String = {
+  def prepareS3FilePath(path: String): String = {
     if (path.startsWith("/")) {
       path.substring(1)
-    } else if (bucket.nonEmpty && path.startsWith(s"s3")) {
-      path.substring(path.indexOf(s"/${bucket.get}/") +  (2 + bucket.get.length))
+    } else if (path.startsWith(s"s3")) {
+      new URI(path).normalize().toString
     } else {
       path
     }

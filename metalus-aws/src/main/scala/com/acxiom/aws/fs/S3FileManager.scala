@@ -118,7 +118,7 @@ class S3FileManager(region: String,
     */
   override def getSize(path: String): Long = {
     // get a list of all objects with this prefix (in case path is a folder)
-    val s3ObjectList = s3Client.listObjects(bucket, S3Utilities.prepareS3FilePath(path, Some(bucket))).getObjectSummaries
+    val s3ObjectList = s3Client.listObjects(bucket, S3Utilities.prepareS3FilePath(path)).getObjectSummaries
 
     // convert to Scala list and sum the size of all objects with the prefix
     s3ObjectList.asScala.map(_.getSize).sum
