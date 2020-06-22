@@ -36,8 +36,6 @@ object S3Utilities {
     val sc = pipelineContext.sparkSession.get.sparkContext
     sc.hadoopConfiguration.set(s"fs.$protocol.awsAccessKeyId", accessKeyId)
     sc.hadoopConfiguration.set(s"fs.$protocol.awsSecretAccessKey", secretAccessKey)
-    //    sc.hadoopConfiguration.set(s"fs.$protocol.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
-    // s3:///udl-
   }
 
   /**

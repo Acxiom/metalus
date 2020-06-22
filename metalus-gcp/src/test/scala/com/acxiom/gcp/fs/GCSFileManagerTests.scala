@@ -1,10 +1,9 @@
 package com.acxiom.gcp.fs
 
-import java.io.{ByteArrayInputStream, OutputStreamWriter}
+import java.io.OutputStreamWriter
 
-import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.storage.contrib.nio.testing.LocalStorageHelper
-import com.google.cloud.storage.{BlobId, BlobInfo, StorageOptions}
+import com.google.cloud.storage.{BlobId, BlobInfo}
 import org.scalatest.{FunSpec, Suite}
 
 import scala.io.Source
@@ -19,6 +18,7 @@ class GCSFileManagerTests extends FunSpec with Suite {
     it("Should perform proper file operations against a GCP file system") {
       val fileManager = new GCSFileManager(localStorage, MAIN_BUCKET_NAME)
       val fileName = "/testDir/testFile"
+      val normalizedFileName = "testDir/testFile"
       val file = localStorage.get(MAIN_BUCKET_NAME, fileName)
       // These methods do nothing, so call them and then run file operations
       fileManager.connect()
@@ -36,29 +36,29 @@ class GCSFileManagerTests extends FunSpec with Suite {
       output.close()
 
       // Verify the file exists
-      val createdFile = localStorage.get(MAIN_BUCKET_NAME, fileName)
+      val createdFile = localStorage.get(MAIN_BUCKET_NAME, normalizedFileName)
       assert(createdFile.exists())
       assert(fileManager.exists(fileName))
 
       // Get a fie listing NOTE: the extra slash is required by the unit test library and not needed at runtime
-      val fileList = fileManager.getFileListing("//testDir")
+      val fileList = fileManager.getFileListing("/testDir")
       assert(fileList.length == 1)
       assert(fileList.head.size == createdFile.getSize)
-      assert(fileList.head.fileName == fileName)
+      assert(fileList.head.fileName == normalizedFileName)
 
       assert(fileManager.getSize(fileName) == createdFile.getSize)
 
       // Add two more files to the tes directory
       localStorage.create(BlobInfo.newBuilder(BlobId.of(MAIN_BUCKET_NAME, "someFile1.txt")).build())
       localStorage.create(BlobInfo.newBuilder(BlobId.of(MAIN_BUCKET_NAME, "someFile2.txt")).build())
-      localStorage.create(BlobInfo.newBuilder(BlobId.of(MAIN_BUCKET_NAME, "/testDir/someFile3.txt")).build())
-      localStorage.create(BlobInfo.newBuilder(BlobId.of(MAIN_BUCKET_NAME, "/testDir/subDir/anotherDir/someFile4.txt")).build())
+      localStorage.create(BlobInfo.newBuilder(BlobId.of(MAIN_BUCKET_NAME, "testDir/someFile3.txt")).build())
+      localStorage.create(BlobInfo.newBuilder(BlobId.of(MAIN_BUCKET_NAME, "testDir/subDir/anotherDir/someFile4.txt")).build())
 
       val dirList = fileManager.getDirectoryListing("/")
       assert(dirList.length == 2)
       assert(dirList.head.directory)
-      assert(dirList.exists(_.fileName == "/testDir"))
-      assert(dirList.exists(_.fileName == "/testDir/subDir/anotherDir"))
+      assert(dirList.exists(_.fileName == "testDir"))
+      assert(dirList.exists(_.fileName == "testDir/subDir/anotherDir"))
 
       // Read the data
       val input = Source.fromInputStream(fileManager.getInputStream(fileName, BUFFER)).getLines().toList
