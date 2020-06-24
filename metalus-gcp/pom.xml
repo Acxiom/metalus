@@ -37,6 +37,19 @@
             <version>${parent.version}</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Spark -->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-streaming_${scala.compat.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Google Libraries -->
+        <dependency>
+            <groupId>org.apache.bahir</groupId>
+            <artifactId>spark-streaming-pubsub_2.11</artifactId>
+            <version>2.4.0</version>
+        </dependency>
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-storage</artifactId>
