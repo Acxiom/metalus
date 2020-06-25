@@ -343,6 +343,9 @@
         </profile>
         <profile>
             <id>spark_2.4</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <properties>
                 <spark.compat.version>2.4</spark.compat.version>
                 <spark.version>2.4.3</spark.version>

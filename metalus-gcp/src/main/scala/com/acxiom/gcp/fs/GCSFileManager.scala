@@ -7,6 +7,8 @@ import java.nio.channels.Channels
 import com.acxiom.pipeline.fs.{FileInfo, FileManager}
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.storage.{BlobId, BlobInfo, Storage, StorageOptions}
+import org.json4s.{DefaultFormats, Formats}
+import org.json4s.native.Serialization
 
 import scala.collection.JavaConverters._
 
@@ -39,6 +41,10 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
         StorageOptions.newBuilder
       }).setProjectId(projectId).build.getService,
       bucket)
+  }
+
+  def this(bucket: String, credentials: Map[String, String]) = {
+    this(credentials("project_id"), bucket, Some(Serialization.write(credentials)(DefaultFormats)))
   }
 
   /**

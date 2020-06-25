@@ -18,9 +18,7 @@ class PubSubStreamingDataParser(subscription: String) extends StreamingDataParse
     */
   override def parseRDD(rdd: RDD[SparkPubsubMessage], sparkSession: SparkSession): DataFrame = {
     sparkSession.createDataFrame(rdd.map(message =>
-      Row(message.getMessageId(),
-        new String(message.getData(), StandardCharsets.UTF_8),
-        subscription)),
+      Row(message.getMessageId(), new String(message.getData(), StandardCharsets.UTF_8), subscription)),
       StructType(List(StructField("key", StringType),
         StructField("value", StringType),
         StructField("topic", StringType)))).toDF()

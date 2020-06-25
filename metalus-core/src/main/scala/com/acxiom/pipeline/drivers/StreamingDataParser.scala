@@ -3,7 +3,7 @@ package com.acxiom.pipeline.drivers
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
-trait StreamingDataParser[T] {
+trait StreamingDataParser[T] extends Serializable {
   /**
     * Determines if this parser can parse the incoming data
     *

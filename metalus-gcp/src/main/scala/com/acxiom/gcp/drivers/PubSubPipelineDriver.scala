@@ -18,27 +18,32 @@ object PubSubPipelineDriver {
       Some(Map("parameters" -> parameters))).asInstanceOf[DriverSetup]
     val projectId = parameters("projectId").asInstanceOf[String]
     val subscription = parameters("subscription").asInstanceOf[String]
-
     logger.info(s"Listening for Pub/Sub messages using project: $projectId")
     logger.info(s"Listening for Pub/Sub messages using subscription: $subscription")
     if (driverSetup.executionPlan.isEmpty) {
       throw new IllegalStateException(s"Unable to obtain valid execution plan. Please check the DriverSetup class: $initializationClass")
     }
-
     val executionPlan = driverSetup.executionPlan.get
     val sparkSession = executionPlan.head.pipelineContext.sparkSession.get
-
     val streamingContext = StreamingUtils.createStreamingContext(sparkSession.sparkContext,
       Some(parameters.getOrElse("duration-type", "seconds").asInstanceOf[String]),
       Some(parameters.getOrElse("duration", "10").asInstanceOf[String]))
 
+    // Get the credential provider
+    val credentialProvider = driverSetup.credentialProvider
+    val gcpCredential = credentialProvider.getNamedCredential("GCPCredential")
+    val sparkGCPCredentials = if (gcpCredential.isDefined) {
+      SparkGCPCredentials.builder.jsonServiceAccount(gcpCredential.get.asInstanceOf[GCPCredential].authKey).build()
+    } else {
+      SparkGCPCredentials.builder.build()
+    }
     // Create stream
     val messagesStream = PubsubUtils.createStream(
       streamingContext,
       projectId,
       None,
       subscription, // Cloud Pub/Sub subscription for incoming data
-      SparkGCPCredentials.builder.build(), // What happens if this is run in a non-GCP cluster?
+      sparkGCPCredentials,
       StorageLevel.MEMORY_AND_DISK_SER_2)
 
     val defaultParser = new PubSubStreamingDataParser(subscription)
@@ -53,5 +58,8 @@ object PubSubPipelineDriver {
           DriverUtils.addInitialDataFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame))
       }
     }
+    streamingContext.start()
+    StreamingUtils.setTerminationState(streamingContext, parameters)
+    logger.info("Shutting down GCP PubSub Pipeline Driver")
   }
 }
