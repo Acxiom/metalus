@@ -7,7 +7,7 @@ import java.nio.channels.Channels
 import com.acxiom.pipeline.fs.{FileInfo, FileManager}
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.storage.{BlobId, BlobInfo, Storage, StorageOptions}
-import org.json4s.{DefaultFormats, Formats}
+import org.json4s.DefaultFormats
 import org.json4s.native.Serialization
 
 import scala.collection.JavaConverters._
