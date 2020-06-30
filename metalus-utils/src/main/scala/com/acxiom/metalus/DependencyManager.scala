@@ -22,12 +22,13 @@ object DependencyManager {
     // Initialize the Jar files
     val noAuthDownload = parameters.getOrElse("no-auth-download", "false") == "true"
     val fileList = parameters("jar-files").asInstanceOf[String].split(",").toList
+    val credentialProvider = DriverUtils.getCredentialProvider(parameters)
     val initialClassPath = fileList.foldLeft(ResolvedClasspath(List()))((cp, file) => {
       val fileName = file.substring(file.lastIndexOf("/") + 1)
       val artifactName = fileName.substring(0, fileName.lastIndexOf("."))
       val destFile = new File(output, fileName)
       val srcFile = if (file.startsWith("http")) {
-        val http = DriverUtils.getHttpRestClient(file, parameters, Some(noAuthDownload))
+        val http = DriverUtils.getHttpRestClient(file, credentialProvider, Some(noAuthDownload))
         val input = http.getInputStream("")
         val dir = Files.createTempDirectory("metalusJarDownloads").toFile
         val localFile = new File(dir, fileName)

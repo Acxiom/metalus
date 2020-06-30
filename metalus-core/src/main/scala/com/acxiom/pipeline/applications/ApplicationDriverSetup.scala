@@ -17,7 +17,7 @@ trait ApplicationDriverSetup extends DriverSetup {
     } else if (parameters.contains("applicationConfigPath")) {
       val path = parameters("applicationConfigPath").toString
       if (path.startsWith("http")) {
-        DriverUtils.getHttpRestClient(path, parameters).getStringContent("")
+        DriverUtils.getHttpRestClient(path, credentialProvider).getStringContent("")
       } else {
         val className = parameters.getOrElse("applicationConfigurationLoader", "com.acxiom.pipeline.fs.LocalFileManager").asInstanceOf[String]
         DriverUtils.loadJsonFromFile(path, className, parameters)
