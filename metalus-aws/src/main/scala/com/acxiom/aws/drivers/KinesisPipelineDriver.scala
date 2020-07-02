@@ -3,14 +3,14 @@ package com.acxiom.aws.drivers
 import com.acxiom.pipeline.PipelineDependencyExecutor
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}
-import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.services.kinesis.AmazonKinesisClient
+import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
+import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream
 import com.amazonaws.services.kinesis.model.Record
 import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.kinesis.{KinesisInitialPositions, KinesisInputDStream, SparkAWSCredentials}
 import org.apache.spark.streaming.{Duration, StreamingContext}
@@ -51,20 +51,19 @@ object KinesisPipelineDriver {
     val awsAccessKey = parameters("awsAccessKey").asInstanceOf[String]
     val awsAccessSecret = parameters("awsAccessSecret").asInstanceOf[String]
     val appName = parameters("appName").asInstanceOf[String]
-
     val duration = StreamingUtils.getDuration(Some(parameters.getOrElse("duration-type", "seconds").asInstanceOf[String]),
       Some(parameters.getOrElse("duration", "10").asInstanceOf[String]))
     val streamingContext =
       StreamingUtils.createStreamingContext(sparkSession.sparkContext, Some(duration))
-
     // Handle multiple shards
     val credentials = new BasicAWSCredentials(awsAccessKey, awsAccessSecret)
-    val kinesisClient = new AmazonKinesisClient(credentials)
-    kinesisClient.setEndpoint(parameters("endPointURL").asInstanceOf[String])
+    val builder = AmazonKinesisClientBuilder.standard()
+    builder.setCredentials(new AWSStaticCredentialsProvider(credentials))
+    builder.setEndpointConfiguration(new EndpointConfiguration(parameters("endPointURL").asInstanceOf[String], parameters("regionName").asInstanceOf[String]))
+    val kinesisClient = builder.build()
     val numShards = kinesisClient.describeStream(parameters("streamName").asInstanceOf[String]).getStreamDescription.getShards.size
     logger.info("Number of Kinesis shards is : " + numShards)
     val numStreams = parameters.getOrElse("consumerStreams", numShards).asInstanceOf[Int]
-
     // Create the Kinesis DStreams
     val kinesisStreams = createKinesisDStreams(awsAccessKey, awsAccessSecret, appName, duration, streamingContext, numStreams, parameters)
     logger.info("Created " + kinesisStreams.size + " Kinesis DStreams")
