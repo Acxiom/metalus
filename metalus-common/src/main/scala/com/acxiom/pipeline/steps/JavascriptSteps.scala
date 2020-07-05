@@ -43,11 +43,19 @@ object JavascriptSteps {
     "Pipeline",
     "Scripting")
   def processScriptWithValues(@StepParameter(Some("script"), Some(true), None, Some("javascript"), None, None) script: String,
-                             values: Map[String, Any], pipelineContext: PipelineContext): PipelineStepResponse = {
+                             values: Map[String, Any], unwrapOptions: Option[Boolean] = None, pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new JavaScriptEngine
     val bindings = new SimpleBindings()
     bindings.put("logger", logger)
-    values.foreach{case (name, value) => bindings.put(name, value)}
+    values.foreach{
+      case (name, value) =>
+        val unwrapped = value match {
+          case s: Some[_] if unwrapOptions.getOrElse(true) => s.get
+          case None if unwrapOptions.getOrElse(true) => None.orNull
+          case v => v
+        }
+        bindings.put(name, unwrapped)
+    }
     val result = engine.executeScript(script, bindings, pipelineContext)
     handleResult(result)
   }

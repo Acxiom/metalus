@@ -170,7 +170,7 @@ trait PipelineStepMapper {
     * @return An expanded list
     */
   private def handleListParameter(list: List[_], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
-    val dropNone = pipelineContext.getGlobal("dropNoneFromLists").forall(_.asInstanceOf[Boolean])
+    val dropNone = pipelineContext.getGlobalAs[Boolean]("dropNoneFromLists").getOrElse(true)
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
       implicit val formats: Formats = DefaultFormats
       list.map(value =>
@@ -305,7 +305,7 @@ trait PipelineStepMapper {
     logger.debug(s"pulling parameter from Pipeline Parameters,paramName=$paramName,pipelineId=$pipelineId,parameters=$parameters")
     // the value is marked as a step parameter, get it from pipelineContext.parameters (Will be a PipelineStepResponse)
     if (parameters.get.parameters.contains(paramName)) {
-      val applyMethod = pipelineContext.getGlobal("extractMethodsEnabled").asInstanceOf[Option[Boolean]]
+      val applyMethod = pipelineContext.getGlobalAs[Boolean]("extractMethodsEnabled")
       pipelinePath.mainValue.head match {
         case '@' =>
           getSpecificValue(parameters.get.parameters(paramName).asInstanceOf[PipelineStepResponse].primaryReturn,
@@ -371,7 +371,7 @@ trait PipelineStepMapper {
     // the value is marked as a global parameter, get it from pipelineContext.globals
     logger.debug(s"Fetching global value for $value.$extractPath")
     val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
-    val applyMethod = pipelineContext.getGlobal("extractMethodsEnabled").asInstanceOf[Option[Boolean]]
+    val applyMethod = pipelineContext.getGlobalAs[Boolean]("extractMethodsEnabled")
     val flatGlobals = if(globals.contains("GlobalLinks")) {
       // check for conflicting globals in Broadcast
       val broadcast = globals("GlobalLinks").asInstanceOf[Map[String, String]].map(b => {

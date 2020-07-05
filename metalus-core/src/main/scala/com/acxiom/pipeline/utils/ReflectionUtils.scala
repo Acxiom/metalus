@@ -71,7 +71,7 @@ object ReflectionUtils {
     val ts = stepObject.symbol.typeSignature
     // Get the parameters this method requires
     val parameters = method.paramLists.head
-    val validateTypes = pipelineContext.getGlobal("validateStepParameterTypes").getOrElse(false).asInstanceOf[Boolean]
+    val validateTypes = pipelineContext.getGlobalAs[Boolean]("validateStepParameterTypes").getOrElse(false)
     val params = mapMethodParameters(parameters, parameterValues, mirror, stepObject, funcName, ts, Some(pipelineContext), step.id, pipeline.id, validateTypes)
     logger.info(s"Executing step $objName.$funcName")
     logger.debug(s"Parameters: $params")
