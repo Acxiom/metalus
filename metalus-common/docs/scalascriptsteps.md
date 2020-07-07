@@ -27,6 +27,7 @@ Full parameter descriptions are listed below:
 * **script** - The script to execute.
 * **values** - Map of values to bind. Each key value pair will be bound to the script using the key.
 * **types** - Optional map of type name overrides, used to explicitly specify the type of the values in the values map.
+* **unwrapOptions** - Optional flag to control whether option values get unwrapped. Defaulted to true.
 
 ## Example
 This example demonstrates how to read a file into a *DataFrame* using nothing but Scala. This script assumes the 

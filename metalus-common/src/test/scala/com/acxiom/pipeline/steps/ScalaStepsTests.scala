@@ -128,13 +128,31 @@ class ScalaStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
         "v4" -> List(1,2,3),
         "v5" -> df
       )
-      val result = ScalaSteps.processScriptWithValues(scriptWithDerivedTypes, mappings, None, pipelineContext)
+      val result = ScalaSteps.processScriptWithValues(scriptWithDerivedTypes, mappings, None, None, pipelineContext)
       assert(result.primaryReturn.isDefined)
       val tuple = result.primaryReturn.get.asInstanceOf[(String, Int, List[Row])]
       assert(tuple._1 == "CHICKEN")
       assert(tuple._2 == 4)
       assert(tuple._3.size == 1)
       assert(tuple._3.head.getInt(0) == 1)
+    }
+
+    it("Should respect the unwrapOptions flag"){
+      val scriptWithDerivedTypes =
+        """
+          |value.toString
+          |""".stripMargin
+      val mappings: Map[String, Any] = Map(
+        "value" -> Some("chicken")
+      )
+      val result = ScalaSteps.processScriptWithValues(scriptWithDerivedTypes, mappings, None, Some(false), pipelineContext)
+      assert(result.primaryReturn.isDefined)
+      val optionString = result.primaryReturn.get.asInstanceOf[String]
+      assert(optionString == "Some(chicken)")
+      val unwrapResult = ScalaSteps.processScriptWithValues(scriptWithDerivedTypes, mappings, None, None, pipelineContext)
+      assert(unwrapResult.primaryReturn.isDefined)
+      val unrwappedString = unwrapResult.primaryReturn.get.asInstanceOf[String]
+      assert(unrwappedString == "chicken")
     }
   }
 }
