@@ -69,6 +69,7 @@
         <module>metalus-core</module>
         <module>metalus-common</module>
         <module>metalus-examples</module>
+        <module>metalus-gcp</module>
         <module>metalus-mongo</module>
         <module>metalus-utils</module>
     </modules>
@@ -342,6 +343,9 @@
         </profile>
         <profile>
             <id>spark_2.4</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <properties>
                 <spark.compat.version>2.4</spark.compat.version>
                 <spark.version>2.4.3</spark.version>

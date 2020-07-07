@@ -15,11 +15,12 @@ object MetadataExtractor {
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("jar-files")))
     val jarFiles = parameters("jar-files").asInstanceOf[String].split(",").toList.map(file => new JarFile(new File(file)))
+    val credentialProvider = DriverUtils.getCredentialProvider(parameters)
     val output = if(parameters.contains("output-path")) {
       Output(None, Some(new File(parameters("output-path").asInstanceOf[String])))
     } else if(parameters.contains("api-url")) {
       val apiPath = s"${parameters("api-url").asInstanceOf[String]}/${parameters.getOrElse("api-path", "/api/v1/").asInstanceOf[String]}"
-      Output(Some(DriverUtils.getHttpRestClient(new URI(apiPath).normalize().toString, parameters)), None)
+      Output(Some(DriverUtils.getHttpRestClient(new URI(apiPath).normalize().toString, credentialProvider)), None)
     } else {
       Output(None, None)
     }

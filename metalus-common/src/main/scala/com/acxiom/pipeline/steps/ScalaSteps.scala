@@ -36,19 +36,24 @@ object ScalaSteps {
   }
 
   @StepFunction("3ab721e8-0075-4418-aef1-26abdf3041be",
-    "Scala script Step with additional object provided",
+    "Scala script Step with additional objects provided",
     "Executes a script with the provided object and returns the result",
     "Pipeline",
     "Scripting")
   def processScriptWithValues(@StepParameter(Some("script"), Some(true), None, Some("scala"), None, None) script: String,
                               values: Map[String, Any],
                               types: Option[Map[String, String]] = None,
+                              unwrapOptions: Option[Boolean] = None,
                               pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
     val typeMappings = types.getOrElse(Map())
     val initialBinding = engine.createBindings("logger", logger, Some("org.apache.log4j.Logger"))
     val bindings = values.foldLeft(initialBinding) { (bindings, pair) =>
-      bindings.setBinding(pair._1, pair._2, typeMappings.get(pair._1))
+      val value = pair._2 match {
+        case s: Some[_] if unwrapOptions.getOrElse(true) => s.get
+        case v => v
+      }
+      bindings.setBinding(pair._1, value, typeMappings.get(pair._1))
     }
     val result = engine.executeScriptWithBindings(script, bindings, pipelineContext)
     handleResult(result)

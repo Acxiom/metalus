@@ -17,6 +17,10 @@ This flow demonstrates how the chosen driver interacts with the *DriverSetup*:
 There are no special instructions for creating the *SparkSession*. Both the *SparkSession* and *SparkConf* are required
 by the [PipelineContext](pipeline-context.md).
 
+### CredentialProvider
+The _DriverSetup_ is responsible for provider a [CredentialProvider](credentialprovider.md) that may be used by the driver
+to obtain any required credentials.
+
 ### Logging Parameters 
 There are several command line parameters provided to help control the application log levels:
 

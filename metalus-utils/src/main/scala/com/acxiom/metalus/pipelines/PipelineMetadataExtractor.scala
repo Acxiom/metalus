@@ -3,7 +3,7 @@ package com.acxiom.metalus.pipelines
 import java.util.jar.JarFile
 
 import com.acxiom.metalus.{Extractor, Metadata, Output}
-import com.acxiom.pipeline.Pipeline
+import com.acxiom.pipeline.{DefaultPipeline, Pipeline}
 import com.acxiom.pipeline.utils.DriverUtils
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
@@ -21,19 +21,23 @@ class PipelineMetadataExtractor extends Extractor {
     */
   override def extractMetadata(jarFiles: List[JarFile]): Metadata = {
     val pipelineMetadata = jarFiles.foldLeft(List[Pipeline]())((pipelines, file) => {
+      val tags = List(file.getName.substring(file.getName.lastIndexOf("/") + 1))
       val updatedPipelines = file.entries().toList
         .filter(f => f.getName.startsWith("metadata/pipelines") && f.getName.endsWith(".json"))
         .foldLeft(pipelines)((pipelineList, json) => {
-          val pipeline = DriverUtils.parsePipelineJson(Source.fromInputStream(file.getInputStream(file.getEntry(json.getName))).mkString)
-          if (pipeline.isDefined) {
-            pipelineList.foldLeft(pipeline.get)((pipelines, pipeline) => {
-              if (pipelines.exists(p => p.id == pipeline.id)) {
-                pipelines
+          val extractedPipelines = DriverUtils.parsePipelineJson(Source.fromInputStream(file.getInputStream(file.getEntry(json.getName))).mkString)
+          if (extractedPipelines.isDefined) {
+            // This loop should be looking for duplicate pipelines and merging the tags
+            pipelineList.foldLeft(extractedPipelines.get.map(mergePipelineTags(_, tags))
+              .filter(filterPipe => !pipelineList.exists(_.id == filterPipe.id)))((pipes, pipeline) => {
+              val newPipeline = extractedPipelines.get.find(_.id == pipeline.id)
+              val mergedPipeline = mergePipelineTags(if (newPipeline.isDefined) {
+                newPipeline.get
               } else {
-                pipelines :+ pipeline
-              }
+                pipeline
+              }, tags)
+              pipes :+ mergedPipeline
             })
-            pipelineList ::: pipeline.get
           } else {
             pipelineList
           }
@@ -61,15 +65,23 @@ class PipelineMetadataExtractor extends Extractor {
       val http = output.api.get
       val definition = metadata.asInstanceOf[PipelineMetadata]
       definition.pipelines.foreach(pipeline => {
+        val jarList = pipeline.tags.getOrElse(List("No Jar Defined")).filter(_.endsWith(".jar")).mkString
+        val headers =
+          Some(Map[String, String]("User-Agent" -> s"Metalus / ${System.getProperty("user.name")} / $jarList"))
         if (http.exists(s"pipelines/${pipeline.id.getOrElse("none")}")) {
-          http.putJsonContent(s"pipelines/${pipeline.id.getOrElse("none")}", Serialization.write(pipeline))
+          http.putJsonContent(s"pipelines/${pipeline.id.getOrElse("none")}", Serialization.write(pipeline), headers)
         } else {
-          http.postJsonContent("pipelines", Serialization.write(pipeline))
+          http.postJsonContent("pipelines", Serialization.write(pipeline), headers)
         }
       })
     } else {
       super.writeOutput(metadata, output)
     }
+  }
+
+  protected def mergePipelineTags(source: Pipeline, tags: List[String]): Pipeline = {
+    source.asInstanceOf[DefaultPipeline].copy(tags =
+      Some((source.tags.getOrElse(List()).toSet ++ tags.toSet).toList))
   }
 }
 

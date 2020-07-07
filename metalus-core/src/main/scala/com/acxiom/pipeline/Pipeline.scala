@@ -22,6 +22,7 @@ trait Pipeline {
   def name: Option[String] = None
   def steps: Option[List[PipelineStep]] = None
   def category: Option[String] = Some("pipeline")
+  def tags: Option[List[String]] = None
 }
 
 /**
@@ -35,7 +36,8 @@ trait Pipeline {
 case class DefaultPipeline(override val id: Option[String] = None,
                            override val name: Option[String] = None,
                            override val steps: Option[List[PipelineStep]] = None,
-                           override val category: Option[String] = Some("pipeline")) extends Pipeline
+                           override val category: Option[String] = Some("pipeline"),
+                           override val tags: Option[List[String]] = None) extends Pipeline
 
 /**
   * Global object that may be passed to step functions.
@@ -97,6 +99,10 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     } else {
       None
     }
+  }
+
+  def getGlobalAs[T](globalName: String): Option[T] = {
+    globals.flatMap(_.get(globalName).map(_.asInstanceOf[T]))
   }
 
   /**

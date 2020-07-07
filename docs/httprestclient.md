@@ -19,6 +19,7 @@ would need these command line parameters:
 ```
 
 ## Functions
+Below is a list of functions that may called. Most functions take an optional map of header overrides.
 
 ### Exists
 This function will attempt to open a connection to the provided path to ensure it exists.
