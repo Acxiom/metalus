@@ -30,4 +30,4 @@ JSON file with the following naming convention: ```<pipeline.id>.json```
 ## Dependencies
 When preparing to use a step library, it is useful to know exactly what dependencies will be needed in addition to the 
 library jar. A _dependencies.json_ file may be included that contains information tht may be used to resolve dependent
-jars at run time. 
+jars at run time. More information may be found [here](dependency-manager.md#maven-dependency-resolver).

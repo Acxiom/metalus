@@ -11,6 +11,7 @@ id, name, category and a list of steps to execute.
     * **pipeline** - This is the base pipeline that gets executed.
     * **step-group** - This designates that the pipeline is designed to be included within a [Step Group](step-groups.md).
 * **steps** - A list of [pipeline steps](pipeline-steps.md) to be executed.
+* **tags** - An optional list of strings to apply to the pipeline.
 
 The steps list consists of the _pipeline steps_ which will be executed as part of the pipeline. Below is an overview of 
 a basic pipeline: 

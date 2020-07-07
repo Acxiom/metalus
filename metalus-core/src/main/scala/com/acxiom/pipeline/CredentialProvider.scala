@@ -4,7 +4,7 @@ import com.acxiom.pipeline.api.Authorization
 import com.acxiom.pipeline.utils.ReflectionUtils
 
 /**
-  * Represents an object thst contains named credentials
+  * Represents an object that contains named credentials
   */
 trait CredentialProvider {
   protected val parameters: Map[String, Any]
