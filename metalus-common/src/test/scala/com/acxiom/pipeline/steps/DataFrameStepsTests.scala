@@ -84,7 +84,7 @@ class DataFrameStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenT
       val df = data.toDF("id", "val")
       val result = DataFrameSteps.repartitionDataFrame(df, 2, None, Some(true), Some(List("id % 2")))
       val plan = result.queryExecution.logical
-      assert(plan.simpleString == "'RepartitionByExpression [('id % 2)], 2")
+      assert(plan.asCode.startsWith("RepartitionByExpression(List(('id % 2))"))
     }
 
     it ("Should repartition and respect shuffle value") {
@@ -93,10 +93,10 @@ class DataFrameStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenT
       val df = data.toDF("id", "val")
       val shuffled = DataFrameSteps.repartitionDataFrame(df, 2)
       val plan = shuffled.queryExecution.logical
-      assert(plan.simpleString == "Repartition 2, true")
+      assert(plan.asCode.startsWith("Repartition(2,true"))
       val notShuffled = DataFrameSteps.repartitionDataFrame(df, 2, None, Some(false))
       val nPlan = notShuffled.queryExecution.logical
-      assert(nPlan.simpleString == "Repartition 2, false")
+      assert(nPlan.asCode.startsWith("Repartition(2,false"))
     }
 
     it ("Should repartition by range") {
@@ -105,7 +105,7 @@ class DataFrameStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenT
       val df = data.toDF("id", "val")
       val result = DataFrameSteps.repartitionDataFrame(df, 2, Some(true), Some(true), Some(List("id % 2")))
       val plan = result.queryExecution.logical
-      assert(plan.simpleString == "'RepartitionByExpression [('id % 2) ASC NULLS FIRST], 2")
+      assert(plan.asCode.startsWith("RepartitionByExpression(List(('id % 2) ASC NULLS FIRST)"))
     }
   }
 
