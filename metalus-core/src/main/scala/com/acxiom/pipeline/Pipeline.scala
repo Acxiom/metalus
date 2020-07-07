@@ -99,6 +99,10 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     }
   }
 
+  def getGlobalAs[T](globalName: String): Option[T] = {
+    globals.flatMap(_.get(globalName).map(_.asInstanceOf[T]))
+  }
+
   /**
     * This function will add or update a single entry on the globals map.
     *

@@ -291,8 +291,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution2.pipelineContext.globals.get("authorization").asInstanceOf[BasicAuthorization].password == "mypassword")
     assert(execution2.pipelineContext.getGlobal("plainObject").isDefined)
     assert(execution2.pipelineContext.getGlobal("plainObject").get.isInstanceOf[List[Map[String, Any]]])
-    assert(execution2.pipelineContext.getGlobal("plainObject").get.asInstanceOf[List[Map[String, Any]]].head("some") == "value")
-    assert(execution2.pipelineContext.getGlobal("plainObject").get.asInstanceOf[List[Map[String, Any]]].head("another") == 5)
+    assert(execution2.pipelineContext.getGlobalAs[List[Map[String, Any]]]("plainObject").get.head("some") == "value")
+    assert(execution2.pipelineContext.getGlobalAs[List[Map[String, Any]]]("plainObject").get.head("another") == 5)
 
 
     // Third Execution
