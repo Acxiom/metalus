@@ -54,14 +54,16 @@ jobs:
         - oraclejdk8
       install: true
       script: mvn -B -P spark_2.4,scala_2.12 clean install
-    - name: Spark 2.4 Scala 2.12 OSX Build
+    -
+      name: Spark 2.4 Scala 2.12 OSX Build
       os: osx
       osx_image: xcode9.3
       scala:
         - 2.12.10
       install: true
       script: mvn -B -P spark_2.4,scala_2.12 clean install
-    - name: Spark 3.0 Scala 2.12 Linux Build
+    -
+      name: Spark 3.0 Scala 2.12 Linux Build
       os: linux
       dist: trusty
       scala:
@@ -70,7 +72,8 @@ jobs:
         - oraclejdk8
       install: true
       script: mvn -B -P spark_3.0 clean install
-    - name: Spark 3.0 Scala 2.12 OSX Build
+    -
+      name: Spark 3.0 Scala 2.12 OSX Build
       os: osx
       osx_image: xcode9.3
       scala:
