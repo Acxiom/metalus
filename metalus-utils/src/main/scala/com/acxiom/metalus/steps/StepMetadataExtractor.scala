@@ -65,10 +65,13 @@ class StepMetadataExtractor extends Extractor {
         })
       }
       definition.steps.foreach(step => {
+        val jarList = step.tags.filter(_.endsWith(".jar")).mkString
+        val headers =
+          Some(Map[String, String]("User-Agent" -> s"Metalus / ${System.getProperty("user.name")} / $jarList"))
         if (http.getContentLength(s"steps/${step.id}") > 0) {
-          http.putJsonContent(s"steps/${step.id}", Serialization.write(step))
+          http.putJsonContent(s"steps/${step.id}", Serialization.write(step), headers)
         } else {
-          http.postJsonContent("steps", Serialization.write(step))
+          http.postJsonContent("steps", Serialization.write(step), headers)
         }
       })
     } else {
