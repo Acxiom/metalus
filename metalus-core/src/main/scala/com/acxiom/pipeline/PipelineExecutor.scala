@@ -268,12 +268,23 @@ object PipelineExecutor {
     }
 
     val updateCtx = if (nextStepId.isDefined) {
+      val metrics = if (ctx.sparkSession.isDefined) {
+        val executorStatus = ctx.sparkSession.get.sparkContext.getExecutorMemoryStatus
+        Map[String, Any]("startExecutorCount" -> executorStatus.size)
+      } else { Map[String, Any]() }
       ctx.setStepAudit(pipelineId,
-        ExecutionAudit(nextStepId.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), None, groupId))
+        ExecutionAudit(nextStepId.get, AuditType.STEP, metrics, System.currentTimeMillis(), None, groupId))
     } else {
       ctx
     }
-    updateCtx.setStepAudit(pipelineId, updateCtx.getStepAudit(pipelineId, step.id.get, groupId).get.setEnd(System.currentTimeMillis()))
+    val audit = if (updateCtx.sparkSession.isDefined) {
+      val executorStatus = updateCtx.sparkSession.get.sparkContext.getExecutorMemoryStatus
+      updateCtx.getStepAudit(pipelineId, step.id.get, groupId).get.setEnd(System.currentTimeMillis())
+        .setMetric("endExecutorCount", executorStatus.size)
+    } else {
+      updateCtx.getStepAudit(pipelineId, step.id.get, groupId).get.setEnd(System.currentTimeMillis())
+    }
+    updateCtx.setStepAudit(pipelineId, audit)
   }
 
   private def processResponseGlobals(step: PipelineStep, result: Any, pipelineId: String, updatedCtx: PipelineContext) = {
