@@ -58,8 +58,8 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @param path The path to verify
     * @return True if the path exists, otherwise false.
     */
-  def exists(path: String): Boolean = {
-    val connection = this.openUrlConnection(path)
+  def exists(path: String, headers: Option[Map[String, String]] = None): Boolean = {
+    val connection = this.openUrlConnection(path, headers)
     val exists = connection.getResponseCode != 404
     connection.disconnect()
     exists
@@ -71,8 +71,8 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @param path The path to the content
     * @return size of the given content
     */
-  def getContentLength(path: String): Long = {
-    val connection = this.openUrlConnection(path)
+  def getContentLength(path: String, headers: Option[Map[String, String]] = None): Long = {
+    val connection = this.openUrlConnection(path, headers)
     val length = connection.getContentLength
     connection.disconnect()
     length
@@ -84,8 +84,8 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @param path The path to the content
     * @return last modified date of the content
     */
-  def getLastModifiedDate(path: String): Date = {
-    val connection = this.openUrlConnection(path)
+  def getLastModifiedDate(path: String, headers: Option[Map[String, String]] = None): Date = {
+    val connection = this.openUrlConnection(path, headers)
     val lastModified = new Date(connection.getLastModified)
     connection.disconnect()
     lastModified
@@ -111,8 +111,10 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @param bufferSize The buffer size to apply to the stream
     * @return A buffered input stream
     */
-  def getInputStream(path: String, bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): InputStream = {
-    new BufferedInputStream(HttpInputStream(this.openUrlConnection(path)), bufferSize)
+  def getInputStream(path: String,
+                     bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE,
+                     headers: Option[Map[String, String]] = None): InputStream = {
+    new BufferedInputStream(HttpInputStream(this.openUrlConnection(path, headers)), bufferSize)
   }
 
   /**
@@ -122,8 +124,10 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @param bufferSize The buffer size to apply to the stream
     * @return
     */
-  def getOutputStream(path: String, bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): OutputStream = {
-    val connection = this.openUrlConnection(path)
+  def getOutputStream(path: String,
+                      bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE,
+                      headers: Option[Map[String, String]] = None): OutputStream = {
+    val connection = this.openUrlConnection(path, headers)
     connection.setDoOutput(true)
     connection.setRequestProperty("Content-Type", "multipart/form-data")
     new BufferedOutputStream(HttpOutputStream(connection), bufferSize)
@@ -135,8 +139,8 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @param path The extra path to retrieve content
     * @return String content
     */
-  def getStringContent(path: String): String = {
-    val input = getInputStream(path)
+  def getStringContent(path: String, headers: Option[Map[String, String]] = None): String = {
+    val input = getInputStream(path, headers = headers)
     val content = Source.fromInputStream(input).mkString
     input.close()
     content
@@ -149,8 +153,8 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @param body        The body to post
     * @return The String output of the command.
     */
-  def postJsonContent(path: String, body: String): String = {
-    upsertJsonContent(path, body, "POST", "application/json")
+  def postJsonContent(path: String, body: String, headers: Option[Map[String, String]] = None): String = {
+    upsertJsonContent(path, body, "POST", "application/json", headers)
   }
 
   /**
@@ -160,8 +164,8 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @param body        The body to put
     * @return The String output of the command.
     */
-  def putJsonContent(path: String, body: String): String = {
-    upsertJsonContent(path, body, "PUT", "application/json")
+  def putJsonContent(path: String,body: String, headers: Option[Map[String, String]] = None): String = {
+    upsertJsonContent(path, body, "PUT", "application/json", headers)
   }
 
   /**
@@ -172,8 +176,11 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @param contentType The content type to post. Defaults to JSON.
     * @return The String output of the command.
     */
-  def postStringContent(path: String, body: String, contentType: String = "application/json"): String = {
-    upsertJsonContent(path, body, "POST", contentType)
+  def postStringContent(path: String,
+                        body: String,
+                        contentType: String = "application/json",
+                        headers: Option[Map[String, String]] = None): String = {
+    upsertJsonContent(path, body, "POST", contentType, headers)
   }
 
   /**
@@ -184,14 +191,23 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @param contentType The content type to put. Defaults to JSON.
     * @return The String output of the command.
     */
-  def putStringContent(path: String, body: String, contentType: String = "application/json"): String = {
-    upsertJsonContent(path, body, "PUT", contentType)
+  def putStringContent(path: String,
+                       body: String,
+                       contentType: String = "application/json",
+                       headers: Option[Map[String, String]] = None): String = {
+    upsertJsonContent(path, body, "PUT", contentType, headers)
   }
 
-  private def upsertJsonContent(path: String, body: String, method: String, contentType: String): String = {
+  private def upsertJsonContent(path: String,
+                                body: String,
+                                method: String,
+                                contentType: String,
+                                headers: Option[Map[String, String]] = None): String = {
     val connection = this.openUrlConnection(path)
     connection.setDoOutput(true)
     connection.setRequestProperty("Content-Type", contentType)
+    // Apply the custom headers
+    applyHeaders(headers.getOrElse(Map[String, String]()), connection)
     connection.setRequestMethod(method)
     val output = connection.getOutputStream
     output.write(body.getBytes, 0, body.length)
@@ -210,8 +226,8 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @param path The path to delete.
     * @return True if the path could be deleted.
     */
-  def delete(path: String): Boolean = {
-    val connection = this.openUrlConnection(path)
+  def delete(path: String, headers: Option[Map[String, String]] = None): Boolean = {
+    val connection = this.openUrlConnection(path, headers)
     connection.setDoOutput(true)
     connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
     connection.setRequestMethod("DELETE")
@@ -221,12 +237,19 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     responseCode < 300
   }
 
-  private def openUrlConnection(path: String): HttpURLConnection = {
+  private def openUrlConnection(path: String, headers: Option[Map[String, String]] = None): HttpURLConnection = {
     val connection = new URL(baseUrl, path).openConnection().asInstanceOf[HttpURLConnection]
     if (authorization.isDefined) {
       authorization.get.authorize(connection)
     }
+    applyHeaders(headers.getOrElse(Map[String, String]()), connection)
     connection
+  }
+
+  private def applyHeaders(headers: Map[String, String], connection: HttpURLConnection): Unit = {
+    // Set a default User-Agent
+    connection.setRequestProperty("User-Agent", headers.getOrElse("User-Agent", s"Metalus / ${System.getProperty("user.name")}"))
+    headers.foreach(header => connection.setRequestProperty(header._1, header._2))
   }
 }
 

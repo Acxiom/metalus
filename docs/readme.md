@@ -37,6 +37,12 @@
         * Extensions
             * [S3FileManager](../metalus-aws/docs/s3filemanager.md)
             * [Kinesis Pipeline Driver](../metalus-aws/docs/kinesispipelinedriver.md)
+    * [Metalus GCP](../metalus-gcp/readme.md)
+            * Steps
+                * [GCSSteps](../metalus-aws/docs/gcssteps.md)
+            * Extensions
+                * [GCSFileManager](../metalus-gcp/docs/gcsfilemanager.md)
+                * [PubSub Pipeline Driver](../metalus-gcp/docs/pubsubpipelinedriver.md)
     * [Metalus Mongo](../metalus-mongo/readme.md)
         * Steps
             * [Mongo Steps](../metalus-mongo/docs/mongosteps.md)
@@ -45,6 +51,7 @@
 * Advanced
     * [Metadata Extractor](metadata-extractor.md)
     * [Dependency Manager](dependency-manager.md)
+    * [Credential Provider](credentialprovider.md)
     * [File Manager](filemanager.md)
     * [Drivers](pipeline-drivers.md)
     * [Audits](executionaudits.md)

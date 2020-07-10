@@ -4,7 +4,7 @@ import java.io.{FileNotFoundException, InputStream, OutputStream}
 
 import org.apache.hadoop.fs.{FileSystem, LocatedFileStatus, Path, RemoteIterator}
 import org.apache.spark.SparkConf
-import org.apache.spark.deploy.SparkHadoopUtil
+import org.apache.spark.deploy.MetalusSparkHadoopUtil
 
 import scala.annotation.tailrec
 
@@ -12,7 +12,7 @@ import scala.annotation.tailrec
   * HDFS based implementation of the FileManager.
   */
 case class HDFSFileManager(conf: SparkConf) extends FileManager {
-  private val configuration = SparkHadoopUtil.get.newConfiguration(conf)
+  private val configuration = MetalusSparkHadoopUtil.newConfiguration(conf)
   private val fileSystem = FileSystem.get(configuration)
 
   override def exists(path: String): Boolean = fileSystem.exists(new Path(path))
