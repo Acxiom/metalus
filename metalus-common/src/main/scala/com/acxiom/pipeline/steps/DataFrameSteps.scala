@@ -20,15 +20,25 @@ object DataFrameSteps {
   }
 
   @StepFunction("66a451c8-ffbd-4481-9c37-71777c3a240f",
-    "Load DataFrame",
-    "This step will load a dataFrame given a dataFrameReader.",
+    "Load Using DataFrameReader",
+    "This step will load a DataFrame given a dataFrameReader.",
     "Pipeline",
     "InputOutput")
-  def loadDataFrame(dataFrameReader: DataFrameReader): DataFrame = {
+  def load(dataFrameReader: DataFrameReader): DataFrame = {
     dataFrameReader.load()
   }
 
-  @StepFunction("e023fc14-6cb7-44cb-afce-7de01d5cdf00",
+  @StepFunction("d7cf27e6-9ca5-4a73-a1b3-d007499f235f",
+    "Load DataFrame",
+    "This step will load a DataFrame given a DataFrameReaderOptions object.",
+    "Pipeline",
+    "InputOutput")
+  def loadDataFrame(dataFrameReaderOptions: DataFrameReaderOptions,
+           pipelineContext: PipelineContext): DataFrame = {
+    load(getDataFrameReader(dataFrameReaderOptions, pipelineContext))
+  }
+
+  @StepFunction("8a00dcf8-e6a9-4833-871e-c1f3397ab378",
     "Build a DataFrameWriter Object",
     "This step will build a DataFrameWriter object that can be used to write a file into a dataframe",
     "Pipeline",
@@ -39,12 +49,22 @@ object DataFrameSteps {
   }
 
   @StepFunction("9aa6ae9f-cbeb-4b36-ba6a-02eee0a46558",
-    "Save DataFrame",
-    "This step will save a dataFrame given a dataFrameWriter[Row].",
+    "Save Using DataFrameWriter",
+    "This step will save a DataFrame given a dataFrameWriter[Row].",
     "Pipeline",
     "InputOutput")
-  def saveDataFrame(dataFrameWriter: DataFrameWriter[Row]): Unit = {
+  def save(dataFrameWriter: DataFrameWriter[Row]): Unit = {
     dataFrameWriter.save()
+  }
+
+  @StepFunction("e5ac3671-ee10-4d4e-8206-fec7effdf7b9",
+    "Save DataFrame",
+    "This step will save a DataFrame given a DataFrameWriterOptions object.",
+    "Pipeline",
+    "InputOutput")
+  def saveDataFrame(dataFrame: DataFrame,
+           dataFrameWriterOptions: DataFrameWriterOptions): Unit = {
+    save(getDataFrameWriter(dataFrame, dataFrameWriterOptions))
   }
 
   @StepFunction("fa05a970-476d-4617-be4d-950cfa65f2f8",

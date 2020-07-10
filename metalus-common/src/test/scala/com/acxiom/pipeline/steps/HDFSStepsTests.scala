@@ -132,9 +132,8 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       val dataFrame = chickens.toDF("id", "chicken")
       val path = miniCluster.getURI + "/data/chickens.csv"
-      val writer = DataFrameSteps.getDataFrameWriter(dataFrame,
+      DataFrameSteps.saveDataFrame(dataFrame,
         DataFrameWriterOptions("csv", "overwrite", Some(Map("path" -> path))))
-      DataFrameSteps.saveDataFrame(writer)
       val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
       assert(list.size == 3)
       var writtenData: Seq[(String, String)] = Seq()
@@ -207,8 +206,7 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       val csv = "1,silkie\n2,polish\n3,sultan"
       val path = miniCluster.getURI + "/data/chickens2.csv"
       writeHDFSContext(fs, path, csv)
-      val reader = DataFrameSteps.getDataFrameReader(DataFrameReaderOptions("csv", Some(Map("path" -> path))), pipelineContext)
-      val dataFrame = DataFrameSteps.loadDataFrame(reader)
+      val dataFrame = DataFrameSteps.loadDataFrame(DataFrameReaderOptions("csv", Some(Map("path" -> path))), pipelineContext)
       val results = dataFrame.collect().map(r => (r.getString(0), r.getString(1))).toSeq
       assert(results.size == 3)
       assert(results == chickens)
