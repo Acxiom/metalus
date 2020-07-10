@@ -34,6 +34,7 @@
     * [Metalus AWS](../metalus-aws/readme.md)
         * Steps
             * [S3Steps](../metalus-aws/docs/s3steps.md)
+            * [KinesisSteps](../metalus-aws/docs/kinesissteps.md)
         * Extensions
             * [S3FileManager](../metalus-aws/docs/s3filemanager.md)
             * [Kinesis Pipeline Driver](../metalus-aws/docs/kinesispipelinedriver.md)

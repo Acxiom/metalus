@@ -52,22 +52,32 @@ object S3Utilities {
     } else {
       path
     }
-    s"$protocol:///${prepareS3FilePath(newPath)}"
+    s"$protocol://${prepareS3FilePath(newPath)}"
   }
 
   /**
     * This function will take the given path and strip any protocol information.
     * @param path A valid path
-    * @param bucket An optional bucket name
     * @return A raw path with no protocol information
     */
-  def prepareS3FilePath(path: String): String = {
-    if (path.startsWith("/")) {
+  def prepareS3FilePath(path: String, bucket: Option[String] = None): String = {
+    val newPath = if (path.startsWith("/")) {
       path.substring(1)
+    } else if (path.startsWith(s"s3") && bucket.isDefined) {
+      path.substring(path.indexOf(s"${bucket.get}/") + bucket.get.length + 1)
     } else if (path.startsWith(s"s3")) {
       new URI(path).normalize().toString
     } else {
       path
     }
+    newPath
+  }
+
+  /**
+    * Prepares Spark for reading/writing of DataFrames
+    * @param pipelineContext The PipelineContext containing the SparkSession
+    */
+  def configureSparkSession(pipelineContext: PipelineContext): Unit = {
+    pipelineContext.sparkSession.get.sparkContext.hadoopConfiguration.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
   }
 }

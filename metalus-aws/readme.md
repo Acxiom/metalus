@@ -5,6 +5,7 @@ The Metalus AWS is a step library with specific steps and utilities for working 
 
 ## Step Classes
 * [S3Steps](docs/s3steps.md)
+* [KinesisSteps](docs/kinesissteps.md)
 
 ## Extensions
 * [S3FileManager](docs/s3filemanager.md)
