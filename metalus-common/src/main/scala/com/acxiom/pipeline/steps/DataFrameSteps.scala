@@ -15,18 +15,56 @@ object DataFrameSteps {
     "Pipeline",
     "InputOutput")
   def getDataFrameReader(dataFrameReaderOptions: DataFrameReaderOptions,
-           pipelineContext: PipelineContext): DataFrameReader ={
+                         pipelineContext: PipelineContext): DataFrameReader = {
     buildDataFrameReader(pipelineContext.sparkSession.get, dataFrameReaderOptions)
   }
 
-  @StepFunction("e023fc14-6cb7-44cb-afce-7de01d5cdf00",
+  @StepFunction("66a451c8-ffbd-4481-9c37-71777c3a240f",
+    "Load Using DataFrameReader",
+    "This step will load a DataFrame given a dataFrameReader.",
+    "Pipeline",
+    "InputOutput")
+  def load(dataFrameReader: DataFrameReader): DataFrame = {
+    dataFrameReader.load()
+  }
+
+  @StepFunction("d7cf27e6-9ca5-4a73-a1b3-d007499f235f",
+    "Load DataFrame",
+    "This step will load a DataFrame given a DataFrameReaderOptions object.",
+    "Pipeline",
+    "InputOutput")
+  def loadDataFrame(dataFrameReaderOptions: DataFrameReaderOptions,
+           pipelineContext: PipelineContext): DataFrame = {
+    load(getDataFrameReader(dataFrameReaderOptions, pipelineContext))
+  }
+
+  @StepFunction("8a00dcf8-e6a9-4833-871e-c1f3397ab378",
     "Build a DataFrameWriter Object",
     "This step will build a DataFrameWriter object that can be used to write a file into a dataframe",
     "Pipeline",
     "InputOutput")
   def getDataFrameWriter(dataFrame: DataFrame,
-                     options: DataFrameWriterOptions): DataFrameWriter[Row] = {
+                         options: DataFrameWriterOptions): DataFrameWriter[Row] = {
     buildDataFrameWriter(dataFrame, options)
+  }
+
+  @StepFunction("9aa6ae9f-cbeb-4b36-ba6a-02eee0a46558",
+    "Save Using DataFrameWriter",
+    "This step will save a DataFrame given a dataFrameWriter[Row].",
+    "Pipeline",
+    "InputOutput")
+  def save(dataFrameWriter: DataFrameWriter[Row]): Unit = {
+    dataFrameWriter.save()
+  }
+
+  @StepFunction("e5ac3671-ee10-4d4e-8206-fec7effdf7b9",
+    "Save DataFrame",
+    "This step will save a DataFrame given a DataFrameWriterOptions object.",
+    "Pipeline",
+    "InputOutput")
+  def saveDataFrame(dataFrame: DataFrame,
+           dataFrameWriterOptions: DataFrameWriterOptions): Unit = {
+    save(getDataFrameWriter(dataFrame, dataFrameWriterOptions))
   }
 
   @StepFunction("fa05a970-476d-4617-be4d-950cfa65f2f8",
@@ -98,11 +136,11 @@ object DataFrameSteps {
   }
 
   /**
-    *
-    * @param sparkSession The current spark session to use.
-    * @param options      A DataFrameReaderOptions object for configuring the reader.
-    * @return             A DataFrameReader based on the provided options.
-    */
+   *
+   * @param sparkSession The current spark session to use.
+   * @param options      A DataFrameReaderOptions object for configuring the reader.
+   * @return A DataFrameReader based on the provided options.
+   */
   private def buildDataFrameReader(sparkSession: SparkSession, options: DataFrameReaderOptions): DataFrameReader = {
     val reader = sparkSession.read
       .format(options.format)
@@ -116,11 +154,11 @@ object DataFrameSteps {
   }
 
   /**
-    *
-    * @param dataFrame A DataFrame to write.
-    * @param options   A DataFrameWriterOptions object for configuring the writer.
-    * @return          A DataFrameWriter[Row] based on the provided options.
-    */
+   *
+   * @param dataFrame A DataFrame to write.
+   * @param options   A DataFrameWriterOptions object for configuring the writer.
+   * @return A DataFrameWriter[Row] based on the provided options.
+   */
   private def buildDataFrameWriter(dataFrame: DataFrame, options: DataFrameWriterOptions): DataFrameWriter[Row] = {
     val writer = dataFrame.write.format(options.format)
       .mode(options.saveMode)
@@ -147,10 +185,10 @@ object DataFrameSteps {
 }
 
 /**
-  * @param format  The file format to use. Defaulted to "parquet"
-  * @param options Optional properties for the DataFrameReader
-  * @param schema  Optional schema used when reading.
-  */
+ * @param format  The file format to use. Defaulted to "parquet"
+ * @param options Optional properties for the DataFrameReader
+ * @param schema  Optional schema used when reading.
+ */
 case class DataFrameReaderOptions(format: String = "parquet",
                                   options: Option[Map[String, String]] = None,
                                   schema: Option[Schema] = None) {
@@ -171,13 +209,13 @@ case class DataFrameReaderOptions(format: String = "parquet",
 }
 
 /**
-  * @param format           The file format to use. Defaulted to "parquet"
-  * @param saveMode         The mode when writing a DataFrame. Defaulted to "Overwrite"
-  * @param options          Optional properties for the DataFrameWriter
-  * @param bucketingOptions Optional BucketingOptions object for configuring Bucketing
-  * @param partitionBy      Optional list of columns for partitioning.
-  * @param sortBy           Optional list of columns for sorting.
-  */
+ * @param format           The file format to use. Defaulted to "parquet"
+ * @param saveMode         The mode when writing a DataFrame. Defaulted to "Overwrite"
+ * @param options          Optional properties for the DataFrameWriter
+ * @param bucketingOptions Optional BucketingOptions object for configuring Bucketing
+ * @param partitionBy      Optional list of columns for partitioning.
+ * @param sortBy           Optional list of columns for sorting.
+ */
 case class DataFrameWriterOptions(format: String = "parquet",
                                   saveMode: String = "Overwrite",
                                   options: Option[Map[String, String]] = None,

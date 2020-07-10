@@ -10,11 +10,36 @@ Full parameter descriptions are listed below:
 
 * **dataFrameReaderOptions** - DataFrameReaderOptions object used to configure the DataFrameReader.
 
+## Load DataFrame
+Given a DataFrameReaderOptions object, this step will load a DataFrame.
+Full parameter descriptions are listed below:
+
+* **dataFrameReaderOptions** - DataFrameReaderOptions to use.
+
+## Load Using DataFrameReader
+Given a DataFrameReader object, this step will load a DataFrame.
+Full parameter descriptions are listed below:
+
+* **dataFrameReader** - DataFrameReader to use.
+
 ## Get DataFrameWriter
 Given a DataFrameWriterOptions object, this step will build a DataFrameWriter[Row].
 Full parameter descriptions are listed below:
 
-* **dataFramewriterOptions** - DataFrameWriterOptions object used to configure the DataFrameWriter.
+* **dataFrameWriterOptions** - DataFrameWriterOptions object used to configure the DataFrameWriter.
+
+## Save DataFrame
+Given a DataFrame and DataFrameWriterOptions object, this step will save a DataFrame.
+Full parameter descriptions are listed below:
+
+* **dataFrame** - DataFrame to save
+* **dataFrameWriterOptions** - DataFrameWriterOptions to use.
+
+## Save Using DataFrameWriter
+Given a DataFrameWriter[Row] object, this step will save a DataFrame.
+Full parameter descriptions are listed below:
+
+* **dataFrameWriter** - DataFrameWriter to use.
 
 ## Persist DataFrame
 Given a DataFrame object and optional storage level, this step will persist the data. Full parameter descriptions
