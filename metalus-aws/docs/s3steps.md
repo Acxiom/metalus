@@ -31,7 +31,7 @@ This function will read from each of the provided paths into a DataFrame. Full p
 ## Create FileManager
 This function will create a FileManager implementation that is useful for interacting with the the S3 file system.
 
-* **accessKeyId** - The API key to use when connecting.
-* **secretAccessKey** - The API secret to use when connecting.
 * **region** - The AWS region to connect through.
 * **bucket** - The S3 bucket being used.
+* **accessKeyId** - The optional API key to use when connecting.
+* **secretAccessKey** - The optional API secret to use when connecting.
