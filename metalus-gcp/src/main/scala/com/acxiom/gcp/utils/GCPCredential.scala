@@ -1,4 +1,4 @@
-package com.acxiom.gcp.drivers
+package com.acxiom.gcp.utils
 
 import java.util.Base64
 

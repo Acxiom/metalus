@@ -8,15 +8,13 @@ object KinesisUtilities {
   /**
     * Build a Kinesis client
     * @param region The region
-    * @param accessKeyId Optional api key
-    * @param secretAccessKey Optional api secret
+    * @param credential Optional AWSCrednetial
     * @return A Kinesis Client
     */
   def buildKinesisClient(region: String,
-                         accessKeyId: Option[String] = None,
-                         secretAccessKey: Option[String] = None): AmazonKinesis = {
-    val kinesisClient = if (accessKeyId.isDefined) {
-      val credentials = new BasicAWSCredentials(accessKeyId.get, secretAccessKey.getOrElse(""))
+                         credential: Option[AWSCredential] = None): AmazonKinesis = {
+    val kinesisClient = if (credential.isDefined) {
+      val credentials = new BasicAWSCredentials(credential.get.awsAccessKey.getOrElse(), credential.get.awsAccessSecret.getOrElse(""))
       new AmazonKinesisClient(credentials)
     } else {
       new AmazonKinesisClient()

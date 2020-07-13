@@ -40,7 +40,8 @@
             * [Kinesis Pipeline Driver](../metalus-aws/docs/kinesispipelinedriver.md)
     * [Metalus GCP](../metalus-gcp/readme.md)
             * Steps
-                * [GCSSteps](../metalus-aws/docs/gcssteps.md)
+                * [GCSSteps](../metalus-gcp/docs/gcssteps.md)
+                * [PubSubSteps](../metalus-gcp/docs/pubsubsteps.md)
             * Extensions
                 * [GCSFileManager](../metalus-gcp/docs/gcsfilemanager.md)
                 * [PubSub Pipeline Driver](../metalus-gcp/docs/pubsubpipelinedriver.md)

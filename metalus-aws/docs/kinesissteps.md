@@ -8,7 +8,7 @@ This function will write a given DataFrame to the provided path. Full parameter 
 
 * **dataFrame** - A dataFrame to be written to S3.
 * **region** - A valid AWS region
-* **streamName** - The Kinesis stream where data will be pulled
+* **streamName** - The Kinesis stream where data will be written
 
 *Optional Parameters:*
 * **separator** - An optional separator character to use when formatting rows into a message

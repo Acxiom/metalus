@@ -6,7 +6,7 @@ import com.acxiom.pipeline.utils.ReflectionUtils
 /**
   * Represents an object that contains named credentials
   */
-trait CredentialProvider {
+trait CredentialProvider extends Serializable {
   protected val parameters: Map[String, Any]
   def getNamedCredential(name: String): Option[Credential]
 }
@@ -14,7 +14,7 @@ trait CredentialProvider {
 /**
   * Represents a single credential
   */
-trait Credential {
+trait Credential extends Serializable {
   protected val parameters: Map[String, Any]
   def name: String
 }
