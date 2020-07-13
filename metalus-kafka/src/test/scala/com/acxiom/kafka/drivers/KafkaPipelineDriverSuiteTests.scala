@@ -1,8 +1,10 @@
-package com.acxiom.pipeline.drivers
+package com.acxiom.kafka.drivers
 
 import java.nio.file.{Files, Path}
 import java.util.Properties
+
 import com.acxiom.pipeline._
+import com.acxiom.pipeline.drivers.{DriverSetup, StreamingDataParser}
 import kafka.server.{KafkaConfig, KafkaServerStartable}
 import org.apache.commons.io.FileUtils
 import org.apache.curator.test.TestingServer
@@ -105,7 +107,7 @@ class KafkaPipelineDriverSuiteTests extends FunSpec with BeforeAndAfterAll with 
       }
 
       And("the kafka spark listener is running")
-      val args = List("--driverSetupClass", "com.acxiom.pipeline.drivers.SparkTestDriverSetup", "--pipeline", "basic",
+      val args = List("--driverSetupClass", "com.acxiom.kafka.drivers.SparkTestDriverSetup", "--pipeline", "basic",
         "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", "localhost:9092",
         "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds",
         "--duration", "1", "--expectedCount", "5", "--expectedAttrCount", "5")
@@ -138,10 +140,10 @@ class KafkaPipelineDriverSuiteTests extends FunSpec with BeforeAndAfterAll with 
       }
 
       And("the kafka spark listener is running")
-      val args = List("--driverSetupClass", "com.acxiom.pipeline.drivers.SparkTestDriverSetup", "--pipeline", "parser",
+      val args = List("--driverSetupClass", "com.acxiom.kafka.drivers.SparkTestDriverSetup", "--pipeline", "parser",
         "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", "localhost:9092",
         "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "1", "--streaming-parsers",
-        "com.acxiom.pipeline.drivers.TestKafkaStreamingDataParserPipe,com.acxiom.pipeline.drivers.TestKafkaStreamingDataParserPipe",
+        "com.acxiom.kafka.drivers.TestKafkaStreamingDataParserPipe,com.acxiom.kafka.drivers.TestKafkaStreamingDataParserPipe",
         "--expectedCount", "5", "--expectedAttrCount", "5")
       KafkaPipelineDriver.main(args.toArray)
       Then("5 records should be processed")
@@ -172,10 +174,10 @@ class KafkaPipelineDriverSuiteTests extends FunSpec with BeforeAndAfterAll with 
       }
 
       And("the kafka spark listener is running expecting either comma or pipe delimiter")
-      val args = List("--driverSetupClass", "com.acxiom.pipeline.drivers.SparkTestDriverSetup", "--pipeline", "parser",
+      val args = List("--driverSetupClass", "com.acxiom.kafka.drivers.SparkTestDriverSetup", "--pipeline", "parser",
         "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", "localhost:9092",
         "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "1",
-        "--streaming-parsers", "com.acxiom.pipeline.drivers.TestKafkaStreamingDataParserPipe,com.acxiom.pipeline.drivers.TestKafkaStreamingDataParserComma",
+        "--streaming-parsers", "com.acxiom.kafka.drivers.TestKafkaStreamingDataParserPipe,com.acxiom.kafka.drivers.TestKafkaStreamingDataParserComma",
         "--expectedCount", "5", "--expectedAttrCount", "5")
       KafkaPipelineDriver.main(args.toArray)
       Then("5 records should be processed")
@@ -206,10 +208,10 @@ class KafkaPipelineDriverSuiteTests extends FunSpec with BeforeAndAfterAll with 
       }
 
       And("the kafka spark listener is running expecting either comma or pipe delimiter")
-      val args = List("--driverSetupClass", "com.acxiom.pipeline.drivers.SparkTestDriverSetup", "--pipeline", "parser",
+      val args = List("--driverSetupClass", "com.acxiom.kafka.drivers.SparkTestDriverSetup", "--pipeline", "parser",
         "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", "localhost:9092",
         "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "1",
-        "--streaming-parsers", "com.acxiom.pipeline.drivers.TestKafkaStreamingDataParserPipe,com.acxiom.pipeline.drivers.TestKafkaStreamingDataParserComma",
+        "--streaming-parsers", "com.acxiom.kafka.drivers.TestKafkaStreamingDataParserPipe,com.acxiom.kafka.drivers.TestKafkaStreamingDataParserComma",
         "--expectedCount", "5", "--expectedAttrCount", "3")
       KafkaPipelineDriver.main(args.toArray)
       Then("5 records should be processed with 3 attributes")
@@ -285,7 +287,7 @@ case class SparkTestDriverSetup(parameters: Map[String, Any]) extends DriverSetu
       parameters("stepPackages").asInstanceOf[String]
         .split(",").toList
     } else {
-      List("com.acxiom.pipeline.steps", "com.acxiom.pipeline.drivers")
+      List("com.acxiom.pipeline.steps", "com.acxiom.kafka.drivers")
     }),
     PipelineStepMapper(),
     Some(SparkTestHelper.pipelineListener),

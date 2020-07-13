@@ -71,6 +71,7 @@
         <module>metalus-common</module>
         <module>metalus-examples</module>
         <module>metalus-gcp</module>
+        <module>metalus-kafka</module>
         <module>metalus-mongo</module>
         <module>metalus-utils</module>
     </modules>
@@ -213,6 +214,7 @@
                     <coberturaReports>
                         <coberturaReport>metalus-core/target/cobertura.xml</coberturaReport>
                         <coberturaReport>metalus-common/target/cobertura.xml</coberturaReport>
+                        <coberturaReport>metalus-kafka/target/cobertura.xml</coberturaReport>
                     </coberturaReports>
                 </configuration>
             </plugin>
