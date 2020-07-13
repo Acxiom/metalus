@@ -64,7 +64,7 @@ object KinesisPipelineDriver {
     logger.info("Number of Kinesis shards is : " + numShards)
     val numStreams = parameters.getOrElse("consumerStreams", numShards).asInstanceOf[Int]
     // Create the Kinesis DStreams
-    val kinesisStreams = createKinesisDStreams(awsCredential, appName, duration, streamingContext, numStreams, region, streamName)
+    val kinesisStreams = createKinesisDStreams(credentialProvider, appName, duration, streamingContext, numStreams, region, streamName)
     logger.info("Created " + kinesisStreams.size + " Kinesis DStreams")
     val defaultParser = new KinesisStreamingDataParser
     val streamingParsers = DriverUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))

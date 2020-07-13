@@ -38,7 +38,7 @@ object KinesisSteps {
       putRecordRequest.setStreamName(streamName)
       putRecordRequest.setPartitionKey(key)
       putRecordRequest.setData(ByteBuffer.wrap(String.valueOf(rowData).getBytes()))
-      val kinesisClient = KinesisUtilities.buildKinesisClient(region, accessKeyId, secretAccessKey)
+      val kinesisClient = KinesisUtilities.buildKinesisClientByKeys(region, accessKeyId, secretAccessKey)
       kinesisClient.putRecord(putRecordRequest)
       kinesisClient.shutdown()
     })
