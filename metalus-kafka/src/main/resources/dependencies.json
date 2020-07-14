@@ -1,0 +1,26 @@
+{
+  "maven": {
+    "libraries": [
+      {
+        "groupId": "com.acxiom",
+        "artifactId": "metalus-common_${scala.compat.version}-spark_${spark.compat.version}",
+        "version": "${parent.version}"
+      },
+      {
+        "groupId": "org.apache.spark",
+        "artifactId": "spark-streaming-kafka-0-10_${scala.compat.version}",
+        "version": "${spark.version}"
+      },
+      {
+        "groupId": "org.apache.spark",
+        "artifactId": "spark-sql-kafka-0-10_${scala.compat.version}",
+        "version": "${spark.version}"
+      },
+      {
+        "groupId": "org.apache.kafka",
+        "artifactId": "kafka-clients",
+        "version": "${kafka.version}"
+      }
+    ]
+  }
+}

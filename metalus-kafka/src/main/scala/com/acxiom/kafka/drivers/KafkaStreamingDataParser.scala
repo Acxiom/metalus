@@ -1,4 +1,6 @@
-package com.acxiom.pipeline.drivers
+package com.acxiom.kafka.drivers
+
+import com.acxiom.pipeline.drivers.StreamingDataParser
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StringType, StructField, StructType}

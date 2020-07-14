@@ -5,12 +5,10 @@ import java.nio.ByteBuffer
 import com.acxiom.aws.utils.KinesisUtilities
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import com.amazonaws.services.kinesis.model.PutRecordRequest
-import org.apache.log4j.Logger
 import org.apache.spark.sql.DataFrame
 
 @StepObject
 object KinesisSteps {
-  private val logger = Logger.getLogger(getClass)
   @StepFunction("207aa871-4f83-4e24-bab3-4e47bb3b667a",
     "Write DataFrame to a Kinesis Stream",
     "This step will write a DataFrame to a Kinesis Stream",
@@ -40,7 +38,7 @@ object KinesisSteps {
       putRecordRequest.setStreamName(streamName)
       putRecordRequest.setPartitionKey(key)
       putRecordRequest.setData(ByteBuffer.wrap(String.valueOf(rowData).getBytes()))
-      val kinesisClient = KinesisUtilities.buildKinesisClient(region, accessKeyId, secretAccessKey)
+      val kinesisClient = KinesisUtilities.buildKinesisClientByKeys(region, accessKeyId, secretAccessKey)
       kinesisClient.putRecord(putRecordRequest)
       kinesisClient.shutdown()
     })

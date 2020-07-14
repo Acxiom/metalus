@@ -2,10 +2,10 @@ package com.acxiom.aws.drivers
 
 import java.util.Date
 
-import com.acxiom.aws.utils.KinesisUtilities
-import com.acxiom.pipeline.PipelineDependencyExecutor
+import com.acxiom.aws.utils.{AWSCredential, KinesisUtilities}
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}
+import com.acxiom.pipeline.{CredentialProvider, PipelineDependencyExecutor}
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream
 import com.amazonaws.services.kinesis.model.Record
 import org.apache.log4j.Logger
@@ -49,22 +49,22 @@ object KinesisPipelineDriver {
     val sparkSession = executionPlan.head.pipelineContext.sparkSession.get
     val region = parameters("region").asInstanceOf[String]
     val streamName = parameters("streamName").asInstanceOf[String]
-    val awsAccessKey = parameters.get("accessKeyId").asInstanceOf[Option[String]]
-    val awsAccessSecret = parameters.get("secretAccessKey").asInstanceOf[Option[String]]
     val appName = parameters.getOrElse("appName", s"Metalus_Kinesis_$streamName(${new Date().getTime})").asInstanceOf[String]
-
+    // Get the credential provider
+    val credentialProvider = driverSetup.credentialProvider
+    val awsCredential = credentialProvider.getNamedCredential("AWSCredential").asInstanceOf[Option[AWSCredential]]
     val duration = StreamingUtils.getDuration(Some(parameters.getOrElse("duration-type", "seconds").asInstanceOf[String]),
       Some(parameters.getOrElse("duration", "10").asInstanceOf[String]))
     val streamingContext =
       StreamingUtils.createStreamingContext(sparkSession.sparkContext, Some(duration))
     // Get the client
-    val kinesisClient = KinesisUtilities.buildKinesisClient(region, awsAccessKey, awsAccessSecret)
+    val kinesisClient = KinesisUtilities.buildKinesisClient(region, awsCredential)
     // Handle multiple shards
     val numShards = kinesisClient.describeStream(parameters("streamName").asInstanceOf[String]).getStreamDescription.getShards.size
     logger.info("Number of Kinesis shards is : " + numShards)
     val numStreams = parameters.getOrElse("consumerStreams", numShards).asInstanceOf[Int]
     // Create the Kinesis DStreams
-    val kinesisStreams = createKinesisDStreams(awsAccessKey, awsAccessSecret, appName, duration, streamingContext, numStreams, region, streamName)
+    val kinesisStreams = createKinesisDStreams(credentialProvider, appName, duration, streamingContext, numStreams, region, streamName)
     logger.info("Created " + kinesisStreams.size + " Kinesis DStreams")
     val defaultParser = new KinesisStreamingDataParser
     val streamingParsers = DriverUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))
@@ -88,8 +88,11 @@ object KinesisPipelineDriver {
     logger.info("Shutting down Kinesis Pipeline Driver")
   }
 
-  private def createKinesisDStreams(awsAccessKey: Option[String], awsAccessSecret: Option[String], appName: String, duration: Duration,
+  private def createKinesisDStreams(credentialProvider: CredentialProvider, appName: String, duration: Duration,
                                     streamingContext: StreamingContext, numStreams: Int, region: String, streamName: String) = {
+    val awsCredential = credentialProvider.getNamedCredential("AWSCredential").asInstanceOf[Option[AWSCredential]]
+    val cloudWatchCredential = credentialProvider.getNamedCredential("AWSCloudWatchCredential").asInstanceOf[Option[AWSCredential]]
+    val dynamoDBCredential = credentialProvider.getNamedCredential("AWSDynamoDBCredential").asInstanceOf[Option[AWSCredential]]
     (0 until numStreams).map { _ =>
       val builder = KinesisInputDStream.builder
         .endpointUrl(s"https://kinesis.$region.amazonaws.com")
@@ -101,11 +104,28 @@ object KinesisPipelineDriver {
         .initialPosition(KinesisInitialPositions.fromKinesisInitialPosition(InitialPositionInStream.LATEST))
         .storageLevel(StorageLevel.MEMORY_AND_DISK_2)
 
-      (if (awsAccessKey.isDefined) {
-        builder.kinesisCredentials(SparkAWSCredentials.builder.basicCredentials(awsAccessKey.get, awsAccessSecret.get).build())
+      val cloudWatchBuilder = if (cloudWatchCredential.isDefined) {
+        builder.cloudWatchCredentials(SparkAWSCredentials.builder.basicCredentials(
+            cloudWatchCredential.get.awsAccessKey.get, cloudWatchCredential.get.awsAccessSecret.get).build())
       } else {
         builder
-      }).buildWithMessageHandler((r: Record) => {
+      }
+
+      val dynamoDBBuilder = if (dynamoDBCredential.isDefined) {
+        cloudWatchBuilder.dynamoDBCredentials(SparkAWSCredentials.builder.basicCredentials(
+            cloudWatchCredential.get.awsAccessKey.get, cloudWatchCredential.get.awsAccessSecret.get).build())
+      } else {
+        cloudWatchBuilder
+      }
+
+      val kinesisBuilder = if (awsCredential.isDefined) {
+        dynamoDBBuilder.kinesisCredentials(SparkAWSCredentials.builder.basicCredentials(
+            awsCredential.get.awsAccessKey.get, awsCredential.get.awsAccessSecret.get).build())
+      } else {
+        dynamoDBBuilder
+      }
+
+      kinesisBuilder.buildWithMessageHandler((r: Record) => {
         try {
           Row(r.getPartitionKey, new String(r.getData.array()), appName)
         } catch {
