@@ -1,13 +1,19 @@
 package com.acxiom.pipeline.utils
 
-import java.text.ParseException
-
-import com.acxiom.pipeline.{MockClass, Pipeline, PipelineDefs}
+import com.acxiom.pipeline.drivers.StreamingDataParser
+import com.acxiom.pipeline._
+import org.apache.spark.SparkConf
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
-import org.scalatest.FunSpec
+import org.scalatest.{BeforeAndAfterAll, FunSpec}
 
-class DriverUtilsTests extends FunSpec {
+import scala.collection.JavaConverters._
+
+class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
+
   describe("DriverUtils - extractParameters") {
     it("Should properly parse input parameters") {
       val params = Array("--one", "1", "--two", "2", "--three", "true")
@@ -68,5 +74,52 @@ class DriverUtilsTests extends FunSpec {
       assert(mc.asInstanceOf[MockClass].string == "Frederico")
     }
   }
+
+  describe("DriverUtils - Streaming Helper Functions") {
+    it("Should Post Initial DataFrame to Execution Plan") {
+      val sparkSession = SparkSession.builder.config(new SparkConf().setMaster("local[1]")).getOrCreate()
+      val df = sparkSession.createDataFrame(List(List("1", "2", "3", "4", "5"),
+        List("6", "7", "8", "9", "10"),
+        List("11", "12", "13", "14", "15"),
+        List("16", "17", "18", "19", "20"),
+        List("21", "22", "23", "24", "25")).map(r => Row(r: _*)).asJava,
+        StructType(Seq(
+          StructField("col1", StringType),
+          StructField("col2", StringType),
+          StructField("col3", StringType),
+          StructField("col4", StringType),
+          StructField("col5", StringType))))
+      val pipelineContext1 = PipelineContext(globals = Some(Map[String, Any]()),
+        parameters = PipelineParameters(), stepMessages = None)
+      val pipelineContext2 = PipelineContext(globals = Some(Map[String, Any]()),
+        parameters = PipelineParameters(), stepMessages = None)
+      val executionPlan = DriverUtils.addInitialDataFrameToExecutionPlan(List(PipelineExecution("ONE", List(), None, pipelineContext1, None),
+        PipelineExecution("TWO", List(), None, pipelineContext2, Some(List("ONE")))), df)
+      executionPlan.foreach(plan => {
+        assert(plan.pipelineContext.getGlobal("initialDataFrame").isDefined)
+        assert(plan.pipelineContext.getGlobal("initialDataFrame").get == df)
+      })
+    }
+
+    it("Should load StreamingDataParsers") {
+      val sparkSession = SparkSession.builder.config(new SparkConf().setMaster("local[1]")).getOrCreate()
+      val parameters = Map[String, Any]("streaming-parsers" -> "com.acxiom.pipeline.utils.TestStreamingDataParser")
+      val parsers = DriverUtils.generateStreamingDataParsers(parameters, Some(List[StreamingDataParser[List[String]]]()))
+      assert(parsers.nonEmpty)
+      assert(parsers.length == 1)
+      assert(parsers.head.isInstanceOf[TestStreamingDataParser])
+      val parser = DriverUtils.getStreamingParser(sparkSession.sparkContext.emptyRDD, parsers)
+      assert(parser.isDefined)
+      assert(parser.get.isInstanceOf[TestStreamingDataParser])
+      assert(DriverUtils.generateStreamingDataParsers(Map[String, Any]()).isEmpty)
+    }
+  }
 }
 
+class TestStreamingDataParser extends StreamingDataParser[List[String]] {
+  override def canParse(rdd: RDD[List[String]]): Boolean = true
+
+  override def parseRDD(rdd: RDD[List[String]], sparkSession: SparkSession): DataFrame = {
+    null
+  }
+}
