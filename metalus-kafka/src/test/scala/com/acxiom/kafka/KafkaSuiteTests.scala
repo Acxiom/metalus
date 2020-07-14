@@ -88,7 +88,7 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
   describe("Kafka Pipeline Driver") {
     it("Should process simple records from Kafka") {
       When("5 kafka messages are posted")
-      val topic = sendKafkaMessages("|")
+      val topic = sendKafkaMessages("|", Some("col1"))
       var executionComplete = false
       SparkTestHelper.pipelineListener = new PipelineListener {
         override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
@@ -155,7 +155,7 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
 
     it("Should process records using default data parser") {
       When("5 kafka messages are posted with other delimiter")
-      val topic = sendKafkaMessages(":")
+      val topic = sendKafkaMessages(":", Some("col1"))
       var executionComplete = false
       SparkTestHelper.pipelineListener = new PipelineListener {
         override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
@@ -222,7 +222,7 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
     }
   }
 
-  private def sendKafkaMessages(delimiter: String) = {
+  private def sendKafkaMessages(delimiter: String, keyField: Option[String] = None) = {
     val topic = "TEST"
     val df = SparkTestHelper.sparkSession.createDataFrame(dataRows.map(r => Row(r: _*)).asJava,
       StructType(Seq(
@@ -231,7 +231,11 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
         StructField("col3", StringType),
         StructField("col4", StringType),
         StructField("col5", StringType))))
-    KafkaSteps.writeToStreamByKey(df, topic, "localhost:9092", "InboundRecord", delimiter)
+    if (keyField.isDefined) {
+      KafkaSteps.writeToStreamByKeyField(df, topic, "localhost:9092", keyField.get, delimiter)
+    } else {
+      KafkaSteps.writeToStreamByKey(df, topic, "localhost:9092", "InboundRecord", delimiter)
+    }
     topic
   }
 }

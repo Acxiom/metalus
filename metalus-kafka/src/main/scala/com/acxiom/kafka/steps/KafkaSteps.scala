@@ -50,7 +50,7 @@ object KafkaSteps {
     })
     dataFrame.withColumn("topic", lit(topic))
       .withColumn("key", key)
-      .withColumn("value", concat(columns: _*))
+      .withColumn("value", concat(columns.dropRight(1): _*))
       .write
       .format("kafka")
       .option("kafka.bootstrap.servers", kafkaNodes)
