@@ -1,6 +1,6 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.audits.{ExecutionAudit, AuditType}
+import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.util.CollectionAccumulator
@@ -54,6 +54,7 @@ case class DefaultPipeline(override val id: Option[String] = None,
   * @param stepMessages     Used for logging messages from steps.
   * @param rootAudit        The base audit record
   * @param pipelineManager  The PipelineManager to use for Step Groups.
+  * @param credentialProvider  The CredentialProvider to use for accessing credentials.
   */
 case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            sparkSession: Option[SparkSession] = None,
@@ -65,7 +66,8 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            pipelineListener: Option[PipelineListener] = Some(PipelineListener()),
                            stepMessages: Option[CollectionAccumulator[PipelineStepMessage]],
                            rootAudit: ExecutionAudit = ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
-                           pipelineManager: PipelineManager = PipelineManager(List())) {
+                           pipelineManager: PipelineManager = PipelineManager(List()),
+                           credentialProvider: Option[CredentialProvider] = None) {
   /**
     * Get the named global value as a string.
     *
