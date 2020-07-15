@@ -3,6 +3,7 @@ package com.acxiom.gcp.steps
 import java.io.ByteArrayInputStream
 import java.util.concurrent.TimeUnit
 
+import com.acxiom.pipeline.Constants
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import com.google.api.gax.core.FixedCredentialsProvider
 import com.google.api.gax.retrying.RetrySettings
@@ -18,13 +19,13 @@ import org.threeten.bp.Duration
 @StepObject
 object PubSubSteps {
   private val retrySettings = RetrySettings.newBuilder
-    .setInitialRetryDelay(Duration.ofMillis(100))
+    .setInitialRetryDelay(Duration.ofMillis(Constants.ONE_HUNDRED))
     .setRetryDelayMultiplier(2.0)
-    .setMaxRetryDelay(Duration.ofSeconds(2))
-    .setInitialRpcTimeout(Duration.ofSeconds(10))
-    .setRpcTimeoutMultiplier(1)
-    .setMaxRpcTimeout(Duration.ofMinutes(1))
-    .setTotalTimeout(Duration.ofMinutes(2)).build
+    .setMaxRetryDelay(Duration.ofSeconds(Constants.TWO))
+    .setInitialRpcTimeout(Duration.ofSeconds(Constants.TEN))
+    .setRpcTimeoutMultiplier(Constants.ONE)
+    .setMaxRpcTimeout(Duration.ofMinutes(Constants.ONE))
+    .setTotalTimeout(Duration.ofMinutes(Constants.TWO)).build
 
   @StepFunction("451d4dc8-9bce-4cb4-a91d-1a09e0efd9b8",
     "Write DataFrame to a PubSub Topic",
