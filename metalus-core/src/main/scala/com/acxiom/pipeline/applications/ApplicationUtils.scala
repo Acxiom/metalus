@@ -41,13 +41,10 @@ object ApplicationUtils {
    * @param pipelineListener An optional PipelineListener. This may be overridden by the application.
    * @return An execution plan.
    */
-  def createExecutionPlan(application: Application,
-                          globals: Option[Map[String, Any]],
-                          sparkConf: SparkConf,
-                          pipelineListener: PipelineListener = PipelineListener(),
-                          enableHiveSupport: Boolean = false,
-                          parquetDictionaryEnabled: Boolean = true,
-                          validateArgumentTypes: Boolean = false): List[PipelineExecution] = {
+  def createExecutionPlan(application: Application, globals: Option[Map[String, Any]], sparkConf: SparkConf,
+                          pipelineListener: PipelineListener = PipelineListener(), enableHiveSupport: Boolean = false,
+                          parquetDictionaryEnabled: Boolean = true, validateArgumentTypes: Boolean = false,
+                          credentialProvider: Option[CredentialProvider] = None): List[PipelineExecution] = {
     val sparkSession = if (enableHiveSupport) { // Create the SparkSession
       SparkSession.builder().config(sparkConf).enableHiveSupport().getOrCreate()
     } else {
@@ -87,7 +84,8 @@ object ApplicationUtils {
         pipelineListener,
         Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")),
         ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
-        pipelineManager)
+        pipelineManager,
+        credentialProvider)
       PipelineExecution(execution.id.getOrElse(""),
         generatePipelines(execution, application, pipelineManager), execution.initialPipelineId, ctx, execution.parents)
     })

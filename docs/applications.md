@@ -37,6 +37,12 @@ initialize the file manager.
 a URL. Any parameters required to instantiate the _Authorization_ instance need to be prefixed with _authorization._ so
 they are identified and passed in. To use basic authorization, consider this class signature: 
 
+### [CredentialProvider](credentialprovider.md)
+This implementation overrides the default implementation provided by _DriverSetup_ to use the application globals object.
+This allows developers the opportunity to override the default implementation using the _credential-provider_ global. The
+does not _credential-provider_ may still be passed on the command line. The main purpose of this override is to allow 
+credentials to be embedded in the application JSON instead of being passed on the command line.
+
 ## Configuration Sections
 There are a number of sections that may be used to customize an application.
 
