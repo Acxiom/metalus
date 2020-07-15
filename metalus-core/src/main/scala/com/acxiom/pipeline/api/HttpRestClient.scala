@@ -4,10 +4,11 @@ import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, OutputSt
 import java.net.{HttpURLConnection, URL}
 import java.util.Date
 
+import com.acxiom.pipeline.Constants
 import org.json4s.{DefaultFormats, Formats}
 
-import scala.io.Source
 import scala.collection.JavaConverters._
+import scala.io.Source
 
 object HttpRestClient {
   val DEFAULT_BUFFER_SIZE: Int = 65536
@@ -129,7 +130,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
                       headers: Option[Map[String, String]] = None): OutputStream = {
     val connection = this.openUrlConnection(path, headers)
     connection.setDoOutput(true)
-    connection.setRequestProperty("Content-Type", "multipart/form-data")
+    connection.setRequestProperty(Constants.CONTENT_TYPE_HEADER, "multipart/form-data")
     new BufferedOutputStream(HttpOutputStream(connection), bufferSize)
   }
 
@@ -154,7 +155,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @return The String output of the command.
     */
   def postJsonContent(path: String, body: String, headers: Option[Map[String, String]] = None): String = {
-    upsertJsonContent(path, body, "POST", "application/json", headers)
+    upsertJsonContent(path, body, "POST", Constants.JSON_CONTENT_TYPE, headers)
   }
 
   /**
@@ -165,7 +166,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     * @return The String output of the command.
     */
   def putJsonContent(path: String,body: String, headers: Option[Map[String, String]] = None): String = {
-    upsertJsonContent(path, body, "PUT", "application/json", headers)
+    upsertJsonContent(path, body, "PUT", Constants.JSON_CONTENT_TYPE, headers)
   }
 
   /**
@@ -178,7 +179,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     */
   def postStringContent(path: String,
                         body: String,
-                        contentType: String = "application/json",
+                        contentType: String = Constants.JSON_CONTENT_TYPE,
                         headers: Option[Map[String, String]] = None): String = {
     upsertJsonContent(path, body, "POST", contentType, headers)
   }
@@ -193,7 +194,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
     */
   def putStringContent(path: String,
                        body: String,
-                       contentType: String = "application/json",
+                       contentType: String = Constants.JSON_CONTENT_TYPE,
                        headers: Option[Map[String, String]] = None): String = {
     upsertJsonContent(path, body, "PUT", contentType, headers)
   }
@@ -205,7 +206,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
                                 headers: Option[Map[String, String]] = None): String = {
     val connection = this.openUrlConnection(path)
     connection.setDoOutput(true)
-    connection.setRequestProperty("Content-Type", contentType)
+    connection.setRequestProperty(Constants.CONTENT_TYPE_HEADER, contentType)
     // Apply the custom headers
     applyHeaders(headers.getOrElse(Map[String, String]()), connection)
     connection.setRequestMethod(method)
@@ -229,7 +230,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
   def delete(path: String, headers: Option[Map[String, String]] = None): Boolean = {
     val connection = this.openUrlConnection(path, headers)
     connection.setDoOutput(true)
-    connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+    connection.setRequestProperty(Constants.CONTENT_TYPE_HEADER, "application/x-www-form-urlencoded")
     connection.setRequestMethod("DELETE")
     connection.connect()
     val responseCode = connection.getResponseCode

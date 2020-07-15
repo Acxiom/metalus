@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.utils
 
-import com.acxiom.pipeline.drivers.StreamingDataParser
 import com.acxiom.pipeline._
+import com.acxiom.pipeline.drivers.StreamingDataParser
 import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
@@ -120,6 +120,6 @@ class TestStreamingDataParser extends StreamingDataParser[List[String]] {
   override def canParse(rdd: RDD[List[String]]): Boolean = true
 
   override def parseRDD(rdd: RDD[List[String]], sparkSession: SparkSession): DataFrame = {
-    null
+    None.orNull
   }
 }
