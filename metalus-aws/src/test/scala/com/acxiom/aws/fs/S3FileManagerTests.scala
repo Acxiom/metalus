@@ -5,9 +5,7 @@ import java.nio.file.Files
 
 import com.acxiom.aws.steps.S3Steps
 import com.acxiom.pipeline.Constants
-import com.amazonaws.auth.{AWSStaticCredentialsProvider, AnonymousAWSCredentials}
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
-import com.amazonaws.services.s3.AmazonS3ClientBuilder
+import com.amazonaws.client.builder.S3ClientBuilder
 import io.findify.s3mock.S3Mock
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
@@ -16,31 +14,28 @@ import scala.reflect.io.Directory
 
 class S3FileManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
   private val s3Directory = Files.createTempDirectory("s3Tests")
-  private val api = S3Mock(8357, s3Directory.toFile.getAbsolutePath)
+  private val port = "8357"
+  private val api = S3Mock(port.toInt, s3Directory.toFile.getAbsolutePath)
   private val region = "us-west-2"
   private val bucketName = "s3testbucket"
-  private val endpoint = new EndpointConfiguration("http://0.0.0.0:8357", region)
-  private val s3Client = AmazonS3ClientBuilder
-    .standard
-    .withPathStyleAccessEnabled(true)
-    .withEndpointConfiguration(endpoint)
-    .withCredentials(new AWSStaticCredentialsProvider(new AnonymousAWSCredentials()))
-    .build
+  private val endpointUrl = s"http://0.0.0.0:$port"
+  private val s3Client = S3ClientBuilder.getS3TestClient(region)
 
   override protected def beforeAll(): Unit = {
     api.start
+    s3Client.setEndpoint(endpointUrl)
     s3Client.createBucket(bucketName)
   }
 
   override protected def afterAll(): Unit = {
-    s3Client.deleteBucket(bucketName)
+    //    s3Client.deleteBucket(bucketName)
     api.shutdown
     new Directory(s3Directory.toFile).deleteRecursively()
   }
 
   describe("FileManager - S3") {
     it("Should perform proper file operations against a S3 file system") {
-      val fileManager = S3Steps.createFileManager(region, bucketName, None, None, Some(endpoint)).get
+      val fileManager = S3Steps.createFileManagerWithCLient(s3Client, bucketName).get
       // These methods do nothing, so call them and then run file operations
       fileManager.connect()
       fileManager.disconnect()

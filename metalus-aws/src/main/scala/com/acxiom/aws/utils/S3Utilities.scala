@@ -31,13 +31,15 @@ object S3Utilities {
     * @param pipelineContext The PipelineContext
     */
   def setS3Authorization(path: String,
-                         accessKeyId: String,
-                         secretAccessKey: String,
+                         accessKeyId: Option[String],
+                         secretAccessKey: Option[String],
                          pipelineContext: PipelineContext): Unit = {
-    val protocol = S3Utilities.deriveProtocol(path)
-    val sc = pipelineContext.sparkSession.get.sparkContext
-    sc.hadoopConfiguration.set(s"fs.$protocol.awsAccessKeyId", accessKeyId)
-    sc.hadoopConfiguration.set(s"fs.$protocol.awsSecretAccessKey", secretAccessKey)
+    if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+      val protocol = S3Utilities.deriveProtocol(path)
+      val sc = pipelineContext.sparkSession.get.sparkContext
+      sc.hadoopConfiguration.set(s"fs.$protocol.awsAccessKeyId", accessKeyId.get)
+      sc.hadoopConfiguration.set(s"fs.$protocol.awsSecretAccessKey", secretAccessKey.get)
+    }
   }
 
   /**

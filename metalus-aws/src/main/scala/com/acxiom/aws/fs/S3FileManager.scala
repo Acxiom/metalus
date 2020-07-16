@@ -5,31 +5,27 @@ import java.io.{FileNotFoundException, InputStream, OutputStream}
 import com.acxiom.aws.utils.S3Utilities
 import com.acxiom.pipeline.fs.{FileInfo, FileManager}
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, AnonymousAWSCredentials, BasicAWSCredentials}
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
 import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 
-class S3FileManager(region: String,
-                    bucket: String,
-                    accessKeyId: Option[String] = None,
-                    secretAccessKey: Option[String] = None,
-                    endPoint: Option[EndpointConfiguration] = None) extends FileManager {
-  private lazy val credentials = if (accessKeyId.isDefined && secretAccessKey.isDefined) {
-    new BasicAWSCredentials(accessKeyId.get, secretAccessKey.get)
-  } else {
-    new AnonymousAWSCredentials()
-  }
-  private lazy val s3Client: AmazonS3 = {
-    val builder = AmazonS3ClientBuilder.standard()
-      .withCredentials(new AWSStaticCredentialsProvider(credentials))
-    (if (endPoint.isDefined) {
-      builder.withEndpointConfiguration(endPoint.get)
-    } else {
-      builder.withRegion(region)
-    }).build()
+class S3FileManager(s3Client: AmazonS3, bucket: String) extends FileManager {
+
+  def this(region: String,
+           bucket: String,
+           accessKeyId: Option[String] = None,
+           secretAccessKey: Option[String] = None) = {
+    this(AmazonS3ClientBuilder.standard()
+      .withCredentials(new AWSStaticCredentialsProvider(
+          if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+            new BasicAWSCredentials(accessKeyId.get, secretAccessKey.get)
+          } else {
+            new AnonymousAWSCredentials()
+          }))
+      .withRegion(region)
+      .build(), bucket)
   }
 
   /**
