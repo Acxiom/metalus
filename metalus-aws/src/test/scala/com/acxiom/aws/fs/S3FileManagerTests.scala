@@ -35,7 +35,7 @@ class S3FileManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
 
   describe("FileManager - S3") {
     it("Should perform proper file operations against a S3 file system") {
-      val fileManager = S3Steps.createFileManagerWithCLient(s3Client, bucketName).get
+      val fileManager = S3Steps.createFileManagerWithClient(s3Client, bucketName).get
       // These methods do nothing, so call them and then run file operations
       fileManager.connect()
       fileManager.disconnect()
