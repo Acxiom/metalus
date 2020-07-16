@@ -5,6 +5,7 @@ import com.acxiom.aws.utils.S3Utilities
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameSteps, DataFrameWriterOptions}
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
 import org.apache.spark.sql.DataFrame
 
 @StepObject
@@ -82,7 +83,8 @@ object S3Steps {
   def createFileManager(region: String,
                         bucket: String,
                         accessKeyId: Option[String] = None,
-                        secretAccessKey: Option[String] = None): Option[S3FileManager] = {
-    Some(new S3FileManager(region, bucket, accessKeyId, secretAccessKey))
+                        secretAccessKey: Option[String] = None,
+                        endPoint: Option[EndpointConfiguration] = None): Option[S3FileManager] = {
+    Some(new S3FileManager(region, bucket, accessKeyId, secretAccessKey, endPoint))
   }
 }
