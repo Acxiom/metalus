@@ -38,6 +38,7 @@ case class PipelineStep(id: Option[String] = None,
   * @param value         The value to be used for this parameter.
   * @param className     An optional classname used to convert a map into an object
   * @param parameterType Contains optional type information for each parameter
+  * @param description   Optional description of this parameter
   */
 case class Parameter(`type`: Option[String] = None,
                      name: Option[String] = None,
@@ -45,7 +46,8 @@ case class Parameter(`type`: Option[String] = None,
                      defaultValue: Option[Any] = None,
                      value: Option[Any] = None,
                      className: Option[String] = None,
-                     parameterType: Option[String] = None)
+                     parameterType: Option[String] = None,
+                     description: String = "")
 
 /**
   * This class contains the execution information for a Step

@@ -15,7 +15,10 @@ case class StepParameter(typeOverride: Option[String] = None,
                          defaultValue: Option[String] = None,
                          language: Option[String] = None,
                          className: Option[String] = None,
-                         parameterType: Option[String] = None) extends StaticAnnotation
+                         parameterType: Option[String] = None,
+                         description: Option[String] = None) extends StaticAnnotation
+
+case class StepParameters(parameters: Map[String, StepParameter]) extends StaticAnnotation
 
 case class PrivateObject() extends StaticAnnotation
 
