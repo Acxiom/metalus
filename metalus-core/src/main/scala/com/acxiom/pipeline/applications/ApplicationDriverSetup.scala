@@ -2,7 +2,7 @@ package com.acxiom.pipeline.applications
 
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.DriverUtils
-import com.acxiom.pipeline.{CredentialProvider, Pipeline, PipelineContext, PipelineExecution}
+import com.acxiom.pipeline.{CredentialProvider, PipelineContext, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
@@ -67,9 +67,10 @@ trait ApplicationDriverSetup extends DriverSetup {
       application = application,
       globals = Some(params),
       sparkConf = sparkConf,
+      applicationTriggers = ApplicationTriggers(
       enableHiveSupport = parameters.getOrElse("enableHiveSupport", false).asInstanceOf[Boolean],
       parquetDictionaryEnabled = parameters.getOrElse("parquetDictionaryEnabled", true).asInstanceOf[Boolean],
-      validateArgumentTypes = parameters.getOrElse("validateStepParameterTypes", false).asInstanceOf[Boolean],
+      validateArgumentTypes = parameters.getOrElse("validateStepParameterTypes", false).asInstanceOf[Boolean]),
       credentialProvider = credsProvider
     )
   }
@@ -81,10 +82,6 @@ trait ApplicationDriverSetup extends DriverSetup {
     * @return An execution plan or None if not implemented
     */
   override def executionPlan: Option[List[PipelineExecution]] = Some(executions)
-
-  override def pipelines: List[Pipeline] = List()
-
-  override def initialPipelineId: String = ""
 
   override def pipelineContext: PipelineContext = executions.head.pipelineContext
 

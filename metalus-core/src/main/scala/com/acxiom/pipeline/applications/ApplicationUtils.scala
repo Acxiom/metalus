@@ -42,45 +42,47 @@ object ApplicationUtils {
    * @return An execution plan.
    */
   def createExecutionPlan(application: Application, globals: Option[Map[String, Any]], sparkConf: SparkConf,
-                          pipelineListener: PipelineListener = PipelineListener(), enableHiveSupport: Boolean = false,
-                          parquetDictionaryEnabled: Boolean = true, validateArgumentTypes: Boolean = false,
+                          pipelineListener: PipelineListener = PipelineListener(),
+                          applicationTriggers: ApplicationTriggers = ApplicationTriggers(),
                           credentialProvider: Option[CredentialProvider] = None): List[PipelineExecution] = {
-    val sparkSession = if (enableHiveSupport) { // Create the SparkSession
+    val sparkSession = if (applicationTriggers.enableHiveSupport) { // Create the SparkSession
       SparkSession.builder().config(sparkConf).enableHiveSupport().getOrCreate()
     } else {
       SparkSession.builder().config(sparkConf).getOrCreate()
     }
-    logger.info(s"setting parquet dictionary enabled to ${parquetDictionaryEnabled.toString}")
-    sparkSession.sparkContext.hadoopConfiguration.set("parquet.enable.dictionary", parquetDictionaryEnabled.toString)
+    logger.info(s"setting parquet dictionary enabled to ${applicationTriggers.parquetDictionaryEnabled.toString}")
+    sparkSession.sparkContext.hadoopConfiguration.set("parquet.enable.dictionary", applicationTriggers.parquetDictionaryEnabled.toString)
     // Create the default globals
     val rootGlobals = globals.getOrElse(Map[String, Any]())
     val defaultGlobals = generateGlobals(application.globals, rootGlobals, Some(rootGlobals))
-    val globalListener = generatePipelineListener(application.pipelineListener, Some(pipelineListener), validateArgumentTypes)
-    val globalSecurityManager = generateSecurityManager(application.securityManager, Some(PipelineSecurityManager()), validateArgumentTypes)
-    val globalStepMapper = generateStepMapper(application.stepMapper, Some(PipelineStepMapper()), validateArgumentTypes)
+    val globalListener = generatePipelineListener(application.pipelineListener, Some(pipelineListener), applicationTriggers.validateArgumentTypes)
+    val globalSecurityManager = generateSecurityManager(application.securityManager,Some(PipelineSecurityManager()), applicationTriggers.validateArgumentTypes)
+    val globalStepMapper = generateStepMapper(application.stepMapper, Some(PipelineStepMapper()), applicationTriggers.validateArgumentTypes)
     val globalPipelineParameters = generatePipelineParameters(application.pipelineParameters, Some(PipelineParameters()))
     val pipelineManager = generatePipelineManager(application.pipelineManager,
-      Some(PipelineManager(application.pipelines.getOrElse(List[DefaultPipeline]()))), validateArgumentTypes).get
-    generateSparkListeners(application.sparkListeners, validateArgumentTypes).getOrElse(List()).foreach(sparkSession.sparkContext.addSparkListener)
+      Some(PipelineManager(application.pipelines.getOrElse(List[DefaultPipeline]()))), applicationTriggers.validateArgumentTypes).get
+    generateSparkListeners(application.sparkListeners,
+      applicationTriggers.validateArgumentTypes).getOrElse(List()).foreach(sparkSession.sparkContext.addSparkListener)
     if (globalListener.isDefined && globalListener.get.isInstanceOf[SparkListener]) {
       sparkSession.sparkContext.addSparkListener(globalListener.get.asInstanceOf[SparkListener])
     }
-    registerSparkUDFs(defaultGlobals, sparkSession, application.sparkUdfs, validateArgumentTypes)
+    registerSparkUDFs(defaultGlobals, sparkSession, application.sparkUdfs, applicationTriggers.validateArgumentTypes)
     // Generate the execution plan
     application.executions.get.map(execution => {
-      val pipelineListener = generatePipelineListener(execution.pipelineListener, globalListener,validateArgumentTypes)
+      val pipelineListener = generatePipelineListener(execution.pipelineListener, globalListener, applicationTriggers.validateArgumentTypes)
       if (execution.pipelineListener.isDefined && pipelineListener.isDefined && pipelineListener.get.isInstanceOf[SparkListener]) {
         sparkSession.sparkContext.addSparkListener(pipelineListener.get.asInstanceOf[SparkListener])
       }
-      generateSparkListeners(execution.sparkListeners, validateArgumentTypes).getOrElse(List()).foreach(sparkSession.sparkContext.addSparkListener)
+      generateSparkListeners(execution.sparkListeners,
+        applicationTriggers.validateArgumentTypes).getOrElse(List()).foreach(sparkSession.sparkContext.addSparkListener)
       // Extracting pipelines
       val ctx = PipelineContext(Some(sparkConf),
         Some(sparkSession),
         generateGlobals(execution.globals, rootGlobals, defaultGlobals, execution.mergeGlobals.getOrElse(false)),
-        generateSecurityManager(execution.securityManager, globalSecurityManager, validateArgumentTypes).get,
+        generateSecurityManager(execution.securityManager, globalSecurityManager, applicationTriggers.validateArgumentTypes).get,
         generatePipelineParameters(execution.pipelineParameters, globalPipelineParameters).get,
         application.stepPackages,
-        generateStepMapper(execution.stepMapper, globalStepMapper, validateArgumentTypes).get,
+        generateStepMapper(execution.stepMapper, globalStepMapper, applicationTriggers.validateArgumentTypes).get,
         pipelineListener,
         Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")),
         ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),

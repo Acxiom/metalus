@@ -24,8 +24,8 @@ object JavascriptSteps {
   }
 
   @StepFunction("570c9a80-8bd1-5f0c-9ae0-605921fe51e2",
-    "Javascript Step with additional object provided",
-    "Executes a script and returns the result",
+    "Javascript Step with single object provided",
+    "Executes a script with single object provided and returns the result",
     "Pipeline",
     "Scripting")
   def processScriptWithValue(@StepParameter(Some("script"), Some(true), None, Some("javascript"), None, None) script: String,
@@ -38,8 +38,8 @@ object JavascriptSteps {
   }
 
   @StepFunction("f92d4816-3c62-4c29-b420-f00994bfcd86",
-    "Javascript Step with additional objects provided",
-    "Executes a script and returns the result",
+    "Javascript Step with map of objects provided",
+    "Executes a script with map of objects provided and returns the result",
     "Pipeline",
     "Scripting")
   def processScriptWithValues(@StepParameter(Some("script"), Some(true), None, Some("javascript"), None, None) script: String,
