@@ -6,6 +6,8 @@ object Constants {
   val TWO: Int = 2
   val THREE: Int = 3
   val FOUR: Int = 4
+  val FIVE: Int = 5
+  val SIX: Int = 6
   val TEN: Int = 10
   val ONE_HUNDRED: Int = 100
 
