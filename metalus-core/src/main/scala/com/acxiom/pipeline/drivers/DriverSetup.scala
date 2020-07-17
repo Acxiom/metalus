@@ -20,9 +20,9 @@ trait DriverSetup {
     * @return
     */
   @deprecated(deprecationSuggestion, "1.1.0")
-  def pipelines: List[Pipeline]
+  def pipelines: List[Pipeline] = List()
   @deprecated(deprecationSuggestion, "1.1.0")
-  def initialPipelineId: String
+  def initialPipelineId: String = ""
   @deprecated(deprecationSuggestion, "1.1.0")
   def pipelineContext: PipelineContext
   @deprecated(deprecationSuggestion, "1.1.0")
