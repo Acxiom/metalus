@@ -62,8 +62,8 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
         override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
             case pe: PauseException =>
-              results.addValidation("Pipeline Id is incorrect", pe.pipelineId.getOrElse("") == "1")
-              results.addValidation("Step Id is incorrect", pe.stepId.getOrElse("") == "PAUSESTEP")
+              results.addValidation("Pipeline Id is incorrect", pe.pipelineProgress.get.pipelineId.getOrElse("") == "1")
+              results.addValidation("Step Id is incorrect", pe.pipelineProgress.get.stepId.getOrElse("") == "PAUSESTEP")
           }
         }
       }
@@ -123,8 +123,8 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
         override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
             case pe: PauseException =>
-              results.addValidation("Pipeline Id is incorrect", pe.pipelineId.getOrElse("") == "0")
-              results.addValidation("Step Id is incorrect", pe.stepId.getOrElse("") == "PAUSESTEP")
+              results.addValidation("Pipeline Id is incorrect", pe.pipelineProgress.get.pipelineId.getOrElse("") == "0")
+              results.addValidation("Step Id is incorrect", pe.pipelineProgress.get.stepId.getOrElse("") == "PAUSESTEP")
           }
         }
 

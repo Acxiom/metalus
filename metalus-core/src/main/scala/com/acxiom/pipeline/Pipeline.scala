@@ -261,6 +261,15 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     val audit = getStepAudit(pipelineId, stepId, groupId).get.setMetric(name, value)
     this.setStepAudit(pipelineId, audit)
   }
+
+  def getPipelineExecutionInfo: PipelineExecutionInfo = {
+    PipelineExecutionInfo(
+      getGlobalString("stepId"),
+      getGlobalString("pipelineId"),
+      getGlobalString("executionId"),
+      getGlobalString("groupId")
+    )
+  }
 }
 
 case class PipelineParameter(pipelineId: String, parameters: Map[String, Any])
@@ -317,3 +326,24 @@ case class PipelineParameters(parameters: List[PipelineParameter] = List()) {
   * @param success Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
   */
 case class PipelineExecutionResult(pipelineContext: PipelineContext, success: Boolean)
+
+/**
+  * Contains the current pipeline and step information
+  *
+  * @param stepId      The current step being executed
+  * @param pipelineId  The current pipeline being executed
+  * @param executionId The current execution being executed
+  * @param groupId     The current group being executed
+  */
+case class PipelineExecutionInfo(stepId: Option[String] = None,
+                                 pipelineId: Option[String] = None,
+                                 executionId: Option[String] = None,
+                                 groupId: Option[String] = None) {
+  def displayPipelineStepString: String = {
+    s"pipeline ${pipelineId.getOrElse("")} step ${stepId.getOrElse("")}"
+  }
+
+  def displayString: String = {
+    s"execution ${executionId.getOrElse("")} group ${groupId.getOrElse("")} pipeline ${pipelineId.getOrElse("")} step ${stepId.getOrElse("")}"
+  }
+}

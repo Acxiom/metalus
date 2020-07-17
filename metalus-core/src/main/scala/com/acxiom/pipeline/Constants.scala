@@ -1,6 +1,7 @@
 package com.acxiom.pipeline
 
 object Constants {
+  val ZERO: Int = 0
   val ONE: Int = 1
   val TWO: Int = 2
   val THREE: Int = 3
