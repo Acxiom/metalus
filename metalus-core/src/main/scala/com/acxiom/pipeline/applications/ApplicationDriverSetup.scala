@@ -67,9 +67,10 @@ trait ApplicationDriverSetup extends DriverSetup {
       application = application,
       globals = Some(params),
       sparkConf = sparkConf,
+      applicationTriggers = ApplicationTriggers(
       enableHiveSupport = parameters.getOrElse("enableHiveSupport", false).asInstanceOf[Boolean],
       parquetDictionaryEnabled = parameters.getOrElse("parquetDictionaryEnabled", true).asInstanceOf[Boolean],
-      validateArgumentTypes = parameters.getOrElse("validateStepParameterTypes", false).asInstanceOf[Boolean],
+      validateArgumentTypes = parameters.getOrElse("validateStepParameterTypes", false).asInstanceOf[Boolean]),
       credentialProvider = credsProvider
     )
   }
