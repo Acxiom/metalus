@@ -2,7 +2,7 @@ package com.acxiom.pipeline.applications
 
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.DriverUtils
-import com.acxiom.pipeline.{Pipeline, PipelineContext, PipelineExecution}
+import com.acxiom.pipeline.{CredentialProvider, PipelineContext, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
@@ -17,7 +17,7 @@ trait ApplicationDriverSetup extends DriverSetup {
     } else if (parameters.contains("applicationConfigPath")) {
       val path = parameters("applicationConfigPath").toString
       if (path.startsWith("http")) {
-        DriverUtils.getHttpRestClient(path, credentialProvider).getStringContent("")
+        DriverUtils.getHttpRestClient(path, super.credentialProvider).getStringContent("")
       } else {
         val className = parameters.getOrElse("applicationConfigurationLoader", "com.acxiom.pipeline.fs.LocalFileManager").asInstanceOf[String]
         DriverUtils.loadJsonFromFile(path, className, parameters)
@@ -62,13 +62,16 @@ trait ApplicationDriverSetup extends DriverSetup {
           "org.apache.hadoop.io.compress.GzipCodec,org.apache." +
           "hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec")
     }
+    val credsProvider = Some(credentialProvider)
     ApplicationUtils.createExecutionPlan(
       application = application,
       globals = Some(params),
       sparkConf = sparkConf,
+      applicationTriggers = ApplicationTriggers(
       enableHiveSupport = parameters.getOrElse("enableHiveSupport", false).asInstanceOf[Boolean],
       parquetDictionaryEnabled = parameters.getOrElse("parquetDictionaryEnabled", true).asInstanceOf[Boolean],
-      validateArgumentTypes = parameters.getOrElse("validateStepParameterTypes", false).asInstanceOf[Boolean]
+      validateArgumentTypes = parameters.getOrElse("validateStepParameterTypes", false).asInstanceOf[Boolean]),
+      credentialProvider = credsProvider
     )
   }
 
@@ -79,10 +82,6 @@ trait ApplicationDriverSetup extends DriverSetup {
     * @return An execution plan or None if not implemented
     */
   override def executionPlan: Option[List[PipelineExecution]] = Some(executions)
-
-  override def pipelines: List[Pipeline] = List()
-
-  override def initialPipelineId: String = ""
 
   override def pipelineContext: PipelineContext = executions.head.pipelineContext
 
@@ -107,6 +106,15 @@ trait ApplicationDriverSetup extends DriverSetup {
     application
   }
 
+  /**
+    * Returns the CredentialProvider to use during for this job. This function overrides the parent and
+    * uses the application globals to instantiate the CredentialProvider.
+    *
+    * @return The credential provider.
+    */
+  override def credentialProvider: CredentialProvider = {
+    DriverUtils.getCredentialProvider(application.globals.getOrElse(parameters))
+  }
 }
 
 object ApplicationDriverSetup {

@@ -1,9 +1,9 @@
 package com.acxiom.pipeline.utils
 
+import com.acxiom.pipeline._
 import com.acxiom.pipeline.api.HttpRestClient
 import com.acxiom.pipeline.drivers.StreamingDataParser
 import com.acxiom.pipeline.fs.FileManager
-import com.acxiom.pipeline._
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
@@ -89,7 +89,7 @@ object DriverUtils {
     */
   def getHttpRestClient(url: String, credentialProvider: CredentialProvider, skipAuth: Option[Boolean] = None): HttpRestClient = {
     val credential = credentialProvider.getNamedCredential("DefaultAuthorization")
-    if (credential.isDefined && !skipAuth.getOrElse(false)) {
+    if (credential.isDefined.&&(!skipAuth.getOrElse(false))) {
       HttpRestClient(url, credential.get.asInstanceOf[AuthorizationCredential].authorization)
     } else {
       HttpRestClient(url)

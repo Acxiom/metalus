@@ -1,6 +1,6 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.audits.{ExecutionAudit, AuditType}
+import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.util.CollectionAccumulator
@@ -54,6 +54,7 @@ case class DefaultPipeline(override val id: Option[String] = None,
   * @param stepMessages     Used for logging messages from steps.
   * @param rootAudit        The base audit record
   * @param pipelineManager  The PipelineManager to use for Step Groups.
+  * @param credentialProvider  The CredentialProvider to use for accessing credentials.
   */
 case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            sparkSession: Option[SparkSession] = None,
@@ -65,7 +66,8 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            pipelineListener: Option[PipelineListener] = Some(PipelineListener()),
                            stepMessages: Option[CollectionAccumulator[PipelineStepMessage]],
                            rootAudit: ExecutionAudit = ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
-                           pipelineManager: PipelineManager = PipelineManager(List())) {
+                           pipelineManager: PipelineManager = PipelineManager(List()),
+                           credentialProvider: Option[CredentialProvider] = None) {
   /**
     * Get the named global value as a string.
     *
@@ -259,6 +261,15 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     val audit = getStepAudit(pipelineId, stepId, groupId).get.setMetric(name, value)
     this.setStepAudit(pipelineId, audit)
   }
+
+  def getPipelineExecutionInfo: PipelineExecutionInfo = {
+    PipelineExecutionInfo(
+      getGlobalString("stepId"),
+      getGlobalString("pipelineId"),
+      getGlobalString("executionId"),
+      getGlobalString("groupId")
+    )
+  }
 }
 
 case class PipelineParameter(pipelineId: String, parameters: Map[String, Any])
@@ -315,3 +326,24 @@ case class PipelineParameters(parameters: List[PipelineParameter] = List()) {
   * @param success Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
   */
 case class PipelineExecutionResult(pipelineContext: PipelineContext, success: Boolean)
+
+/**
+  * Contains the current pipeline and step information
+  *
+  * @param stepId      The current step being executed
+  * @param pipelineId  The current pipeline being executed
+  * @param executionId The current execution being executed
+  * @param groupId     The current group being executed
+  */
+case class PipelineExecutionInfo(stepId: Option[String] = None,
+                                 pipelineId: Option[String] = None,
+                                 executionId: Option[String] = None,
+                                 groupId: Option[String] = None) {
+  def displayPipelineStepString: String = {
+    s"pipeline ${pipelineId.getOrElse("")} step ${stepId.getOrElse("")}"
+  }
+
+  def displayString: String = {
+    s"execution ${executionId.getOrElse("")} group ${groupId.getOrElse("")} pipeline ${pipelineId.getOrElse("")} step ${stepId.getOrElse("")}"
+  }
+}

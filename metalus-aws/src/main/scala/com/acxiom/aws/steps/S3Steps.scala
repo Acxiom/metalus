@@ -3,8 +3,9 @@ package com.acxiom.aws.steps
 import com.acxiom.aws.fs.S3FileManager
 import com.acxiom.aws.utils.S3Utilities
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameSteps, DataFrameWriterOptions}
+import com.amazonaws.services.s3.AmazonS3
 import org.apache.spark.sql.DataFrame
 
 @StepObject
@@ -14,14 +15,17 @@ object S3Steps {
     "This step will read a DataFrame from the given S3 path",
     "Pipeline",
     "AWS")
+  @StepParameters(Map("path" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 path to load data")),
+    "options" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional DatFrameReader Options")),
+    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API secret to use for S3 access"))))
   def readFromPath(path: String,
                    accessKeyId: Option[String] = None,
                    secretAccessKey: Option[String] = None,
                    options: Option[DataFrameReaderOptions] = None,
                    pipelineContext: PipelineContext): DataFrame = {
-    if (accessKeyId.isDefined && secretAccessKey.isDefined) {
-      S3Utilities.setS3Authorization(path, accessKeyId.get, secretAccessKey.get, pipelineContext)
-    }
+    S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, pipelineContext)
+    S3Utilities.configureSparkSession(pipelineContext)
     DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext)
       .load(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
@@ -31,14 +35,17 @@ object S3Steps {
     "This step will read a dataFrame from the given S3 paths",
     "Pipeline",
     "AWS")
+  @StepParameters(Map("paths" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 paths to load data")),
+    "options" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional DatFrameReader Options")),
+    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API secret to use for S3 access"))))
   def readFromPaths(paths: List[String],
                     accessKeyId: Option[String] = None,
                     secretAccessKey: Option[String] = None,
                     options: Option[DataFrameReaderOptions] = None,
                     pipelineContext: PipelineContext): DataFrame = {
-    if (accessKeyId.isDefined && secretAccessKey.isDefined) {
-      S3Utilities.setS3Authorization(paths.head, accessKeyId.get, secretAccessKey.get, pipelineContext)
-    }
+    S3Utilities.setS3Authorization(paths.head, accessKeyId, secretAccessKey, pipelineContext)
+    S3Utilities.configureSparkSession(pipelineContext)
     DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext)
       .load(paths.map(p => S3Utilities.replaceProtocol(p, S3Utilities.deriveProtocol(p))): _*)
   }
@@ -48,38 +55,65 @@ object S3Steps {
     "This step will write a DataFrame in a given format to S3",
     "Pipeline",
     "AWS")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to post to the Kinesis stream")),
+    "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 path to write data")),
+    "options" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional DatFrameReader Options")),
+    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API secret to use for S3 access"))))
   def writeToPath(dataFrame: DataFrame,
                   path: String,
                   accessKeyId: Option[String] = None,
                   secretAccessKey: Option[String] = None,
                   options: Option[DataFrameWriterOptions] = None,
                   pipelineContext: PipelineContext): Unit = {
-    if (accessKeyId.isDefined && secretAccessKey.isDefined) {
-      S3Utilities.setS3Authorization(path, accessKeyId.get, secretAccessKey.get, pipelineContext)
-    }
+    S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, pipelineContext)
+    S3Utilities.configureSparkSession(pipelineContext)
     DataFrameSteps.getDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions()))
       .save(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
 
   /**
-   * Simple function to generate the HDFSFileManager for the local S3 file system.
-   *
-   * @param accessKeyId     The AWS access key to use when interacting with the S3 bucket
-   * @param secretAccessKey The AWS secret to use when interactin with the S3 bucket
-   * @param region          The AWS region this bucket should be accessed in
-   * @param bucket          The bucket to use for this file system.
-   * @return A FileManager that can interact with the specified S3 bucket.
-   */
+    * Simple function to generate the S3FileManager for the local S3 file system.
+    *
+    * @param accessKeyId     The AWS access key to use when interacting with the S3 bucket
+    * @param secretAccessKey The AWS secret to use when interaction with the S3 bucket
+    * @param region          The AWS region this bucket should be accessed in
+    * @param bucket          The bucket to use for this file system.
+    * @return A FileManager that can interact with the specified S3 bucket.
+    */
   @StepFunction("cc4694b9-5e54-4b12-8088-ed4ced056efd",
     "Create S3 FileManager",
     "Simple function to generate the S3FileManager for a S3 file system",
     "Pipeline",
     "AWS"
   )
+  @StepParameters(Map("bucket" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 bucket")),
+    "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the S3 bucket")),
+    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API secret to use for S3 access"))))
   def createFileManager(region: String,
                         bucket: String,
                         accessKeyId: Option[String] = None,
                         secretAccessKey: Option[String] = None): Option[S3FileManager] = {
     Some(new S3FileManager(region, bucket, accessKeyId, secretAccessKey))
+  }
+
+  /**
+    * Simple function to generate the S3FileManager for the local S3 file system.
+    *
+    * @param s3Client The existing AWS S3 client
+    * @param bucket   The bucket to use for this file system.
+    * @return A FileManager that can interact with the specified S3 bucket.
+    */
+  @StepFunction("0e3bcadd-2d14-408f-982f-32ffd879d795d",
+    "Create S3 FileManager with Client",
+    "Simple function to generate the S3FileManager for a S3 file system using an existing client",
+    "Pipeline",
+    "AWS"
+  )
+  @StepParameters(Map("bucket" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 bucket")),
+    "s3Client" -> StepParameter(None, Some(true), None, None, None, None, Some("An existing S3 client use to access the bucket"))))
+  def createFileManagerWithClient(s3Client: AmazonS3, bucket: String): Option[S3FileManager] = {
+    Some(new S3FileManager(s3Client, bucket))
   }
 }

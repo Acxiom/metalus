@@ -1,5 +1,6 @@
 package com.acxiom.gcp.drivers
 
+import com.acxiom.gcp.utils.GCPCredential
 import com.acxiom.pipeline.PipelineDependencyExecutor
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}

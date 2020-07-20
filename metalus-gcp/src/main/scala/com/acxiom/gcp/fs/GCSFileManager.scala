@@ -50,7 +50,9 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
   /**
     * Connect to the file system
     */
-  override def connect(): Unit = {}
+  override def connect(): Unit = {
+    // Not used by GCS
+  }
 
   /**
     * Checks the path to determine whether it exists or not.
@@ -167,5 +169,7 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
   /**
     * Disconnect from the file system
     */
-  override def disconnect(): Unit = {}
+  override def disconnect(): Unit = {
+    // Not used by GCS
+  }
 }

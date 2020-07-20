@@ -38,6 +38,7 @@ case class PipelineStep(id: Option[String] = None,
   * @param value         The value to be used for this parameter.
   * @param className     An optional classname used to convert a map into an object
   * @param parameterType Contains optional type information for each parameter
+  * @param description   Optional description of this parameter
   */
 case class Parameter(`type`: Option[String] = None,
                      name: Option[String] = None,
@@ -45,7 +46,8 @@ case class Parameter(`type`: Option[String] = None,
                      defaultValue: Option[Any] = None,
                      value: Option[Any] = None,
                      className: Option[String] = None,
-                     parameterType: Option[String] = None)
+                     parameterType: Option[String] = None,
+                     description: String = "")
 
 /**
   * This class contains the execution information for a Step
@@ -77,18 +79,16 @@ trait PipelineStepException extends Exception {
   * This Exception should be thrown when pipelines should stop running do to normal processing decisions. The pipeline
   * will complete all steps, but the next pipeline if any will not be executed.
   *
-  * @param errorType  The type of exception. The default is pauseException
-  * @param dateTime   The date and time of the exception
-  * @param message    The message to detailing the reason
-  * @param pipelineId The id of the pipeline being executed
-  * @param stepId     The step being executed
-  * @param cause      An additional exception that may gave caused the pipeline to pause.
+  * @param errorType        The type of exception. The default is pauseException
+  * @param dateTime         The date and time of the exception
+  * @param message          The message to detailing the reason
+  * @param pipelineProgress The progress information
+  * @param cause            An additional exception that may gave caused the pipeline to pause.
   */
 case class PauseException(errorType: Option[String] = Some("pauseException"),
                           dateTime: Option[String] = Some(new Date().toString),
                           message: Option[String] = Some(""),
-                          pipelineId: Option[String],
-                          stepId: Option[String],
+                          pipelineProgress: Option[PipelineExecutionInfo],
                           cause: Throwable = None.orNull)
   extends Exception(message.getOrElse(""), cause)
     with PipelineStepException
@@ -97,18 +97,16 @@ case class PauseException(errorType: Option[String] = Some("pauseException"),
   * This Exception should be thrown when pipelines should stop running do to a problem. The pipeline
   * will stop at the current step, and the next pipeline if any will not be executed.
   *
-  * @param errorType  The type of exception. The default is pipelineException
-  * @param dateTime   The date and time of the exception
-  * @param message    The message to detailing the reason
-  * @param pipelineId The id of the pipeline being executed
-  * @param stepId     The step being executed
-  * @param cause      An additional exception that may gave caused the pipeline to stop.
+  * @param errorType        The type of exception. The default is pipelineException
+  * @param dateTime         The date and time of the exception
+  * @param message          The message to detailing the reason
+  * @param pipelineProgress The progress information
+  * @param cause            An additional exception that may gave caused the pipeline to stop.
   */
 case class PipelineException(errorType: Option[String] = Some("pipelineException"),
                              dateTime: Option[String] = Some(new Date().toString),
                              message: Option[String] = Some(""),
-                             pipelineId: Option[String],
-                             stepId: Option[String],
+                             pipelineProgress: Option[PipelineExecutionInfo],
                              cause: Throwable = None.orNull)
   extends Exception(message.getOrElse(""), cause)
     with PipelineStepException

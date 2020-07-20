@@ -1,6 +1,7 @@
-package com.acxiom.pipeline.drivers
+package com.acxiom.kafka.drivers
 
 import com.acxiom.pipeline.PipelineDependencyExecutor
+import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.serialization.StringDeserializer
