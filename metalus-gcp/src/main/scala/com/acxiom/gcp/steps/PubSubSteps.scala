@@ -19,6 +19,7 @@ import org.threeten.bp.Duration
 
 @StepObject
 object PubSubSteps {
+  private val topicDescription: Some[String] = Some("The topic within the Pub/Sub")
   private val retrySettings = RetrySettings.newBuilder
     .setInitialRetryDelay(Duration.ofMillis(Constants.ONE_HUNDRED))
     .setRetryDelayMultiplier(2.0)
@@ -34,7 +35,7 @@ object PubSubSteps {
     "Pipeline",
     "GCP")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to post to the Pub/Sub topic")),
-    "topicName" -> StepParameter(None, Some(true), None, None, None, None, Some("The topic within the Pub/Sub")),
+    "topicName" -> StepParameter(None, Some(true), None, None, None, None, topicDescription),
     "separator" -> StepParameter(None, Some(true), None, None, None, None, Some("The separator character to use when combining the column data")),
     "credentials" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional credentials to use for Pub/Sub access"))))
   def writeToStreamWithCredentials(dataFrame: DataFrame,
@@ -51,7 +52,7 @@ object PubSubSteps {
     "Pipeline",
     "GCP")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to post to the Pub/Sub topic")),
-    "topicName" -> StepParameter(None, Some(true), None, None, None, None, Some("The topic within the Pub/Sub")),
+    "topicName" -> StepParameter(None, Some(true), None, None, None, None, topicDescription),
     "separator" -> StepParameter(None, Some(true), None, None, None, None, Some("The separator character to use when combining the column data"))))
   def writeToStream(dataFrame: DataFrame,
                     topicName: String,
@@ -67,7 +68,7 @@ object PubSubSteps {
     "Pipeline",
     "GCP")
   @StepParameters(Map("message" -> StepParameter(None, Some(true), None, None, None, None, Some("The message to post to the Pub/Sub topic")),
-    "topicName" -> StepParameter(None, Some(true), None, None, None, None, Some("The topic within the Pub/Sub")),
+    "topicName" -> StepParameter(None, Some(true), None, None, None, None, topicDescription),
     "credentials" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional credentials to use when posting"))))
   def postMessage(message: String, topicName: String, credentials: Option[Map[String, String]] = None): Unit = {
     val creds: _root_.scala.Option[_root_.com.google.auth.oauth2.GoogleCredentials] = getCredentials(credentials)
@@ -80,7 +81,7 @@ object PubSubSteps {
     "Pipeline",
     "GCP")
   @StepParameters(Map("message" -> StepParameter(None, Some(true), None, None, None, None, Some("The message to post to the Pub/Sub topic")),
-    "topicName" -> StepParameter(None, Some(true), None, None, None, None, Some("The topic within the Pub/Sub"))))
+    "topicName" -> StepParameter(None, Some(true), None, None, None, None, topicDescription)))
   def postMessage(message: String, topicName: String, pipelineContext: PipelineContext): Unit = {
     publishMessage(topicName, getCredentials(pipelineContext), message)
   }
