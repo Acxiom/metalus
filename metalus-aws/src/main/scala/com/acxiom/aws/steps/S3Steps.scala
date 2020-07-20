@@ -3,7 +3,7 @@ package com.acxiom.aws.steps
 import com.acxiom.aws.fs.S3FileManager
 import com.acxiom.aws.utils.S3Utilities
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameSteps, DataFrameWriterOptions}
 import com.amazonaws.services.s3.AmazonS3
 import org.apache.spark.sql.DataFrame
@@ -15,6 +15,10 @@ object S3Steps {
     "This step will read a DataFrame from the given S3 path",
     "Pipeline",
     "AWS")
+  @StepParameters(Map("path" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 path to load data")),
+    "options" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional DatFrameReader Options")),
+    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API secret to use for S3 access"))))
   def readFromPath(path: String,
                    accessKeyId: Option[String] = None,
                    secretAccessKey: Option[String] = None,
@@ -31,6 +35,10 @@ object S3Steps {
     "This step will read a dataFrame from the given S3 paths",
     "Pipeline",
     "AWS")
+  @StepParameters(Map("paths" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 paths to load data")),
+    "options" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional DatFrameReader Options")),
+    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API secret to use for S3 access"))))
   def readFromPaths(paths: List[String],
                     accessKeyId: Option[String] = None,
                     secretAccessKey: Option[String] = None,
@@ -47,6 +55,11 @@ object S3Steps {
     "This step will write a DataFrame in a given format to S3",
     "Pipeline",
     "AWS")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to post to the Kinesis stream")),
+    "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 path to write data")),
+    "options" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional DatFrameReader Options")),
+    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API secret to use for S3 access"))))
   def writeToPath(dataFrame: DataFrame,
                   path: String,
                   accessKeyId: Option[String] = None,
@@ -74,6 +87,10 @@ object S3Steps {
     "Pipeline",
     "AWS"
   )
+  @StepParameters(Map("bucket" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 bucket")),
+    "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the S3 bucket")),
+    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API secret to use for S3 access"))))
   def createFileManager(region: String,
                         bucket: String,
                         accessKeyId: Option[String] = None,
@@ -94,6 +111,8 @@ object S3Steps {
     "Pipeline",
     "AWS"
   )
+  @StepParameters(Map("bucket" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 bucket")),
+    "s3Client" -> StepParameter(None, Some(true), None, None, None, None, Some("An existing S3 client use to access the bucket"))))
   def createFileManagerWithClient(s3Client: AmazonS3, bucket: String): Option[S3FileManager] = {
     Some(new S3FileManager(s3Client, bucket))
   }
