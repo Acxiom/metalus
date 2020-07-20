@@ -40,7 +40,8 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
     List("16", "17", "18", "19", "20"),
     List("21", "22", "23", "24", "25"))
   val kafkaProducerProperties = new Properties()
-  kafkaProducerProperties.put("bootstrap.servers", "localhost:9092")
+  private val KAFKA_NODES = "localhost:9092"
+  kafkaProducerProperties.put("bootstrap.servers", KAFKA_NODES)
   kafkaProducerProperties.put("acks", "all")
   kafkaProducerProperties.put("retries", "0")
   kafkaProducerProperties.put("batch.size", "16384")
@@ -111,9 +112,9 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
 
       And("the kafka spark listener is running")
       val args = List("--driverSetupClass", "com.acxiom.kafka.SparkTestDriverSetup", "--pipeline", "basic",
-        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", "localhost:9092",
+        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", KAFKA_NODES,
         "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds",
-        "--duration", "2", "--expectedCount", "5", "--expectedAttrCount", "5")
+        "--duration", "1", "--expectedCount", "5", "--expectedAttrCount", "5")
       KafkaPipelineDriver.main(args.toArray)
       Then("5 records should be processed")
       assert(executionComplete)
@@ -121,7 +122,7 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
 
     it("Should process records using alternate data parsers") {
       When("5 kafka messages are posted with comma delimiter")
-      val topic = sendKafkaMessages(",")
+      val topic = sendKafkaMessages(",", None, true)
       var executionComplete = false
       SparkTestHelper.pipelineListener = new PipelineListener {
         override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
@@ -144,8 +145,8 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
 
       And("the kafka spark listener is running expecting either comma or pipe delimiter")
       val args = List("--driverSetupClass", "com.acxiom.kafka.SparkTestDriverSetup", "--pipeline", "parser",
-        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", "localhost:9092",
-        "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "2",
+        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", KAFKA_NODES,
+        "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "1",
         "--streaming-parsers", "com.acxiom.kafka.TestKafkaStreamingDataParserPipe,com.acxiom.kafka.TestKafkaStreamingDataParserComma",
         "--expectedCount", "5", "--expectedAttrCount", "5")
       KafkaPipelineDriver.main(args.toArray)
@@ -178,8 +179,8 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
 
       And("the kafka spark listener is running expecting either comma or pipe delimiter")
       val args = List("--driverSetupClass", "com.acxiom.kafka.SparkTestDriverSetup", "--pipeline", "parser",
-        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", "localhost:9092",
-        "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "2",
+        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", KAFKA_NODES,
+        "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "1",
         "--streaming-parsers", "com.acxiom.kafka.TestKafkaStreamingDataParserPipe,com.acxiom.kafka.TestKafkaStreamingDataParserComma",
         "--expectedCount", "5", "--expectedAttrCount", "3")
       KafkaPipelineDriver.main(args.toArray)
@@ -212,8 +213,8 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
 
       And("the kafka spark listener is running")
       val args = List("--driverSetupClass", "com.acxiom.kafka.SparkTestDriverSetup", "--pipeline", "parser",
-        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", "localhost:9092",
-        "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "2", "--streaming-parsers",
+        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", KAFKA_NODES,
+        "--terminationPeriod", "5000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "1", "--streaming-parsers",
         "com.acxiom.kafka.TestKafkaStreamingDataParserPipe,com.acxiom.kafka.TestKafkaStreamingDataParserPipe",
         "--expectedCount", "5", "--expectedAttrCount", "5")
       KafkaPipelineDriver.main(args.toArray)
@@ -222,19 +223,23 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
     }
   }
 
-  private def sendKafkaMessages(delimiter: String, keyField: Option[String] = None) = {
+  private def sendKafkaMessages(delimiter: String, keyField: Option[String] = None, usePostMessage: Boolean = false) = {
     val topic = "TEST"
-    val df = SparkTestHelper.sparkSession.createDataFrame(dataRows.map(r => Row(r: _*)).asJava,
-      StructType(Seq(
-        StructField("col1", StringType),
-        StructField("col2", StringType),
-        StructField("col3", StringType),
-        StructField("col4", StringType),
-        StructField("col5", StringType))))
-    if (keyField.isDefined) {
-      KafkaSteps.writeToStreamByKeyField(df, topic, "localhost:9092", keyField.get, delimiter)
+    if (usePostMessage) {
+      dataRows.foreach(row => KafkaSteps.postMessage(row.mkString(delimiter), topic, KAFKA_NODES, "InboundRecord"))
     } else {
-      KafkaSteps.writeToStreamByKey(df, topic, "localhost:9092", "InboundRecord", delimiter)
+      val df = SparkTestHelper.sparkSession.createDataFrame(dataRows.map(r => Row(r: _*)).asJava,
+        StructType(Seq(
+          StructField("col1", StringType),
+          StructField("col2", StringType),
+          StructField("col3", StringType),
+          StructField("col4", StringType),
+          StructField("col5", StringType))))
+      if (keyField.isDefined) {
+        KafkaSteps.writeToStreamByKeyField(df, topic, KAFKA_NODES, keyField.get, delimiter)
+      } else {
+        KafkaSteps.writeToStreamByKey(df, topic, KAFKA_NODES, "InboundRecord", delimiter)
+      }
     }
     topic
   }
