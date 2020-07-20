@@ -242,6 +242,13 @@ object TransformationSteps {
     }
   }
 
+  /**
+   * Union two DataFrames together.
+   * @param dataFrame the intial DataFrame.
+   * @param append    the dataFrame to append.
+   * @param distinct  optional flag to control distinct behavior.
+   * @return
+   */
   @StepFunction("d322769c-18a0-49c2-9875-41446892e733",
     "Union",
     "Union two DataFrames together.",
