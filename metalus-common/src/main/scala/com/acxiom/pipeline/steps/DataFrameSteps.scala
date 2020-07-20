@@ -89,7 +89,7 @@ object DataFrameSteps {
     "RepartitionDataFrame",
     "Repartition a DataFrame",
     "Pipeline",
-    "Transformation")
+    "Transforms")
   def repartitionDataFrame(dataFrame: DataFrame,
                            partitions: Int,
                            rangePartition: Option[Boolean] = None,
@@ -109,7 +109,7 @@ object DataFrameSteps {
     "SortDataFrame",
     "Sort a DataFrame",
     "Pipeline",
-    "Transformation")
+    "Transforms")
   def sortDataFrame(dataFrame: DataFrame, expressions: List[String], descending: Option[Boolean] = None): DataFrame = {
     val sortOrders = if (descending.getOrElse(false)) {
       expressions.map(e => expr(e).desc)

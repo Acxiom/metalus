@@ -1,5 +1,6 @@
 package com.acxiom.pipeline.steps
 
+import com.acxiom.pipeline.{PipelineContext, PipelineException}
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
 import org.apache.log4j.Logger
 import org.apache.spark.sql.DataFrame
@@ -122,6 +123,134 @@ object TransformationSteps {
 
     // return dataframe with all transforms applied
     aliasedDF.select(finalExprs: _*)
+  }
+
+  /**
+   * @param dataFrame   the DataFrame to select from.
+   * @param expressions list of expressions to select.
+   * @return a DataFrame with the selected expressions.
+   */
+  @StepFunction("3e2da5a8-387d-49b1-be22-c03764fb0fde",
+    "Select Expressions",
+    "Select each provided expresion from a DataFrame",
+    "Pipeline",
+    "Transforms")
+  def selectExpressions(dataFrame: DataFrame, expressions: List[String]): DataFrame = {
+    dataFrame.selectExpr(expressions: _*)
+  }
+
+  /**
+   * Add a new column to a DataFrame
+   * @param dataFrame  the DataFrame to add to.
+   * @param columnName the name of the new column.
+   * @param expression the expression used for the column.
+   * @return a DataFrame with the new column.
+   */
+  @StepFunction("1e0a234a-8ae5-4627-be6d-3052b33d9014",
+    "Add Column",
+    "Add a new column to a DataFrame",
+    "Pipeline",
+    "Transforms")
+  def addColumn(dataFrame: DataFrame, columnName: String, expression: String): DataFrame = {
+    dataFrame.withColumn(columnName, expr(expression))
+  }
+
+  /**
+   * Add multiple columns to a dataFrame using a map of names/expression pairs.
+   * @param dataFrame the DataFrame to add columns to.
+   * @param columns   a map of column names and expressions.
+   * @return a DataFrame with the new columns.
+   */
+  @StepFunction("08c9c5a9-a10d-477e-a702-19bd24889d1e",
+    "Add Columns",
+    "Add multiple new columns to a DataFrame",
+    "Pipeline",
+    "Transforms")
+  def addColumns(dataFrame: DataFrame, columns: Map[String, String]): DataFrame = {
+    columns.foldLeft(dataFrame) { case (frame, (name, expression)) =>
+      frame.withColumn(name, expr(expression))
+    }
+  }
+
+  /**
+   * Drop a list of columns from the given DataFrame.
+   * @param dataFrame the DataFrame to drop columns from.
+   * @param columnNames   columns to drop off the DataFrame.
+   * @return a DataFrame without the listed columns.
+   */
+  @StepFunction("d5ac88a2-caa2-473c-a9f7-ffb0269880b2",
+    "Drop Columns",
+    "Add multiple new columns to a DataFrame",
+    "Pipeline",
+    "Transforms")
+  def dropColumns(dataFrame: DataFrame, columnNames: List[String]): DataFrame = {
+    dataFrame.drop(columnNames: _*)
+  }
+
+  /**
+   * Perform a join using the "left" and "right" dataFrames.
+   * @param  left       left side of the join.
+   * @param  right      right side of the join.
+   * @param  expression join expression. Optional for cross joins.
+   * @param  leftAlias  optional left side alias. Defaults to "left".
+   * @param  rightAlias optional right side alias. Defaults to "right".
+   * @param  joinType   type of join to perform. Inner join by default.
+   * @return the joined dataFrame.
+   */
+  @StepFunction("6e42b0c3-340e-4848-864c-e1b5c57faa4f",
+    "Join DataFrames",
+    "Join two dataFrames together.",
+    "Pipeline",
+    "Transforms")
+  def join(left: DataFrame, right: DataFrame,
+           expression: Option[String] = None,
+           leftAlias: Option[String] = None,
+           rightAlias: Option[String] = None,
+           joinType: Option[String] = None,
+           pipelineContext: PipelineContext): DataFrame = {
+    val jType = joinType.getOrElse("inner")
+    if (jType.toLowerCase == "cross") {
+      left.as(leftAlias.getOrElse("left")).crossJoin(right.as(rightAlias.getOrElse("right")))
+    } else if (expression.isDefined) {
+      left.as(leftAlias.getOrElse("left"))
+        .join(right.as(rightAlias.getOrElse("right")), expr(expression.get), jType)
+    } else {
+      throw PipelineException(message = Some("Expression must be provided for all non-cross joins."),
+        pipelineId = pipelineContext.getGlobalString("pipelineId"),
+        stepId = pipelineContext.getGlobalString("stepId"))
+    }
+  }
+
+  /**
+   * Perform a groupBy operation on a DataFrame.
+   * @param dataFrame    the DataFrame to group.
+   * @param groupings    list of expressions to group by.
+   * @param aggregations list of aggregations to apply.
+   * @return resulting grouped DataFrame.
+   */
+  @StepFunction("823eeb28-ec81-4da6-83f2-24a1e580b0e5",
+    "Group By",
+    "Group by a list of grouping extressions and a list of aggregates.",
+    "Pipeline",
+    "Transforms")
+  def groupBy(dataFrame: DataFrame, groupings: List[String], aggregations: List[String]): DataFrame = {
+    val aggregates = aggregations.map(expr)
+    val group = dataFrame.groupBy(groupings.map(expr): _*)
+    if (aggregates.length == 1) {
+      group.agg(aggregates.head)
+    } else {
+      group.agg(aggregates.head, aggregates.drop(1): _*)
+    }
+  }
+
+  @StepFunction("d322769c-18a0-49c2-9875-41446892e733",
+    "Union",
+    "Union two DataFrames together.",
+    "Pipeline",
+    "Transforms")
+  def union(dataFrame: DataFrame, append: DataFrame, distinct: Option[Boolean] = None): DataFrame = {
+    val res = dataFrame.unionByName(append)
+    if(distinct.getOrElse(true)) res.distinct() else res
   }
 
   /**

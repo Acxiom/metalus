@@ -199,8 +199,7 @@ class FileManagerTests extends FunSpec with Suite {
   describe("FileManager - SFTP") {
     it("Should fail when no password is provided") {
       val server = new MockSftpServer(PORT)
-      val sftp = new SFTPFileManager("tester",
-        "localhost", PORT, None, None,
+      val sftp = new SFTPFileManager("localhost", Some(PORT), Some("tester"), None, None,
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       val thrown = intercept[JSchException] {
         sftp.connect()
@@ -212,8 +211,7 @@ class FileManagerTests extends FunSpec with Suite {
     it("Should be able to write") {
       val server = new MockSftpServer(PORT)
       val contents = "Chickens Rule!"
-      val sftp = new SFTPFileManager("tester",
-        "localhost", PORT, Some("testing"), Some("localhost"),
+      val sftp = new SFTPFileManager("localhost", Some(PORT), Some("tester"), Some("testing"), Some("localhost"),
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
       val pw = new OutputStreamWriter(sftp.getOutputStream("/newChicken.txt"))
@@ -229,8 +227,7 @@ class FileManagerTests extends FunSpec with Suite {
       val server = new MockSftpServer(PORT)
       val contents = "Chickens Rule!"
       writeRemoteFile(s"${server.getBaseDirectory}/chicken.txt", contents)
-      val sftp = new SFTPFileManager("tester",
-        "localhost", PORT, Some("testing"), None,
+      val sftp = new SFTPFileManager("localhost", Some(PORT), Some("tester"), Some("testing"), None,
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       // connect to the service
       sftp.connect()
@@ -245,8 +242,7 @@ class FileManagerTests extends FunSpec with Suite {
       val server = new MockSftpServer(PORT)
       val contents = "Chickens Rule!"
       writeRemoteFile(s"${server.getBaseDirectory}/chicken2.txt", contents)
-      val sftp = new SFTPFileManager("tester",
-        "localhost", PORT, Some("testing"), None,
+      val sftp = new SFTPFileManager("localhost", Some(PORT), Some("tester"), Some("testing"), None,
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
 
@@ -259,8 +255,7 @@ class FileManagerTests extends FunSpec with Suite {
     it("Should be able to delete files") {
       val server = new MockSftpServer(PORT)
       writeRemoteFile(s"${server.getBaseDirectory}/chicken3.txt", "moo")
-      val sftp = new SFTPFileManager("tester",
-        "localhost", PORT, Some("testing"), None,
+      val sftp = new SFTPFileManager("localhost", Some(PORT), Some("tester"), Some("testing"), None,
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
       assert(sftp.deleteFile("/chicken3.txt"))
@@ -272,8 +267,7 @@ class FileManagerTests extends FunSpec with Suite {
     it("Should be able to rename files") {
       val server = new MockSftpServer(PORT)
       writeRemoteFile(s"${server.getBaseDirectory}/chcken.txt", "moo")
-      val sftp = new SFTPFileManager("tester",
-        "localhost", PORT, Some("testing"), None,
+      val sftp = new SFTPFileManager("localhost", Some(PORT), Some("tester"), Some("testing"), None,
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
       assert(sftp.rename("/chcken.txt", "/newName.txt"))
@@ -285,8 +279,7 @@ class FileManagerTests extends FunSpec with Suite {
     it("Should be able to get file sizes") {
       val server = new MockSftpServer(PORT)
       writeRemoteFile(s"${server.getBaseDirectory}/chicken4.txt", "moo")
-      val sftp = new SFTPFileManager("tester",
-        "localhost", PORT, Some("testing"), None,
+      val sftp = new SFTPFileManager("localhost", Some(PORT), Some("tester"), Some("testing"), None,
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
       assert(sftp.getSize("/chicken4.txt") == 3)
@@ -300,8 +293,7 @@ class FileManagerTests extends FunSpec with Suite {
     it("Should be able to get file listings") {
       val server = new MockSftpServer(PORT)
       writeRemoteFile(s"${server.getBaseDirectory}/chicken5.txt", "moo")
-      val sftp = new SFTPFileManager("tester",
-        "localhost", PORT, Some("testing"), None,
+      val sftp = new SFTPFileManager("localhost", Some(PORT), Some("tester"), Some("testing"), None,
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
       val listings = sftp.getFileListing("/").filterNot(_.directory)
@@ -315,8 +307,7 @@ class FileManagerTests extends FunSpec with Suite {
       val server = new MockSftpServer(PORT)
       val dir = new File(s"${server.getBaseDirectory}/chicken_dir")
       dir.mkdir()
-      val sftp = new SFTPFileManager("tester",
-        "localhost", PORT, Some("testing"), None,
+      val sftp = new SFTPFileManager("localhost", Some(PORT), Some("tester"), Some("testing"), None,
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
       val listings = sftp.getDirectoryListing("/").filterNot(_.fileName == ".")
@@ -330,8 +321,7 @@ class FileManagerTests extends FunSpec with Suite {
     it("Should be able to copy") {
       val server = new MockSftpServer(PORT)
       writeRemoteFile(s"${server.getBaseDirectory}/chicken6.txt", "moo")
-      val sftp = new SFTPFileManager("tester",
-        "localhost", PORT, Some("testing"), None,
+      val sftp = new SFTPFileManager("localhost", Some(PORT), Some("tester"), Some("testing"), None,
         config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
       sftp.connect()
       sftp.copy(sftp.getInputStream("/chicken6.txt"), sftp.getOutputStream("/chicken7.txt"))

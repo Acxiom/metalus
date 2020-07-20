@@ -21,14 +21,13 @@ object SFTPFileManager {
             bulkRequests: Option[Int] = None,
             config: Option[Map[String, String]] = None,
             timeout: Option[Int] = None
-           ): SFTPFileManager = new SFTPFileManager(user.orNull, hostName, port.getOrElse(DEFAULT_PORT), password,
+           ): SFTPFileManager = new SFTPFileManager(hostName, port, user, password,
     knownHosts, bulkRequests, config, timeout)
 }
 
-// TODO make user and port options in 1.7
-class SFTPFileManager(user: String,
-                      hostName: String,
-                      port: Int = SFTPFileManager.DEFAULT_PORT,
+class SFTPFileManager(hostName: String,
+                      port: Option[Int] = None,
+                      user: Option[String] = None,
                       password: Option[String] = None,
                       knownHosts: Option[String] = None,
                       bulkRequests: Option[Int] = None,
@@ -40,7 +39,7 @@ class SFTPFileManager(user: String,
     jsch.setKnownHosts(knownHosts.get)
   }
   private lazy val session = {
-    val ses = jsch.getSession(user, hostName, port)
+    val ses = jsch.getSession(user.orNull, hostName, port.getOrElse(SFTPFileManager.DEFAULT_PORT))
     if (password.isDefined) {
       ses.setPassword(password.get)
     }
