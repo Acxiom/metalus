@@ -216,8 +216,7 @@ object TransformationSteps {
         .join(right.as(rightAlias.getOrElse("right")), expr(expression.get), jType)
     } else {
       throw PipelineException(message = Some("Expression must be provided for all non-cross joins."),
-        pipelineId = pipelineContext.getGlobalString("pipelineId"),
-        stepId = pipelineContext.getGlobalString("stepId"))
+        pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
     }
   }
 
