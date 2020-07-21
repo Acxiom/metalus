@@ -1,6 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import java.nio.file.{Files, Path}
+
 import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
@@ -281,7 +282,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       val spark = sparkSession
       import spark.implicits._
       val df = Seq((1, 2), (2, 3), (3, 4)).toDF("id", "p1")
-      val res = TransformationSteps.addColumn(df, "p2", "cast((id + 2) as string)")
+      val res = TransformationSteps.addColumn(df, "p2", "cast((id + 2) as string)", Some(false))
       assert(res.columns.length == 3)
       assert(res.columns.contains("p2"))
       assert(res.select("p2").collect().map(_.getString(0)).sortBy(identity).toList == List("3", "4", "5"))
@@ -297,10 +298,10 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       )
       val res = TransformationSteps.addColumns(df, columns)
       assert(res.columns.length == 4)
-      assert(res.columns.contains("c1"))
-      assert(res.select("c1").collect().map(_.getString(0)).sortBy(identity).toList == List("3", "4", "5"))
-      assert(res.columns.contains("c2"))
-      assert(res.select("c2").collect().map(_.getString(0)).sortBy(identity).toList == List("moo", "moo", "moo"))
+      assert(res.columns.contains("C1"))
+      assert(res.select("C1").collect().map(_.getString(0)).sortBy(identity).toList == List("3", "4", "5"))
+      assert(res.columns.contains("C2"))
+      assert(res.select("C2").collect().map(_.getString(0)).sortBy(identity).toList == List("moo", "moo", "moo"))
     }
 
     it("should drop columns") {
@@ -370,6 +371,22 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
           .toList
       assert(res == expected)
     }
+
+    it("should perform a union") {
+      val df1 = sparkSession.sql("select 1 as id, 'silkie' as name")
+      val df2 = sparkSession.sql("select 'polish' as name, 2 as id")
+      val expected = List((1, "silkie"), (2,"polish"))
+      val res = TransformationSteps.union(df1, df2, Some(false))
+      assert(res.collect().map(r => (r.getInt(0), r.getString(1))).toList == expected)
+      assert(TransformationSteps.union(res, df1).collect().map(r => (r.getInt(0), r.getString(1))).toList == expected)
+    }
+
+    it("moo"){
+      println(List("a", "b", "c", "b", "a").groupBy(identity).flatMap{
+        case (k, l) if l.length == 1 => Some(k)
+        case (k, l) => k +: l.drop(1).zipWithIndex.map{case (name, i) => s"${name}_${i + 2}"}
+      }.toList)
+    }
   }
 
   describe("Schema Tests") {
@@ -438,6 +455,18 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
     assert(TransformationSteps.cleanColumnName("__underscores on ends____") == "UNDERSCORES_ON_ENDS")
     assert(TransformationSteps.cleanColumnName("(sp%ci*l##ch&*()&*()r@c+e^s)") == "SP_CI_L_CH_R_C_E_S")
     assert(TransformationSteps.cleanColumnName("123_init_numbers") == "C_123_INIT_NUMBERS")
+  }
+
+  it("should handle duplicates when standardizing") {
+    Given("A DataFrame with columns that will standardize to the same name")
+    val df = sparkSession.sql("select 1 as c_1, '1' as `1`")
+    When("It is run through standardizeColumnNames")
+    val sdf = TransformationSteps.standardizeColumnNames(df)
+    Then("The duplicates are resolved")
+    assert(sdf.columns.contains("C_1") && sdf.columns.contains("C_1_2"))
+    And("Column order is preserved")
+    assert(sdf.columns(0) == "C_1")
+    assert(sdf.columns(1) == "C_1_2")
   }
 
   it("should apply a filter to a dataframe") {

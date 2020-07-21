@@ -99,6 +99,7 @@ will be a combination of the inputDataFrame (w/transforms, etc...) and the desti
 |destinationDataFrame|DataFrame|the data frame that the new data should conform to| n/a |
 |transforms|Transformations|the object containing transforms and input aliases|Transformations(List())|
 |addNewColumns|Boolean|a flag representing whether new columns on input (not on destination) should be added to output|true|    
+|distinct|Boolean|flag to indicate whether a distinct union should be performed|true|
 
 ## applyTransforms()
 This step will apply provided transforms to a data frame honoring any input aliases prior to running expressions. The output
@@ -132,6 +133,7 @@ This step will append a new column to the end of the provided dataFrame.
 |dataFrame|DataFrame|a data frame to append the column to| n/a |
 |columnName|String|name of the column to add|n/a|
 |expression|String|spark sql expression for the column value|n/a|
+|standardizeColumnName|Boolean|flag to control whether the column name should be standardized|true|
 
 ## addColumns()
 This step will append a new column to the end of the provided dataFrame.
@@ -142,6 +144,7 @@ This step will append a new column to the end of the provided dataFrame.
 | --- |:---|:--- |:---:|
 |dataFrame|DataFrame|a data frame to append the columns to| n/a |
 |columns|Map[String,String]|Map of column name/expressions|n/a|
+|standardizeColumnNames|Boolean|flag to control whether column names should be standardized|true|
 
 ##dropColumns()
 This step will return a data frame minus the provided column names.
@@ -221,11 +224,12 @@ This step will add a unique Id to an existing dataframe (using the 'monatonicall
 |dataFrame|DataFrame|the data frame to modify| n/a |
 
 #### addStaticColumnToDataFrame()
-This step will add a static value to every row of an existing dataframe)
+This step will add a static value to every row of an existing DataFrame
 
 ##### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
 |dataFrame|DataFrame|the data frame to modify| n/a |
 |columnName|String|the name for the new attribute| n/a |
-|columnValue|String|the string value to set for the new attribute on each row| n/a |
+|columnValue|Any|the string value to set for the new attribute on each row| n/a |
+|standardizeColumnName|Boolean|flag to control whether the column name should be standardized|true|
