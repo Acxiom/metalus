@@ -9,6 +9,10 @@ import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
 @StepObject
 object ApiSteps {
   private val restClientDescription: Some[String] = Some("The HttpRestClient to use when accessing the provided path")
+  private val streamParametersMap = Map(
+    "httpRestClient" -> StepParameter(None, Some(true), None, None, None, None, restClientDescription),
+    "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to the resource")),
+    "bufferSize" -> StepParameter(None, Some(false), None, None, None, None, Some("The size of buffer to use with the stream")))
 
   @StepFunction("15889487-fd1c-4c44-b8eb-973c12f91fae",
     "Creates an HttpRestClient",
@@ -143,10 +147,7 @@ object ApiSteps {
     "Creates a buffered input stream for the provided path",
     "Pipeline",
     "API")
-  @StepParameters(Map(
-    "httpRestClient" -> StepParameter(None, Some(true), None, None, None, None, restClientDescription),
-    "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to the resource")),
-    "bufferSize" -> StepParameter(None, Some(false), None, None, None, None, Some("The size of buffer to use with the stream"))))
+  @StepParameters(streamParametersMap)
   def getInputStream(httpRestClient: HttpRestClient, path: String, bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): InputStream = {
     httpRestClient.getInputStream(path, bufferSize)
   }
@@ -156,10 +157,7 @@ object ApiSteps {
     "Creates a buffered output stream for the provided path.",
     "Pipeline",
     "API")
-  @StepParameters(Map(
-    "httpRestClient" -> StepParameter(None, Some(true), None, None, None, None, restClientDescription),
-    "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to the resource")),
-    "bufferSize" -> StepParameter(None, Some(false), None, None, None, None, Some("The size of buffer to use with the stream"))))
+  @StepParameters(streamParametersMap)
   def getOutputStream(httpRestClient: HttpRestClient, path: String, bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): OutputStream = {
     httpRestClient.getOutputStream(path, bufferSize)
   }
