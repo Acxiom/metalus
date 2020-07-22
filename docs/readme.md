@@ -24,6 +24,7 @@
             * [HiveSteps](../metalus-common/docs/hivesteps.md)
             * [JavascriptSteps](../metalus-common/docs/javascriptsteps.md)
             * [JDBCSteps](../metalus-common/docs/jdbcsteps.md)
+            * [JSONSteps](../metalus-common/docs/jsonsteps.md)
             * [QuerySteps](../metalus-common/docs/querysteps.md)
             * [ScalaSteps](../metalus-common/docs/scalascriptsteps.md)
             * [SFTPSteps](../metalus-common/docs/sftpsteps.md)
