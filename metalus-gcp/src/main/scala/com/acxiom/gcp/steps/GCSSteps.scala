@@ -20,8 +20,8 @@ object GCSSteps {
     "Pipeline",
     "GCP")
   @StepParameters(Map("path" -> StepParameter(None, Some(true), None, None, None, None, Some("The GCS path to load data")),
-    "options" -> StepParameter(None, Some(true), None, None, None, None, optionsDescription),
-    "credentials" -> StepParameter(None, Some(true), None, None, None, None, credentialsDescription)))
+    "options" -> StepParameter(None, Some(false), None, None, None, None, optionsDescription),
+    "credentials" -> StepParameter(None, Some(false), None, None, None, None, credentialsDescription)))
   def readFromPath(path: String,
                    credentials: Option[Map[String, String]],
                    options: Option[DataFrameReaderOptions] = None,
@@ -34,8 +34,8 @@ object GCSSteps {
     "Pipeline",
     "GCP")
   @StepParameters(Map("paths" -> StepParameter(None, Some(true), None, None, None, None, Some("The GCS paths to load data")),
-    "options" -> StepParameter(None, Some(true), None, None, None, None, optionsDescription),
-    "credentials" -> StepParameter(None, Some(true), None, None, None, None, credentialsDescription)))
+    "options" -> StepParameter(None, Some(false), None, None, None, None, optionsDescription),
+    "credentials" -> StepParameter(None, Some(false), None, None, None, None, credentialsDescription)))
   def readFromPaths(paths: List[String],
                     credentials: Option[Map[String, String]],
                     options: Option[DataFrameReaderOptions] = None,
@@ -55,8 +55,8 @@ object GCSSteps {
     "GCP")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to write")),
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The GCS path to write data")),
-    "options" -> StepParameter(None, Some(true), None, None, None, None, optionsDescription),
-    "credentials" -> StepParameter(None, Some(true), None, None, None, None, credentialsDescription)))
+    "options" -> StepParameter(None, Some(false), None, None, None, None, optionsDescription),
+    "credentials" -> StepParameter(None, Some(false), None, None, None, None, credentialsDescription)))
   def writeToPath(dataFrame: DataFrame,
                   path: String,
                   credentials: Option[Map[String, String]],
@@ -85,7 +85,7 @@ object GCSSteps {
   )
   @StepParameters(Map("bucket" -> StepParameter(None, Some(true), None, None, None, None, Some("The GCS bucket")),
     "projectId" -> StepParameter(None, Some(true), None, None, None, None, Some("The projectId for the GCS bucket")),
-    "credentials" -> StepParameter(None, Some(true), None, None, None, None, credentialsDescription)))
+    "credentials" -> StepParameter(None, Some(false), None, None, None, None, credentialsDescription)))
   def createFileManager(projectId: String, bucket: String, credentials: Map[String, String]): Option[GCSFileManager] =
     Some(new GCSFileManager(projectId, bucket, Some(Serialization.write(credentials))))
 

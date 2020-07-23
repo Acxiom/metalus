@@ -49,8 +49,8 @@ object DataFrameSteps {
     "This step will build a DataFrameWriter object that can be used to write a file into a dataframe",
     "Pipeline",
     "InputOutput")
-  @StepParameters(Map(
-    "dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to use when creating the DataFrameWriter"))))
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to use when creating the DataFrameWriter")),
+    "options" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrameWriterOptions to use when writing the DataFrame"))))
   def getDataFrameWriter(dataFrame: DataFrame,
                          options: DataFrameWriterOptions): DataFrameWriter[Row] = {
     buildDataFrameWriter(dataFrame, options)
@@ -85,7 +85,7 @@ object DataFrameSteps {
     "Pipeline",
     "InputOutput")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to persist")),
-    "storageLevel" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional storage mechanism to use when persisting the DataFrame"))))
+    "storageLevel" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional storage mechanism to use when persisting the DataFrame"))))
   def persistDataFrame(dataFrame: DataFrame, storageLevel: String = "MEMORY_AND_DISK"): DataFrame = {
     dataFrame.persist(StorageLevel.fromString(storageLevel.toUpperCase))
   }
@@ -96,7 +96,7 @@ object DataFrameSteps {
     "Pipeline",
     "InputOutput")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to unpersist")),
-    "blocking" -> StepParameter(None, Some(true), None, None, None, None, Some("Optional flag to indicate whether to block while unpersisting"))))
+    "blocking" -> StepParameter(None, Some(false), None, None, None, None, Some("Optional flag to indicate whether to block while unpersisting"))))
   def unpersistDataFrame(dataFrame: DataFrame, blocking: Boolean = false): DataFrame = {
     dataFrame.unpersist(blocking)
   }
@@ -108,10 +108,10 @@ object DataFrameSteps {
     "Transformation")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to repartition")),
     "partitions" -> StepParameter(None, Some(true), None, None, None, None, Some("The number of partitions to use")),
-    "rangePartition" -> StepParameter(None, Some(true), None, None, None, None,
+    "rangePartition" -> StepParameter(None, Some(false), None, None, None, None,
       Some("Flag indicating whether to repartition by range. This takes precedent over the shuffle flag")),
-    "shuffle" -> StepParameter(None, Some(true), None, None, None, None, Some("Flag indicating whether to perform a normal partition")),
-    "partitionExpressions" -> StepParameter(None, Some(true), None, None, None, None, Some("The partition expressions to use"))))
+    "shuffle" -> StepParameter(None, Some(false), None, None, None, None, Some("Flag indicating whether to perform a normal partition")),
+    "partitionExpressions" -> StepParameter(None, Some(false), None, None, None, None, Some("The partition expressions to use"))))
   def repartitionDataFrame(dataFrame: DataFrame,
                            partitions: Int,
                            rangePartition: Option[Boolean] = None,
@@ -134,7 +134,7 @@ object DataFrameSteps {
     "Transformation")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to sort")),
     "expressions" -> StepParameter(None, Some(true), None, None, None, None, Some("List of expressions to apply prior to the sort")),
-    "descending" -> StepParameter(None, Some(true), None, None, None, None, Some("Flag indicating to sort order"))))
+    "descending" -> StepParameter(None, Some(false), None, None, None, None, Some("Flag indicating to sort order"))))
   def sortDataFrame(dataFrame: DataFrame, expressions: List[String], descending: Option[Boolean] = None): DataFrame = {
     val sortOrders = if (descending.getOrElse(false)) {
       expressions.map(e => expr(e).desc)
