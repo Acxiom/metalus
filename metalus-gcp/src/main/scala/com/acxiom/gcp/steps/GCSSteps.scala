@@ -2,7 +2,7 @@ package com.acxiom.gcp.steps
 
 import com.acxiom.gcp.fs.GCSFileManager
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameSteps, DataFrameWriterOptions}
 import org.apache.spark.sql.DataFrame
 import org.json4s.native.Serialization
@@ -11,12 +11,17 @@ import org.json4s.{DefaultFormats, Formats}
 @StepObject
 object GCSSteps {
   private implicit val formats: Formats = DefaultFormats
+  private val optionsDescription: Some[String] = Some("The optional DataFrame Options")
+  private val credentialsDescription: Some[String] = Some("Optional credentials map")
 
   @StepFunction("1bc6e2b3-6513-4763-b441-4c136a51daa8",
     "Load DataFrame from GCS path",
     "This step will read a DataFrame from the given GCS path",
     "Pipeline",
     "GCP")
+  @StepParameters(Map("path" -> StepParameter(None, Some(true), None, None, None, None, Some("The GCS path to load data")),
+    "options" -> StepParameter(None, Some(true), None, None, None, None, optionsDescription),
+    "credentials" -> StepParameter(None, Some(true), None, None, None, None, credentialsDescription)))
   def readFromPath(path: String,
                    credentials: Option[Map[String, String]],
                    options: Option[DataFrameReaderOptions] = None,
@@ -28,6 +33,9 @@ object GCSSteps {
     "This step will read a DataFrame from the given GCS paths",
     "Pipeline",
     "GCP")
+  @StepParameters(Map("paths" -> StepParameter(None, Some(true), None, None, None, None, Some("The GCS paths to load data")),
+    "options" -> StepParameter(None, Some(true), None, None, None, None, optionsDescription),
+    "credentials" -> StepParameter(None, Some(true), None, None, None, None, credentialsDescription)))
   def readFromPaths(paths: List[String],
                     credentials: Option[Map[String, String]],
                     options: Option[DataFrameReaderOptions] = None,
@@ -45,6 +53,10 @@ object GCSSteps {
     "This step will write a DataFrame in a given format to GCS",
     "Pipeline",
     "GCP")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to write")),
+    "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The GCS path to write data")),
+    "options" -> StepParameter(None, Some(true), None, None, None, None, optionsDescription),
+    "credentials" -> StepParameter(None, Some(true), None, None, None, None, credentialsDescription)))
   def writeToPath(dataFrame: DataFrame,
                   path: String,
                   credentials: Option[Map[String, String]],
@@ -71,6 +83,9 @@ object GCSSteps {
     "Pipeline",
     "GCP"
   )
+  @StepParameters(Map("bucket" -> StepParameter(None, Some(true), None, None, None, None, Some("The GCS bucket")),
+    "projectId" -> StepParameter(None, Some(true), None, None, None, None, Some("The projectId for the GCS bucket")),
+    "credentials" -> StepParameter(None, Some(true), None, None, None, None, credentialsDescription)))
   def createFileManager(projectId: String, bucket: String, credentials: Map[String, String]): Option[GCSFileManager] =
     Some(new GCSFileManager(projectId, bucket, Some(Serialization.write(credentials))))
 
