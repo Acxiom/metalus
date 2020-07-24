@@ -2,9 +2,11 @@ package com.acxiom.pipeline.api
 
 import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, OutputStream}
 import java.net.{HttpURLConnection, URL}
+import java.security.cert.X509Certificate
 import java.util.Date
 
 import com.acxiom.pipeline.Constants
+import javax.net.ssl._
 import org.json4s.{DefaultFormats, Formats}
 
 import scala.collection.JavaConverters._
@@ -15,7 +17,13 @@ object HttpRestClient {
 
   def apply(hostUrl: String): HttpRestClient = new HttpRestClient(hostUrl)
 
+  def apply(hostUrl: String, allowSelfSignedCertificates: Boolean): HttpRestClient =
+    new HttpRestClient(hostUrl, None, allowSelfSignedCertificates)
+
   def apply(hostUrl: String, authorization: Authorization): HttpRestClient = new HttpRestClient(hostUrl, authorization)
+
+  def apply(hostUrl: String, authorization: Authorization, allowSelfSignedCertificates: Boolean): HttpRestClient =
+    new HttpRestClient(hostUrl, Some(authorization), allowSelfSignedCertificates)
 
   def apply(protocol: String, host: String, port: Int = HttpRestClient.DEFAULT_PORT): HttpRestClient =
     new HttpRestClient(protocol, host, port)
@@ -24,15 +32,29 @@ object HttpRestClient {
     new HttpRestClient(protocol, host, port, authorization)
 
   val DEFAULT_PORT = 80
+
+  private[api] lazy val SELF_SIGNED_HOST_VERIFIER: HostnameVerifier = new HostnameVerifier {
+    override def verify(s: String, sslSession: SSLSession): Boolean = true
+  }
+
+  private[api] lazy val SELF_SIGNED_SSL_CONTEXT: SSLContext = {
+    val ssl = SSLContext.getInstance("TLS")
+    ssl.init(Array[KeyManager](), Array[TrustManager](new X509TrustManager() {
+      override def checkClientTrusted(x509Certificates: Array[X509Certificate], s: String): Unit = {}
+      override def checkServerTrusted(x509Certificates: Array[X509Certificate], s: String): Unit = {}
+      override def getAcceptedIssuers: Array[X509Certificate] = Array[X509Certificate]()
+    }), new java.security.SecureRandom())
+    ssl
+  }
 }
 
-class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
+class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allowSelfSignedCertificates: Boolean) {
   def this(hostUrl: String) = {
-    this(hostUrl, None)
+    this(hostUrl, None, false)
   }
 
   def this(hostUrl: String, authorization: Authorization) = {
-    this(hostUrl, Some(authorization))
+    this(hostUrl, Some(authorization), false)
   }
 
   def this(protocol: String, host: String, port: Int = HttpRestClient.DEFAULT_PORT) {
@@ -41,6 +63,14 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization]) {
 
   def this(protocol: String, host: String, port: Int, authorization: Authorization) {
     this(s"$protocol://$host:$port", authorization)
+  }
+
+  // This section determines whether or not to allow self signed certificates when calling https end points
+  private val selfSignedCertificate = System.getenv("ALLOW_SELF_SIGNED_CERTS")
+  if (allowSelfSignedCertificates || Option(selfSignedCertificate).isDefined &&
+    selfSignedCertificate.nonEmpty && selfSignedCertificate.toLowerCase() == "true") {
+    HttpsURLConnection.setDefaultSSLSocketFactory(HttpRestClient.SELF_SIGNED_SSL_CONTEXT.getSocketFactory)
+    HttpsURLConnection.setDefaultHostnameVerifier(HttpRestClient.SELF_SIGNED_HOST_VERIFIER)
   }
 
   private implicit val formats: Formats = DefaultFormats

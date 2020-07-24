@@ -17,6 +17,9 @@ would need these command line parameters:
 ```
 --authorization.class com.acxiom.pipeline.api.BasicAuthorization --authorization.username myuser --authorization.password mypasswd
 ```
+## Self-Signed Certificates
+The HttpRestClient can accept self signed certificates. Either set the _ALLOW_SELF_SIGNED_CERTS_ environment variable or
+use the _allowSelfSignedCertificates_ parameter when creating the client.
 
 ## Functions
 Below is a list of functions that may called. Most functions take an optional map of header overrides.

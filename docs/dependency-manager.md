@@ -50,6 +50,7 @@ downloading jars.
 * --path-prefix - An optional path prefix to add to each jar in the classpath
 * --jar-separator - An optional separator character to use when building the classpath
 * --include-scopes - An optional parameter that defines additional scopes to include on the classpath in addition to runtime.
+* --allow-self-signed-certs - Boolean flag enabling self signed certificates. Default value is false.
 
 **Authorization**:
 When pushing metadata to an API or downloading jars, [authorization](httprestclient.md#authorization) is not used unless 

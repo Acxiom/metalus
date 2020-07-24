@@ -82,17 +82,22 @@ object DriverUtils {
 
   /**
     * Create an HttpRestClient.
-    * @param url The base URL
-    * @param credentialProvider The credential provider to use for auth
-    * @param skipAuth Flag allowing auth to be skipped
+    *
+    * @param url                         The base URL
+    * @param credentialProvider          The credential provider to use for auth
+    * @param skipAuth                    Flag allowing auth to be skipped
+    * @param allowSelfSignedCertificates Flag to allow accepting self signed certs when making https calls
     * @return An HttpRestClient
     */
-  def getHttpRestClient(url: String, credentialProvider: CredentialProvider, skipAuth: Option[Boolean] = None): HttpRestClient = {
+  def getHttpRestClient(url: String,
+                        credentialProvider: CredentialProvider,
+                        skipAuth: Option[Boolean] = None,
+                        allowSelfSignedCertificates: Boolean = false): HttpRestClient = {
     val credential = credentialProvider.getNamedCredential("DefaultAuthorization")
     if (credential.isDefined.&&(!skipAuth.getOrElse(false))) {
-      HttpRestClient(url, credential.get.asInstanceOf[AuthorizationCredential].authorization)
+      HttpRestClient(url, credential.get.asInstanceOf[AuthorizationCredential].authorization, allowSelfSignedCertificates)
     } else {
-      HttpRestClient(url)
+      HttpRestClient(url, allowSelfSignedCertificates)
     }
   }
 

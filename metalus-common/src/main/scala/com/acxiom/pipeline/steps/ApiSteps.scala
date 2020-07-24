@@ -21,9 +21,13 @@ object ApiSteps {
     "API")
   @StepParameters(Map(
     "hostUrl" -> StepParameter(None, Some(true), None, None, None, None, Some("The URL to connect including port")),
-    "authorization" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional authorization class to use when making connections"))))
-  def createHttpRestClient(hostUrl: String, authorization: Option[Authorization] = None): HttpRestClient = {
-    new HttpRestClient(hostUrl, authorization)
+    "authorization" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional authorization class to use when making connections")),
+    "allowSelfSignedCertificates" ->
+      StepParameter(None, Some(false), None, None, None, None, Some("Flag to allow using self signed certificates for http calls"))))
+  def createHttpRestClient(hostUrl: String,
+                           authorization: Option[Authorization] = None,
+                           allowSelfSignedCertificates: Boolean = false): HttpRestClient = {
+    new HttpRestClient(hostUrl, authorization, allowSelfSignedCertificates)
   }
 
   @StepFunction("fcfd4b91-9a9c-438c-8afa-9f14c1e52a82",
