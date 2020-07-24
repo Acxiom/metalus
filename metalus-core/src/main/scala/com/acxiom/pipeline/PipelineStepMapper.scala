@@ -1,6 +1,6 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
+import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, ScalaScriptEngine}
 import org.apache.log4j.Logger
 import org.json4s.{DefaultFormats, Formats}
 import org.json4s.native.JsonMethods.parse
@@ -101,20 +101,72 @@ trait PipelineStepMapper {
     }
   }
 
+  private def runScalaScript(scalaScript: String, parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
+    val trimmedScript = scalaScript.trim
+    val (pMap, script) = if (trimmedScript.startsWith("(")) {
+      val index = trimmedScript.indexOf(")") + 1
+      if(index <= 0) {
+        throw PipelineException(message = Some(s"Unable to execute script: Malformed bindings. Expected enclosing character: [)]."),
+          pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+      }
+      val (params, s) = trimmedScript.splitAt(index)
+      val paramString = params.drop(1).dropRight(1).trim
+      val parameterMap = if (paramString.nonEmpty) {
+        paramString.split(",").map { p =>
+          val ret = p.split("""(?<!((?<!\\)\\)):""").map(_.replaceAllLiterally("""\:""", ":").replaceAllLiterally("""\\""", "\\"))
+          if(ret.length < 2){
+            throw PipelineException(message = Some(s"Unable to execute script: Illegal binding format: [$p]. Expected format: <name>:<value>:<type>"),
+              pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+          }
+          ret(0).trim -> (ret(1).trim, if (ret.length == 3) Some(ret(2)) else None)
+        }.toMap.mapValues { case (v, t) => (getBestValue(v.split("\\|\\|"), Parameter(), pipelineContext), t) }
+      } else {
+        Map()
+      }
+      (parameterMap, s.trim)
+    } else {
+      (Map(), trimmedScript)
+    }
+    if (script.trim.isEmpty) {
+      throw PipelineException(message = Some(s"Unable to execute script: script is empty. Ensure bindings are properly enclosed."),
+        pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+    }
+    val engine = new ScalaScriptEngine
+    val initialBinding = engine.createBindings("logger", logger, Some("org.apache.log4j.Logger"))
+    val bindings = pMap.foldLeft(initialBinding){
+      case (binding, (name, (value: Some[_], typeName: Some[String]))) if !typeName.get.startsWith("Option[") =>
+        logger.debug(s"Adding binding for ad-hoc script: name: [$name], value: [${value.get}], type: [$typeName].")
+        binding.setBinding(name, value.get, typeName)
+      case (binding, (name, (value, typeName))) =>
+        logger.debug(s"Adding binding for ad-hoc script: name: [$name], value: [$value], type: [$typeName].")
+        binding.setBinding(name, value, typeName)
+    }
+    logger.info(s"Preparing to execute script for parameter: [${parameter.name}]" +
+      s"${pipelineContext.getPipelineExecutionInfo.stepId.map(s => s"of step: [$s]").getOrElse("")} " +
+      s"${pipelineContext.getPipelineExecutionInfo.pipelineId.map(p => s"in pipeline: [$p]").getOrElse("")}")
+    engine.executeScriptWithBindings(script, bindings, pipelineContext) match {
+      case o: Option[_] => o
+      case v => Some(v)
+    }
+  }
+
   def mapParameter(parameter: Parameter, pipelineContext: PipelineContext): Any = {
     // Get the value/defaultValue for this parameter
     val value = getParamValue(parameter)
     val returnValue = if (value.isDefined) {
       value.get match {
         case s: String =>
-          // Add support for javascript so that we can have complex interactions - @Step1 + '_my_table_name'
-          // If the parameter type is 'script', return the value as is
-          if (parameter.`type`.getOrElse("none") == "script") {
-            Some(s)
-          } else {
-            // convert parameter value into a list of values (for the 'or' use case)
-            // get the valid return values for the parameters
-            getBestValue(s.split("\\|\\|"), parameter, pipelineContext)
+          parameter.`type`.getOrElse("none").toLowerCase match {
+            case "script" =>
+              // If the parameter type is 'script', return the value as is
+              Some(s)
+            case "scalascript" =>
+              // compile and execute the script, then map the result into the parameter
+              runScalaScript(s, parameter, pipelineContext)
+            case _ =>
+              // convert parameter value into a list of values (for the 'or' use case)
+              // get the valid return values for the parameters
+              getBestValue(s.split("\\|\\|"), parameter, pipelineContext)
           }
         case b: Boolean => Some(b)
         case i: Int => Some(i)
