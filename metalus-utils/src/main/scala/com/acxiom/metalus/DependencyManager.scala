@@ -13,6 +13,7 @@ object DependencyManager {
 
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("jar-files", "output-path")))
+    val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).asInstanceOf[String].toLowerCase == "true"
     val localFileManager = new LocalFileManager
     // Get the output directory
     val output = new File(parameters.getOrElse("output-path", "jars").asInstanceOf[String])
@@ -28,7 +29,7 @@ object DependencyManager {
       val artifactName = fileName.substring(0, fileName.lastIndexOf("."))
       val destFile = new File(output, fileName)
       val srcFile = if (file.startsWith("http")) {
-        val http = DriverUtils.getHttpRestClient(file, credentialProvider, Some(noAuthDownload))
+        val http = DriverUtils.getHttpRestClient(file, credentialProvider, Some(noAuthDownload), allowSelfSignedCerts)
         val input = http.getInputStream("")
         val dir = Files.createTempDirectory("metalusJarDownloads").toFile
         val localFile = new File(dir, fileName)

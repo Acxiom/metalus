@@ -14,8 +14,9 @@ class MavenDependencyResolver extends DependencyResolver {
   private val localFileManager = new LocalFileManager
 
   override def copyResources(outputPath: File, dependencies: Map[String, Any], parameters: Map[String, Any]): List[Dependency] = {
-    val providedRepos = getRepos(parameters)
-    val dependencyRepos = getRepos(dependencies)
+    val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).asInstanceOf[String].toLowerCase == "true"
+    val providedRepos = getRepos(parameters, allowSelfSignedCerts)
+    val dependencyRepos = getRepos(dependencies, allowSelfSignedCerts)
     val repoList = providedRepos ::: dependencyRepos
 
     val libraries = dependencies.getOrElse("libraries", List[Map[String, Any]]()).asInstanceOf[List[Map[String, Any]]]
@@ -57,11 +58,11 @@ class MavenDependencyResolver extends DependencyResolver {
     })
   }
 
-  private def getRepos(parameters: Map[String, Any]): List[Repo] = {
+  private def getRepos(parameters: Map[String, Any], allowSelfSignedCerts: Boolean): List[Repo] = {
     val repos = parameters.getOrElse("repo", "https://repo1.maven.org/maven2/").asInstanceOf[String]
     (repos.split(",").map(repo => {
       if (repo.trim.startsWith("http")) {
-        ApiRepo(HttpRestClient(repo))
+        ApiRepo(HttpRestClient(repo, allowSelfSignedCerts))
       } else {
         LocalRepo(localFileManager, repo)
       }
