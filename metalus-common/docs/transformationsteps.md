@@ -99,6 +99,7 @@ will be a combination of the inputDataFrame (w/transforms, etc...) and the desti
 |destinationDataFrame|DataFrame|the data frame that the new data should conform to| n/a |
 |transforms|Transformations|the object containing transforms and input aliases|Transformations(List())|
 |addNewColumns|Boolean|a flag representing whether new columns on input (not on destination) should be added to output|true|    
+|distinct|Boolean|flag to indicate whether a distinct union should be performed|true|
 
 ## applyTransforms()
 This step will apply provided transforms to a data frame honoring any input aliases prior to running expressions. The output
@@ -110,6 +111,88 @@ if the Transformations object includes expressions for columns that do not exist
 | --- |:---|:--- |:---:|
 |dataFrame|DataFrame|a data frame containing data to be transformed| n/a |
 |transforms|Transformations|the object containing transforms and input aliases|n/a|
+
+## selectExpressions()
+This step will select a list of expressions from an existing data frame.
+ The expressions passed are strings and behave like a 'select' clause in a sql statement.
+ Any columns on the input dataFrame can be used, and new columns can be added.
+
+### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|DataFrame|a data frame to select from| n/a |
+|expressions|List[String]|the list of expressions to select|n/a|
+
+## addColumn()
+This step will append a new column to the end of the provided dataFrame.
+ The expression is passed as a String and can be any valid spark sql expression.
+ 
+### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|DataFrame|a data frame to append the column to| n/a |
+|columnName|String|name of the column to add|n/a|
+|expression|String|spark sql expression for the column value|n/a|
+|standardizeColumnName|Boolean|flag to control whether the column name should be standardized|true|
+
+## addColumns()
+This step will append a new column to the end of the provided dataFrame.
+ The map passed should be a key value pair of column names and expressions
+ 
+### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|DataFrame|a data frame to append the columns to| n/a |
+|columns|Map[String,String]|Map of column name/expressions|n/a|
+|standardizeColumnNames|Boolean|flag to control whether column names should be standardized|true|
+
+##dropColumns()
+This step will return a data frame minus the provided column names.
+ Any column names not already on the dataFrame will be ignored.
+
+### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|DataFrame|a data frame to drop columns from| n/a |
+|columnNames|List[String]|List of columns to drop.|n/a|
+
+##join()
+This step will join two data frames together.
+ An optional string expression can be provided.
+ Consult the spark documents for a complete list of supported join types.
+
+### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|left|DataFrame|left side of the join| n/a |
+|right|DataFrame|right side of the join| n/a |
+|expression|String|optional join expression|n/a|
+|leftAlias|String|alias for the left side of the join|left|
+|rightAlias|String|alias for the right side of the join|right|
+|joinType|String|type of join to perform| inner|
+
+##groupBy()
+This step will perform a group by operation on the provided data frame.
+The resulting DataFrame will have a combination of the grouping expressions and aggregations provided.
+
+### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|DataFrame|data frame to group| n/a |
+|groupings|List[String]|list of string expressions to group on|n/a|
+|aggregations|List[String]|list of string aggregate expressions|n/a|
+
+##union()
+This step will perform a union operation. 
+The underlying implementation calls spark's union by name function, so column order is irrelevant.
+UNION ALL and UNION DISTINCT behavior can be toggled, and will perform a DISTINCT by default.
+
+### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|DataFrame|initial data frame| n/a |
+|append|DataFrame|data frame to append| n/a |
+|distinct|Boolean|flag to indicate whether a distinct should be performed|true|
 
 ## applyFilter()
 This step will apply a filter to an existing data frame returning only rows that pass the expression criteria.  The expression
@@ -141,11 +224,12 @@ This step will add a unique Id to an existing dataframe (using the 'monatonicall
 |dataFrame|DataFrame|the data frame to modify| n/a |
 
 #### addStaticColumnToDataFrame()
-This step will add a static value to every row of an existing dataframe)
+This step will add a static value to every row of an existing DataFrame
 
 ##### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
 |dataFrame|DataFrame|the data frame to modify| n/a |
 |columnName|String|the name for the new attribute| n/a |
-|columnValue|String|the string value to set for the new attribute on each row| n/a |
+|columnValue|Any|the string value to set for the new attribute on each row| n/a |
+|standardizeColumnName|Boolean|flag to control whether the column name should be standardized|true|
