@@ -14,7 +14,7 @@ class MavenDependencyResolver extends DependencyResolver {
   private val localFileManager = new LocalFileManager
 
   override def copyResources(outputPath: File, dependencies: Map[String, Any], parameters: Map[String, Any]): List[Dependency] = {
-    val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).asInstanceOf[String].toLowerCase == "true"
+    val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).toString.toLowerCase == "true"
     val providedRepos = getRepos(parameters, allowSelfSignedCerts)
     val dependencyRepos = getRepos(dependencies, allowSelfSignedCerts)
     val repoList = providedRepos ::: dependencyRepos
