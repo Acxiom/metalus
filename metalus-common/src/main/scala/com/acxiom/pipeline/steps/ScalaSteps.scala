@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.acxiom.pipeline.utils.ScalaScriptEngine
 import com.acxiom.pipeline.{PipelineContext, PipelineStepResponse}
 import org.apache.log4j.Logger
@@ -13,7 +13,8 @@ object ScalaSteps {
     "Executes a script and returns the result",
     "Pipeline",
     "Scripting")
-  def processScript(@StepParameter(Some("script"), Some(true), None, Some("scala"), None, None) script: String,
+  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("scala"), description = Some("A scala script to execute"))))
+  def processScript(script: String,
                     pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
     val result = engine.executeScript(script, pipelineContext)
@@ -25,7 +26,10 @@ object ScalaSteps {
     "Executes a script with the provided object and returns the result",
     "Pipeline",
     "Scripting")
-  def processScriptWithValue(@StepParameter(Some("script"), Some(true), None, Some("scala"), None, None) script: String,
+  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("scala"), description = Some("A scala script to execute")),
+    "value" -> StepParameter(None, Some(true), description = Some("Aa value to pass to the script")),
+    "type" -> StepParameter(None, Some(false), description = Some("The type of the value to pass to the script"))))
+  def processScriptWithValue(script: String,
                              value: Any, `type`: Option[String] = None,
                              pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
@@ -40,7 +44,11 @@ object ScalaSteps {
     "Executes a script with the provided object and returns the result",
     "Pipeline",
     "Scripting")
-  def processScriptWithValues(@StepParameter(Some("script"), Some(true), None, Some("scala"), None, None) script: String,
+  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("scala"), description = Some("A scala script to execute")),
+    "values" -> StepParameter(None, Some(true), description = Some("Map of name/value pairs that will be bound to the script")),
+    "type" -> StepParameter(None, Some(false), description = Some("Map of type overrides for the values provided")),
+    "unwrapOptions" -> StepParameter(None, Some(false), description = Some("Flag to toggle option unwrapping behavior"))))
+  def processScriptWithValues(script: String,
                               values: Map[String, Any],
                               types: Option[Map[String, String]] = None,
                               unwrapOptions: Option[Boolean] = None,

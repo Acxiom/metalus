@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import org.apache.spark.sql.DataFrame
 
 @StepObject
@@ -12,6 +12,8 @@ object HiveSteps {
     "This step will read a dataFrame in a given format from Hive",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("table" -> StepParameter(None, Some(true), description = Some("The name of the table to read")),
+    "options" -> StepParameter(None, Some(false), description = Some("The DataFrameReaderOptions to use"))))
   def readDataFrame(table: String, options: Option[DataFrameReaderOptions] = None, pipelineContext: PipelineContext): DataFrame ={
     DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext).table(table)
   }
@@ -21,6 +23,9 @@ object HiveSteps {
     "This step will write a dataFrame in a given format to Hive",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to write")),
+    "table" -> StepParameter(None, Some(true), description = Some("The name of the table to write to")),
+    "options" -> StepParameter(None, Some(false), description = Some("The DataFrameWriterOptions to use"))))
   def writeDataFrame(dataFrame: DataFrame, table: String, options: Option[DataFrameWriterOptions] = None): Unit = {
     DataFrameSteps.getDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions())).saveAsTable(table)
   }

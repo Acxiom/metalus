@@ -44,6 +44,8 @@ determined or to provide additional information to the mapper.
 * **boolean** - The value will be parsed as a boolean.
 * **integer** - The value will be parsed as an int.
 * **script** - This indicates that the value contains a script and should not be parsed. The value will be returned unaltered.
+* **scalascript** - This indicates the value contains scala code that will be compiled and run, with the result returned.
+More on information on this syntax can be found 
 * **list** - Indicates that the value is a list.
 * **object** - Indicates that the value contains and object. This should be stored as a map.
 * **result** - Indicates that this parameter should be matched against the output of a branch step. The value will 

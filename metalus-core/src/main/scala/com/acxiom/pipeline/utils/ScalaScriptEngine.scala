@@ -97,9 +97,10 @@ class ScalaScriptEngine extends ScriptEngine {
     if (finalType == "Any") {
       s"""val ${binding.name} = bindings.get.getBinding("${binding.name}").value"""
     } else {
-      s"""val ${binding.name} = bindings.get.getBinding("${binding.name}").value.asInstanceOf[${finalType}]"""
+      s"""val ${binding.name} = bindings.get.getBinding("${binding.name}").value.asInstanceOf[$finalType]"""
     }
   }
+
   private def deriveBindingType(binding: Binding): String = {
     val className = binding.value.getClass.getCanonicalName
     val sym = mirror.staticClass(className)
