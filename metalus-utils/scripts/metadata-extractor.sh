@@ -25,7 +25,7 @@ while [[ "$1" != "" ]]; do
         --jar-files )           shift
                                 jarFiles=$1
                                 ;;
-        --allow-self-signed-cert) shift
+        --allow-self-signed-certs) shift
                                   allowSelfSignedCerts=$1
                                   rootParams="${rootParams} --allowSelfSignedCerts ${allowSelfSignedCerts}"
 

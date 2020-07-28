@@ -17,7 +17,7 @@ while [[ "$1" != "" ]]; do
     usage
     exit 1
     ;;
-  --allow-self-signed-cert) shift
+  --allow-self-signed-certs) shift
                             params="${params} --allowSelfSignedCerts ${1}"
                             ;;
   *)

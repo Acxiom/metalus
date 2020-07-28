@@ -13,7 +13,7 @@ object DependencyManager {
 
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("jar-files", "output-path")))
-    val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).asInstanceOf[String].toLowerCase == "true"
+    val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).toString.toLowerCase == "true"
     val localFileManager = new LocalFileManager
     // Get the output directory
     val output = new File(parameters.getOrElse("output-path", "jars").asInstanceOf[String])
