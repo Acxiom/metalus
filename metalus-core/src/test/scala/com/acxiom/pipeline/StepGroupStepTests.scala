@@ -210,6 +210,27 @@ class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(response.namedReturns.isDefined)
     }
 
+    it("Should execute step with stepGroupResult") {
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val mappingPipelineStepTwo = PipelineStep(Some("PIPELINE_STEP_TWO"), None, None, Some("step-group"),
+        Some(List(Parameter(Some("text"), Some("pipeline"),
+          value = Some("!subPipeline")),
+          Parameter(Some("object"), Some("pipelineMappings"),
+            value = Some(Map[String, Any]("globalOne" -> "globalOne", "globalTwo" -> "gtwo", "globalThree" -> "3"))))),
+        engineMeta = None, nextStepId = Some("PIPELINE_STEP_THREE"))
+
+      val context = SparkTestHelper.generatePipelineContext()
+        .setGlobal("subPipeline", subPipeline.copy(stepGroupResult = Some("@SUB_PIPELINE_STEP_TWO")))
+      val executionResult = PipelineExecutor.executePipelines(List(DefaultPipeline(Some("pipelineId"), Some("Pipeline"), Some(List(
+        pipelineStepOne, mappingPipelineStepTwo, pipelineStepThree)))), None, context)
+      assert(executionResult.success)
+      val ctx = executionResult.pipelineContext
+      val parameters = ctx.parameters.getParametersByPipelineId("pipelineId").get
+      val response = parameters.parameters("PIPELINE_STEP_TWO").asInstanceOf[PipelineStepResponse]
+      assert(response.primaryReturn.contains("gtwo"))
+      assert(response.namedReturns.isDefined)
+    }
+
     def validateResults(ctx: PipelineContext,
                         subStepOneValue: String = "ONE",
                         subStepTwoValue: String = "TWO",

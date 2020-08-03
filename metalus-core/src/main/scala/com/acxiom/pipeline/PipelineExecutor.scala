@@ -414,11 +414,18 @@ object PipelineExecutor {
                                        pipelineContext: PipelineContext) = {
     if (pipelineParameter.isDefined) {
       val resultParam = step.params.get.find(_.`type`.getOrElse("text") == "result")
+      val resultMappingParam = if (resultParam.isDefined) {
+        resultParam
+      } else if (stepGroup.stepGroupResult.isDefined) {
+        Some(Parameter(Some("result"), Some("output"), None, None, stepGroup.stepGroupResult))
+      } else {
+        None
+      }
       val stepResponseMap = Some(stepGroup.steps.get.map { step =>
         step.id.getOrElse("") -> pipelineParameter.get.parameters.get(step.id.getOrElse("")).map(_.asInstanceOf[PipelineStepResponse])
       }.toMap.collect { case (k, v: Some[_]) => k -> v.get })
-      if (resultParam.isDefined) {
-        val mappedValue = pipelineContext.parameterMapper.mapParameter(resultParam.get, pipelineContext) match {
+      if (resultMappingParam.isDefined) {
+        val mappedValue = pipelineContext.parameterMapper.mapParameter(resultMappingParam.get, pipelineContext) match {
           case value: Option[_] => value
           case _: BoxedUnit => None
           case response => Some(response)
