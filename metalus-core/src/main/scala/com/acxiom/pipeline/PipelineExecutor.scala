@@ -8,6 +8,7 @@ import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
+import scala.runtime.BoxedUnit
 
 object PipelineExecutor {
   private val logger = Logger.getLogger(getClass)
@@ -381,11 +382,7 @@ object PipelineExecutor {
       .copy(parameters = PipelineParameters(List(PipelineParameter(subPipeline.id.getOrElse(""), Map[String, Any]()))))
     val resultCtx = executeStep(firstStep, subPipeline, stepLookup, ctx)
     val pipelineParams = resultCtx.parameters.getParametersByPipelineId(subPipeline.id.getOrElse(""))
-    val response = if (pipelineParams.isDefined) {
-      PipelineStepResponse(Some(subPipeline.steps.get.map { step =>
-        step.id.getOrElse("") -> pipelineParams.get.parameters.get(step.id.getOrElse("")).map(_.asInstanceOf[PipelineStepResponse])
-      }.toMap.collect { case (k, v: Some[_]) => k -> v.get }), None)
-    } else { PipelineStepResponse(None, None) }
+    val response = extractStepGroupResponse(step, subPipeline, pipelineParams, resultCtx)
     val updates = subPipeline.steps.get
       .filter { step =>
         pipelineParams.isDefined && pipelineParams.get.parameters.get(step.id.getOrElse(""))
@@ -400,6 +397,39 @@ object PipelineExecutor {
         updates ++ updateList
       })
     StepGroupResult(resultCtx.rootAudit, response, updates)
+  }
+
+  /**
+    * This function is responsible for creating the PipelineStepResponse for a step group
+    *
+    * @param step The step group step
+    * @param stepGroup The step group pipeline
+    * @param pipelineParameter The pipeline parameter for the step group pipeline
+    * @param pipelineContext The PipelineContext result from the execution of the Step Group Pipeline
+    * @return A PipelineStepResponse
+    */
+  private def extractStepGroupResponse(step: PipelineStep,
+                                       stepGroup: Pipeline,
+                                       pipelineParameter: Option[PipelineParameter],
+                                       pipelineContext: PipelineContext) = {
+    if (pipelineParameter.isDefined) {
+      val resultParam = step.params.get.find(_.`type`.getOrElse("text") == "result")
+      val stepResponseMap = Some(stepGroup.steps.get.map { step =>
+        step.id.getOrElse("") -> pipelineParameter.get.parameters.get(step.id.getOrElse("")).map(_.asInstanceOf[PipelineStepResponse])
+      }.toMap.collect { case (k, v: Some[_]) => k -> v.get })
+      if (resultParam.isDefined) {
+        val mappedValue = pipelineContext.parameterMapper.mapParameter(resultParam.get, pipelineContext) match {
+          case value: Option[_] => value
+          case _: BoxedUnit => None
+          case response => Some(response)
+        }
+        PipelineStepResponse(mappedValue, stepResponseMap)
+      } else {
+        PipelineStepResponse(stepResponseMap, None)
+      }
+    } else {
+      PipelineStepResponse(None, None)
+    }
   }
 
   /**

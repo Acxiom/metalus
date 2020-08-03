@@ -7,8 +7,8 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.json4s.native.JsonMethods.parse
-import org.json4s.{DefaultFormats, Formats}
 import org.json4s.native.Serialization
+import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
 class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
@@ -160,6 +160,54 @@ class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
         pipelineStepOne, mappingPipelineStepTwo, pipelineStepThree)))), None, context)
       assert(executionResult.success)
       validateResults(executionResult.pipelineContext, "globalOne", "gtwo", "3")
+    }
+
+    it("Should execute step with result parameter") {
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val mappingPipelineStepTwo = PipelineStep(Some("PIPELINE_STEP_TWO"), None, None, Some("step-group"),
+        Some(List(Parameter(Some("text"), Some("pipeline"),
+          value = Some("!subPipeline")),
+          Parameter(Some("boolean"), Some("useParentGlobals"), value = Some(true)),
+          Parameter(Some("object"), Some("pipelineMappings"),
+            value = Some(Map[String, Any]("globalTwo" -> "gtwo", "globalThree" -> "3"))),
+        Parameter(Some("result"), Some("output"), None, None, Some("@SUB_PIPELINE_STEP_TWO")))),
+        engineMeta = None, nextStepId = Some("PIPELINE_STEP_THREE"))
+
+      val context = SparkTestHelper.generatePipelineContext()
+        .setGlobal("subPipeline", subPipeline)
+        .setGlobal("realGlobalOne", "globalOne")
+      val executionResult = PipelineExecutor.executePipelines(List(DefaultPipeline(Some("pipelineId"), Some("Pipeline"), Some(List(
+        pipelineStepOne, mappingPipelineStepTwo, pipelineStepThree)))), None, context)
+      assert(executionResult.success)
+      val ctx = executionResult.pipelineContext
+      val parameters = ctx.parameters.getParametersByPipelineId("pipelineId").get
+      val response = parameters.parameters("PIPELINE_STEP_TWO").asInstanceOf[PipelineStepResponse]
+      assert(response.primaryReturn.contains("gtwo"))
+      assert(response.namedReturns.isDefined)
+    }
+
+    it("Should execute step with result parameter using inline script") {
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val mappingPipelineStepTwo = PipelineStep(Some("PIPELINE_STEP_TWO"), None, None, Some("step-group"),
+        Some(List(Parameter(Some("text"), Some("pipeline"),
+          value = Some("!subPipeline")),
+          Parameter(Some("boolean"), Some("useParentGlobals"), value = Some(true)),
+          Parameter(Some("object"), Some("pipelineMappings"),
+            value = Some(Map[String, Any]("globalTwo" -> "gtwo", "globalThree" -> "3"))),
+          Parameter(Some("result"), Some("output"), None, None, Some(" (value:!globalThree:String) value")))),
+        engineMeta = None, nextStepId = Some("PIPELINE_STEP_THREE"))
+
+      val context = SparkTestHelper.generatePipelineContext()
+        .setGlobal("subPipeline", subPipeline)
+        .setGlobal("realGlobalOne", "globalOne")
+      val executionResult = PipelineExecutor.executePipelines(List(DefaultPipeline(Some("pipelineId"), Some("Pipeline"), Some(List(
+        pipelineStepOne, mappingPipelineStepTwo, pipelineStepThree)))), None, context)
+      assert(executionResult.success)
+      val ctx = executionResult.pipelineContext
+      val parameters = ctx.parameters.getParametersByPipelineId("pipelineId").get
+      val response = parameters.parameters("PIPELINE_STEP_TWO").asInstanceOf[PipelineStepResponse]
+      assert(response.primaryReturn.contains("3"))
+      assert(response.namedReturns.isDefined)
     }
 
     def validateResults(ctx: PipelineContext,
