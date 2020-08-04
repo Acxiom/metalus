@@ -1,6 +1,6 @@
 package com.acxiom.metalus
 
-import java.io.{File, FileOutputStream}
+import java.io.File
 import java.nio.file.Files
 import java.util.jar.JarFile
 
@@ -39,8 +39,11 @@ object DependencyManager {
         if (destFile.exists() && remoteDate.getTime > destFile.lastModified()) {
           destFile.delete()
         }
-        new LocalFileManager().copy(input, new FileOutputStream(localFile), FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)
-        localFile
+        if (DependencyResolver.copyJarWithRetry(new LocalFileManager(), input, file, localFile.getAbsolutePath)) {
+          localFile
+        } else {
+          throw new IllegalStateException(s"Unable to copy jar $file")
+        }
       } else {
         new File(file)
       }
