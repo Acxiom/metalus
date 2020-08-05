@@ -7,6 +7,7 @@ import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
 
 import scala.annotation.tailrec
+import scala.math.{ScalaNumericAnyConversions, ScalaNumericConversions}
 
 object PipelineStepMapper {
   def apply(): PipelineStepMapper = new DefaultPipelineStepMapper
@@ -101,6 +102,48 @@ trait PipelineStepMapper {
     }
   }
 
+  /**
+   *
+   * @param value           the value to be cast
+   * @param parameter       The pipeline parameter getting mapped to.
+   * @param pipelineContext Current pipeline context.
+   * @return
+   */
+  def castToType(value: Any, parameter: Parameter, pipelineContext: PipelineContext): Any = {
+    (value, parameter.`type`.getOrElse("").toLowerCase) match {
+      case (r: ScalaNumericConversions, t) => castNumeric(r, t)
+      case (s: String, t) => castString(s, t)
+      case _ => value
+    }
+  }
+
+  private def castNumeric(number: ScalaNumericConversions, targetType: String): Any = targetType match {
+    case "integer" | "int" => number.toInt
+    case "long" => number.toLong
+    case "float" => number.toFloat
+    case "double" => number.toDouble
+    case "byte" => number.toByte
+    case "short" => number.toShort
+    case "character" | "char" => number.toChar
+    case "boolean" => number.toLong != 0L
+    case "bigint" => BigInt(number.toLong)
+    case "bigdecimal" => BigDecimal(number.toDouble)
+    case "string" => number.toString
+    case _ => number
+  }
+
+  private def castString(stringVal: String, targetType: String): Any = targetType match {
+    case "integer" | "int" => stringVal.toInt
+    case "long" => stringVal.toLong
+    case "float" => stringVal.toFloat
+    case "double" => stringVal.toDouble
+    case "byte" => stringVal.toByte
+    case "bigint" => BigInt(stringVal)
+    case "bigdecimal" => BigDecimal(stringVal)
+    case "boolean" => stringVal.toBoolean
+    case _ => stringVal
+  }
+
   private def runScalaScript(scalaScript: String, parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
     val trimmedScript = scalaScript.trim
     val (pMap, script) = if (trimmedScript.startsWith("(")) {
@@ -182,7 +225,7 @@ trait PipelineStepMapper {
 
     // use the first valid (non-empty) value found
     if (returnValue.isDefined) {
-      returnValue.get
+      castToType(returnValue.get, parameter, pipelineContext)
     } else {
       // use mapByType when no valid values are returned
       mapByType(None, parameter)

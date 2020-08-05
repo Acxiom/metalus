@@ -82,7 +82,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       "globalBoolean" -> true, "globalTestObject" -> globalTestObject, "GlobalLinks" -> broadCastGlobal, "link9" -> "root_value",
       "extractMethodsEnabled" -> true,
       "complexList" -> List(DefaultPipelineStepResponse(Some("moo")), DefaultPipelineStepResponse(Some("moo2"))),
-      "optionsList" -> List(Some("1"), Some("2"), None, Some("3"))
+      "optionsList" -> List(Some("1"), Some("2"), None, Some("3")),
+      "numericString" -> "1", "bigIntGlobal" -> BigInt(1)
     )
 
     val subPipeline = Pipeline(Some("mypipeline"), Some("My Pipeline"))
@@ -171,12 +172,18 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
             """(list:!optionsList:List[Option[String]])(list.flatten)"""), `type` = Some("scalascript")), List("1", "2", "3")),
         ("script with escaped binding",
           Parameter(value = Some(
-            """(s:cChickens\:Rule\\:String)(s.toLowerCase.drop(1))"""), `type` = Some("scalascript")), "chickens:rule\\")
-
+            """(s:cChickens\:Rule\\:String)(s.toLowerCase.drop(1))"""), `type` = Some("scalascript")), "chickens:rule\\"),
+        ("Casting String global to int", Parameter(value = Some("!numericString"), `type` = Some("int")), 1),
+        ("Casting String global to bigInt", Parameter(value = Some("!numericString"), `type` = Some("bigInt")), BigInt(1)),
+        ("Casting String global to double", Parameter(value = Some("!numericString"), `type` = Some("double")), 1.0D),
+        ("Casting BigInt global to long", Parameter(value = Some("!bigIntGlobal"), `type` = Some("long")), 1L),
+        ("Casting BigInt global to BigDecimal", Parameter(value = Some("!bigIntGlobal"), `type` = Some("BigDecimal")), BigDecimal(1)),
+        ("Casting bigInt global to String", Parameter(value = Some("!bigIntGlobal"), `type` = Some("String")), "1")
       )
       tests.foreach(test => {
         Then(s"test ${test._1}")
-        assert(pipelineContext.parameterMapper.mapParameter(test._2, pipelineContext) == test._3)
+        val ret = pipelineContext.parameterMapper.mapParameter(test._2, pipelineContext)
+        assert(ret == test._3)
       })
 
       val thrown = intercept[RuntimeException] {
