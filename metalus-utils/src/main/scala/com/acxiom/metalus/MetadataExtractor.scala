@@ -14,7 +14,7 @@ object MetadataExtractor {
 
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("jar-files")))
-    val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).asInstanceOf[String].toLowerCase == "true"
+    val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).toString.toLowerCase == "true"
     val jarFiles = parameters("jar-files").asInstanceOf[String].split(",").toList.map(file => new JarFile(new File(file)))
     val credentialProvider = DriverUtils.getCredentialProvider(parameters)
     val output = if(parameters.contains("output-path")) {

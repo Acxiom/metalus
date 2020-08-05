@@ -23,21 +23,26 @@ trait Pipeline {
   def steps: Option[List[PipelineStep]] = None
   def category: Option[String] = Some("pipeline")
   def tags: Option[List[String]] = None
+  def stepGroupResult: Option[Any] = None
 }
 
 /**
   * Contains the a pipeline definition to be executed.
   *
-  * @param id       The unique id of this pipeline.
-  * @param name     The pipeline name used for logging and errors.
-  * @param steps    A list of steps to execute.
-  * @param category The category of pipeline: pipeline or step-group
+  * @param id              The unique id of this pipeline.
+  * @param name            The pipeline name used for logging and errors.
+  * @param steps           A list of steps to execute.
+  * @param category        The category of pipeline: pipeline or step-group
+  * @param tags            A list of tags to use to help describe the pipeline
+  * @param stepGroupResult A mapping used to provide a single result after a step-group has executed instead of
+  *                        the default map of step results.
   */
 case class DefaultPipeline(override val id: Option[String] = None,
                            override val name: Option[String] = None,
                            override val steps: Option[List[PipelineStep]] = None,
                            override val category: Option[String] = Some("pipeline"),
-                           override val tags: Option[List[String]] = None) extends Pipeline
+                           override val tags: Option[List[String]] = None,
+                           override val stepGroupResult: Option[Any] = None) extends Pipeline
 
 /**
   * Global object that may be passed to step functions.
