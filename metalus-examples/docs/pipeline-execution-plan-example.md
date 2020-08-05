@@ -198,7 +198,7 @@ a new *DataFrame* which will be added to the globals object of the final executi
 
 Two new steps are required to perform this process:
 
-* Create a new object in the *com.acxiom.pipeline.steps* package named [**SplitSteps**](src/main/scala/com/acxiom/pipeline/steps/SplitSteps.scala)
+* Create a new object in the *com.acxiom.pipeline.steps* package named [**SplitSteps**](../src/main/scala/com/acxiom/pipeline/steps/SplitSteps.scala)
 * Create a function named *selectFields* and declare two parameters:
 	* dataFrame: DataFrame
 	* fieldNames: List[String]
@@ -210,7 +210,7 @@ def selectFields(dataFrame: DataFrame, fieldNames: List[String]): DataFrame =
 			dataFrame.select(fieldNames.map(dataFrame(_)) : _*)
 ```
 
-* Open the object in the *com.acxiom.pipeline.steps* package named [**GroupingSteps**](src/main/scala/com/acxiom/pipeline/steps/GroupingSteps.scala)
+* Open the object in the *com.acxiom.pipeline.steps* package named [**GroupingSteps**](../src/main/scala/com/acxiom/pipeline/steps/GroupingSteps.scala)
 * Create a function named *groupByField* and declare two parameters:
 	* dataFrame: DataFrame
 	* groupField: String
@@ -497,7 +497,7 @@ First thing is to include the new library in the pom.xml file. Add this entry to
 		<version>2.3.1</version>
 	</dependency>
 
-* Open the object in the *com.acxiom.pipeline.steps* package named [**InputOutputSteps**](src/main/scala/com/acxiom/pipeline/steps/InputOutputSteps.scala)
+* Open the object in the *com.acxiom.pipeline.steps* package named [**InputOutputSteps**](../src/main/scala/com/acxiom/pipeline/steps/InputOutputSteps.scala)
 * Create a function named *writeDataFrameToMongo* and declare three parameters:
 	* dataFrame: DataFrame
 	* uri: String
@@ -646,7 +646,7 @@ Add the following JSON to the **execution-pipelines.json** file:
 ## Create a DriverSetup
 Now that the pipelines have been defined, there needs to be a *DriverSetup* that can create the execution plan.
 
-* Create a new case class in *com.acxiom.pipeline* named [**ExecutionPlanDataDriverSetup**](src/main/scala/com/acxiom/pipeline/ExecutionPlanDataDriverSetup.scala).
+* Create a new case class in *com.acxiom.pipeline* named [**ExecutionPlanDataDriverSetup**](../src/main/scala/com/acxiom/pipeline/ExecutionPlanDataDriverSetup.scala).
 * Extend **DriverSetup**
 * Provide the following constructor:
 

@@ -7,7 +7,7 @@ perform counts against the data and write the counts to disk.
 Two steps are required to read and write files. This could be a single operation, but in order to be more reusable input
 and output will be broken apart.
 
-* Create a new object in the *com.acxiom.pipeline.steps* package named [**InputOutputSteps**](src/main/scala/com/acxiom/pipeline/steps/InputOutputSteps.scala)
+* Create a new object in the *com.acxiom.pipeline.steps* package named [**InputOutputSteps**](../src/main/scala/com/acxiom/pipeline/steps/InputOutputSteps.scala)
 * Create a function name *loadFile* and declare four parameters:
 	* url: String
 	* format: String
@@ -39,7 +39,7 @@ dataFrame.write.format("json").save(url)
 ## GroupingSteps
 There needs to be a step function created to do the counts.
 
-* Create a new object in the *com.acxiom.pipeline.steps* package named [**GroupingSteps**](src/main/scala/com/acxiom/pipeline/steps/GroupingSteps.scala)
+* Create a new object in the *com.acxiom.pipeline.steps* package named [**GroupingSteps**](../src/main/scala/com/acxiom/pipeline/steps/GroupingSteps.scala)
 * Create a function name *countsByField* and declare two parameters:
 	* dataFrame: DataFrame
 	* fieldName: String
@@ -54,7 +54,7 @@ dataFrame.groupBy(fieldName).count()
 The *DriverSetup* trait is the starting point of the application. The implementation is responsible for preparing the
 PipelineContext as well as supplying the pipelines that will be executed.
 
-* Create a new case class in *com.acxiom.pipeline* named [**SimpleDataDriverSetup**](src/main/scala/com/acxiom/pipeline/SimpleDataDriverSetup.scala).
+* Create a new case class in *com.acxiom.pipeline* named [**SimpleDataDriverSetup**](../src/main/scala/com/acxiom/pipeline/SimpleDataDriverSetup.scala).
 * Extend **DriverSetup**
 * Provide the following constructor:
 

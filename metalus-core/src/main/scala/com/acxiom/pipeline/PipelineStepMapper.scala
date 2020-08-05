@@ -2,9 +2,9 @@ package com.acxiom.pipeline
 
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, ScalaScriptEngine}
 import org.apache.log4j.Logger
-import org.json4s.{DefaultFormats, Formats}
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
+import org.json4s.{DefaultFormats, Formats}
 
 import scala.annotation.tailrec
 
@@ -27,7 +27,7 @@ trait PipelineStepMapper {
     */
   def createStepParameterMap(step: PipelineStep, pipelineContext: PipelineContext): Map[String, Any] = {
     if (step.params.isDefined) {
-      step.params.get.map(p => {
+      step.params.get.filter(_.`type`.getOrElse("text").toLowerCase != "result").map(p => {
         logger.debug(s"Mapping parameter ${p.name}")
         val value = mapParameter(p, pipelineContext)
         value match {
@@ -163,6 +163,9 @@ trait PipelineStepMapper {
             case "scalascript" =>
               // compile and execute the script, then map the result into the parameter
               runScalaScript(s, parameter, pipelineContext)
+            case "result" if (isResultScript(parameter)) =>
+              // compile and execute the script, then map the result into the parameter
+              runScalaScript(s, parameter, pipelineContext)
             case _ =>
               // convert parameter value into a list of values (for the 'or' use case)
               // get the valid return values for the parameters
@@ -189,9 +192,18 @@ trait PipelineStepMapper {
     }
   }
 
+  private def isResultScript(parameter: Parameter) = {
+    parameter.value.getOrElse("NONE") match {
+      case s: String => s.trim.startsWith("(")
+      case so: Option[String] => so.getOrElse("NONE").trim.startsWith("(")
+      case _ => false
+    }
+  }
+
   /**
     * Provides variable mapping when a map is discovered. Case classes will be initialized if the className attribute
     * has been provided.
+ *
     * @param map The map of values to parse and expand.
     * @param parameter The step parameter.
     * @param pipelineContext The pipeline context containing the globals and runtime parameters.
