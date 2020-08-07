@@ -79,23 +79,19 @@ trait PipelineStepMapper {
   }
 
   /**
-    * This function will take a given value and convert it to the type specified in the parameter. This implementation
-    * supports boolean and integer types. The value will be returned unconverted if the type is something other. This
-    * function should be overridden to provide better support for complex types.
-    *
-    * @param value     The value to convert
-    * @param parameter The step parameter
-    * @return
-    */
+   * This function will map a parameter based on its type. String values will also be run through the castToType
+   * method. This function can be overridden to provide more control over how "None" values are mappped to step params.
+   *
+   * @param value     The value to convert
+   * @param parameter The step parameter
+   * @return
+   */
   def mapByType(value: Option[String], parameter: Parameter): Any = {
-    if(value.isDefined) {
-      parameter.`type`.getOrElse("").toLowerCase match {
-        case "integer" => value.get.toInt
-        case "long" => value.get.toLong
-        case "float" => value.get.toFloat
-        case "double" => value.get.toDouble
-        case "boolean" => value.get.toBoolean
-        case _ => mapByValue(value, parameter)
+    if (value.isDefined) {
+      val convertedVal = castToType(value, parameter)
+      convertedVal match {
+        case s: String => mapByValue(Some(s), parameter)
+        case _ => convertedVal
       }
     } else {
       mapByValue(value, parameter)
@@ -103,14 +99,17 @@ trait PipelineStepMapper {
   }
 
   /**
+   * This function will convert the return value of the mapParameter and mapByType methods based on the "type" value of
+   * the step parameter. This implementation supports string, numeric, and boolean type conversions. This function
+   * can be overridden to provide better support for complex types.
    *
-   * @param value           the value to be cast
+   * @param value           The value to be cast
    * @param parameter       The pipeline parameter getting mapped to.
-   * @param pipelineContext Current pipeline context.
    * @return
    */
-  def castToType(value: Any, parameter: Parameter, pipelineContext: PipelineContext): Any = {
+  def castToType(value: Any, parameter: Parameter): Any = {
     (value, parameter.`type`.getOrElse("").toLowerCase) match {
+      case (_, "text") => value
       case (r: ScalaNumericConversions, t) => castNumeric(r, t)
       case (s: String, t) => castString(s, t)
       case _ => value
@@ -228,7 +227,7 @@ trait PipelineStepMapper {
 
     // use the first valid (non-empty) value found
     if (returnValue.isDefined) {
-      castToType(returnValue.get, parameter, pipelineContext)
+      castToType(returnValue.get, parameter)
     } else {
       // use mapByType when no valid values are returned
       mapByType(None, parameter)
