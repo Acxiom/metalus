@@ -88,7 +88,7 @@ trait PipelineStepMapper {
    */
   def mapByType(value: Option[String], parameter: Parameter): Any = {
     if (value.isDefined) {
-      val convertedVal = castToType(value, parameter)
+      val convertedVal = castToType(value.get, parameter)
       convertedVal match {
         case s: String => mapByValue(Some(s), parameter)
         case _ => convertedVal
