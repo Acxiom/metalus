@@ -32,13 +32,13 @@ object HiveSteps {
 
   @StepFunction("5874ab64-13c7-404c-8a4f-67ff3b0bc7cf",
     "Drop Hive Object",
-    "This step will drop on object from the hive meta store",
+    "This step will drop an object from the hive meta store",
     "Pipeline",
     "InputOutput")
   @StepParameters(Map("name" -> StepParameter(None, Some(true), description = Some("Name of the object to drop")),
     "objectType" -> StepParameter(None, Some(false), Some("TABLE"), description = Some("Type of object to drop")),
     "ifExists" -> StepParameter(None, Some(false), Some("false"), description = Some("Flag to control whether existence is checked")),
-    "cascade" -> StepParameter(None, Some(false), Some("false"), description = Some("Flag to control whether a this operation should cascade"))))
+    "cascade" -> StepParameter(None, Some(false), Some("false"), description = Some("Flag to control whether this deletion should cascade"))))
   def drop(name: String,
            objectType: Option[String] = None,
            ifExists: Option[Boolean] = None,
