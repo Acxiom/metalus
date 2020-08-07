@@ -3,7 +3,7 @@ package com.acxiom.pipeline.steps
 import java.util.Properties
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
 
@@ -11,6 +11,12 @@ import scala.collection.JavaConversions._
 
 @StepObject
 object JDBCSteps {
+  private val connectionPropertiesDesc: Some[String] = Some("Optional properties for the jdbc connection")
+  private val optionsDescription: Some[String] = Some("The options to use when loading the DataFrameReader")
+  private val urlDesc: Some[String] = Some("A valid jdbc url")
+  private val tableDesc: Some[String] = Some("A table name or subquery")
+  private val dfWriteDesc: Some[String] = Some("The DataFrame to be written")
+  private val saveModeDesc: Some[String] = Some("The value for the mode option. Defaulted to Overwrite")
 
   /**
     * Read a table into a DataFrame via JDBC using a spark JDBCOptions object.
@@ -23,6 +29,7 @@ object JDBCSteps {
     "This step will load a table from the provided JDBCOptions",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("jdbcOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("The options to use when loading the DataFrame"))))
   def readWithJDBCOptions(jdbcOptions: JDBCOptions,
                           pipelineContext: PipelineContext): DataFrame = {
     val options = DataFrameReaderOptions("jdbc", Some(jdbcOptions.asProperties.toMap))
@@ -32,6 +39,7 @@ object JDBCSteps {
   /**
     * Read a table into a DataFrame using jdbc.
     * The JDBCDataFrameReaderOptions allows for more options to be provided to the underlying DataFrameReader.
+    *
     * @param jDBCStepsOptions Options for the JDBC connect and spark DataFrameReader.
     * @return A DataFrame representing the imported table.
     */
@@ -40,6 +48,7 @@ object JDBCSteps {
     "This step will load a table from the provided JDBCDataFrameReaderOptions",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("jDBCStepsOptions" -> StepParameter(None, Some(true), None, None, None, None, optionsDescription)))
   def readWithStepOptions(jDBCStepsOptions: JDBCDataFrameReaderOptions,
                           pipelineContext: PipelineContext): DataFrame = {
     val properties = new Properties()
@@ -75,6 +84,10 @@ object JDBCSteps {
     "This step will load a table from the provided jdbc information",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("url" -> StepParameter(None, Some(true), None, None, None, None, urlDesc),
+    "table" -> StepParameter(None, Some(true), None, None, None, None, tableDesc),
+    "predicates" -> StepParameter(None, Some(false), None, None, None, None, Some("Optional predicates used for partitioning")),
+    "connectionProperties" -> StepParameter(None, Some(false), None, None, None, None, connectionPropertiesDesc)))
   def readWithProperties(url: String,
                          table: String,
                          predicates: Option[List[String]] = None,
@@ -102,6 +115,9 @@ object JDBCSteps {
     "This step will write a DataFrame as a table using JDBCOptions",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("he DataFrame to be written")),
+    "jdbcOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("Options for configuring the JDBC connection")),
+    "saveMode" -> StepParameter(None, Some(false), None, None, None, None, saveModeDesc)))
   def writeWithJDBCOptions(dataFrame: DataFrame,
                            jdbcOptions: JDBCOptions,
                            saveMode: String = "Overwrite"): Unit = {
@@ -111,6 +127,7 @@ object JDBCSteps {
 
   /**
     * Write a DataFrame to a table via JDBC.
+    *
     * @param dataFrame            The DataFrame to be written.
     * @param url                  A valid jdbc url.
     * @param table                A table name or subquery.
@@ -122,6 +139,11 @@ object JDBCSteps {
     "This step will write a DataFrame to a table using the provided properties",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, dfWriteDesc),
+    "url" -> StepParameter(None, Some(true), None, None, None, None, urlDesc),
+    "table" -> StepParameter(None, Some(true), None, None, None, None, tableDesc),
+    "connectionProperties" -> StepParameter(None, Some(true), None, None, None, None, connectionPropertiesDesc),
+    "saveMode" -> StepParameter(None, Some(false), None, None, None, None, saveModeDesc)))
   def writeWithProperties(dataFrame: DataFrame,
                           url: String,
                           table: String,
@@ -138,13 +160,15 @@ object JDBCSteps {
     * Write a DataFrame to a table via JDBC.
     * The JDBCDataFrameWriterOptions allows for more options to be provided to the underlying DataFrameReader.
     * @param dataFrame        The DataFrame to be written.
-    * @param jDBCStepsOptions options for the JDBC connect and spark DataFrameWriter.
+    * @param jDBCStepsOptions Options for the JDBC connect and spark DataFrameWriter.
     */
   @StepFunction("3d6b77a1-52c2-49ba-99a0-7ec773dac696",
     "Write DataFrame to JDBC table",
     "This step will write a DataFrame to a table using the provided JDBCDataFrameWriterOptions",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, dfWriteDesc),
+    "jDBCStepsOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("Options for the JDBC connect and spark DataFrameWriter"))))
   def writeWithStepOptions(dataFrame: DataFrame,
                            jDBCStepsOptions: JDBCDataFrameWriterOptions): Unit = {
     val properties = new Properties()
