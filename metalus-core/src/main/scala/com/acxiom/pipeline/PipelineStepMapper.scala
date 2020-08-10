@@ -7,6 +7,7 @@ import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 
 import scala.annotation.tailrec
+import scala.math.{ScalaNumericAnyConversions, ScalaNumericConversions}
 
 object PipelineStepMapper {
   def apply(): PipelineStepMapper = new DefaultPipelineStepMapper
@@ -78,27 +79,68 @@ trait PipelineStepMapper {
   }
 
   /**
-    * This function will take a given value and convert it to the type specified in the parameter. This implementation
-    * supports boolean and integer types. The value will be returned unconverted if the type is something other. This
-    * function should be overridden to provide better support for complex types.
-    *
-    * @param value     The value to convert
-    * @param parameter The step parameter
-    * @return
-    */
+   * This function will map a parameter based on its type. String values will also be run through the castToType
+   * method. This function can be overridden to provide more control over how "None" values are mappped to step params.
+   *
+   * @param value     The value to convert
+   * @param parameter The step parameter
+   * @return
+   */
   def mapByType(value: Option[String], parameter: Parameter): Any = {
-    if(value.isDefined) {
-      parameter.`type`.getOrElse("").toLowerCase match {
-        case "integer" => value.get.toInt
-        case "long" => value.get.toLong
-        case "float" => value.get.toFloat
-        case "double" => value.get.toDouble
-        case "boolean" => value.get.toBoolean
-        case _ => mapByValue(value, parameter)
+    if (value.isDefined) {
+      val convertedVal = castToType(value.get, parameter)
+      convertedVal match {
+        case s: String => mapByValue(Some(s), parameter)
+        case _ => convertedVal
       }
     } else {
       mapByValue(value, parameter)
     }
+  }
+
+  /**
+   * This function will convert the return value of the mapParameter and mapByType methods based on the "type" value of
+   * the step parameter. This implementation supports string, numeric, and boolean type conversions. This function
+   * can be overridden to provide better support for complex types.
+   *
+   * @param value           The value to be cast
+   * @param parameter       The pipeline parameter getting mapped to.
+   * @return
+   */
+  def castToType(value: Any, parameter: Parameter): Any = {
+    (value, parameter.`type`.getOrElse("").toLowerCase) match {
+      case (_, "text") => value
+      case (r: ScalaNumericConversions, t) => castNumeric(r, t)
+      case (s: String, t) => castString(s, t)
+      case _ => value
+    }
+  }
+
+  private def castNumeric(number: ScalaNumericConversions, targetType: String): Any = targetType match {
+    case "integer" | "int" => number.toInt
+    case "long" => number.toLong
+    case "float" => number.toFloat
+    case "double" => number.toDouble
+    case "byte" => number.toByte
+    case "short" => number.toShort
+    case "character" | "char" => number.toChar
+    case "boolean" => number.toLong != 0L
+    case "bigint" => BigInt(number.toLong)
+    case "bigdecimal" => BigDecimal(number.toDouble)
+    case "string" => number.toString
+    case _ => number
+  }
+
+  private def castString(stringVal: String, targetType: String): Any = targetType match {
+    case "integer" | "int" => stringVal.toInt
+    case "long" => stringVal.toLong
+    case "float" => stringVal.toFloat
+    case "double" => stringVal.toDouble
+    case "byte" => stringVal.toByte
+    case "bigint" => BigInt(stringVal)
+    case "bigdecimal" => BigDecimal(stringVal)
+    case "boolean" => stringVal.toBoolean
+    case _ => stringVal
   }
 
   private def runScalaScript(scalaScript: String, parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
@@ -185,7 +227,7 @@ trait PipelineStepMapper {
 
     // use the first valid (non-empty) value found
     if (returnValue.isDefined) {
-      returnValue.get
+      castToType(returnValue.get, parameter)
     } else {
       // use mapByType when no valid values are returned
       mapByType(None, parameter)
