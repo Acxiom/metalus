@@ -2,15 +2,23 @@ package com.acxiom.pipeline.steps
 
 import java.util.regex.Pattern
 
-import com.acxiom.pipeline.annotations.{BranchResults, StepFunction, StepObject}
+import com.acxiom.pipeline.annotations._
 
 @StepObject
 object StringSteps {
+
+  private val stringToParameter = Map("string" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to modify")),
+    "matchString" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to match")),
+    "replacement" -> StepParameter(None, Some(false), None, None, None, None, Some("The replacement string")),
+    "literal" -> StepParameter(None, Some(false), None, None, None, None, Some("Perform 'literal' match replacement")))
 
   @StepFunction("b5485d97-d4e8-41a6-8af7-9ce79a435140",
     "To String",
     "Returns the result of the toString method, can unwrap options",
     "Pipeline", "String")
+  @StepParameters(Map("value" -> StepParameter(None, Some(true), None, None, None, None, Some("The value to convert")),
+    "unwrapOption" -> StepParameter(None, Some(false), None, None, None, None,
+      Some("Boolean indicating whether to unwrap the value from an Option prior to calling toString"))))
   def toString(value: Any, unwrapOption: Option[Boolean] = None): String = {
     if(unwrapOption.getOrElse(false)) {
       unwrap(value).toString
@@ -23,6 +31,11 @@ object StringSteps {
     "List To String",
     "Returns the result of the mkString method",
     "Pipeline", "String")
+  @StepParameters(Map("list" -> StepParameter(None, Some(true), None, None, None, None, Some("The list to convert")),
+    "separator" -> StepParameter(None, Some(false), None, None, None, None,
+      Some("Separator character to use when making the string")),
+    "unwrapOptions" -> StepParameter(None, Some(false), None, None, None, None,
+      Some("Boolean indicating whether to unwrap each value from an Option"))))
   def listToString(list: List[Any], separator: Option[String] = None, unwrapOptions: Option[Boolean] = None): String = {
     val finalList = if(unwrapOptions.getOrElse(false)) {
       list.map(unwrap)
@@ -40,6 +53,7 @@ object StringSteps {
     "To Lowercase",
     "Returns a lowercase string",
     "Pipeline", "String")
+  @StepParameters(Map("value" -> StepParameter(None, Some(true), None, None, None, None, Some("The value to lowercase"))))
   def toLowerCase(value: String): String = {
     value.toLowerCase
   }
@@ -48,6 +62,7 @@ object StringSteps {
     "To Uppercase",
     "Returns an uppercase string",
     "Pipeline", "String")
+  @StepParameters(Map("value" -> StepParameter(None, Some(true), None, None, None, None, Some("The value to uppercase"))))
   def toUpperCase(value: String): String = {
     value.toUpperCase
   }
@@ -56,6 +71,11 @@ object StringSteps {
     "String Split",
     "Returns a list of strings split off of the given string",
     "Pipeline", "String")
+  @StepParameters(Map("string" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to split")),
+    "regex" -> StepParameter(None, Some(true), None, None, None, None,
+      Some("Regex to use when splitting the string")),
+    "limit" -> StepParameter(None, Some(false), None, None, None, None,
+      Some("Max number elements to return in the list"))))
   def stringSplit(string: String, regex: String, limit: Option[Int] = None): List[String] = {
     if (limit.isDefined) {
       string.split(regex, limit.get).toList
@@ -68,6 +88,9 @@ object StringSteps {
     "Substring",
     "Returns a substring",
     "Pipeline", "String")
+  @StepParameters(Map("string" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to parse")),
+    "begin" -> StepParameter(None, Some(true), None, None, None, None, Some("The beginning index")),
+    "end" -> StepParameter(None, Some(false), None, None, None, None, Some("The end index"))))
   def substring(string: String, begin: Int, end: Option[Int] = None): String = {
     if (end.isDefined) {
       string.substring(begin, end.get)
@@ -81,6 +104,9 @@ object StringSteps {
     "Return whether string1 equals string2",
     "branch", "Decision")
   @BranchResults(List("true", "false"))
+  @StepParameters(Map("string" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to compare")),
+    "anotherString" -> StepParameter(None, Some(true), None, None, None, None, Some("The other string to compare")),
+    "caseInsensitive" -> StepParameter(None, Some(false), None, None, None, None, Some("Boolean flag to indicate case sensitive compare"))))
   def stringEquals(string: String, anotherString: String, caseInsensitive: Option[Boolean] = None): Boolean = {
     if (caseInsensitive.getOrElse(false)) {
       string.equalsIgnoreCase(anotherString)
@@ -94,6 +120,8 @@ object StringSteps {
     "Return whether string matches a given regex",
     "branch", "Decision")
   @BranchResults(List("true", "false"))
+  @StepParameters(Map("string" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to match")),
+    "regex" -> StepParameter(None, Some(true), None, None, None, None, Some("Regex to use for the match"))))
   def stringMatches(string: String, regex: String): Boolean = {
     string.matches(regex)
   }
@@ -102,6 +130,7 @@ object StringSteps {
     "String Replace All",
     "Perform a literal or regex replacement on a string",
     "pipeline", "String")
+  @StepParameters(stringToParameter)
   def stringReplaceAll(string: String, matchString: String, replacement: String, literal: Option[Boolean] = None): String = {
     if (literal.getOrElse(false)) {
       string.replaceAllLiterally(matchString, replacement)
@@ -114,6 +143,7 @@ object StringSteps {
     "String Replace First",
     "Perform a literal or regex replacement on the first occurrence in a string",
     "pipeline", "String")
+  @StepParameters(stringToParameter)
   def stringReplaceFirst(string: String, matchString: String, replacement: String, literal: Option[Boolean] = None): String = {
     if (literal.getOrElse(false)) {
       string.replaceFirst(Pattern.quote(matchString), replacement)

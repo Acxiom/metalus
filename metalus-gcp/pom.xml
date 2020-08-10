@@ -12,6 +12,18 @@
         <version>1.7.0-SNAPSHOT</version>
     </parent>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>libraries-bom</artifactId>
+                <version>5.7.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>com.acxiom</groupId>
@@ -48,7 +60,11 @@
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-datastore</artifactId>
             <version>1.104.0</version>
-            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-core</artifactId>
+            <version>1.28.1</version>
         </dependency>
         <dependency>
             <groupId>io.opencensus</groupId>
@@ -78,14 +94,14 @@
         </dependency>
         <dependency>
             <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-nio</artifactId>
-            <version>0.121.0</version>
-            <scope>test</scope>
+            <artifactId>google-cloud-storage</artifactId>
+            <version>1.108.0</version>
         </dependency>
         <dependency>
             <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-storage</artifactId>
-            <version>1.108.0</version>
+            <artifactId>google-cloud-nio</artifactId>
+            <version>0.121.0</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -120,6 +136,16 @@
                             <exclude>com.jcraft:*:jar:</exclude>
                         </excludes>
                     </artifactSet>
+                    <filters>
+                        <filter>
+                            <artifact>*.*</artifact>
+                            <excludes>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
                 </configuration>
                 <executions>
                     <execution>
