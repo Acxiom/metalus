@@ -42,6 +42,7 @@ are required:
 * **language** - An optional language used for *script* types
 * **className** - The fully qualified class name to use when the type is object
 * **parameterType** - The fully qualified class name of the parameter. Option parameters should use the internal type, not Option
+* **description** - A description of the parameter.
 
 The **None** option may be used in place of having to provide actual values.
 
@@ -49,6 +50,28 @@ The **None** option may be used in place of having to provide actual values.
 @StepParameter(Some("script"), Some(true), None, Some("scala"), None, None) script: String
 ```
 
+## Step Parameters
+The step parameters annotation can be used to simplify annotating the parameters in a single spot. The annotation takes 
+a single map which uses the parameter name as the key and a _StepParameter_ as the value. Below is an example of an
+annotated step function.
+
+```scala
+@StepFunction("15889487-fd1c-4c44-b8eb-973c12f91fae",
+    "Creates an HttpRestClient",
+    "This step will build an HttpRestClient using a host url and optional authorization object",
+    "Pipeline",
+    "API")
+  @StepParameters(Map(
+    "hostUrl" -> StepParameter(None, Some(true), None, None, None, None, Some("The URL to connect including port")),
+    "authorization" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional authorization class to use when making connections")),
+    "allowSelfSignedCertificates" ->
+      StepParameter(None, Some(false), None, None, None, None, Some("Flag to allow using self signed certificates for http calls"))))
+  def createHttpRestClient(hostUrl: String,
+                           authorization: Option[Authorization] = None,
+                           allowSelfSignedCertificates: Boolean = false): HttpRestClient = {
+    new HttpRestClient(hostUrl, authorization, allowSelfSignedCertificates)
+  }
+```
 ## Step Results
 The step results annotation is an optional way to specify the return types when a *PipelineStepResponse* is used by the
 step function. There are two attributes required:
