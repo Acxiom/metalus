@@ -480,7 +480,6 @@ trait PipelineStepMapper {
     val initGlobal = pipelineContext.getGlobal(value.substring(1))
     val applyMethod = pipelineContext.getGlobal("extractMethodsEnabled").asInstanceOf[Option[Boolean]]
 
-
     if(initGlobal.isDefined) {
       val global = initGlobal.get match {
         case s: String => returnBestValue(s, Parameter(), pipelineContext.copy(globals = Some(globals - "GlobalLinks")))
