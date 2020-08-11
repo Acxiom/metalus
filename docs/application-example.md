@@ -25,8 +25,13 @@ parameter to a step. This is done to illustrate the flexibility provided.
 Create a new file named *application-example.json* and place it somewhere that can be reached once the application 
 starts. The example json file exists in the *mock_data* directory of this project as a reference.
 
-The initial file should have a basic structure that has configuration for the *SparkConf*, *stepPackages*, an empty *globals*
-object, and an empty *executions* array.
+The initial file should have a basic structure that has configuration for the *SparkConf*, *stepPackages*, *globals*,
+and an empty *executions* array.
+
+The *globals* object is populated with a "GlobalLinks" sub-object that contains a *linked* global name referencing the dataframe
+loaded in the ROOT pipeline.  Since this dataframe is used in multiple pipelines and steps, creating a *global link* allows
+the reference to this step to be used instead typing the long name each time. See *Global Links* section of the [executions](executions.md)
+section for more details.
 
 ```json
 {
@@ -47,7 +52,11 @@ object, and an empty *executions* array.
     "com.acxiom.pipeline.steps",
     "com.acxiom.metalus.steps.mongo"
   ],
-  "globals": {},
+  "globals": {
+    "GlobalLinks": {
+      "rootInput": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
+    }
+  },
   "executions": []
 }
 ```
@@ -295,7 +304,7 @@ is left out:
               "type": "string",
               "name": "inputDataFrame",
               "required": true,
-              "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
+              "value": "!rootInput"
             },
             {
               "type": "string",
@@ -368,6 +377,9 @@ This pipeline will take the *DataFrame* loaded in the first execution pipeline a
 step in the pipeline. The *MAPFIELDSSTEP* relies on the execution id being **ROOT**. This pipeline needs to be part of 
 an execution that is dependent on the *ROOT* execution created previously.
 
+Notice the *Global Link* used to reference the input dataframe from the ROOT pipeline, providing a shortcut name that can be used
+anywhere after that step completes
+
 The following parameter should be added to the pipelines array which will be responsible for setting the column order,
 column names, and data types on output. Specifically, renaming GENDER to GENDER_CODE applying logic to only save the first
 character in upper case and adding a new field called FULL_NAME which is built from concatenating first name to last name:
@@ -392,7 +404,7 @@ character in upper case and adding a new field called FULL_NAME which is built f
               "type": "string",
               "name": "inputDataFrame",
               "required": true,
-              "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
+              "value": "!rootInput"
             },
             {
               "type": "string",
@@ -567,7 +579,7 @@ ACCOUNT_TYPE to uppercase:
               "type": "string",
               "name": "inputDataFrame",
               "required": true,
-              "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
+              "value": "!rootInput"
             },
             {
               "type": "string",
@@ -690,7 +702,7 @@ column names, and data types on output.  Specifically, the ORDER_NUM field will 
               "type": "string",
               "name": "inputDataFrame",
               "required": true,
-              "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
+              "value": "!rootInput"
             },
             {
               "type": "string",

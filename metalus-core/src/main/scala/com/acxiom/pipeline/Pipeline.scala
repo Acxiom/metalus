@@ -1,6 +1,6 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.audits.{ExecutionAudit, AuditType}
+import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.util.CollectionAccumulator
@@ -64,6 +64,7 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            stepMessages: Option[CollectionAccumulator[PipelineStepMessage]],
                            rootAudit: ExecutionAudit = ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
                            pipelineManager: PipelineManager = PipelineManager(List())) {
+
   /**
     * Get the named global value as a string.
     *
@@ -86,17 +87,20 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
   }
 
   /**
-    * Get the named global value.
+    * Get the named global value (considering GlobalLinks)
     *
     * @param globalName The name of the global property to return.
     * @return An option containing the value or None
     */
   def getGlobal(globalName: String): Option[Any] = {
-    if (this.globals.isDefined && this.globals.get.contains(globalName)) {
-      this.globals.get.get(globalName)
-    } else {
-      None
-    }
+    this.globals.flatMap(x => {
+      x.collectFirst{
+        case ("GlobalLinks", v:Map[_,_]) if v.isInstanceOf[Map[String, Any]] && v.asInstanceOf[Map[String, Any]].contains(globalName) =>
+          v.asInstanceOf[Map[String, Any]].getOrElse(globalName, "")
+        case (k, v:Option[_]) if k == globalName => v.get
+        case (k, v) if k == globalName => v
+      }
+    })
   }
 
   /**
