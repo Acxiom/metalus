@@ -137,6 +137,7 @@ trait PipelineStepMapper {
     case "float" => stringVal.toFloat
     case "double" => stringVal.toDouble
     case "byte" => stringVal.toByte
+    case "short" => stringVal.toShort
     case "bigint" => BigInt(stringVal)
     case "bigdecimal" => BigDecimal(stringVal)
     case "boolean" => stringVal.toBoolean

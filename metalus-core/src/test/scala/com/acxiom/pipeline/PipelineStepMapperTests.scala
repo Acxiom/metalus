@@ -83,7 +83,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       "extractMethodsEnabled" -> true,
       "complexList" -> List(DefaultPipelineStepResponse(Some("moo")), DefaultPipelineStepResponse(Some("moo2"))),
       "optionsList" -> List(Some("1"), Some("2"), None, Some("3")),
-      "numericString" -> "1", "bigIntGlobal" -> BigInt(1)
+      "numericString" -> "1", "bigIntGlobal" -> BigInt(1), "booleanString" -> "true"
     )
 
     val subPipeline = Pipeline(Some("mypipeline"), Some("My Pipeline"))
@@ -178,7 +178,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("Casting String global to double", Parameter(value = Some("!numericString"), `type` = Some("double")), 1.0D),
         ("Casting BigInt global to long", Parameter(value = Some("!bigIntGlobal"), `type` = Some("long")), 1L),
         ("Casting BigInt global to BigDecimal", Parameter(value = Some("!bigIntGlobal"), `type` = Some("BigDecimal")), BigDecimal(1)),
-        ("Casting bigInt global to String", Parameter(value = Some("!bigIntGlobal"), `type` = Some("String")), "1")
+        ("Casting bigInt global to String", Parameter(value = Some("!bigIntGlobal"), `type` = Some("String")), "1"),
+        ("Casting String global to boolean", Parameter(value = Some("!booleanString"), `type` = Some("boolean")), true)
       )
       tests.foreach(test => {
         Then(s"test ${test._1}")
@@ -194,6 +195,44 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       assert(thrown.getMessage == msg)
       assert(pipelineContext.parameterMapper.mapParameter(
         Parameter(name = Some("badValue"), value=None,`type`=Some("string")), pipelineContext).asInstanceOf[Option[_]].isEmpty)
+    }
+
+    it("should cast string values to different numeric types") {
+      Map(
+        "int" -> 1,
+        "integer" -> 1,
+        "long" -> 1L,
+        "float" -> 1.0F,
+        "double" -> 1.0D,
+        "byte" -> 1.toByte,
+        "short" -> 1.toShort,
+        "bigint" -> BigInt(1),
+        "bigdecimal" -> BigDecimal(1)
+      ).foreach{ case (typeName, expected) =>
+        val ret = pipelineContext.parameterMapper.mapParameter(Parameter(value = Some("!bigIntGlobal"), `type` = Some(typeName)), pipelineContext)
+        assert(ret == expected)
+      }
+    }
+
+    it("should cast numeric values to different numeric and string types") {
+      Map(
+        "int" -> 1,
+        "integer" -> 1,
+        "long" -> 1L,
+        "float" -> 1.0F,
+        "double" -> 1.0D,
+        "byte" -> 1.toByte,
+        "short" -> 1.toShort,
+        "character" -> 1.toChar,
+        "char" -> 1.toChar,
+        "boolean" -> true,
+        "bigint" -> BigInt(1),
+        "bigdecimal" -> BigDecimal(1),
+        "string" -> "1"
+      ).foreach{ case (typeName, expected) =>
+        val ret = pipelineContext.parameterMapper.mapParameter(Parameter(value = Some("!numericString"), `type` = Some(typeName)), pipelineContext)
+        assert(ret == expected)
+      }
     }
 
     it("Should throw the appropriate error when given script with malformed bindings") {
