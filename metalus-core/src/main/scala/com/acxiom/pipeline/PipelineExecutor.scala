@@ -1,6 +1,6 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.audits.{ExecutionAudit, AuditType}
+import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import com.acxiom.pipeline.utils.ReflectionUtils
 import org.apache.log4j.Logger
 
@@ -8,6 +8,7 @@ import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
+import scala.runtime.BoxedUnit
 
 object PipelineExecutor {
   private val logger = Logger.getLogger(getClass)
@@ -57,7 +58,7 @@ object PipelineExecutor {
           logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
         PipelineExecutionResult(esContext, success = false)
       case p: PauseException =>
-        logger.info(s"Paused pipeline flow at pipeline ${p.pipelineId} step ${p.stepId}. ${p.message}")
+        logger.info(s"Paused pipeline flow at ${p.pipelineProgress.getOrElse(PipelineExecutionInfo()).displayPipelineStepString}. ${p.message}")
         PipelineExecutionResult(esContext, success = false)
       case pse: PipelineStepException =>
         logger.error(s"Stopping pipeline because of an exception", pse)
@@ -83,9 +84,9 @@ object PipelineExecutor {
     if (messages.isDefined && messages.get.nonEmpty) {
       messages.get.foreach(m => m.messageType match {
         case PipelineStepMessageType.error =>
-          throw PipelineException(message = Some(m.message), pipelineId = Some(m.pipelineId), stepId = Some(m.stepId))
+          throw PipelineException(message = Some(m.message), pipelineProgress = Some(PipelineExecutionInfo(Some(m.stepId), Some(m.pipelineId))))
         case PipelineStepMessageType.pause =>
-          throw PauseException(message = Some(m.message), pipelineId = Some(m.pipelineId), stepId = Some(m.stepId))
+          throw PauseException(message = Some(m.message), pipelineProgress = Some(PipelineExecutionInfo(Some(m.stepId), Some(m.pipelineId))))
         case PipelineStepMessageType.warn =>
           logger.warn(s"Step ${m.stepId} in pipeline ${pipelineLookup(m.pipelineId)} issued a warning: ${m.message}")
         case _ =>
@@ -124,7 +125,7 @@ object PipelineExecutor {
         executeStep(steps(nextStepId.get), pipeline, steps, sfContext)
     } else if (nextStepId.isDefined && nextStepId.get.nonEmpty) {
       throw PipelineException(message = Some("Step Id does not exist in pipeline"),
-        pipelineId = Some(sfContext.getGlobalString("pipelineId").getOrElse("")), stepId = nextStepId)
+        pipelineProgress = Some(PipelineExecutionInfo(nextStepId, Some(sfContext.getGlobalString("pipelineId").getOrElse("")))))
     } else {
       sfContext
     }
@@ -137,7 +138,7 @@ object PipelineExecutor {
     (step.executeIfEmpty.getOrElse(""), step.`type`.getOrElse("").toLowerCase) match {
       // process step normally if empty
       case ("", "fork") => processForkStep(step, pipeline, steps, parameterValues, pipelineContext)
-      case ("", STEPGROUP) => processStepGroup(step, pipeline, steps, parameterValues, pipelineContext)
+      case ("", STEPGROUP) => processStepGroup(step, pipeline, parameterValues, pipelineContext)
       case ("", _) => ReflectionUtils.processStep(step, pipeline, parameterValues, pipelineContext)
       case (value, _) =>
         logger.debug(s"Evaluating execute if empty: $value")
@@ -166,8 +167,7 @@ object PipelineExecutor {
         if(step.engineMeta.isEmpty || step.engineMeta.get.spark.getOrElse("") == "") {
           throw PipelineException(
             message = Some(s"EngineMeta is required for [${step.`type`.get}] step [${step.id.get}] in pipeline [${pipeline.id.get}]"),
-            pipelineId = pipeline.id,
-            stepId = step.id)
+            pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
         }
       case "fork" => validateForkStep(step, pipeline)
       case "join" =>
@@ -176,19 +176,16 @@ object PipelineExecutor {
           !step.params.get.exists(p => p.name.getOrElse("") == "pipeline" || p.name.getOrElse("") == "pipelineId")) {
           throw PipelineException(
             message = Some(s"Parameter [pipeline] or [pipelineId] is required for step group [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-            pipelineId = pipeline.id,
-            stepId = step.id)
+            pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
         }
       case "" =>
         throw PipelineException(
           message = Some(s"[type] is required for step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-          pipelineId = pipeline.id,
-          stepId = step.id)
+          pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
       case unknown =>
         throw PipelineException(message =
           Some(s"Unknown pipeline type: [$unknown] for step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-          pipelineId = pipeline.id,
-          stepId = step.id)
+          pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
     }
   }
 
@@ -197,14 +194,12 @@ object PipelineExecutor {
     if(step.id.getOrElse("") == ""){
       throw PipelineException(
         message = Some(s"Step is missing id in pipeline [${pipeline.id.get}]."),
-        pipelineId = pipeline.id,
-        stepId = step.id)
+        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
     }
     if(step.id.get.toLowerCase == "laststepid") {
       throw PipelineException(
         message = Some(s"Step id [${step.id.get}] is a reserved id in pipeline [${pipeline.id.get}]."),
-        pipelineId = pipeline.id,
-        stepId = step.id)
+        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
     }
   }
 
@@ -213,8 +208,7 @@ object PipelineExecutor {
     if(step.params.isEmpty) {
       throw PipelineException(
         message = Some(s"Parameters [forkByValues] and [forkMethod] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-        pipelineId = pipeline.id,
-        stepId = step.id)
+        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
     }
     val forkMethod = step.params.get.find(p => p.name.getOrElse("") == "forkMethod")
     if(forkMethod.isDefined && forkMethod.get.value.nonEmpty){
@@ -223,27 +217,25 @@ object PipelineExecutor {
         throw PipelineException(
           message = Some(s"Unknown value [$method] for parameter [forkMethod]." +
           s" Value must be either [serial] or [parallel] for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-          pipelineId = pipeline.id,
-          stepId = step.id)
+          pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
       }
     } else {
       throw PipelineException(
         message = Some(s"Parameter [forkMethod] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-        pipelineId = pipeline.id,
-        stepId = step.id)
+        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
     }
     val forkByValues = step.params.get.find(p => p.name.getOrElse("") == "forkByValues")
     if(forkByValues.isEmpty || forkByValues.get.value.isEmpty){
       throw PipelineException(
         message = Some(s"Parameter [forkByValues] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-        pipelineId = pipeline.id,
-        stepId = step.id)
+        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
     }
   }
 
   private def updatePipelineContext(step: PipelineStep, result: Any, nextStepId: Option[String], pipelineContext: PipelineContext): PipelineContext = {
-    val pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
-    val groupId = pipelineContext.getGlobalString("groupId")
+    val pipelineProgress = pipelineContext.getPipelineExecutionInfo
+    val pipelineId = pipelineProgress.pipelineId.getOrElse("")
+    val groupId = pipelineProgress.groupId
     val ctx = result match {
       case forkResult: ForkStepResult => forkResult.pipelineContext
       case groupResult: StepGroupResult =>
@@ -268,12 +260,23 @@ object PipelineExecutor {
     }
 
     val updateCtx = if (nextStepId.isDefined) {
+      val metrics = if (ctx.sparkSession.isDefined) {
+        val executorStatus = ctx.sparkSession.get.sparkContext.getExecutorMemoryStatus
+        Map[String, Any]("startExecutorCount" -> executorStatus.size)
+      } else { Map[String, Any]() }
       ctx.setStepAudit(pipelineId,
-        ExecutionAudit(nextStepId.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), None, groupId))
+        ExecutionAudit(nextStepId.get, AuditType.STEP, metrics, System.currentTimeMillis(), None, groupId))
     } else {
       ctx
     }
-    updateCtx.setStepAudit(pipelineId, updateCtx.getStepAudit(pipelineId, step.id.get, groupId).get.setEnd(System.currentTimeMillis()))
+    val audit = if (updateCtx.sparkSession.isDefined) {
+      val executorStatus = updateCtx.sparkSession.get.sparkContext.getExecutorMemoryStatus
+      updateCtx.getStepAudit(pipelineId, step.id.get, groupId).get.setEnd(System.currentTimeMillis())
+        .setMetric("endExecutorCount", executorStatus.size)
+    } else {
+      updateCtx.getStepAudit(pipelineId, step.id.get, groupId).get.setEnd(System.currentTimeMillis())
+    }
+    updateCtx.setStepAudit(pipelineId, audit)
   }
 
   private def processResponseGlobals(step: PipelineStep, result: Any, pipelineId: String, updatedCtx: PipelineContext) = {
@@ -336,7 +339,7 @@ object PipelineExecutor {
     val ex = t match {
       case se: PipelineStepException => se
       case t: Throwable => PipelineException(message = Some("An unknown exception has occurred"), cause = t,
-        pipelineId = pipeline.id, stepId = Some("Unknown"))
+        pipelineProgress = Some(PipelineExecutionInfo(Some("Unknown"), pipeline.id)))
     }
     if (pipelineContext.pipelineListener.isDefined) {
       pipelineContext.pipelineListener.get.registerStepException(ex, pipelineContext)
@@ -349,12 +352,12 @@ object PipelineExecutor {
     ex
   }
 
-  private def processStepGroup(step: PipelineStep, pipeline: Pipeline, steps: Map[String, PipelineStep],
-                               parameterValues: Map[String, Any], pipelineContext: PipelineContext): StepGroupResult = {
+  private def processStepGroup(step: PipelineStep, pipeline: Pipeline, parameterValues: Map[String, Any],
+                               pipelineContext: PipelineContext): StepGroupResult = {
     val subPipeline =if (parameterValues.contains("pipelineId")) {
       pipelineContext.pipelineManager.getPipeline(parameterValues("pipelineId").toString)
         .getOrElse(throw PipelineException(message = Some(s"Unable to retrieve required step group id ${parameterValues("pipelineId")}"),
-          pipelineId = pipeline.id, stepId = step.id))
+          pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id))))
     } else { parameterValues("pipeline").asInstanceOf[Pipeline] }
     val firstStep = subPipeline.steps.get.head
     val stepLookup = createStepLookup(subPipeline)
@@ -379,11 +382,7 @@ object PipelineExecutor {
       .copy(parameters = PipelineParameters(List(PipelineParameter(subPipeline.id.getOrElse(""), Map[String, Any]()))))
     val resultCtx = executeStep(firstStep, subPipeline, stepLookup, ctx)
     val pipelineParams = resultCtx.parameters.getParametersByPipelineId(subPipeline.id.getOrElse(""))
-    val response = if (pipelineParams.isDefined) {
-      PipelineStepResponse(Some(subPipeline.steps.get.map { step =>
-        step.id.getOrElse("") -> pipelineParams.get.parameters.get(step.id.getOrElse("")).map(_.asInstanceOf[PipelineStepResponse])
-      }.toMap.collect { case (k, v: Some[_]) => k -> v.get }), None)
-    } else { PipelineStepResponse(None, None) }
+    val response = extractStepGroupResponse(step, subPipeline, pipelineParams, resultCtx)
     val updates = subPipeline.steps.get
       .filter { step =>
         pipelineParams.isDefined && pipelineParams.get.parameters.get(step.id.getOrElse(""))
@@ -398,6 +397,46 @@ object PipelineExecutor {
         updates ++ updateList
       })
     StepGroupResult(resultCtx.rootAudit, response, updates)
+  }
+
+  /**
+    * This function is responsible for creating the PipelineStepResponse for a step group
+    *
+    * @param step The step group step
+    * @param stepGroup The step group pipeline
+    * @param pipelineParameter The pipeline parameter for the step group pipeline
+    * @param pipelineContext The PipelineContext result from the execution of the Step Group Pipeline
+    * @return A PipelineStepResponse
+    */
+  private def extractStepGroupResponse(step: PipelineStep,
+                                       stepGroup: Pipeline,
+                                       pipelineParameter: Option[PipelineParameter],
+                                       pipelineContext: PipelineContext) = {
+    if (pipelineParameter.isDefined) {
+      val resultParam = step.params.get.find(_.`type`.getOrElse("text") == "result")
+      val resultMappingParam = if (resultParam.isDefined) {
+        resultParam
+      } else if (stepGroup.stepGroupResult.isDefined) {
+        Some(Parameter(Some("result"), Some("output"), None, None, stepGroup.stepGroupResult))
+      } else {
+        None
+      }
+      val stepResponseMap = Some(stepGroup.steps.get.map { step =>
+        step.id.getOrElse("") -> pipelineParameter.get.parameters.get(step.id.getOrElse("")).map(_.asInstanceOf[PipelineStepResponse])
+      }.toMap.collect { case (k, v: Some[_]) => k -> v.get })
+      if (resultMappingParam.isDefined) {
+        val mappedValue = pipelineContext.parameterMapper.mapParameter(resultMappingParam.get, pipelineContext) match {
+          case value: Option[_] => value
+          case _: BoxedUnit => None
+          case response => Some(response)
+        }
+        PipelineStepResponse(mappedValue, stepResponseMap)
+      } else {
+        PipelineStepResponse(stepResponseMap, None)
+      }
+    } else {
+      PipelineStepResponse(None, None)
+    }
   }
 
   /**
@@ -655,7 +694,7 @@ object PipelineExecutor {
                            forkSteps: List[PipelineStep]): List[PipelineStep] = {
     step.`type`.getOrElse("").toLowerCase match {
       case "fork" => throw PipelineException(message = Some("fork steps may not be embedded other fork steps!"),
-        pipelineId = pipeline.id, stepId = step.id)
+        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
       case "branch" =>
         step.params.get.foldLeft(conditionallyAddStepToList(step, forkSteps))((stepList, param) => {
           if (param.`type`.getOrElse("") == "result") {

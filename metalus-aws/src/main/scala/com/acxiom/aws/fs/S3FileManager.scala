@@ -1,29 +1,31 @@
 package com.acxiom.aws.fs
 
-import java.io.{InputStream, OutputStream}
+import java.io.{FileNotFoundException, InputStream, OutputStream}
 
 import com.acxiom.aws.utils.S3Utilities
 import com.acxiom.pipeline.fs.{FileInfo, FileManager}
-import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
+import com.amazonaws.auth.{AWSStaticCredentialsProvider, AnonymousAWSCredentials, BasicAWSCredentials}
 import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 
-class S3FileManager(region: String,
-                    bucket: String,
-                    accessKeyId: Option[String] = None,
-                    secretAccessKey: Option[String] = None) extends FileManager {
-  private lazy val s3Client: AmazonS3 = if (accessKeyId.isDefined && secretAccessKey.isDefined) {
-    AmazonS3ClientBuilder.standard()
-      .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKeyId.get, secretAccessKey.get)))
+class S3FileManager(s3Client: AmazonS3, bucket: String) extends FileManager {
+
+  def this(region: String,
+           bucket: String,
+           accessKeyId: Option[String] = None,
+           secretAccessKey: Option[String] = None) = {
+    this(AmazonS3ClientBuilder.standard()
+      .withCredentials(new AWSStaticCredentialsProvider(
+          if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+            new BasicAWSCredentials(accessKeyId.get, secretAccessKey.get)
+          } else {
+            new AnonymousAWSCredentials()
+          }))
       .withRegion(region)
-      .build()
-  } else {
-    AmazonS3ClientBuilder.standard()
-      .withRegion(region)
-      .build()
+      .build(), bucket)
   }
 
   /**
@@ -40,7 +42,7 @@ class S3FileManager(region: String,
     * @return True if the path exists, otherwise false.
     */
   override def exists(path: String): Boolean = {
-    s3Client.doesObjectExist(bucket, S3Utilities.prepareS3FilePath(path))
+    s3Client.doesObjectExist(bucket, S3Utilities.prepareS3FilePath(path, Some(bucket)))
   }
 
   /**
@@ -51,7 +53,7 @@ class S3FileManager(region: String,
     * @return A buffered input stream
     */
   override def getInputStream(path: String, bufferSize: Int): InputStream = {
-    val file = s3Client.getObject(bucket, S3Utilities.prepareS3FilePath(path))
+    val file = s3Client.getObject(bucket, S3Utilities.prepareS3FilePath(path, Some(bucket)))
     file.getObjectContent
   }
 
@@ -64,7 +66,7 @@ class S3FileManager(region: String,
     * @return
     */
   override def getOutputStream(path: String, append: Boolean, bufferSize: Int): OutputStream = {
-    new S3OutputStream(s3Client, bucket, S3Utilities.prepareS3FilePath(path))
+    new S3OutputStream(s3Client, bucket, S3Utilities.prepareS3FilePath(path, Some(bucket)))
   }
 
   /**
@@ -75,8 +77,8 @@ class S3FileManager(region: String,
     * @return True if the path could be renamed.
     */
   override def rename(path: String, destPath: String): Boolean = {
-    val source = S3Utilities.prepareS3FilePath(path)
-    val destination = S3Utilities.prepareS3FilePath(destPath)
+    val source = S3Utilities.prepareS3FilePath(path, Some(bucket))
+    val destination = S3Utilities.prepareS3FilePath(destPath, Some(bucket))
 
     val fileLength = s3Client.getObjectMetadata(bucket, source).getContentLength
     if (fileLength < S3Utilities.MULTIPART_COPY_SIZE) {
@@ -90,7 +92,7 @@ class S3FileManager(region: String,
         new CompleteMultipartUploadRequest(bucket, destination, request.getUploadId, etags.asJava))
     }
 
-    s3Client.deleteObject(bucket, path)
+    s3Client.deleteObject(bucket, source)
     true
   }
 
@@ -102,7 +104,7 @@ class S3FileManager(region: String,
     */
   override def deleteFile(path: String): Boolean = {
     // get a list of all objects with this prefix (in case filePath is a folder)
-    val s3ObjectList = s3Client.listObjects(bucket, S3Utilities.prepareS3FilePath(path)).getObjectSummaries
+    val s3ObjectList = s3Client.listObjects(bucket, S3Utilities.prepareS3FilePath(path, Some(bucket))).getObjectSummaries
     s3ObjectList.toArray.foreach(f => {
       val fileKey = f.asInstanceOf[S3ObjectSummary].getKey
       s3Client.deleteObject(new DeleteObjectRequest(bucket, fileKey))
@@ -117,11 +119,15 @@ class S3FileManager(region: String,
     * @return size of the given file
     */
   override def getSize(path: String): Long = {
-    // get a list of all objects with this prefix (in case path is a folder)
-    val s3ObjectList = s3Client.listObjects(bucket, S3Utilities.prepareS3FilePath(path, Some(bucket))).getObjectSummaries
+    if (exists(path)) {
+      // get a list of all objects with this prefix (in case path is a folder)
+      val s3ObjectList = s3Client.listObjects(bucket, S3Utilities.prepareS3FilePath(path, Some(bucket))).getObjectSummaries
 
-    // convert to Scala list and sum the size of all objects with the prefix
-    s3ObjectList.asScala.map(_.getSize).sum
+      // convert to Scala list and sum the size of all objects with the prefix
+      s3ObjectList.asScala.map(_.getSize).sum
+    } else {
+      throw new FileNotFoundException(s"File not found when attempting to get size,inputPath=$path")
+    }
   }
 
   /**
@@ -131,7 +137,11 @@ class S3FileManager(region: String,
     * @return A list of files at the given path
     */
   override def getFileListing(path: String): List[FileInfo] = {
-    nextObjectBatch(s3Client, s3Client.listObjects(bucket, path))
+    if (exists(path)) {
+      nextObjectBatch(s3Client, s3Client.listObjects(bucket, path))
+    } else {
+      throw new FileNotFoundException(s"Path not found when attempting to get listing,inputPath=$path")
+    }
   }
 
   /**

@@ -85,3 +85,7 @@ trait PipelineUDF extends Serializable {
    */
   def register(sparkSession: SparkSession, globals: Map[String, Any]): UserDefinedFunction
 }
+
+case class ApplicationTriggers(enableHiveSupport: Boolean = false,
+                               parquetDictionaryEnabled: Boolean = true,
+                               validateArgumentTypes: Boolean = false)

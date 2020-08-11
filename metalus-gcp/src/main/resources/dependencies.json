@@ -1,0 +1,41 @@
+{
+  "maven": {
+    "libraries": [
+      {
+        "groupId": "com.acxiom",
+        "artifactId": "metalus-common_${scala.compat.version}-spark_${spark.compat.version}",
+        "version": "${parent.version}"
+      },
+      {
+        "groupId": "org.apache.spark",
+        "artifactId": "spark-streaming_${scala.compat.version}",
+        "version": "${spark.version}",
+        "scope": "extraction"
+      },
+      {
+        "groupId": "org.apache.spark",
+        "artifactId": "spark-core_${scala.compat.version}",
+        "version": "${spark.version}",
+        "scope": "extraction"
+      },
+      {
+        "groupId": "com.google.cloud.bigdataoss",
+        "artifactId": "gcs-connector",
+        "version": "hadoop2-1.9.17",
+        "scope": "extraction"
+      },
+      {
+        "groupId": "org.jboss.marshalling",
+        "artifactId": "jboss-marshalling",
+        "version": "2.0.9.Final",
+        "scope": "extraction"
+      },
+      {
+        "groupId": "org.apache.logging.log4j",
+        "artifactId": "log4j-api",
+        "version": "2.13.3",
+        "scope": "extraction"
+      }
+    ]
+  }
+}

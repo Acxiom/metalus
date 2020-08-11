@@ -1,13 +1,21 @@
 package com.acxiom.pipeline.steps
 
 import java.util.Date
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.acxiom.pipeline.fs.FileManager
 import org.apache.log4j.Logger
 
 @StepObject
 object FileManagerSteps {
   private val logger = Logger.getLogger(getClass)
+  private val srcFsDescription: Some[String] = Some("The source FileManager")
+  private val srcPathDescription: Some[String] = Some("The path to copy from")
+  private val destFsDescription: Some[String] = Some("The destination FileManager")
+  private val destPathDescription: Some[String] = Some("The path to copy to")
+  private val inputBufferDescription: Some[String] = Some("The size of the buffer to use for reading data during copy")
+  private val outputBufferDescription: Some[String] = Some("The size of the buffer to use for writing data during copy")
+
   /**
     * Copy the contents of the source path to the destination path. This function will call connect on both FileManagers.
     *
@@ -22,6 +30,10 @@ object FileManagerSteps {
     "Copy the contents of the source path to the destination path. This function will call connect on both FileManagers.",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("srcFS" -> StepParameter(None, Some(true), None, None, None, None, srcFsDescription),
+    "srcPath" -> StepParameter(None, Some(true), None, None, None, None, srcPathDescription),
+    "destFS" -> StepParameter(None, Some(true), None, None, None, None, destFsDescription),
+    "destPath" -> StepParameter(None, Some(true), None, None, None, None, destPathDescription)))
   def copy(srcFS: FileManager, srcPath: String, destFS: FileManager, destPath: String): CopyResults = {
     copy(srcFS, srcPath, destFS, destPath, FileManager.DEFAULT_BUFFER_SIZE, FileManager.DEFAULT_BUFFER_SIZE)
   }
@@ -42,6 +54,12 @@ object FileManagerSteps {
     "Copy the contents of the source path to the destination path using buffer sizes. This function will call connect on both FileManagers.",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("srcFS" -> StepParameter(None, Some(true), None, None, None, None, srcFsDescription),
+    "srcPath" -> StepParameter(None, Some(true), None, None, None, None, srcPathDescription),
+    "destFS" -> StepParameter(None, Some(true), None, None, None, None, destFsDescription),
+    "destPath" -> StepParameter(None, Some(true), None, None, None, None, destPathDescription),
+    "inputBufferSize" -> StepParameter(None, Some(true), None, None, None, None, inputBufferDescription),
+    "outputBufferSize" -> StepParameter(None, Some(true), None, None, None, None, outputBufferDescription)))
   def copy(srcFS: FileManager, srcPath: String, destFS: FileManager, destPath: String, inputBufferSize: Int, outputBufferSize: Int): CopyResults = {
     copy(srcFS, srcPath, destFS, destPath, inputBufferSize, outputBufferSize, FileManager.DEFAULT_COPY_BUFFER_SIZE)
   }
@@ -63,6 +81,13 @@ object FileManagerSteps {
     "Copy the contents of the source path to the destination path using full buffer sizes. This function will call connect on both FileManagers.",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("srcFS" -> StepParameter(None, Some(true), None, None, None, None, srcFsDescription),
+    "srcPath" -> StepParameter(None, Some(true), None, None, None, None, srcPathDescription),
+    "destFS" -> StepParameter(None, Some(true), None, None, None, None, destFsDescription),
+    "destPath" -> StepParameter(None, Some(true), None, None, None, None, destPathDescription),
+    "inputBufferSize" -> StepParameter(None, Some(true), None, None, None, None, inputBufferDescription),
+    "outputBufferSize" -> StepParameter(None, Some(true), None, None, None, None, outputBufferDescription),
+    "copyBufferSize" -> StepParameter(None, Some(true), None, None, None, None, Some("The intermediate buffer size to use during copy"))))
   def copy(srcFS: FileManager, srcPath: String, destFS: FileManager, destPath: String,
            inputBufferSize: Int, outputBufferSize: Int, copyBufferSize: Int): CopyResults = {
     // connect to source and destination file systems
@@ -102,6 +127,7 @@ object FileManagerSteps {
     "Disconnects a FileManager from the underlying file system",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("fileManager" -> StepParameter(None, Some(true), None, None, None, None, Some("The file manager to disconnect"))))
   def disconnectFileManager(fileManager: FileManager): Unit = {
     fileManager.disconnect()
   }

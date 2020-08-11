@@ -22,20 +22,27 @@ trait Pipeline {
   def name: Option[String] = None
   def steps: Option[List[PipelineStep]] = None
   def category: Option[String] = Some("pipeline")
+  def tags: Option[List[String]] = None
+  def stepGroupResult: Option[Any] = None
 }
 
 /**
   * Contains the a pipeline definition to be executed.
   *
-  * @param id       The unique id of this pipeline.
-  * @param name     The pipeline name used for logging and errors.
-  * @param steps    A list of steps to execute.
-  * @param category The category of pipeline: pipeline or step-group
+  * @param id              The unique id of this pipeline.
+  * @param name            The pipeline name used for logging and errors.
+  * @param steps           A list of steps to execute.
+  * @param category        The category of pipeline: pipeline or step-group
+  * @param tags            A list of tags to use to help describe the pipeline
+  * @param stepGroupResult A mapping used to provide a single result after a step-group has executed instead of
+  *                        the default map of step results.
   */
 case class DefaultPipeline(override val id: Option[String] = None,
                            override val name: Option[String] = None,
                            override val steps: Option[List[PipelineStep]] = None,
-                           override val category: Option[String] = Some("pipeline")) extends Pipeline
+                           override val category: Option[String] = Some("pipeline"),
+                           override val tags: Option[List[String]] = None,
+                           override val stepGroupResult: Option[Any] = None) extends Pipeline
 
 /**
   * Global object that may be passed to step functions.
@@ -52,6 +59,7 @@ case class DefaultPipeline(override val id: Option[String] = None,
   * @param stepMessages     Used for logging messages from steps.
   * @param rootAudit        The base audit record
   * @param pipelineManager  The PipelineManager to use for Step Groups.
+  * @param credentialProvider  The CredentialProvider to use for accessing credentials.
   */
 case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            sparkSession: Option[SparkSession] = None,
@@ -63,8 +71,8 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            pipelineListener: Option[PipelineListener] = Some(PipelineListener()),
                            stepMessages: Option[CollectionAccumulator[PipelineStepMessage]],
                            rootAudit: ExecutionAudit = ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
-                           pipelineManager: PipelineManager = PipelineManager(List())) {
-
+                           pipelineManager: PipelineManager = PipelineManager(List()),
+                           credentialProvider: Option[CredentialProvider] = None) {
   /**
     * Get the named global value as a string.
     *
@@ -101,6 +109,10 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
         case (k, v) if k == globalName => v
       }
     })
+  }
+
+  def getGlobalAs[T](globalName: String): Option[T] = {
+    globals.flatMap(_.get(globalName).map(_.asInstanceOf[T]))
   }
 
   /**
@@ -257,6 +269,15 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     val audit = getStepAudit(pipelineId, stepId, groupId).get.setMetric(name, value)
     this.setStepAudit(pipelineId, audit)
   }
+
+  def getPipelineExecutionInfo: PipelineExecutionInfo = {
+    PipelineExecutionInfo(
+      getGlobalString("stepId"),
+      getGlobalString("pipelineId"),
+      getGlobalString("executionId"),
+      getGlobalString("groupId")
+    )
+  }
 }
 
 case class PipelineParameter(pipelineId: String, parameters: Map[String, Any])
@@ -313,3 +334,24 @@ case class PipelineParameters(parameters: List[PipelineParameter] = List()) {
   * @param success Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
   */
 case class PipelineExecutionResult(pipelineContext: PipelineContext, success: Boolean)
+
+/**
+  * Contains the current pipeline and step information
+  *
+  * @param stepId      The current step being executed
+  * @param pipelineId  The current pipeline being executed
+  * @param executionId The current execution being executed
+  * @param groupId     The current group being executed
+  */
+case class PipelineExecutionInfo(stepId: Option[String] = None,
+                                 pipelineId: Option[String] = None,
+                                 executionId: Option[String] = None,
+                                 groupId: Option[String] = None) {
+  def displayPipelineStepString: String = {
+    s"pipeline ${pipelineId.getOrElse("")} step ${stepId.getOrElse("")}"
+  }
+
+  def displayString: String = {
+    s"execution ${executionId.getOrElse("")} group ${groupId.getOrElse("")} pipeline ${pipelineId.getOrElse("")} step ${stepId.getOrElse("")}"
+  }
+}

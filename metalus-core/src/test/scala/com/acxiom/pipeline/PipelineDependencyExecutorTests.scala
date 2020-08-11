@@ -394,8 +394,8 @@ object ExecutionSteps {
 
   def exceptionStep(value: String, pipelineContext: PipelineContext): PipelineStepResponse = {
     throw PipelineException(message = Some("Called exception step"),
-      pipelineId = pipelineContext.getGlobalString("pipelineId"),
-      stepId = pipelineContext.getGlobalString("stepId"))
+      pipelineProgress = Some(PipelineExecutionInfo(pipelineContext.getGlobalString("stepId"),
+        pipelineContext.getGlobalString("pipelineId"))))
   }
 
   def pauseStep(value: String, pipelineContext: PipelineContext): Unit = {

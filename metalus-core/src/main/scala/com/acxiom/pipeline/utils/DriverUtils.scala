@@ -1,9 +1,9 @@
 package com.acxiom.pipeline.utils
 
-import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
+import com.acxiom.pipeline._
+import com.acxiom.pipeline.api.HttpRestClient
 import com.acxiom.pipeline.drivers.StreamingDataParser
 import com.acxiom.pipeline.fs.FileManager
-import com.acxiom.pipeline.{DefaultPipeline, Pipeline, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
@@ -80,18 +80,35 @@ object DriverUtils {
     parameters
   }
 
-  def getHttpRestClient(url: String, parameters: Map[String, Any], skipAuth: Option[Boolean] = None): HttpRestClient = {
-    val authorizationClass = "authorization.class"
-    if (parameters.contains(authorizationClass).&&(!skipAuth.getOrElse(false))) {
-      val authorizationParameters = parameters.filter(entry =>
-        entry._1.startsWith("authorization.") && entry._1 != authorizationClass)
-        .map(entry => entry._1.substring("authorization.".length) -> entry._2)
-      HttpRestClient(url,
-        ReflectionUtils.loadClass(parameters(authorizationClass).asInstanceOf[String], Some(authorizationParameters))
-          .asInstanceOf[Authorization])
+  /**
+    * Create an HttpRestClient.
+    *
+    * @param url                         The base URL
+    * @param credentialProvider          The credential provider to use for auth
+    * @param skipAuth                    Flag allowing auth to be skipped
+    * @param allowSelfSignedCertificates Flag to allow accepting self signed certs when making https calls
+    * @return An HttpRestClient
+    */
+  def getHttpRestClient(url: String,
+                        credentialProvider: CredentialProvider,
+                        skipAuth: Option[Boolean] = None,
+                        allowSelfSignedCertificates: Boolean = false): HttpRestClient = {
+    val credential = credentialProvider.getNamedCredential("DefaultAuthorization")
+    if (credential.isDefined.&&(!skipAuth.getOrElse(false))) {
+      HttpRestClient(url, credential.get.asInstanceOf[AuthorizationCredential].authorization, allowSelfSignedCertificates)
     } else {
-      HttpRestClient(url)
+      HttpRestClient(url, allowSelfSignedCertificates)
     }
+  }
+
+  /**
+    * Given a map of parameters, create the CredentialProvider
+    * @param parameters The map of parameters to pass to the constructor of the CredentialProvider
+    * @return A CredentialProvider
+    */
+  def getCredentialProvider(parameters: Map[String, Any]): CredentialProvider = {
+    val providerClass = parameters.getOrElse("credential-provider", "com.acxiom.pipeline.DefaultCredentialProvider").asInstanceOf[String]
+    ReflectionUtils.loadClass(providerClass, Some(Map("parameters" -> parameters))).asInstanceOf[CredentialProvider]
   }
 
   /**

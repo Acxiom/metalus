@@ -1,10 +1,10 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import org.apache.spark.sql._
-import org.apache.spark.storage.StorageLevel
 import org.apache.spark.sql.functions.expr
+import org.apache.spark.storage.StorageLevel
 
 @StepObject
 object DataFrameSteps {
@@ -14,19 +14,69 @@ object DataFrameSteps {
     "This step will build a DataFrameReader object that can be used to read a file into a dataframe",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map(
+    "dataFrameReaderOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("The options to use when loading the DataFrameReader"))))
   def getDataFrameReader(dataFrameReaderOptions: DataFrameReaderOptions,
-           pipelineContext: PipelineContext): DataFrameReader ={
+                         pipelineContext: PipelineContext): DataFrameReader = {
     buildDataFrameReader(pipelineContext.sparkSession.get, dataFrameReaderOptions)
   }
 
-  @StepFunction("e023fc14-6cb7-44cb-afce-7de01d5cdf00",
+  @StepFunction("66a451c8-ffbd-4481-9c37-71777c3a240f",
+    "Load Using DataFrameReader",
+    "This step will load a DataFrame given a dataFrameReader.",
+    "Pipeline",
+    "InputOutput")
+  @StepParameters(Map(
+    "dataFrameReader" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrameReader to use when creating the DataFrame"))))
+  def load(dataFrameReader: DataFrameReader): DataFrame = {
+    dataFrameReader.load()
+  }
+
+  @StepFunction("d7cf27e6-9ca5-4a73-a1b3-d007499f235f",
+    "Load DataFrame",
+    "This step will load a DataFrame given a DataFrameReaderOptions object.",
+    "Pipeline",
+    "InputOutput")
+  @StepParameters(Map(
+    "dataFrameReaderOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrameReaderOptions to use when creating the DataFrame"))))
+  def loadDataFrame(dataFrameReaderOptions: DataFrameReaderOptions,
+                    pipelineContext: PipelineContext): DataFrame = {
+    load(getDataFrameReader(dataFrameReaderOptions, pipelineContext))
+  }
+
+  @StepFunction("8a00dcf8-e6a9-4833-871e-c1f3397ab378",
     "Build a DataFrameWriter Object",
     "This step will build a DataFrameWriter object that can be used to write a file into a dataframe",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to use when creating the DataFrameWriter")),
+    "options" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrameWriterOptions to use when writing the DataFrame"))))
   def getDataFrameWriter(dataFrame: DataFrame,
-                     options: DataFrameWriterOptions): DataFrameWriter[Row] = {
+                         options: DataFrameWriterOptions): DataFrameWriter[Row] = {
     buildDataFrameWriter(dataFrame, options)
+  }
+
+  @StepFunction("9aa6ae9f-cbeb-4b36-ba6a-02eee0a46558",
+    "Save Using DataFrameWriter",
+    "This step will save a DataFrame given a dataFrameWriter[Row].",
+    "Pipeline",
+    "InputOutput")
+  @StepParameters(Map(
+    "dataFrameWriter" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrameWriter to use when saving"))))
+  def save(dataFrameWriter: DataFrameWriter[Row]): Unit = {
+    dataFrameWriter.save()
+  }
+
+  @StepFunction("e5ac3671-ee10-4d4e-8206-fec7effdf7b9",
+    "Save DataFrame",
+    "This step will save a DataFrame given a DataFrameWriterOptions object.",
+    "Pipeline",
+    "InputOutput")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to save")),
+    "dataFrameWriterOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrameWriterOptions to use for saving"))))
+  def saveDataFrame(dataFrame: DataFrame,
+                    dataFrameWriterOptions: DataFrameWriterOptions): Unit = {
+    save(getDataFrameWriter(dataFrame, dataFrameWriterOptions))
   }
 
   @StepFunction("fa05a970-476d-4617-be4d-950cfa65f2f8",
@@ -34,6 +84,8 @@ object DataFrameSteps {
     "Persist a DataFrame to provided storage level.",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to persist")),
+    "storageLevel" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional storage mechanism to use when persisting the DataFrame"))))
   def persistDataFrame(dataFrame: DataFrame, storageLevel: String = "MEMORY_AND_DISK"): DataFrame = {
     dataFrame.persist(StorageLevel.fromString(storageLevel.toUpperCase))
   }
@@ -43,6 +95,8 @@ object DataFrameSteps {
     "Unpersist a DataFrame.",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to unpersist")),
+    "blocking" -> StepParameter(None, Some(false), None, None, None, None, Some("Optional flag to indicate whether to block while unpersisting"))))
   def unpersistDataFrame(dataFrame: DataFrame, blocking: Boolean = false): DataFrame = {
     dataFrame.unpersist(blocking)
   }
@@ -52,6 +106,12 @@ object DataFrameSteps {
     "Repartition a DataFrame",
     "Pipeline",
     "Transformation")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to repartition")),
+    "partitions" -> StepParameter(None, Some(true), None, None, None, None, Some("The number of partitions to use")),
+    "rangePartition" -> StepParameter(None, Some(false), None, None, None, None,
+      Some("Flag indicating whether to repartition by range. This takes precedent over the shuffle flag")),
+    "shuffle" -> StepParameter(None, Some(false), None, None, None, None, Some("Flag indicating whether to perform a normal partition")),
+    "partitionExpressions" -> StepParameter(None, Some(false), None, None, None, None, Some("The partition expressions to use"))))
   def repartitionDataFrame(dataFrame: DataFrame,
                            partitions: Int,
                            rangePartition: Option[Boolean] = None,
@@ -72,6 +132,9 @@ object DataFrameSteps {
     "Sort a DataFrame",
     "Pipeline",
     "Transformation")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to sort")),
+    "expressions" -> StepParameter(None, Some(true), None, None, None, None, Some("List of expressions to apply prior to the sort")),
+    "descending" -> StepParameter(None, Some(false), None, None, None, None, Some("Flag indicating to sort order"))))
   def sortDataFrame(dataFrame: DataFrame, expressions: List[String], descending: Option[Boolean] = None): DataFrame = {
     val sortOrders = if (descending.getOrElse(false)) {
       expressions.map(e => expr(e).desc)
@@ -101,7 +164,7 @@ object DataFrameSteps {
     *
     * @param sparkSession The current spark session to use.
     * @param options      A DataFrameReaderOptions object for configuring the reader.
-    * @return             A DataFrameReader based on the provided options.
+    * @return A DataFrameReader based on the provided options.
     */
   private def buildDataFrameReader(sparkSession: SparkSession, options: DataFrameReaderOptions): DataFrameReader = {
     val reader = sparkSession.read
@@ -119,7 +182,7 @@ object DataFrameSteps {
     *
     * @param dataFrame A DataFrame to write.
     * @param options   A DataFrameWriterOptions object for configuring the writer.
-    * @return          A DataFrameWriter[Row] based on the provided options.
+    * @return A DataFrameWriter[Row] based on the provided options.
     */
   private def buildDataFrameWriter(dataFrame: DataFrame, options: DataFrameWriterOptions): DataFrameWriter[Row] = {
     val writer = dataFrame.write.format(options.format)

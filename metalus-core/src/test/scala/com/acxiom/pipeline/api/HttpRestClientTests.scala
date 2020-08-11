@@ -12,8 +12,9 @@ import scala.io.Source
 class HttpRestClientTests extends FunSpec with BeforeAndAfterAll with Suite {
 
   private val HTTP_PORT = 10293
+  private val HTTPS_PORT = 8443
 
-  private val wireMockServer = new WireMockServer(HTTP_PORT)
+  private val wireMockServer = new WireMockServer(HTTP_PORT, HTTPS_PORT)
 
   override def beforeAll(): Unit = {
     wireMockServer.start()
@@ -32,7 +33,7 @@ class HttpRestClientTests extends FunSpec with BeforeAndAfterAll with Suite {
     }
 
     it("Should validate different functions") {
-      val http = HttpRestClient(wireMockServer.baseUrl(), BasicAuthorization("myuser", "mypassword"))
+      val http = HttpRestClient(s"https://localhost:$HTTPS_PORT", BasicAuthorization("myuser", "mypassword"), allowSelfSignedCertificates = true)
       val dateFormat = new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss zzz")
       val dateString = "Mon, 23 Mar 2020 07:26:45 GMT"
       val date = dateFormat.parse(dateString)

@@ -1,12 +1,13 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
+import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, ScalaScriptEngine}
 import org.apache.log4j.Logger
-import org.json4s.{DefaultFormats, Formats}
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
+import org.json4s.{DefaultFormats, Formats}
 
 import scala.annotation.tailrec
+import scala.math.{ScalaNumericAnyConversions, ScalaNumericConversions}
 
 object PipelineStepMapper {
   def apply(): PipelineStepMapper = new DefaultPipelineStepMapper
@@ -27,7 +28,7 @@ trait PipelineStepMapper {
     */
   def createStepParameterMap(step: PipelineStep, pipelineContext: PipelineContext): Map[String, Any] = {
     if (step.params.isDefined) {
-      step.params.get.map(p => {
+      step.params.get.filter(_.`type`.getOrElse("text").toLowerCase != "result").map(p => {
         logger.debug(s"Mapping parameter ${p.name}")
         val value = mapParameter(p, pipelineContext)
         value match {
@@ -78,26 +79,116 @@ trait PipelineStepMapper {
   }
 
   /**
-    * This function will take a given value and convert it to the type specified in the parameter. This implementation
-    * supports boolean and integer types. The value will be returned unconverted if the type is something other. This
-    * function should be overridden to provide better support for complex types.
-    *
-    * @param value     The value to convert
-    * @param parameter The step parameter
-    * @return
-    */
+   * This function will map a parameter based on its type. String values will also be run through the castToType
+   * method. This function can be overridden to provide more control over how "None" values are mappped to step params.
+   *
+   * @param value     The value to convert
+   * @param parameter The step parameter
+   * @return
+   */
   def mapByType(value: Option[String], parameter: Parameter): Any = {
-    if(value.isDefined) {
-      parameter.`type`.getOrElse("").toLowerCase match {
-        case "integer" => value.get.toInt
-        case "long" => value.get.toLong
-        case "float" => value.get.toFloat
-        case "double" => value.get.toDouble
-        case "boolean" => value.get.toBoolean
-        case _ => mapByValue(value, parameter)
+    if (value.isDefined) {
+      val convertedVal = castToType(value.get, parameter)
+      convertedVal match {
+        case s: String => mapByValue(Some(s), parameter)
+        case _ => convertedVal
       }
     } else {
       mapByValue(value, parameter)
+    }
+  }
+
+  /**
+   * This function will convert the return value of the mapParameter and mapByType methods based on the "type" value of
+   * the step parameter. This implementation supports string, numeric, and boolean type conversions. This function
+   * can be overridden to provide better support for complex types.
+   *
+   * @param value           The value to be cast
+   * @param parameter       The pipeline parameter getting mapped to.
+   * @return
+   */
+  def castToType(value: Any, parameter: Parameter): Any = {
+    (value, parameter.`type`.getOrElse("").toLowerCase) match {
+      case (_, "text") => value
+      case (r: ScalaNumericConversions, t) => castNumeric(r, t)
+      case (s: String, t) => castString(s, t)
+      case _ => value
+    }
+  }
+
+  private def castNumeric(number: ScalaNumericConversions, targetType: String): Any = targetType match {
+    case "integer" | "int" => number.toInt
+    case "long" => number.toLong
+    case "float" => number.toFloat
+    case "double" => number.toDouble
+    case "byte" => number.toByte
+    case "short" => number.toShort
+    case "character" | "char" => number.toChar
+    case "boolean" => number.toLong != 0L
+    case "bigint" => BigInt(number.toLong)
+    case "bigdecimal" => BigDecimal(number.toDouble)
+    case "string" => number.toString
+    case _ => number
+  }
+
+  private def castString(stringVal: String, targetType: String): Any = targetType match {
+    case "integer" | "int" => stringVal.toInt
+    case "long" => stringVal.toLong
+    case "float" => stringVal.toFloat
+    case "double" => stringVal.toDouble
+    case "byte" => stringVal.toByte
+    case "bigint" => BigInt(stringVal)
+    case "bigdecimal" => BigDecimal(stringVal)
+    case "boolean" => stringVal.toBoolean
+    case _ => stringVal
+  }
+
+  private def runScalaScript(scalaScript: String, parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
+    val trimmedScript = scalaScript.trim
+    val (pMap, script) = if (trimmedScript.startsWith("(")) {
+      val index = trimmedScript.indexOf(")") + 1
+      if(index <= 0) {
+        throw PipelineException(message = Some(s"Unable to execute script: Malformed bindings. Expected enclosing character: [)]."),
+          pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+      }
+      val (params, s) = trimmedScript.splitAt(index)
+      val paramString = params.drop(1).dropRight(1).trim
+      val parameterMap = if (paramString.nonEmpty) {
+        paramString.split(",").map { p =>
+          val ret = p.split("""(?<!((?<!\\)\\)):""").map(_.replaceAllLiterally("""\:""", ":").replaceAllLiterally("""\\""", "\\"))
+          if(ret.length < 2){
+            throw PipelineException(message = Some(s"Unable to execute script: Illegal binding format: [$p]. Expected format: <name>:<value>:<type>"),
+              pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+          }
+          ret(0).trim -> (ret(1).trim, if (ret.length == 3) Some(ret(2)) else None)
+        }.toMap.mapValues { case (v, t) => (getBestValue(v.split("\\|\\|"), Parameter(), pipelineContext), t) }
+      } else {
+        Map()
+      }
+      (parameterMap, s.trim)
+    } else {
+      (Map(), trimmedScript)
+    }
+    if (script.trim.isEmpty) {
+      throw PipelineException(message = Some(s"Unable to execute script: script is empty. Ensure bindings are properly enclosed."),
+        pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+    }
+    val engine = new ScalaScriptEngine
+    val initialBinding = engine.createBindings("logger", logger, Some("org.apache.log4j.Logger"))
+    val bindings = pMap.foldLeft(initialBinding){
+      case (binding, (name, (value: Some[_], typeName: Some[String]))) if !typeName.get.startsWith("Option[") =>
+        logger.debug(s"Adding binding for ad-hoc script: name: [$name], value: [${value.get}], type: [$typeName].")
+        binding.setBinding(name, value.get, typeName)
+      case (binding, (name, (value, typeName))) =>
+        logger.debug(s"Adding binding for ad-hoc script: name: [$name], value: [$value], type: [$typeName].")
+        binding.setBinding(name, value, typeName)
+    }
+    logger.info(s"Preparing to execute script for parameter: [${parameter.name}]" +
+      s"${pipelineContext.getPipelineExecutionInfo.stepId.map(s => s"of step: [$s]").getOrElse("")} " +
+      s"${pipelineContext.getPipelineExecutionInfo.pipelineId.map(p => s"in pipeline: [$p]").getOrElse("")}")
+    engine.executeScriptWithBindings(script, bindings, pipelineContext) match {
+      case o: Option[_] => o
+      case v => Some(v)
     }
   }
 
@@ -107,14 +198,20 @@ trait PipelineStepMapper {
     val returnValue = if (value.isDefined) {
       value.get match {
         case s: String =>
-          // Add support for javascript so that we can have complex interactions - @Step1 + '_my_table_name'
-          // If the parameter type is 'script', return the value as is
-          if (parameter.`type`.getOrElse("none") == "script") {
-            Some(s)
-          } else {
-            // convert parameter value into a list of values (for the 'or' use case)
-            // get the valid return values for the parameters
-            getBestValue(s.split("\\|\\|"), parameter, pipelineContext)
+          parameter.`type`.getOrElse("none").toLowerCase match {
+            case "script" =>
+              // If the parameter type is 'script', return the value as is
+              Some(s)
+            case "scalascript" =>
+              // compile and execute the script, then map the result into the parameter
+              runScalaScript(s, parameter, pipelineContext)
+            case "result" if (isResultScript(parameter)) =>
+              // compile and execute the script, then map the result into the parameter
+              runScalaScript(s, parameter, pipelineContext)
+            case _ =>
+              // convert parameter value into a list of values (for the 'or' use case)
+              // get the valid return values for the parameters
+              getBestValue(s.split("\\|\\|"), parameter, pipelineContext)
           }
         case b: Boolean => Some(b)
         case i: Int => Some(i)
@@ -130,16 +227,25 @@ trait PipelineStepMapper {
 
     // use the first valid (non-empty) value found
     if (returnValue.isDefined) {
-      returnValue.get
+      castToType(returnValue.get, parameter)
     } else {
       // use mapByType when no valid values are returned
       mapByType(None, parameter)
     }
   }
 
+  private def isResultScript(parameter: Parameter) = {
+    parameter.value.getOrElse("NONE") match {
+      case s: String => s.trim.startsWith("(")
+      case so: Option[String] => so.getOrElse("NONE").trim.startsWith("(")
+      case _ => false
+    }
+  }
+
   /**
     * Provides variable mapping when a map is discovered. Case classes will be initialized if the className attribute
     * has been provided.
+ *
     * @param map The map of values to parse and expand.
     * @param parameter The step parameter.
     * @param pipelineContext The pipeline context containing the globals and runtime parameters.
@@ -170,7 +276,7 @@ trait PipelineStepMapper {
     * @return An expanded list
     */
   private def handleListParameter(list: List[_], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
-    val dropNone = pipelineContext.getGlobal("dropNoneFromLists").forall(_.asInstanceOf[Boolean])
+    val dropNone = pipelineContext.getGlobalAs[Boolean]("dropNoneFromLists").getOrElse(true)
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
       implicit val formats: Formats = DefaultFormats
       list.map(value =>
@@ -305,7 +411,7 @@ trait PipelineStepMapper {
     logger.debug(s"pulling parameter from Pipeline Parameters,paramName=$paramName,pipelineId=$pipelineId,parameters=$parameters")
     // the value is marked as a step parameter, get it from pipelineContext.parameters (Will be a PipelineStepResponse)
     if (parameters.get.parameters.contains(paramName)) {
-      val applyMethod = pipelineContext.getGlobal("extractMethodsEnabled").asInstanceOf[Option[Boolean]]
+      val applyMethod = pipelineContext.getGlobalAs[Boolean]("extractMethodsEnabled")
       pipelinePath.mainValue.head match {
         case '@' =>
           getSpecificValue(parameters.get.parameters(paramName).asInstanceOf[PipelineStepResponse].primaryReturn,
@@ -373,6 +479,7 @@ trait PipelineStepMapper {
     val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
     val initGlobal = pipelineContext.getGlobal(value.substring(1))
     val applyMethod = pipelineContext.getGlobal("extractMethodsEnabled").asInstanceOf[Option[Boolean]]
+
 
     if(initGlobal.isDefined) {
       val global = initGlobal.get match {

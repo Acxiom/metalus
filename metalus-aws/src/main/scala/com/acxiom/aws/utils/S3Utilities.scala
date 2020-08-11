@@ -1,5 +1,7 @@
 package com.acxiom.aws.utils
 
+import java.net.URI
+
 import com.acxiom.pipeline.PipelineContext
 
 object S3Utilities {
@@ -29,15 +31,15 @@ object S3Utilities {
     * @param pipelineContext The PipelineContext
     */
   def setS3Authorization(path: String,
-                         accessKeyId: String,
-                         secretAccessKey: String,
+                         accessKeyId: Option[String],
+                         secretAccessKey: Option[String],
                          pipelineContext: PipelineContext): Unit = {
-    val protocol = S3Utilities.deriveProtocol(path)
-    val sc = pipelineContext.sparkSession.get.sparkContext
-    sc.hadoopConfiguration.set(s"fs.$protocol.awsAccessKeyId", accessKeyId)
-    sc.hadoopConfiguration.set(s"fs.$protocol.awsSecretAccessKey", secretAccessKey)
-    //    sc.hadoopConfiguration.set(s"fs.$protocol.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
-    // s3:///udl-
+    if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+      val protocol = S3Utilities.deriveProtocol(path)
+      val sc = pipelineContext.sparkSession.get.sparkContext
+      sc.hadoopConfiguration.set(s"fs.$protocol.awsAccessKeyId", accessKeyId.get)
+      sc.hadoopConfiguration.set(s"fs.$protocol.awsSecretAccessKey", secretAccessKey.get)
+    }
   }
 
   /**
@@ -52,22 +54,32 @@ object S3Utilities {
     } else {
       path
     }
-    s"$protocol:///${prepareS3FilePath(newPath)}"
+    s"$protocol://${prepareS3FilePath(newPath)}"
   }
 
   /**
     * This function will take the given path and strip any protocol information.
     * @param path A valid path
-    * @param bucket An optional bucket name
     * @return A raw path with no protocol information
     */
   def prepareS3FilePath(path: String, bucket: Option[String] = None): String = {
-    if (path.startsWith("/")) {
+    val newPath = if (path.startsWith("/")) {
       path.substring(1)
-    } else if (bucket.nonEmpty && path.startsWith(s"s3")) {
-      path.substring(path.indexOf(s"/${bucket.get}/") +  (2 + bucket.get.length))
+    } else if (path.startsWith(s"s3") && bucket.isDefined) {
+      path.substring(path.indexOf(s"${bucket.get}/") + bucket.get.length + 1)
+    } else if (path.startsWith(s"s3")) {
+      new URI(path).normalize().toString
     } else {
       path
     }
+    newPath
+  }
+
+  /**
+    * Prepares Spark for reading/writing of DataFrames
+    * @param pipelineContext The PipelineContext containing the SparkSession
+    */
+  def configureSparkSession(pipelineContext: PipelineContext): Unit = {
+    pipelineContext.sparkSession.get.sparkContext.hadoopConfiguration.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
   }
 }

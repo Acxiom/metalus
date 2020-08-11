@@ -17,6 +17,10 @@ This flow demonstrates how the chosen driver interacts with the *DriverSetup*:
 There are no special instructions for creating the *SparkSession*. Both the *SparkSession* and *SparkConf* are required
 by the [PipelineContext](pipeline-context.md).
 
+### CredentialProvider
+The _DriverSetup_ is responsible for provider a [CredentialProvider](credentialprovider.md) that may be used by the driver
+to obtain any required credentials.
+
 ### Logging Parameters 
 There are several command line parameters provided to help control the application log levels:
 
@@ -50,23 +54,3 @@ functions take the RDD provided by the streaming driver. The _canParse_ function
 parser to use when more than one parser is available. The _parseRDD_ function is called to create the DataFrame. Additional
 parsers are provided by using the _streaming-parsers_ command line parameter and providing a comma separated list containing
 the fully qualified classname of the parsers to use.
-
-## KafkaPipelineDriver
-This driver provides basic support for streaming data from [Kafka](http://kafka.apache.org/) topics. As data is consumed,
-the RDD will be converted into a DataFrame with three columns:
-
-* **key** - the record key
-* **value** - the data
-* **topic** - The topic the data arrived on
-
-### Command line parameters
-*Required parameters:*
-* **driverSetupClass** - This class will handle all of the initial setup such as building out pipelines, creating the PipelineContext.
-* **topics** - a comma separated list of topics to monitor
-* **kafkaNodes** - a comma separated list of Kafka brokers to consume data
-
-*Optional Parameters:*
-* **duration-type** - [minutes | **seconds**] Corresponds to the *duration* parameter.
-* **duration** - [number] How long the driver should wait before processing the next batch of data. Default is 10 seconds.
-* **groupId** - [string] This is the group id where the Kafka consumer should listen
-* **terminationPeriod** - [number] The number of ms the system should run and then shut down.

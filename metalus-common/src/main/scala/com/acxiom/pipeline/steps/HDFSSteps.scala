@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.acxiom.pipeline.fs.HDFSFileManager
 import org.apache.spark.sql.DataFrame
 
@@ -13,6 +13,8 @@ object HDFSSteps {
     "This step will read a dataFrame from the given HDFS path",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("path" -> StepParameter(None, Some(true), None, None, None, None, Some("The HDFS path to load data into the DataFrame")),
+    "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The options to use when loading the DataFrameReader"))))
   def readFromPath(path: String,
                    options: Option[DataFrameReaderOptions] = None,
                    pipelineContext: PipelineContext): DataFrame = {
@@ -24,6 +26,8 @@ object HDFSSteps {
     "This step will read a dataFrame from the given HDFS paths",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("paths" -> StepParameter(None, Some(true), None, None, None, None, Some("The HDFS paths to load data into the DataFrame")),
+    "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The options to use when loading the DataFrameReader"))))
   def readFromPaths(paths: List[String],
                     options: Option[DataFrameReaderOptions] = None,
                     pipelineContext: PipelineContext): DataFrame = {
@@ -35,6 +39,9 @@ object HDFSSteps {
     "This step will write a dataFrame in a given format to HDFS",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to write")),
+    "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The GCS path to write data")),
+    "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional DataFrame Options"))))
   def writeToPath(dataFrame: DataFrame,
                      path: String,
                      options: Option[DataFrameWriterOptions] = None): Unit = {
