@@ -205,6 +205,13 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       assert(connection.isClosed)
     }
 
+    it("should handle a closed connection") {
+      val connection = JDBCSteps.getConnection(url, options)
+      connection.close()
+      JDBCSteps.closeConnection(connection)
+      assert(connection.isClosed)
+    }
+
     it("should execute sql") {
       val connection = JDBCSteps.getConnection(url, options)
       val res = JDBCSteps.executeSql("SELECT COUNT(*) AS CNT FROM CHICKEN", connection)
@@ -225,6 +232,20 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       assert(resultMap.isDefined && resultMap.get.head("CNT").asInstanceOf[Int] == 2)
       JDBCSteps.closeConnection(connection)
       assert(connection.isClosed)
+    }
+
+    it("should support updates") {
+      val connection = JDBCSteps.getConnection(url, options)
+      val st = connection.createStatement()
+      st.executeUpdate("CREATE TABLE MORE_CHICKENS (ID INT PRIMARY KEY, NAME VARCHAR(100), COLOR VARCHAR(30))")
+      st.executeUpdate("INSERT INTO MORE_CHICKENS VALUES (1, 'SILKIE', 'WHTE')")
+      st.executeUpdate("INSERT INTO MORE_CHICKENS VALUES (2, 'POLISH', 'BUFF')")
+      st.executeUpdate("INSERT INTO MORE_CHICKENS VALUES (3, 'SULTAN', 'WHTE')")
+      st.close()
+      val res = JDBCSteps.executeSql("UPDATE MORE_CHICKENS SET COLOR='WHITE' WHERE COLOR = ?", connection, Some(List("WHTE")))
+      assert(res.namedReturns.get("count").asInstanceOf[Int] == 2)
+      JDBCSteps.executeSql("DROP TABLE MORE_CHICKENS", connection)
+      JDBCSteps.closeConnection(connection)
     }
   }
 
