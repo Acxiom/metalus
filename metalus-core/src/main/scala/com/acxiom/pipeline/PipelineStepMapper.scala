@@ -7,7 +7,7 @@ import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 
 import scala.annotation.tailrec
-import scala.math.{ScalaNumericAnyConversions, ScalaNumericConversions}
+import scala.math.ScalaNumericConversions
 
 object PipelineStepMapper {
   def apply(): PipelineStepMapper = new DefaultPipelineStepMapper
@@ -205,7 +205,7 @@ trait PipelineStepMapper {
             case "scalascript" =>
               // compile and execute the script, then map the result into the parameter
               runScalaScript(s, parameter, pipelineContext)
-            case "result" if (isResultScript(parameter)) =>
+            case "result" if isResultScript(parameter) =>
               // compile and execute the script, then map the result into the parameter
               runScalaScript(s, parameter, pipelineContext)
             case _ =>
@@ -491,11 +491,11 @@ trait PipelineStepMapper {
         case _: Option[_] => None
         case _ => ReflectionUtils.extractField(global, extractPath, applyMethod = applyMethod)
       }
+
       ret match {
         case ret: Option[_] => ret
         case _ => Some(ret)
       }
-
     } else {
       logger.debug(s"globals does not contain the requested value: $value.$extractPath")
       None
