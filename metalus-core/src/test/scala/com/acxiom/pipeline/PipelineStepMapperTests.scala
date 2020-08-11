@@ -209,7 +209,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         "bigint" -> BigInt(1),
         "bigdecimal" -> BigDecimal(1)
       ).foreach{ case (typeName, expected) =>
-        val ret = pipelineContext.parameterMapper.mapParameter(Parameter(value = Some("!bigIntGlobal"), `type` = Some(typeName)), pipelineContext)
+        val ret = pipelineContext.parameterMapper.mapParameter(Parameter(value = Some("!numericString"), `type` = Some(typeName)), pipelineContext)
         assert(ret == expected)
       }
     }
@@ -230,7 +230,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         "bigdecimal" -> BigDecimal(1),
         "string" -> "1"
       ).foreach{ case (typeName, expected) =>
-        val ret = pipelineContext.parameterMapper.mapParameter(Parameter(value = Some("!numericString"), `type` = Some(typeName)), pipelineContext)
+        val ret = pipelineContext.parameterMapper.mapParameter(Parameter(value = Some("!bigIntGlobal"), `type` = Some(typeName)), pipelineContext)
         assert(ret == expected)
       }
     }
