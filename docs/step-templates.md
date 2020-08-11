@@ -114,9 +114,10 @@ The **params** array contains all of the step function parameters except those o
 has seven possible parameters:
 
 * **type** - The parameter [type](parameter-mapping.md#types). Must be one of: integer, list, boolean, script, scalaScript, string, text, result, object
-* **name** - The name of the parameter. This **must** match the name of the parameter on the step function
-* **required** - Boolean flag indicating whether this parameter is required to have a value
-* **defaultValue** - An optional default value that will be used if a value is not provided
+* **name** - The name of the parameter. This **must** match the name of the parameter on the step function.
+* **description** - Describes what this parameter should do.
+* **required** - Boolean flag indicating whether the requirement of this value
+* **defaultValue** - An optional default value that will be used when no value is provided
 * **language** - An optional script language this parameter expects the value to conform. This should only be present if the **type** is set to *script*
 * **className** - If the **type** is **object**, then this should represent the fully qualified class name that is expected
 * **parameterType** - An optional attribute that represents the fully qualified class name (or primitive name) of the 

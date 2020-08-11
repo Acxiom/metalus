@@ -45,18 +45,32 @@ determined or to provide additional information to the mapper.
 * **integer** - The value will be parsed as an int.
 * **script** - This indicates that the value contains a script and should not be parsed. The value will be returned unaltered.
 * **scalascript** - This indicates the value contains scala code that will be compiled and run, with the result returned.
-More on information on this syntax can be found 
+More information on this syntax can be found here.
 * **list** - Indicates that the value is a list.
-* **object** - Indicates that the value contains and object. This should be stored as a map.
+* **object** - Indicates that the value contains an object. This should be stored as a map.
 * **result** - Indicates that this parameter should be matched against the output of a branch step. The value will 
 contain either nothing or the _nextStepId_. 
 
-Additional information about step parameters may be found [here](step-templates.md#params).
+Additional information about step parameters can be found [here](step-templates.md#params).
+
+## Alternate Value Mapping
+Metalus allows a step parameter mapping to have more than one value. The most common use case is having a single step
+resolve the different outcomes of a branch step. Depending on the path that was taken, the primary mapped value may not
+exist. In this case, Metalus will check the next mapped value until it finds a match or throws an error.
+
+Example syntax:
+
+```
+@STEP_ONE || @STEP_TWO || !SOME_GLOBAL || default string
+```
+
+In the example above, Metalus will first attempt tp map the primary output of *STEP_ONE*, failing to find  a value, it
+will check for the output of *STEP_TWO*, failing to find that it will search the _globals_ map for *SOME_GLOBAL* and
+finally use the provided static text of _default string_.
 
 ## Embedded Values
-Values may also be embedded. The user has the option to reference properties embedded in top level objects. Given an 
-object (obj) that contains a sub-object (subObj) which contains a name, the user could access the name field using this
-syntax:
+The user has the option to reference properties embedded as top level objects. Given an object (obj) that contains a 
+sub-object (subObj) which contains a name, the user could access the name field using this syntax:
 ```
 $obj.subObj.name
 ```
@@ -93,7 +107,6 @@ This feature is limited to methods without parameters, and is disabled by defaul
 To enable, set the global "**extractMethodsEnabled**" to "**true**"
 
 ## JSON Objects
-
 JSON object values may also be embedded as a pipeline step value. Two attributes must be provided in the JSON, 
 *className* and *object*. The *className* must be the fully qualified name of the case class to initialize and
 it must be on the classpath. *object* is the JSON object to use to initialize the case class. 
@@ -150,26 +163,12 @@ Syntax for a list of maps:
 
 JSON objects, maps and list of maps/objects can use the special characters defined above. This allows referencing dynamic 
 values in predefined objects. Using the application framework, note that globals cannot use *@* or *#* since steps will 
-not have values prior to initialization.
+not have values prior to initialization. Values may use alternate value mapping or embed class name syntax to deserialize 
+map values as classes within a Map. 
 
 ## Parameter Validation
 Step parameter type checking can be enabled by providing the passing the option "--validateStepParameterTypes true" as a global parameter.
 This validation is disabled by default.
-
-## Alternate Value Mapping
-Metalus allows a step parameter mapping to have more than one value. The most common use case is having a single step
-resolve the different outcomes of a branch step. Depending on the path that was taken, the primary mapped value may not
-exist. In this case, Metalus will check the next mapped value until it finds a match or throws an error.
-
-Example syntax:
-
-```
-@STEP_ONE || @STEP_TWO || !SOME_GLOBAL || default string
-```
-
-In the example above, Metalus will first attempt tp map the primary output of *STEP_ONE*, failing to find  a value, it
-will check for the output of *STEP_TWO*, failing to find that it will search the _globals_ map for *SOME_GLOBAL* and
-finally use the provided static text of _default string_.
 
 ## Pipeline Context Updates
 Once advanced feature of Metalus is to allow steps the ability to update _PipelineContext_ using the secondary returns.

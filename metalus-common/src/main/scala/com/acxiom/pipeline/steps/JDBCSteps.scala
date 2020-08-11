@@ -1,8 +1,9 @@
 package com.acxiom.pipeline.steps
 
+import java.sql.{Connection, DriverManager}
 import java.util.Properties
 
-import com.acxiom.pipeline.PipelineContext
+import com.acxiom.pipeline.{PipelineContext, PipelineStepResponse}
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
@@ -115,7 +116,7 @@ object JDBCSteps {
     "This step will write a DataFrame as a table using JDBCOptions",
     "Pipeline",
     "InputOutput")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("he DataFrame to be written")),
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to be written")),
     "jdbcOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("Options for configuring the JDBC connection")),
     "saveMode" -> StepParameter(None, Some(false), None, None, None, None, saveModeDesc)))
   def writeWithJDBCOptions(dataFrame: DataFrame,
@@ -142,7 +143,7 @@ object JDBCSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, dfWriteDesc),
     "url" -> StepParameter(None, Some(true), None, None, None, None, urlDesc),
     "table" -> StepParameter(None, Some(true), None, None, None, None, tableDesc),
-    "connectionProperties" -> StepParameter(None, Some(true), None, None, None, None, connectionPropertiesDesc),
+    "connectionProperties" -> StepParameter(None, Some(false), None, None, None, None, connectionPropertiesDesc),
     "saveMode" -> StepParameter(None, Some(false), None, None, None, None, saveModeDesc)))
   def writeWithProperties(dataFrame: DataFrame,
                           url: String,
@@ -175,6 +176,59 @@ object JDBCSteps {
     properties.putAll(jDBCStepsOptions.writerOptions.options.getOrElse(Map[String, String]()))
     DataFrameSteps.getDataFrameWriter(dataFrame, jDBCStepsOptions.writerOptions)
       .jdbc(jDBCStepsOptions.url, jDBCStepsOptions.table, properties)
+  }
+
+  @StepFunction("713fff3d-d407-4970-89ae-7844e6fc60e3",
+    "Get JDBC Connection",
+    "Get a jdbc connection.",
+    "Pipeline",
+    "InputOutput")
+  @StepParameters(Map("url"-> StepParameter(None, Some(true), None, None, None, None, urlDesc),
+    "properties" -> StepParameter(None, Some(false), None, None, None, None, connectionPropertiesDesc)))
+  def getConnection(url: String, properties: Option[Map[String, String]] = None): Connection = {
+    val prop = new Properties()
+    if (properties.isDefined) prop.putAll(properties.get)
+    DriverManager.getConnection(url, prop)
+  }
+
+  @StepFunction("549828be-3d96-4561-bf94-7ad420f9d203",
+    "Execute Sql",
+    "Execute a sql command using jdbc.",
+    "Pipeline",
+    "InputOutput")
+  @StepParameters(Map("sql"-> StepParameter(None, Some(true), None, None, None, None, Some("Sql command to execute")),
+    "connection" -> StepParameter(None, Some(true), None, None, None, None, Some("An open jdbc connection")),
+  "parameters" -> StepParameter(None, Some(false), None, None, None, None, Some("Optional list of bind variables"))))
+  def executeSql(sql: String, connection: Connection, parameters: Option[List[Any]] = None): PipelineStepResponse = {
+    val p = connection.prepareStatement(sql)
+    if (parameters.isDefined) {
+      parameters.get.zipWithIndex.foreach{ case (a, i) => p.setObject(i + 1, a)}
+    }
+    val result = if (p.execute()) {
+      val rs = p.getResultSet
+      val columnNames = (1 to rs.getMetaData.getColumnCount).map(x => rs.getMetaData.getColumnName(x)).toList
+      val records = Iterator.continually(rs.next())
+        .takeWhile(identity)
+        .map(_ => columnNames.map(n => n -> rs.getObject(n)).toMap)
+        .toList
+      PipelineStepResponse(Some(records), Some(Map("count" -> records.length)))
+    } else {
+      PipelineStepResponse(Some(Map()), Some(Map("count" -> p.getUpdateCount)))
+    }
+    p.close()
+    result
+  }
+
+  @StepFunction("9c8957a3-899e-4f32-830e-d120b1917aa1",
+    "Close JDBC Connection",
+    "Close a JDBC Connection.",
+    "Pipeline",
+    "InputOutput")
+  @StepParameters(Map("connection" -> StepParameter(None, Some(true), None, None, None, None, Some("An open jdbc connection"))))
+  def closeConnection(connection: Connection): Unit = {
+    if (!connection.isClosed) {
+      connection.close()
+    }
   }
 
 }

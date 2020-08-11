@@ -16,6 +16,7 @@ object PipelineStepMapper {
 class DefaultPipelineStepMapper extends PipelineStepMapper
 
 trait PipelineStepMapper {
+  implicit val formats: Formats = DefaultFormats
   val logger: Logger = Logger.getLogger(getClass)
 
   /**
@@ -137,6 +138,7 @@ trait PipelineStepMapper {
     case "float" => stringVal.toFloat
     case "double" => stringVal.toDouble
     case "byte" => stringVal.toByte
+    case "short" => stringVal.toShort
     case "bigint" => BigInt(stringVal)
     case "bigdecimal" => BigDecimal(stringVal)
     case "boolean" => stringVal.toBoolean
@@ -251,7 +253,9 @@ trait PipelineStepMapper {
     * @param pipelineContext The pipeline context containing the globals and runtime parameters.
     * @return A expanded map or initialized case class.
     */
-  private def handleMapParameter(map: Map[_, _], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
+  private def handleMapParameter(map: Map[_, _],
+                                 parameter: Parameter,
+                                 pipelineContext: PipelineContext): Option[Any] = {
     val workingMap = map.asInstanceOf[Map[String, Any]]
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
       implicit val formats: Formats = DefaultFormats
@@ -282,12 +286,20 @@ trait PipelineStepMapper {
       list.map(value =>
         DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get))
     } else if (list.head.isInstanceOf[Map[_, _]]) {
-      list.map(value => mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext))
+      list.map(value => {
+        val map = value.asInstanceOf[Map[String, Any]]
+        if (map.contains("className") && map.contains("object")) {
+          handleMapParameter(map("object").asInstanceOf[Map[String, Any]], Parameter(
+            className = Some(map("className").asInstanceOf[String])), pipelineContext).get
+        } else {
+          mapEmbeddedVariables(map, pipelineContext)
+        }
+      })
     } else if(list.nonEmpty) {
       list.flatMap {
         case s: String if containsSpecialCharacters(s) =>
           (dropNone, getBestValue(s.split("\\|\\|"), Parameter(), pipelineContext)) match {
-            case (false, None) => Some(null) // scalastyle:off null
+            case (false, None) => Some(None.orNull)
             case (_, v) => v
           }
         case a: Any => Some(a)
@@ -307,8 +319,13 @@ trait PipelineStepMapper {
     classMap.foldLeft(classMap)((map, entry) => {
       entry._2 match {
         case s: String if containsSpecialCharacters(s) =>
-          map + (entry._1 -> returnBestValue(s, Parameter(), pipelineContext))
-        case m:  Map[_, _] =>
+          map + (entry._1 -> getBestValue(s.split("\\|\\|"), Parameter(), pipelineContext))
+        case m: Map[String, Any] if m.contains("className")=>
+          map + (entry._1 -> DriverUtils.parseJson(
+            Serialization.write(
+              mapEmbeddedVariables(m("object").asInstanceOf[Map[String, Any]], pipelineContext)),
+            m("className").asInstanceOf[String]))
+        case m: Map[_, _] =>
           map + (entry._1 -> mapEmbeddedVariables(m.asInstanceOf[Map[String, Any]], pipelineContext))
         case l: List[_] => map ++ handleListParameter(l, Parameter(), pipelineContext).map(a => entry._1 -> a)
         case _ => map

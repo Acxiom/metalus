@@ -3,6 +3,7 @@ package com.acxiom.pipeline.api
 import java.net.HttpURLConnection
 import java.text.SimpleDateFormat
 
+import com.acxiom.pipeline.Constants
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
@@ -33,7 +34,8 @@ class HttpRestClientTests extends FunSpec with BeforeAndAfterAll with Suite {
     }
 
     it("Should validate different functions") {
-      val http = HttpRestClient(s"https://localhost:$HTTPS_PORT", BasicAuthorization("myuser", "mypassword"), allowSelfSignedCertificates = true)
+      val authorization = BasicAuthorization("myuser", "mypassword")
+      val http = HttpRestClient(s"https://localhost:$HTTPS_PORT", authorization, allowSelfSignedCertificates = true)
       val dateFormat = new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss zzz")
       val dateString = "Mon, 23 Mar 2020 07:26:45 GMT"
       val date = dateFormat.parse(dateString)
@@ -104,6 +106,24 @@ class HttpRestClientTests extends FunSpec with BeforeAndAfterAll with Suite {
       outputStream.write("uploaded content".getBytes)
       outputStream.flush()
       outputStream.close()
+
+      val http2 = HttpRestClient(s"http://localhost:$HTTP_PORT", authorization)
+      wireMockServer.addStubMapping(post(urlPathEqualTo("/files/unsecured"))
+        .withBasicAuth("myuser", "mypassword")
+        .withRequestBody(equalTo("{body: {} }"))
+        .willReturn(aResponse()
+          .withBody("this is some unsecured content")).build())
+      assert(http2.postStringContent("/files/unsecured", "{body: {} }", Constants.JSON_CONTENT_TYPE)
+        == "this is some unsecured content")
+
+      val http3 = HttpRestClient("http", "localhost", HTTP_PORT, authorization)
+      wireMockServer.addStubMapping(put(urlPathEqualTo("/files/unsecured/update"))
+        .withBasicAuth("myuser", "mypassword")
+        .withRequestBody(equalTo("{body: {} }"))
+        .willReturn(aResponse()
+          .withBody("this is some updated unsecured content")).build())
+      assert(http3.putStringContent("/files/unsecured/update", "{body: {} }", Constants.JSON_CONTENT_TYPE)
+        == "this is some updated unsecured content")
     }
   }
 }

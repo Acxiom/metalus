@@ -8,6 +8,7 @@ object Constants {
   val FOUR: Int = 4
   val FIVE: Int = 5
   val SIX: Int = 6
+  val SEVEN: Int = 7
   val TEN: Int = 10
   val ONE_HUNDRED: Int = 100
 

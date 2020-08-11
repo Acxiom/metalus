@@ -54,3 +54,25 @@ Full parameter descriptions are listed below:
 * **connectionProperties** - Optional Map[String,String] of properties for the given format.
 * **saveMode** - The Writing behavior. Valid values: (Append, Overwrite, ErrorIfExists, Ignore). 
 The default value is "_Overwrite_".
+
+## Get JDBC Connection
+Given a url and map of properties, this step will return a jdbc connection. 
+Full parameter descriptions are listed below:
+
+* **url** - A valid jdbc url.
+* **properties** - Optional Map[String,String] of connection properties.
+
+## Execute Sql
+Given a sql statement and jdbc connection, this step will execute the statement and return a List[Map[String, Any]] containing the results.
+If the statement is an update, the results list will be empty. A namedResult, *count*, will also be provided,
+ to represent the number of records returned/modified. 
+Full parameter descriptions are listed below:
+
+* **sql** - Sql command to execute.
+* **connection** - JDBC Connection object.
+* **properties** - Optional List[String] of bind variables.
+
+## Close JDBC Connection
+This step can be used to close the Connection object returned by *Get JDBC Connection*.
+
+* **connection** - An open connection object.
