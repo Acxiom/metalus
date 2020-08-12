@@ -7,7 +7,7 @@ import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 
 import scala.annotation.tailrec
-import scala.math.{ScalaNumericAnyConversions, ScalaNumericConversions}
+import scala.math.ScalaNumericConversions
 
 object PipelineStepMapper {
   def apply(): PipelineStepMapper = new DefaultPipelineStepMapper
@@ -207,7 +207,7 @@ trait PipelineStepMapper {
             case "scalascript" =>
               // compile and execute the script, then map the result into the parameter
               runScalaScript(s, parameter, pipelineContext)
-            case "result" if (isResultScript(parameter)) =>
+            case "result" if isResultScript(parameter) =>
               // compile and execute the script, then map the result into the parameter
               runScalaScript(s, parameter, pipelineContext)
             case _ =>
@@ -494,25 +494,21 @@ trait PipelineStepMapper {
     // the value is marked as a global parameter, get it from pipelineContext.globals
     logger.debug(s"Fetching global value for $value.$extractPath")
     val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
-    val applyMethod = pipelineContext.getGlobalAs[Boolean]("extractMethodsEnabled")
-    val flatGlobals = if(globals.contains("GlobalLinks")) {
-      // check for conflicting globals in Broadcast
-      val broadcast = globals("GlobalLinks").asInstanceOf[Map[String, String]].map(b => {
-        if(globals.contains(b._1)) {
-          logger.warn(s"duplicate global [${b._1}] found in GlobalLinks...using Broadcast global over root")
-        }
-        b._1 -> returnBestValue(b._2, Parameter(), pipelineContext.copy(globals=Some(globals - "GlobalLinks")))
-      })
-      globals ++ broadcast
-    } else { globals }
+    val initGlobal = pipelineContext.getGlobal(value.substring(1))
+    val applyMethod = pipelineContext.getGlobal("extractMethodsEnabled").asInstanceOf[Option[Boolean]]
 
-    if (flatGlobals.contains(value.substring(1))) {
-      val global = flatGlobals(value.substring(1))
+    if(initGlobal.isDefined) {
+      val global = initGlobal.get match {
+        case s: String => returnBestValue(s, Parameter(), pipelineContext.copy(globals = Some(globals - "GlobalLinks")))
+        case default => Some(default)
+      }
+
       val ret = global match {
         case g: Option[_] if g.isDefined => ReflectionUtils.extractField(g.get, extractPath, applyMethod = applyMethod)
         case _: Option[_] => None
         case _ => ReflectionUtils.extractField(global, extractPath, applyMethod = applyMethod)
       }
+
       ret match {
         case ret: Option[_] => ret
         case _ => Some(ret)
