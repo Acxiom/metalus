@@ -3,9 +3,9 @@ package com.acxiom.aws.drivers
 import java.util.Date
 
 import com.acxiom.aws.utils.{AWSCredential, KinesisUtilities}
+import com.acxiom.pipeline.CredentialProvider
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}
-import com.acxiom.pipeline.{CredentialProvider, PipelineDependencyExecutor}
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream
 import com.amazonaws.services.kinesis.model.Record
 import org.apache.log4j.Logger
@@ -37,13 +37,13 @@ object KinesisPipelineDriver {
   private val logger = Logger.getLogger(getClass)
 
   def main(args: Array[String]): Unit = {
-    val parameters = DriverUtils.extractParameters(args,
-      Some(List("driverSetupClass", "streamName", "region")))
-    val initializationClass = parameters("driverSetupClass").asInstanceOf[String]
-    val driverSetup = ReflectionUtils.loadClass(initializationClass,
+    val parameters = DriverUtils.extractParameters(args, Some(List("driverSetupClass", "streamName", "region")))
+    val commonParameters = DriverUtils.parseCommonParameters(parameters)
+    val driverSetup = ReflectionUtils.loadClass(commonParameters.initializationClass,
       Some(Map("parameters" -> parameters))).asInstanceOf[DriverSetup]
     if (driverSetup.executionPlan.isEmpty) {
-      throw new IllegalStateException(s"Unable to obtain valid execution plan. Please check the DriverSetup class: $initializationClass")
+      throw new IllegalStateException(
+        s"Unable to obtain valid execution plan. Please check the DriverSetup class: ${commonParameters.initializationClass}")
     }
     val executionPlan = driverSetup.executionPlan.get
     val sparkSession = executionPlan.head.pipelineContext.sparkSession.get
@@ -67,7 +67,7 @@ object KinesisPipelineDriver {
     val kinesisStreams = createKinesisDStreams(credentialProvider, appName, duration, streamingContext, numStreams, region, streamName)
     logger.info("Created " + kinesisStreams.size + " Kinesis DStreams")
     val defaultParser = new KinesisStreamingDataParser
-    val streamingParsers = DriverUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))
+    val streamingParsers = StreamingUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))
     // Union all the streams (in case numStreams > 1)
     val allStreams = streamingContext.union(kinesisStreams)
     allStreams.foreachRDD { (rdd: RDD[Row], time: Time) =>
@@ -75,11 +75,11 @@ object KinesisPipelineDriver {
       if (!rdd.isEmpty()) {
         logger.debug("RDD received")
         // Convert the RDD into a dataFrame
-        val parser = DriverUtils.getStreamingParser[Row](rdd, streamingParsers)
+        val parser = StreamingUtils.getStreamingParser[Row](rdd, streamingParsers)
         val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)
         // Refresh the execution plan prior to processing new data
-        PipelineDependencyExecutor.executePlan(DriverUtils.addInitialDataFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame))
-        logger.debug("Completing RDD")
+        DriverUtils.processExecutionPlan(driverSetup, executionPlan, Some(dataFrame), () => {logger.debug("Completing RDD")},
+          commonParameters.terminateAfterFailures, 1, commonParameters.maxRetryAttempts)
       }
     }
 

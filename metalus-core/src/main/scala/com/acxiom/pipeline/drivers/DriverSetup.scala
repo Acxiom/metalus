@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.drivers
 
 import com.acxiom.pipeline.utils.DriverUtils
-import com.acxiom.pipeline.{CredentialProvider, Pipeline, PipelineContext, PipelineExecution}
+import com.acxiom.pipeline._
 import org.apache.log4j.{Level, Logger}
 
 trait DriverSetup {
@@ -64,6 +64,16 @@ trait DriverSetup {
     executionPlan
   }
 
+  /**
+    * Once the execution completes, parse the results. If an unexpected exception was thrown, it will be thrown. The
+    * result of this function will be false if the success is false and the process was not paused. A pause will
+    * result in this function returning true.
+    * @param results The execution results
+    * @return true if everything executed properly (or paused), false if anything failed. Any non-pipeline errors will be thrown
+    */
+  def handleExecutionResult(results: Option[Map[String, DependencyResult]]): ResultSummary =
+    DriverUtils.handleExecutionResult(results)
+
   def setLogLevel(): Unit = {
     logger.info("Setting logging level")
     Logger.getRootLogger.setLevel(getLogLevel(parameters.getOrElse("rootLogLevel", "WARN").asInstanceOf[String]))
@@ -89,3 +99,5 @@ trait DriverSetup {
     }
   }
 }
+
+case class ResultSummary(success: Boolean, failedExecution: Option[String], failedPipeline: Option[String])

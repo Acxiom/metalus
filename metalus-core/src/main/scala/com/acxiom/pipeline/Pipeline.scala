@@ -331,9 +331,10 @@ case class PipelineParameters(parameters: List[PipelineParameter] = List()) {
   * This class represents the result of executing a list of pipelines.
   *
   * @param pipelineContext The final pipeline context when execution stopped
-  * @param success Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
+  * @param success         Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
+  * @param paused          Flag indicating whether the "failure" was actually a pause
   */
-case class PipelineExecutionResult(pipelineContext: PipelineContext, success: Boolean)
+case class PipelineExecutionResult(pipelineContext: PipelineContext, success: Boolean, paused: Boolean)
 
 /**
   * Contains the current pipeline and step information
