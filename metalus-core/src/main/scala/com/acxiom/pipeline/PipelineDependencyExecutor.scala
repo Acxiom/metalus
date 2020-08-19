@@ -16,7 +16,7 @@ object PipelineDependencyExecutor {
     *
     * @param executions A list of executions to process
     */
-  def executePlan(executions: List[PipelineExecution]): Unit = {
+  def executePlan(executions: List[PipelineExecution]): Option[Map[String, DependencyResult]] = {
     // Find the initial executions
     val rootExecutions = executions.filter(e => e.parents.isEmpty || e.parents.get.isEmpty)
     // Only execute if there is at least one execution
@@ -36,7 +36,10 @@ object PipelineDependencyExecutor {
         }
       })
       logger.debug(s"Starting the execution of ${rootExecutions.map(_.id).mkString(",")}")
-      processFutures(rootExecutions.map(startExecution), Map[String, FutureResult](), executionGraph)
+      val futureMap = processFutures(rootExecutions.map(startExecution), Map[String, DependencyResult](), executionGraph)
+      Some(futureMap.resultMap)
+    } else {
+      None
     }
   }
 
@@ -48,15 +51,15 @@ object PipelineDependencyExecutor {
     * @param executionGraph The execution graph of dependencies
     */
   @tailrec
-  private def processFutures(futures: List[Future[FutureResult]],
-                             results: Map[String, FutureResult],
-                             executionGraph: Map[String, Map[String, PipelineExecution]]): Unit = {
+  private def processFutures(futures: List[Future[DependencyResult]],
+                             results: Map[String, DependencyResult],
+                             executionGraph: Map[String, Map[String, PipelineExecution]]): FutureMap = {
     // Get a future that will return the first completed future in the list
     val future = Future.firstCompletedOf(futures)
     // Wait for the future to complete, but ignore the result
     Await.ready(future, Duration.Inf)
     // Iterate the list of futures and process all completed
-    val futureMap = futures.foldLeft(FutureMap(List[Future[FutureResult]](), results))((futureResultMap, f) => {
+    val futureMap = futures.foldLeft(FutureMap(List[Future[DependencyResult]](), results))((futureResultMap, f) => {
       val updatedResults: FutureMap = if (f.isCompleted) {
         // Exceptions are handled in the future and wrapped
         if (f.value.get.isSuccess) {
@@ -91,6 +94,8 @@ object PipelineDependencyExecutor {
     // See if there is more work to do
     if (futureMap.futures.nonEmpty) {
       processFutures(futureMap.futures, futureMap.resultMap, executionGraph)
+    } else {
+      futureMap
     }
   }
 
@@ -98,7 +103,7 @@ object PipelineDependencyExecutor {
     * Helper function to log the result of an execution.
     * @param result The FutureResult containing the result of the execution.
     */
-  private def logExecutionSuccess(result: FutureResult): Unit = {
+  private def logExecutionSuccess(result: DependencyResult): Unit = {
     val success = if (result.result.isDefined) {
       result.result.get.success
     } else {
@@ -117,7 +122,7 @@ object PipelineDependencyExecutor {
     * @param results The results map from previous executions
     * @return True if this execution can be started.
     */
-  private def executionReady(execution: PipelineExecution, results: Map[String, FutureResult]): Boolean = {
+  private def executionReady(execution: PipelineExecution, results: Map[String, DependencyResult]): Boolean = {
     if (execution.parents.isEmpty || execution.parents.get.isEmpty) {
       true
     } else {
@@ -144,7 +149,7 @@ object PipelineDependencyExecutor {
     * @param results The results map from previous executions
     * @return A Future containing th job execution
     */
-  private def startExecution(execution: PipelineExecution, results: Map[String, FutureResult]): Future[FutureResult] = {
+  private def startExecution(execution: PipelineExecution, results: Map[String, DependencyResult]): Future[DependencyResult] = {
     if (execution.parents.isEmpty || execution.parents.get.isEmpty) {
       startExecution(execution)
     } else {
@@ -170,14 +175,14 @@ object PipelineDependencyExecutor {
     * @param execution The execution information to use when starting the job
     * @return A Future containing th job execution
     */
-  private def startExecution(execution: PipelineExecution): Future[FutureResult] = {
+  private def startExecution(execution: PipelineExecution): Future[DependencyResult] = {
     Future {
       try {
-        FutureResult(execution,
+        DependencyResult(execution,
           Some(PipelineExecutor.executePipelines(execution.pipelines, execution.initialPipelineId,
             execution.pipelineContext.setGlobal("executionId", execution.id))), None)
       } catch {
-        case t: Throwable => FutureResult(execution, None, Some(t))
+        case t: Throwable => DependencyResult(execution, None, Some(t))
       }
     }
   }
@@ -226,7 +231,7 @@ case class DefaultPipelineExecution(id: String = UUID.randomUUID().toString,
                                     pipelineContext: PipelineContext,
                                     parents: Option[List[String]] = None) extends PipelineExecution
 
-case class FutureMap(futures: List[Future[FutureResult]],
-                     resultMap:  Map[String, FutureResult])
+case class FutureMap(futures: List[Future[DependencyResult]],
+                     resultMap:  Map[String, DependencyResult])
 
-case class FutureResult(execution: PipelineExecution, result: Option[PipelineExecutionResult], error: Option[Throwable])
+case class DependencyResult(execution: PipelineExecution, result: Option[PipelineExecutionResult], error: Option[Throwable])

@@ -8,9 +8,7 @@ libraries when building Spark applications, however several extensions points ha
 the ability to construct custom step libraries and applications:
 
 * [Pipeline Driver](../docs/pipeline-drivers.md) - This is the entry point into a Metalus application. A default 
-implementation is provided and should meet all of the batch needs. Additionally, a 
-[streaming driver](../docs/pipeline-drivers.md#kafkapipelinedriver) based on Kafka is provided. It is only recommended
-that creating a new driver when working with a new technology, otherwise the _DriverSetup_ is the preferred extension point.
+implementation is provided and should meet all of the batch needs.
 * [Driver Setup](../docs/pipeline-drivers.md#driversetup) - This is called by the _Pipeline Driver_ to build out the
 [execution plan](../docs/executions.md) which will be executed. This is the most common extension when providing custom
 behaviors not provided by the [application framework](../docs/applications.md). 

@@ -30,6 +30,15 @@ class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
       }
       assert(thrown.getMessage.contains("Missing required parameters: four,five"))
     }
+
+    it ("Should parse common parameters") {
+      val params = DriverUtils.parseCommonParameters(Map("driverSetupClass" -> "test",
+      "maxRetryAttempts" -> 5,
+      "terminateAfterFailures" -> true))
+      assert(params.initializationClass == "test")
+      assert(params.maxRetryAttempts == Constants.FIVE)
+      assert(params.terminateAfterFailures)
+    }
   }
 
   describe("DriverUtils - parsePipelineJson") {
@@ -75,20 +84,20 @@ class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
     }
   }
 
-  describe("DriverUtils - Streaming Helper Functions") {
+  describe("DriverUtils - Helper Functions") {
+    val sparkSession = SparkSession.builder.config(new SparkConf().setMaster("local[1]")).getOrCreate()
+    val df = sparkSession.createDataFrame(List(List("1", "2", "3", "4", "5"),
+      List("6", "7", "8", "9", "10"),
+      List("11", "12", "13", "14", "15"),
+      List("16", "17", "18", "19", "20"),
+      List("21", "22", "23", "24", "25")).map(r => Row(r: _*)).asJava,
+      StructType(Seq(
+        StructField("col1", StringType),
+        StructField("col2", StringType),
+        StructField("col3", StringType),
+        StructField("col4", StringType),
+        StructField("col5", StringType))))
     it("Should Post Initial DataFrame to Execution Plan") {
-      val sparkSession = SparkSession.builder.config(new SparkConf().setMaster("local[1]")).getOrCreate()
-      val df = sparkSession.createDataFrame(List(List("1", "2", "3", "4", "5"),
-        List("6", "7", "8", "9", "10"),
-        List("11", "12", "13", "14", "15"),
-        List("16", "17", "18", "19", "20"),
-        List("21", "22", "23", "24", "25")).map(r => Row(r: _*)).asJava,
-        StructType(Seq(
-          StructField("col1", StringType),
-          StructField("col2", StringType),
-          StructField("col3", StringType),
-          StructField("col4", StringType),
-          StructField("col5", StringType))))
       val pipelineContext1 = PipelineContext(globals = Some(Map[String, Any]()),
         parameters = PipelineParameters(), stepMessages = None)
       val pipelineContext2 = PipelineContext(globals = Some(Map[String, Any]()),
@@ -102,16 +111,54 @@ class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
     }
 
     it("Should load StreamingDataParsers") {
-      val sparkSession = SparkSession.builder.config(new SparkConf().setMaster("local[1]")).getOrCreate()
       val parameters = Map[String, Any]("streaming-parsers" -> "com.acxiom.pipeline.utils.TestStreamingDataParser")
-      val parsers = DriverUtils.generateStreamingDataParsers(parameters, Some(List[StreamingDataParser[List[String]]]()))
+      val parsers = StreamingUtils.generateStreamingDataParsers(parameters, Some(List[StreamingDataParser[List[String]]]()))
       assert(parsers.nonEmpty)
       assert(parsers.length == 1)
       assert(parsers.head.isInstanceOf[TestStreamingDataParser])
-      val parser = DriverUtils.getStreamingParser(sparkSession.sparkContext.emptyRDD, parsers)
+      val parser = StreamingUtils.getStreamingParser(sparkSession.sparkContext.emptyRDD, parsers)
       assert(parser.isDefined)
       assert(parser.get.isInstanceOf[TestStreamingDataParser])
-      assert(DriverUtils.generateStreamingDataParsers(Map[String, Any]()).isEmpty)
+      assert(StreamingUtils.generateStreamingDataParsers(Map[String, Any]()).isEmpty)
+    }
+  }
+
+  describe("DriverUtils - Parse execution results") {
+    val context = PipelineContext(globals = Some(Map("pipelineId" -> "p1", "executionId" -> "e1")), parameters = PipelineParameters(), stepMessages = None)
+    it ("Should report true when results are empty") {
+      assert(DriverUtils.handleExecutionResult(None).success)
+    }
+
+    it ("Should parse a result map") {
+      assert(DriverUtils.handleExecutionResult(Some(Map[String, DependencyResult](
+        "one" -> DependencyResult(PipelineExecution("one", List(), None, None.orNull, None),
+        None, None)))).success)
+    }
+
+    it("Should throw an exception") {
+      val message = "Should have been thrown"
+      val thrown = intercept[RuntimeException] {
+        DriverUtils.handleExecutionResult(Some(Map[String, DependencyResult](
+          "one" -> DependencyResult(PipelineExecution("one", List(), None, None.orNull, None),
+            None, Some(new IllegalArgumentException(message)))))).success
+      }
+      assert(thrown.getMessage == message)
+    }
+
+    it ("Should report unsuccessful execution") {
+      val result = DriverUtils.handleExecutionResult(Some(Map[String, DependencyResult](
+        "one" -> DependencyResult(PipelineExecution("one", List(), None, None.orNull, None),
+          Some(PipelineExecutionResult(context, success = false, paused = false)), None))))
+      assert(!result.success)
+      assert(result.failedExecution.getOrElse("") == "e1")
+      assert(result.failedPipeline.getOrElse("") == "p1")
+    }
+
+    it ("Should report successful execution when pipeline is paused") {
+      val result = DriverUtils.handleExecutionResult(Some(Map[String, DependencyResult](
+        "one" -> DependencyResult(PipelineExecution("one", List(), None, None.orNull, None),
+          Some(PipelineExecutionResult(context, success = false, paused = true)), None))))
+      assert(result.success)
     }
   }
 }

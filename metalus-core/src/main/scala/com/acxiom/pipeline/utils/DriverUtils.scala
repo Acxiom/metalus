@@ -2,18 +2,18 @@ package com.acxiom.pipeline.utils
 
 import com.acxiom.pipeline._
 import com.acxiom.pipeline.api.HttpRestClient
-import com.acxiom.pipeline.drivers.StreamingDataParser
+import com.acxiom.pipeline.drivers.{DriverSetup, ResultSummary}
 import com.acxiom.pipeline.fs.FileManager
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.DataFrame
 import org.json4s.native.JsonMethods.parse
 import org.json4s.reflect.Reflector
 import org.json4s.{DefaultFormats, Extraction, Formats}
 
+import scala.annotation.tailrec
 import scala.io.Source
 
 object DriverUtils {
@@ -173,36 +173,81 @@ object DriverUtils {
   }
 
   /**
-    * Helper function to parse and initialize the StreamingParsers from the command line.
-    * @param parameters The input parameters
-    * @param parsers An initial list of parsers. The new parsers will be prepended to this list.
-    * @return A list of streaming parsers
+    * Once the execution completes, parse the results. If an unexpected exception was thrown, it will be thrown. The
+    * result of this function will be false if the success is false and the process was not paused. A pause will
+    * result in this function returning true.
+    * @param results The execution results
+    * @return true if everything executed properly (or paused), false if anything failed. Any non-pipeline errors will be thrown
     */
-  def generateStreamingDataParsers[T](parameters: Map[String, Any],
-                                   parsers: Option[List[StreamingDataParser[T]]] = None): List[StreamingDataParser[T]] = {
-    val parsersList = if (parsers.isDefined) {
-      parsers.get
+  def handleExecutionResult(results: Option[Map[String, DependencyResult]]): ResultSummary = {
+    if (results.isEmpty) {
+      ResultSummary(success = true, None, None)
     } else {
-      List[StreamingDataParser[T]]()
-    }
-    // Add any parsers to the head of the list
-    if (parameters.contains("streaming-parsers")) {
-      parameters("streaming-parsers").asInstanceOf[String].split(',').foldLeft(parsersList)((list, p) => {
-        ReflectionUtils.loadClass(p, Some(parameters)).asInstanceOf[StreamingDataParser[T]] :: list
+      results.get.foldLeft(ResultSummary(success = true, None, None))((result, entry) => {
+        // Ensure that non-pipeline errors get thrown so the resource scheduler handles it
+        if (entry._2.error.isDefined) {
+          throw entry._2.error.get
+        }
+        // If any job failed, then the execution is failed
+        if (entry._2.result.isDefined && !entry._2.result.get.success && !entry._2.result.get.paused) {
+          val execInfo = entry._2.result.get.pipelineContext.getPipelineExecutionInfo
+          ResultSummary(entry._2.result.get.success, execInfo.executionId, execInfo.pipelineId)
+        } else {
+          result
+        }
       })
-    } else {
-      parsersList
     }
   }
 
   /**
-    * Helper function that will attempt to find the appropriate parse for the provided RDD.
-    * @param rdd The RDD to parse.
-    * @param parsers A list of parsers tp consider.
-    * @return The first parser that indicates it can parse the RDD.
+    * This function will add the DataFrame to the globals as "initialDataFrame", process the executionPlan then
+    * process the results using the "DriverSetup.handleExecutionResult" function. Upon successful execution, the
+    * provided "successFunc" will be called. A non-successful execution will result in the process being retried
+    * until "maxAttempts" has been reached. Upon continued failures, processing will either stop or if
+    * "throwExceptionOnFailure" is set, a Runtime exception will be thrown.
+    * @param driverSetup The DriverSetup to use for processing the execution result.
+    * @param executionPlan The execution plan to process
+    * @param dataFrame The DataFrame to be processed
+    * @param successFunc A function to call once a successful execution has occurred
+    * @param throwExceptionOnFailure Boolean flag indicating whether to throw an exception when all attempts have been exhausted
+    * @param attempt The current attempt
+    * @param maxAttempts The maximum number of attempts before failing
     */
-  def getStreamingParser[T](rdd: RDD[T], parsers: List[StreamingDataParser[T]]): Option[StreamingDataParser[T]] =
-    parsers.find(p => p.canParse(rdd))
+  @tailrec
+  def processExecutionPlan(driverSetup: DriverSetup,
+                           executionPlan: List[PipelineExecution],
+                           dataFrame: Option[DataFrame],
+                           successFunc: () => Unit,
+                           throwExceptionOnFailure: Boolean,
+                           attempt: Int = 1,
+                           maxAttempts: Int = Constants.FIVE): Unit = {
+    val plan = if (dataFrame.isDefined) {
+      DriverUtils.addInitialDataFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame.get)
+    } else {
+      executionPlan
+    }
+    val results = driverSetup.handleExecutionResult(PipelineDependencyExecutor.executePlan(plan))
+    if (results.success) {
+      // Call provided function once execution is successful
+      successFunc()
+    } else {
+      if (attempt >= maxAttempts && throwExceptionOnFailure) {
+        throw new IllegalStateException(s"Failed to process execution plan after $attempt attempts")
+      } else {
+        processExecutionPlan(driverSetup, executionPlan, dataFrame, successFunc, throwExceptionOnFailure, attempt + 1, maxAttempts)
+      }
+    }
+  }
+
+  /**
+    * This function will pull the common parameters from the command line.
+    * @param parameters The parameter map
+    * @return Common parameters
+    */
+  def parseCommonParameters(parameters: Map[String, Any]): CommonParameters =
+    CommonParameters(parameters("driverSetupClass").asInstanceOf[String],
+      parameters.getOrElse("maxRetryAttempts", "0").toString.toInt,
+      parameters.getOrElse("terminateAfterFailures", "false").toString.toBoolean)
 
   def loadJsonFromFile(path: String,
                        fileLoaderClassName: String = "com.acxiom.pipeline.fs.LocalFileManager",
@@ -223,3 +268,5 @@ object DriverUtils {
     json
   }
 }
+
+case class CommonParameters(initializationClass: String, maxRetryAttempts: Int, terminateAfterFailures: Boolean)

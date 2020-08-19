@@ -33,10 +33,10 @@ object PipelineExecutor {
       val ctx = executingPipelines.foldLeft(esContext)((accCtx, pipeline) => {
         // Map the steps for easier lookup during execution
         val stepLookup = createStepLookup(pipeline)
-        val updatedCtx = handleEvent(accCtx.setPipelineAudit(
+        val auditCtx = accCtx.setPipelineAudit(
           ExecutionAudit(pipeline.id.get, AuditType.PIPELINE, Map[String, Any](), System.currentTimeMillis(), None, None, Some(List[ExecutionAudit](
-            ExecutionAudit(pipeline.steps.get.head.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis()))))),
-          "pipelineStarted", List(pipeline, accCtx))
+            ExecutionAudit(pipeline.steps.get.head.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis())))))
+        val updatedCtx = handleEvent(auditCtx, "pipelineStarted", List(pipeline, auditCtx))
           .setGlobal("pipelineId", pipeline.id)
           .setGlobal("stepId", pipeline.steps.get.head.id.get)
         try {
@@ -51,18 +51,19 @@ object PipelineExecutor {
         }
       })
       val exCtx = ctx.setRootAudit(ctx.rootAudit.setEnd(System.currentTimeMillis()))
-      PipelineExecutionResult(handleEvent(exCtx, "executionFinished", List(executingPipelines, exCtx)), success = true)
+      PipelineExecutionResult(handleEvent(exCtx, "executionFinished", List(executingPipelines, exCtx)),
+        success = true, paused = false)
     } catch {
       case fe: ForkedPipelineStepException =>
         fe.exceptions.foreach(entry =>
           logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
-        PipelineExecutionResult(esContext, success = false)
+        PipelineExecutionResult(esContext, success = false, paused = false)
       case p: PauseException =>
         logger.info(s"Paused pipeline flow at ${p.pipelineProgress.getOrElse(PipelineExecutionInfo()).displayPipelineStepString}. ${p.message}")
-        PipelineExecutionResult(esContext, success = false)
+        PipelineExecutionResult(esContext, success = false, paused = true)
       case pse: PipelineStepException =>
         logger.error(s"Stopping pipeline because of an exception", pse)
-        PipelineExecutionResult(esContext, success = false)
+        PipelineExecutionResult(esContext, success = false, paused = false)
       case t: Throwable => throw t
     }
   }

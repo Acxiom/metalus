@@ -90,7 +90,13 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
         }
       }
       val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/single-execution.json")).mkString)
-      PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
+      val resultMap = PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
+      assert(resultMap.isDefined)
+      resultMap.get.foreach(entry => {
+        assert(entry._2.result.isDefined, s"Execution ${entry._1} is missing the result")
+        assert(entry._2.result.get.success, s"Execution ${entry._1} failed")
+        assert(!entry._2.result.get.paused, s"Execution ${entry._1} paused set to true")
+      })
       results.validate()
     }
 
@@ -284,9 +290,12 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
         }
       }
 
-      // PipelineChain1 should throw an exception which h=should prevent Pipeline3 from executing
+      // PipelineChain1 should throw an exception which should prevent Pipeline3 from executing
       val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/multi-tiered-pause.json")).mkString)
-      PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
+      val resultMap = PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
+      assert(resultMap.isDefined)
+      assert(resultMap.get("1").result.isDefined)
+      assert(resultMap.get("1").result.get.paused)
       results.validate()
 
       val validResults = List("Pipeline1", "PipelineChain2", "PipelineChain3", "PipelineChain5")

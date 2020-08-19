@@ -1,11 +1,21 @@
 [Documentation Home](readme.md)
 
 # Pipeline Drivers
-Pipeline drivers are the entry point for any Metalus application. A default and Kafka based (streaming) drivers are 
-provided. The pipeline driver chosen requires a *DriverSetup* to configure the application prior to execution.
+Pipeline drivers are the entry point for any Metalus application. A default driver is provided for batch processing. The 
+pipeline driver chosen requires a *DriverSetup* to configure the application prior to execution.
+
+## Default Pipeline Driver
+The **DefaultPipelineDriver** is provided for most batch processing.
+### Command line parameters
+*Required parameters:*
+* **driverSetupClass** - This class will handle all of the initial setup such as building out pipelines, creating the PipelineContext.
+
+*Optional Parameters:*
+* **maxRetryAttempts** - [number] The number of times data will attempt to process before failing. Default is 0.
+* **terminateAfterFailures** - [boolean] After processing has been retried, fail the process. Default is false.
 
 ## DriverSetup
-The *DriverSetup* is invoked by the chosen driver class with a map containing all of the application command line 
+The *DriverSetup* is invoked by the chosen driver class with a map containing the application command line 
 parameters from the 'spark-submit' command. The *DriverSetup* will then be responsible for creating the *SparkSession*, 
 *PipelineContext* and execution plan. When executing the 'spark-submit' class, one application parameter is required, 
 *driverSetupClass* which is used to initialize the *DriverSetup* implementation.
@@ -18,8 +28,8 @@ There are no special instructions for creating the *SparkSession*. Both the *Spa
 by the [PipelineContext](pipeline-context.md).
 
 ### CredentialProvider
-The _DriverSetup_ is responsible for provider a [CredentialProvider](credentialprovider.md) that may be used by the driver
-to obtain any required credentials.
+The _DriverSetup_ is responsible for providing a [CredentialProvider](credentialprovider.md) that may be used by the 
+driver to obtain any required credentials.
 
 ### Logging Parameters 
 There are several command line parameters provided to help control the application log levels:
@@ -32,6 +42,9 @@ is _INFO_.
 ```shell script
 --customLogLevels com.test:INFO,com.another.test:DEBUG,org.apache:WARN
 ```
+### handleExecutionResult
+This function will be called by the drivers to parse the results and determine if the execution was successful. The base
+functionality calls this [utility](./driver-utils.md#handle-execution-results).
 
 ## DriverSetup - Streaming
 Using Spark Streaming API, additional drivers provide streaming functionality. As data is consumed, it is converted to a 

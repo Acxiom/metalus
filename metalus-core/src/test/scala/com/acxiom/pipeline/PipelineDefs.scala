@@ -37,6 +37,15 @@ object PipelineDefs {
 
   val BASIC_NOPAUSE = List(TestPipeline(Some("1"), Some("Basic Pipeline"),
     Some(List(GLOBAL_VALUE_STEP.copy(nextStepId = Some("RETURNNONESTEP")), RETURN_NOTHING_STEP))))
+
+  val ERROR_STEP: PipelineStep = PipelineStep(Some("THROW_ERROR"), Some("Throws an error"), None, Some("Pipeline"),
+    Some(List()), Some(EngineMeta(Some("MockPipelineSteps.throwError"))), None)
+  val BRANCH_STEP: PipelineStep = PipelineStep(Some("BRANCH_LOGIC"), Some("Determines Pipeline Step"), None, Some("branch"),
+    Some(List(Parameter(`type` = Some("text"), name = Some("value"), value = Some("!passTest || false")),
+      Parameter(`type` = Some("result"), name = Some("true"), value = Some("RETURNNONESTEP")),
+      Parameter(`type` = Some("result"), name = Some("false"), value = Some("THROW_ERROR")))),
+    Some(EngineMeta(Some("MockPipelineSteps.parrotStep"))), None)
+  val ERROR_PIPELINE = List(Pipeline(Some("1"), Some("Error Pipeline"), Some(List(BRANCH_STEP,ERROR_STEP,RETURN_NOTHING_STEP))))
 }
 
 case class TestPipeline(override val id: Option[String] = None,
