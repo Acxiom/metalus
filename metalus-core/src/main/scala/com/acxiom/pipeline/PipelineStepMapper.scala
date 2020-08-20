@@ -207,7 +207,7 @@ trait PipelineStepMapper {
             case "scalascript" =>
               // compile and execute the script, then map the result into the parameter
               runScalaScript(s, parameter, pipelineContext)
-            case "result" if isResultScript(parameter) =>
+            case "result" if parameter.value.getOrElse("NONE").toString.trim.startsWith("(") =>
               // compile and execute the script, then map the result into the parameter
               runScalaScript(s, parameter, pipelineContext)
             case _ =>
@@ -233,14 +233,6 @@ trait PipelineStepMapper {
     } else {
       // use mapByType when no valid values are returned
       mapByType(None, parameter)
-    }
-  }
-
-  private def isResultScript(parameter: Parameter) = {
-    parameter.value.getOrElse("NONE") match {
-      case s: String => s.trim.startsWith("(")
-      case so: Option[String] => so.getOrElse("NONE").trim.startsWith("(")
-      case _ => false
     }
   }
 

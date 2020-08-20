@@ -43,6 +43,17 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
   }
 
   describe("DefaultPipelineDriver") {
+    it("Should fail when there is no execution plan") {
+      val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "noPipelines",
+        "--globalInput", "global-input-value")
+      SparkTestHelper.pipelineListener =  DefaultPipelineListener()
+      // Execution should complete without exception
+      val thrown = intercept[IllegalStateException] {
+        DefaultPipelineDriver.main(args.toArray)
+      }
+      assert(thrown.getMessage == "Unable to obtain valid execution plan. Please check the DriverSetup class: com.acxiom.pipeline.SparkTestDriverSetup")
+    }
+
     it("Should run a basic pipeline") {
       val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "basic",
         "--globalInput", "global-input-value")
@@ -354,6 +365,7 @@ case class SparkTestDriverSetup(parameters: Map[String, Any]) extends DriverSetu
     case "four" => PipelineDefs.FOUR_PIPELINE
     case "nopause" => PipelineDefs.BASIC_NOPAUSE
     case "errorTest" => PipelineDefs.ERROR_PIPELINE
+    case "noPipelines" => List()
   }
 
   override def initialPipelineId: String = ""
