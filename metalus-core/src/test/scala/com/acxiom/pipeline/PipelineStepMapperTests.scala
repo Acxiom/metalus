@@ -179,7 +179,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("Casting BigInt global to long", Parameter(value = Some("!bigIntGlobal"), `type` = Some("long")), 1L),
         ("Casting BigInt global to BigDecimal", Parameter(value = Some("!bigIntGlobal"), `type` = Some("BigDecimal")), BigDecimal(1)),
         ("Casting bigInt global to String", Parameter(value = Some("!bigIntGlobal"), `type` = Some("String")), "1"),
-        ("Casting String global to boolean", Parameter(value = Some("!booleanString"), `type` = Some("boolean")), true)
+        ("Casting String global to boolean", Parameter(value = Some("!booleanString"), `type` = Some("boolean")), true),
+        ("Use default value", Parameter(name = Some("defaultparam"), defaultValue = Some("default chosen"), `type` = Some("text")), "default chosen")
       )
       tests.foreach(test => {
         Then(s"test ${test._1}")
@@ -195,6 +196,9 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       assert(thrown.getMessage == msg)
       assert(pipelineContext.parameterMapper.mapParameter(
         Parameter(name = Some("badValue"), value=None,`type`=Some("string")), pipelineContext).asInstanceOf[Option[_]].isEmpty)
+
+      assert(pipelineContext.parameterMapper.mapByType(None, Parameter(name = Some("defaultparam"),
+        defaultValue = Some("default chosen"), `type` = Some("text"))) == "default chosen")
     }
 
     it("should cast string values to different numeric types") {

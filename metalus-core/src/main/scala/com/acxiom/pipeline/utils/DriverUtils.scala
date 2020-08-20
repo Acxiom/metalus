@@ -231,8 +231,10 @@ object DriverUtils {
       // Call provided function once execution is successful
       successFunc()
     } else {
-      if (attempt >= maxAttempts && throwExceptionOnFailure) {
-        throw new IllegalStateException(s"Failed to process execution plan after $attempt attempts")
+      if (attempt >= maxAttempts) {
+        if (throwExceptionOnFailure) {
+          throw new IllegalStateException(s"Failed to process execution plan after $attempt attempts")
+        }
       } else {
         processExecutionPlan(driverSetup, executionPlan, dataFrame, successFunc, throwExceptionOnFailure, attempt + 1, maxAttempts)
       }

@@ -381,12 +381,113 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       assert(TransformationSteps.union(res, df1).collect().map(r => (r.getInt(0), r.getString(1))).toList == expected)
     }
 
-    it("moo"){
-      println(List("a", "b", "c", "b", "a").groupBy(identity).flatMap{
-        case (k, l) if l.length == 1 => Some(k)
-        case (k, l) => k +: l.drop(1).zipWithIndex.map{case (name, i) => s"${name}_${i + 2}"}
-      }.toList)
+    it("should standardize column names") {
+      Given("a dataframe")
+      val df = sparkSession.createDataFrame(Seq(
+        (1, "buster", "dawg", 29483),
+        (2, "rascal", "dawg", 29483)
+      )).toDF(
+        " Id ", "first###name", "1ast name", "    zip    "
+      )
+
+      Then("run it through column standardization")
+      val newDF = TransformationSteps.standardizeColumnNames(df)
+
+      And("expect columns to be standardized")
+      assert(newDF.columns.sameElements(Array("ID", "FIRST_NAME", "C_1AST_NAME", "ZIP")))
+
+      Then("run more specific use cases through clean columns")
+      assert(TransformationSteps.cleanColumnName("cAse") == "CASE")
+      assert(TransformationSteps.cleanColumnName("basic space") == "BASIC_SPACE")
+      assert(TransformationSteps.cleanColumnName("duplicate  spaces") == "DUPLICATE_SPACES")
+      assert(TransformationSteps.cleanColumnName("duplicate__underscores") == "DUPLICATE_UNDERSCORES")
+      assert(TransformationSteps.cleanColumnName("  spaces on ends    ") == "SPACES_ON_ENDS")
+      assert(TransformationSteps.cleanColumnName("__underscores on ends____") == "UNDERSCORES_ON_ENDS")
+      assert(TransformationSteps.cleanColumnName("(sp%ci*l##ch&*()&*()r@c+e^s)") == "SP_CI_L_CH_R_C_E_S")
+      assert(TransformationSteps.cleanColumnName("123_init_numbers") == "C_123_INIT_NUMBERS")
     }
+
+    it("should handle duplicates when standardizing") {
+      Given("A DataFrame with columns that will standardize to the same name")
+      val df = sparkSession.sql("select 1 as c_1, '1' as `1`")
+      When("It is run through standardizeColumnNames")
+      val sdf = TransformationSteps.standardizeColumnNames(df)
+      Then("The duplicates are resolved")
+      assert(sdf.columns.contains("C_1") && sdf.columns.contains("C_1_2"))
+      And("Column order is preserved")
+      assert(sdf.columns(0) == "C_1")
+      assert(sdf.columns(1) == "C_1_2")
+    }
+
+    it("should apply a filter to a dataframe") {
+      Given("a dataframe")
+      val df = sparkSession.createDataFrame(Seq(
+        (1, "buster", "dawg", 29483),
+        (2, "rascal", "dawg", 29483),
+        (0, "sophie", "dawg", 29483)
+      )).toDF(
+        "id", "first_name", "1ast_name", "zip"
+      )
+      assert(df.count == 3)
+      assert(df.where("id <= 0").count == 1)
+      Then("run dataframe through apply filter logic")
+      val newDF = TransformationSteps.applyFilter(df, "id > 0")
+      And("expect the filter to be applied to the output dataframe")
+      assert(newDF.count == 2)
+      assert(newDF.where("id <= 0").count == 0)
+    }
+
+    it("should add unique ids to each row of a dataframe") {
+      Given("a dataframe")
+      val df = sparkSession.createDataFrame(Seq(
+        ("buster", "dawg", 29483),
+        ("rascal", "dawg", 29483),
+        ("sophie", "dawg", 29483)
+      )).toDF(
+        "first_name", "1ast_name", "zip"
+      )
+      Then("add a unique id to the dataframe")
+      val idDf = TransformationSteps.addUniqueIdToDataFrame("id", df)
+      assert(idDf.count == df.count)
+      assert(idDf.columns.contains("ID"))
+      val results = idDf.collect
+      assert(results.exists(x => x.getLong(3) == 0 && x.getString(0) == "buster"))
+      assert(results.exists(x => x.getLong(3) == 1 && x.getString(0) == "rascal"))
+      assert(results.exists(x => x.getLong(3) == 2 && x.getString(0) == "sophie"))
+    }
+
+    it("should add a static value to each row of a dataframe") {
+      Given("a dataframe")
+      val df = sparkSession.createDataFrame(Seq(
+        ("buster", "dawg", 29483),
+        ("rascal", "dawg", 29483),
+        ("sophie", "dawg", 29483)
+      )).toDF(
+        "first_name", "1ast_name", "zip"
+      )
+      Then("add a unique id to the dataframe")
+      val newDf = TransformationSteps.addStaticColumnToDataFrame(df, "file-id", "file-id-0001")
+      assert(newDf.count == df.count)
+      assert(newDf.columns.contains("FILE_ID"))
+      assert(newDf.where("FILE_ID == 'file-id-0001'").count == df.count)
+    }
+
+    it ("Should fail on invalid join type") {
+      val spark = sparkSession
+      import spark.implicits._
+      val df = Seq(1, 0).toDF("p0")
+      val thrown = intercept[PipelineException] {
+        TransformationSteps.join(df, df, None, None, None, Some("bad"), pipelineContext)
+      }
+      assert(thrown.getMessage.startsWith("Expression must be provided for all non-cross joins."))
+    }
+
+//    it("moo"){
+//      println(List("a", "b", "c", "b", "a").groupBy(identity).flatMap{
+//        case (k, l) if l.length == 1 => Some(k)
+//        case (k, l) => k +: l.drop(1).zipWithIndex.map{case (name, i) => s"${name}_${i + 2}"}
+//      }.toList)
+//    }
   }
 
   describe("Schema Tests") {
@@ -429,96 +530,5 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       val chickenAttribute = chicken.get.dataType.schema.get.attributes.head
       assert(chickenAttribute.name == "name" && chickenAttribute.dataType.baseType == "string")
     }
-  }
-
-  it("should standardize column names") {
-    Given("a dataframe")
-    val df = sparkSession.createDataFrame(Seq(
-      (1, "buster", "dawg", 29483),
-      (2, "rascal", "dawg", 29483)
-    )).toDF(
-      " Id ", "first###name", "1ast name", "    zip    "
-    )
-
-    Then("run it through column standardization")
-    val newDF = TransformationSteps.standardizeColumnNames(df)
-
-    And("expect columns to be standardized")
-    assert(newDF.columns.sameElements(Array("ID", "FIRST_NAME", "C_1AST_NAME", "ZIP")))
-
-    Then("run more specific use cases through clean columns")
-    assert(TransformationSteps.cleanColumnName("cAse") == "CASE")
-    assert(TransformationSteps.cleanColumnName("basic space") == "BASIC_SPACE")
-    assert(TransformationSteps.cleanColumnName("duplicate  spaces") == "DUPLICATE_SPACES")
-    assert(TransformationSteps.cleanColumnName("duplicate__underscores") == "DUPLICATE_UNDERSCORES")
-    assert(TransformationSteps.cleanColumnName("  spaces on ends    ") == "SPACES_ON_ENDS")
-    assert(TransformationSteps.cleanColumnName("__underscores on ends____") == "UNDERSCORES_ON_ENDS")
-    assert(TransformationSteps.cleanColumnName("(sp%ci*l##ch&*()&*()r@c+e^s)") == "SP_CI_L_CH_R_C_E_S")
-    assert(TransformationSteps.cleanColumnName("123_init_numbers") == "C_123_INIT_NUMBERS")
-  }
-
-  it("should handle duplicates when standardizing") {
-    Given("A DataFrame with columns that will standardize to the same name")
-    val df = sparkSession.sql("select 1 as c_1, '1' as `1`")
-    When("It is run through standardizeColumnNames")
-    val sdf = TransformationSteps.standardizeColumnNames(df)
-    Then("The duplicates are resolved")
-    assert(sdf.columns.contains("C_1") && sdf.columns.contains("C_1_2"))
-    And("Column order is preserved")
-    assert(sdf.columns(0) == "C_1")
-    assert(sdf.columns(1) == "C_1_2")
-  }
-
-  it("should apply a filter to a dataframe") {
-    Given("a dataframe")
-    val df = sparkSession.createDataFrame(Seq(
-      (1, "buster", "dawg", 29483),
-      (2, "rascal", "dawg", 29483),
-      (0, "sophie", "dawg", 29483)
-    )).toDF(
-      "id", "first_name", "1ast_name", "zip"
-    )
-    assert(df.count == 3)
-    assert(df.where("id <= 0").count == 1)
-    Then("run dataframe through apply filter logic")
-    val newDF = TransformationSteps.applyFilter(df, "id > 0")
-    And("expect the filter to be applied to the output dataframe")
-    assert(newDF.count == 2)
-    assert(newDF.where("id <= 0").count == 0)
-  }
-
-  it("should add unique ids to each row of a dataframe") {
-    Given("a dataframe")
-    val df = sparkSession.createDataFrame(Seq(
-      ("buster", "dawg", 29483),
-      ("rascal", "dawg", 29483),
-      ("sophie", "dawg", 29483)
-    )).toDF(
-      "first_name", "1ast_name", "zip"
-    )
-    Then("add a unique id to the dataframe")
-    val idDf = TransformationSteps.addUniqueIdToDataFrame("id", df)
-    assert(idDf.count == df.count)
-    assert(idDf.columns.contains("ID"))
-    val results = idDf.collect
-    assert(results.exists(x => x.getLong(3) == 0 && x.getString(0) == "buster"))
-    assert(results.exists(x => x.getLong(3) == 1 && x.getString(0) == "rascal"))
-    assert(results.exists(x => x.getLong(3) == 2 && x.getString(0) == "sophie"))
-  }
-
-  it("should add a static value to each row of a dataframe") {
-    Given("a dataframe")
-    val df = sparkSession.createDataFrame(Seq(
-      ("buster", "dawg", 29483),
-      ("rascal", "dawg", 29483),
-      ("sophie", "dawg", 29483)
-    )).toDF(
-      "first_name", "1ast_name", "zip"
-    )
-    Then("add a unique id to the dataframe")
-    val newDf = TransformationSteps.addStaticColumnToDataFrame(df, "file-id", "file-id-0001")
-    assert(newDf.count == df.count)
-    assert(newDf.columns.contains("FILE_ID"))
-    assert(newDf.where("FILE_ID == 'file-id-0001'").count == df.count)
   }
 }

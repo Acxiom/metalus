@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.utils
 
 import com.acxiom.pipeline._
-import com.acxiom.pipeline.drivers.StreamingDataParser
+import com.acxiom.pipeline.drivers.{DriverSetup, ResultSummary, StreamingDataParser}
 import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
@@ -102,12 +102,14 @@ class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
         parameters = PipelineParameters(), stepMessages = None)
       val pipelineContext2 = PipelineContext(globals = Some(Map[String, Any]()),
         parameters = PipelineParameters(), stepMessages = None)
-      val executionPlan = DriverUtils.addInitialDataFrameToExecutionPlan(List(PipelineExecution("ONE", List(), None, pipelineContext1, None),
-        PipelineExecution("TWO", List(), None, pipelineContext2, Some(List("ONE")))), df)
-      executionPlan.foreach(plan => {
-        assert(plan.pipelineContext.getGlobal("initialDataFrame").isDefined)
-        assert(plan.pipelineContext.getGlobal("initialDataFrame").get == df)
-      })
+      val executionPlan = List(PipelineExecution("ONE", List(), None, pipelineContext1, None),
+        PipelineExecution("TWO", List(), None, pipelineContext2, Some(List("ONE"))))
+      var passed = false
+      DriverUtils.processExecutionPlan(TestDriverSetup(Map(), df), executionPlan, Some(df), () => {
+        passed = true
+      },
+        throwExceptionOnFailure = true, 1, 0)
+      assert(passed, "DataFrame was not injected into PipelineContext Globals!")
     }
 
     it("Should load StreamingDataParsers") {
@@ -168,5 +170,15 @@ class TestStreamingDataParser extends StreamingDataParser[List[String]] {
 
   override def parseRDD(rdd: RDD[List[String]], sparkSession: SparkSession): DataFrame = {
     None.orNull
+  }
+}
+
+case class TestDriverSetup(parameters: Map[String, Any], dataFrame: DataFrame) extends DriverSetup {
+  override def pipelineContext: PipelineContext = None.orNull
+
+  override def handleExecutionResult(results: Option[Map[String, DependencyResult]]): ResultSummary = {
+    ResultSummary(success = results.isDefined &&
+      results.get.head._2.execution.pipelineContext.getGlobal("initialDataFrame").isDefined &&
+      results.get.head._2.execution.pipelineContext.getGlobal("initialDataFrame").get == dataFrame, None, None)
   }
 }
