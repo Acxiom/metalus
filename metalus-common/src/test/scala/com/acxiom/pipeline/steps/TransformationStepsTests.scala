@@ -481,13 +481,6 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       }
       assert(thrown.getMessage.startsWith("Expression must be provided for all non-cross joins."))
     }
-
-//    it("moo"){
-//      println(List("a", "b", "c", "b", "a").groupBy(identity).flatMap{
-//        case (k, l) if l.length == 1 => Some(k)
-//        case (k, l) => k +: l.drop(1).zipWithIndex.map{case (name, i) => s"${name}_${i + 2}"}
-//      }.toList)
-//    }
   }
 
   describe("Schema Tests") {

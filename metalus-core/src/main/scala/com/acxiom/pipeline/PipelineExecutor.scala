@@ -22,9 +22,7 @@ object PipelineExecutor {
       pipelines.slice(pipelines.indexWhere(pipeline => {
         pipeline.id.get == initialPipelineId.getOrElse("")
       }), pipelines.length)
-    } else {
-      pipelines
-    }
+    } else { pipelines }
     val executionId = initialContext.getGlobalString("executionId").getOrElse("root")
     val esContext = handleEvent(initialContext.setRootAudit(ExecutionAudit(executionId, AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis())),
       "executionStarted", List(executingPipelines, initialContext))
@@ -37,8 +35,7 @@ object PipelineExecutor {
           ExecutionAudit(pipeline.id.get, AuditType.PIPELINE, Map[String, Any](), System.currentTimeMillis(), None, None, Some(List[ExecutionAudit](
             ExecutionAudit(pipeline.steps.get.head.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis())))))
         val updatedCtx = handleEvent(auditCtx, "pipelineStarted", List(pipeline, auditCtx))
-          .setGlobal("pipelineId", pipeline.id)
-          .setGlobal("stepId", pipeline.steps.get.head.id.get)
+          .setGlobal("pipelineId", pipeline.id).setGlobal("stepId", pipeline.steps.get.head.id.get)
         try {
           val resultPipelineContext = executeStep(pipeline.steps.get.head, pipeline, stepLookup, updatedCtx)
           val messages = resultPipelineContext.getStepMessages
