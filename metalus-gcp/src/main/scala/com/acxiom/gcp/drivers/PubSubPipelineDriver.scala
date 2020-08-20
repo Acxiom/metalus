@@ -29,7 +29,6 @@ object PubSubPipelineDriver {
     val streamingContext = StreamingUtils.createStreamingContext(sparkSession.sparkContext,
       Some(parameters.getOrElse("duration-type", "seconds").asInstanceOf[String]),
       Some(parameters.getOrElse("duration", "10").asInstanceOf[String]))
-
     // Get the credential provider
     val credentialProvider = driverSetup.credentialProvider
     val gcpCredential = credentialProvider.getNamedCredential("GCPCredential")
@@ -46,7 +45,6 @@ object PubSubPipelineDriver {
       subscription, // Cloud Pub/Sub subscription for incoming data
       sparkGCPCredentials,
       StorageLevel.MEMORY_AND_DISK_SER_2)
-
     val defaultParser = new PubSubStreamingDataParser(subscription)
     val streamingParsers = StreamingUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))
     messagesStream.foreachRDD { rdd: RDD[SparkPubsubMessage] =>
@@ -54,7 +52,6 @@ object PubSubPipelineDriver {
         logger.debug("RDD received")
         val parser = StreamingUtils.getStreamingParser[SparkPubsubMessage](rdd, streamingParsers)
         val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)
-        // Refresh the execution plan prior to processing new data
         DriverUtils.processExecutionPlan(driverSetup, executionPlan, Some(dataFrame), () => {logger.debug("Completing RDD")},
           commonParameters.terminateAfterFailures, 1, commonParameters.maxRetryAttempts)
       }

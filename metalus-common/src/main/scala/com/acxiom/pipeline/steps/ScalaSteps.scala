@@ -8,12 +8,14 @@ import org.apache.log4j.Logger
 @StepObject
 object ScalaSteps {
   private val logger = Logger.getLogger(getClass)
+  private val scriptDescription: Some[String] = Some("A scala script to execute")
+
   @StepFunction("a7e17c9d-6956-4be0-a602-5b5db4d1c08b",
     "Scala script Step",
     "Executes a script and returns the result",
     "Pipeline",
     "Scripting")
-  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("scala"), description = Some("A scala script to execute"))))
+  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("scala"), description = scriptDescription)))
   def processScript(script: String,
                     pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
@@ -26,7 +28,7 @@ object ScalaSteps {
     "Executes a script with the provided object and returns the result",
     "Pipeline",
     "Scripting")
-  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("scala"), description = Some("A scala script to execute")),
+  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("scala"), description = scriptDescription),
     "value" -> StepParameter(None, Some(true), description = Some("Aa value to pass to the script")),
     "type" -> StepParameter(None, Some(false), description = Some("The type of the value to pass to the script"))))
   def processScriptWithValue(script: String,
@@ -44,7 +46,7 @@ object ScalaSteps {
     "Executes a script with the provided object and returns the result",
     "Pipeline",
     "Scripting")
-  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("scala"), description = Some("A scala script to execute")),
+  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("scala"), description = scriptDescription),
     "values" -> StepParameter(None, Some(true), description = Some("Map of name/value pairs that will be bound to the script")),
     "type" -> StepParameter(None, Some(false), description = Some("Map of type overrides for the values provided")),
     "unwrapOptions" -> StepParameter(None, Some(false), description = Some("Flag to toggle option unwrapping behavior"))))
