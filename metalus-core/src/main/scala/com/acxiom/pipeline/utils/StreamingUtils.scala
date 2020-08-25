@@ -1,7 +1,9 @@
 package com.acxiom.pipeline.utils
 
+import com.acxiom.pipeline.drivers.StreamingDataParser
 import org.apache.log4j.Logger
 import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.{Duration, Seconds, StreamingContext}
 
 object StreamingUtils {
@@ -55,4 +57,36 @@ object StreamingUtils {
       streamingContext.awaitTermination()
     }
   }
+
+  /**
+    * Helper function to parse and initialize the StreamingParsers from the command line.
+    * @param parameters The input parameters
+    * @param parsers An initial list of parsers. The new parsers will be prepended to this list.
+    * @return A list of streaming parsers
+    */
+  def generateStreamingDataParsers[T](parameters: Map[String, Any],
+                                      parsers: Option[List[StreamingDataParser[T]]] = None): List[StreamingDataParser[T]] = {
+    val parsersList = if (parsers.isDefined) {
+      parsers.get
+    } else {
+      List[StreamingDataParser[T]]()
+    }
+    // Add any parsers to the head of the list
+    if (parameters.contains("streaming-parsers")) {
+      parameters("streaming-parsers").asInstanceOf[String].split(',').foldLeft(parsersList)((list, p) => {
+        ReflectionUtils.loadClass(p, Some(parameters)).asInstanceOf[StreamingDataParser[T]] :: list
+      })
+    } else {
+      parsersList
+    }
+  }
+
+  /**
+    * Helper function that will attempt to find the appropriate parse for the provided RDD.
+    * @param rdd The RDD to parse.
+    * @param parsers A list of parsers tp consider.
+    * @return The first parser that indicates it can parse the RDD.
+    */
+  def getStreamingParser[T](rdd: RDD[T], parsers: List[StreamingDataParser[T]]): Option[StreamingDataParser[T]] =
+    parsers.find(p => p.canParse(rdd))
 }

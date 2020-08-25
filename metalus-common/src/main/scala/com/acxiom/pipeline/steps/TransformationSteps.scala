@@ -1,18 +1,21 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.{PipelineContext, PipelineException}
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.{PipelineContext, PipelineException}
 import org.apache.log4j.Logger
-import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{Column, DataFrame}
 
 @StepObject
 object TransformationSteps {
   private val logger = Logger.getLogger(getClass)
+  private val transformsDescription: Some[String] = Some("The object with transform, alias, and filter logic details")
+  private val addNewColumnsDescription: Some[String] = Some("Flag to determine whether new attributes are to be added to the output")
 
   /**
     * maps a DataFrame to a destination DataFrame
+    *
     * @param inputDataFrame         the DataFrame that needs to be modified
     * @param destinationDataFrame   the DataFrame that the new data needs to map to
     * @param transforms             the object with transform, alias, and filter logic details
@@ -27,9 +30,9 @@ object TransformationSteps {
     "Transforms")
   @StepParameters(Map("inputDataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame that needs to be modified")),
     "destinationDataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame that the new data needs to map to")),
-    "transforms" -> StepParameter(None, Some(true), description = Some("The object with transform, alias, and filter logic details")),
+    "transforms" -> StepParameter(None, Some(true), description = transformsDescription),
     "addNewColumns" -> StepParameter(None, Some(false), Some("true"),
-      description = Some("Flag to determine whether new attributes are to be added to the output"))))
+      description = addNewColumnsDescription)))
   def mapToDestinationDataFrame(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, transforms: Transformations = Transformations(List()),
                              addNewColumns: Option[Boolean] = None): DataFrame = {
     mapDataFrameToSchema(inputDataFrame, Schema.fromStructType(destinationDataFrame.schema), transforms, addNewColumns)
@@ -51,9 +54,9 @@ object TransformationSteps {
     "Transforms")
   @StepParameters(Map("inputDataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame that needs to be modified")),
     "destinationSchema" -> StepParameter(None, Some(true), description = Some("The schema that the new data should map to")),
-    "transforms" -> StepParameter(None, Some(true), description = Some("The object with transform, alias, and filter logic details")),
+    "transforms" -> StepParameter(None, Some(true), description = transformsDescription),
     "addNewColumns" -> StepParameter(None, Some(false), Some("true"),
-      description = Some("Flag to determine whether new attributes are to be added to the output"))))
+      description = addNewColumnsDescription)))
   def mapDataFrameToSchema(inputDataFrame: DataFrame, destinationSchema: Schema, transforms: Transformations = Transformations(List()),
                            addNewColumns: Option[Boolean] = None): DataFrame = {
     // create a struct type with cleaned names to pass to methods that need structtype
@@ -84,9 +87,9 @@ object TransformationSteps {
     "Transforms")
   @StepParameters(Map("inputDataFrame" -> StepParameter(None, Some(true), description = Some("The first DataFrame")),
     "destinationDataFrame" -> StepParameter(None, Some(true), description = Some("The second DataFrame used as the driver")),
-    "transforms" -> StepParameter(None, Some(true), description = Some("The object with transform, alias, and filter logic details")),
+    "transforms" -> StepParameter(None, Some(true), description = transformsDescription),
     "addNewColumns" -> StepParameter(None, Some(false), Some("true"),
-      description = Some("Flag to determine whether new attributes are to be added to the output")),
+      description = addNewColumnsDescription),
     "distinct" -> StepParameter(None, Some(false), Some("true"), description = Some("Flag to determine whether a distinct union should be performed"))))
   def mergeDataFrames(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, transforms: Transformations = Transformations(List()),
                       addNewColumns: Option[Boolean] = None, distinct: Option[Boolean] = None): DataFrame = {
@@ -112,7 +115,7 @@ object TransformationSteps {
     "Transforms")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The input DataFrame")),
     "transforms" -> StepParameter(None, Some(true),
-      description = Some("The object with transform, alias, and filter logic details"))))
+      description = transformsDescription)))
   def applyTransforms(dataFrame: DataFrame, transforms: Transformations): DataFrame = {
     // pull out mappings that contain a transform
     val mappingsWithTransforms = transforms.columnDetails.filter(_.expression.nonEmpty).map(x => {

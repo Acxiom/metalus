@@ -22,3 +22,5 @@ is consumed, the RDD will be converted into a DataFrame with three columns:
 * **duration-type** - [minutes | **seconds**] Corresponds to the *duration* parameter.
 * **duration** - [number] How long the driver should wait before processing the next batch of data. Default is 10 seconds.
 * **terminationPeriod** - [number] The number of ms the system should run and then shut down. 
+* **maxRetryAttempts** - [number] The number of times data will attempt to process before failing. Default is 0.
+* **terminateAfterFailures** - [boolean] After processing has been retried, fail the process. Default is false.

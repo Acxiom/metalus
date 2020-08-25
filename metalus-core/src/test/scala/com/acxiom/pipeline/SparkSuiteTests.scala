@@ -43,6 +43,17 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
   }
 
   describe("DefaultPipelineDriver") {
+    it("Should fail when there is no execution plan") {
+      val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "noPipelines",
+        "--globalInput", "global-input-value")
+      SparkTestHelper.pipelineListener =  DefaultPipelineListener()
+      // Execution should complete without exception
+      val thrown = intercept[IllegalStateException] {
+        DefaultPipelineDriver.main(args.toArray)
+      }
+      assert(thrown.getMessage == "Unable to obtain valid execution plan. Please check the DriverSetup class: com.acxiom.pipeline.SparkTestDriverSetup")
+    }
+
     it("Should run a basic pipeline") {
       val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "basic",
         "--globalInput", "global-input-value")
@@ -235,6 +246,52 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       DefaultPipelineDriver.main(args.toArray)
       results.validate()
     }
+
+    it("Should retry when the pipeline fails") {
+      var executionComplete = false
+      var testIteration = 0
+      SparkTestHelper.pipelineListener = new PipelineListener {
+        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+          assert(pipelines.lengthCompare(1) == 0)
+          val params = pipelineContext.parameters.getParametersByPipelineId("1")
+          assert(params.isDefined)
+          assert(params.get.parameters.contains("RETURNNONESTEP"))
+          executionComplete = true
+          Some(pipelineContext)
+        }
+        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+          exception match {
+            case t: Throwable if testIteration > 1 => fail(s"Pipeline Failed to run: ${t.getMessage}")
+            case _ =>
+          }
+        }
+
+        override def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext): Option[PipelineContext] = {
+          // Second execution should set a global that allows the pipeline to complete
+          testIteration += 1
+          if (testIteration == 2) {
+            Some(pipelineContext.setGlobal("passTest", true))
+          } else {
+            None
+          }
+        }
+      }
+
+      val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "errorTest",
+        "--globalInput", "global-input-value", "--maxRetryAttempts", "2")
+      DefaultPipelineDriver.main(args.toArray)
+      assert(executionComplete)
+    }
+
+    it ("Should fail and not retry") {
+      SparkTestHelper.pipelineListener = new PipelineListener {}
+      val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "errorTest",
+        "--globalInput", "global-input-value", "--terminateAfterFailures", "true")
+      val thrown = intercept[RuntimeException] {
+        DefaultPipelineDriver.main(args.toArray)
+      }
+      assert(thrown.getMessage.startsWith("Failed to process execution plan after 1 attempts"))
+    }
   }
 
   describe("PipelineContext") {
@@ -307,6 +364,8 @@ case class SparkTestDriverSetup(parameters: Map[String, Any]) extends DriverSetu
     case "three" => PipelineDefs.THREE_PIPELINE
     case "four" => PipelineDefs.FOUR_PIPELINE
     case "nopause" => PipelineDefs.BASIC_NOPAUSE
+    case "errorTest" => PipelineDefs.ERROR_PIPELINE
+    case "noPipelines" => List()
   }
 
   override def initialPipelineId: String = ""
@@ -343,4 +402,11 @@ object MockPipelineSteps {
   }
 
   def returnNothingStep(string: String): Unit = {}
+
+  def parrotStep(value: Any): String = value.toString
+
+  def throwError(pipelineContext: PipelineContext): Any = {
+    throw PipelineException(message = Some("This step should not be called"),
+      pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+  }
 }

@@ -231,6 +231,15 @@ class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(response.namedReturns.isDefined)
     }
 
+    it ("Should detect result script") {
+      val context = SparkTestHelper.generatePipelineContext()
+        .setGlobal("globalResult", "globalResult")
+      val mapper = PipelineStepMapper()
+      assert(mapper.mapParameter(Parameter(Some("result"), value = Some(" (value:!globalResult:String) value")), context)
+        == "globalResult")
+      assert(mapper.mapParameter(Parameter(Some("result"), value = Some("test")), context) == "test")
+    }
+
     def validateResults(ctx: PipelineContext,
                         subStepOneValue: String = "ONE",
                         subStepTwoValue: String = "TWO",

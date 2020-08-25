@@ -1,6 +1,5 @@
 package com.acxiom.kafka.drivers
 
-import com.acxiom.pipeline.PipelineDependencyExecutor
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
@@ -30,48 +29,48 @@ object KafkaPipelineDriver {
 
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("driverSetupClass", "topics", "kafkaNodes")))
-    val initializationClass = parameters("driverSetupClass").asInstanceOf[String]
-    val driverSetup = ReflectionUtils.loadClass(initializationClass,
+    val commonParameters = DriverUtils.parseCommonParameters(parameters)
+    val driverSetup = ReflectionUtils.loadClass(commonParameters.initializationClass,
       Some(Map("parameters" -> parameters))).asInstanceOf[DriverSetup]
     val topics = parameters("topics").asInstanceOf[String].split(",")
     logger.info(s"Listening for Kafka messages using topics: ${topics.mkString(",")}")
     if (driverSetup.executionPlan.isEmpty) {
-      throw new IllegalStateException(s"Unable to obtain valid execution plan. Please check the DriverSetup class: $initializationClass")
+      throw new IllegalStateException(
+        s"Unable to obtain valid execution plan. Please check the DriverSetup class: ${commonParameters.initializationClass}")
     }
     val executionPlan = driverSetup.executionPlan.get
     val sparkSession = executionPlan.head.pipelineContext.sparkSession.get
-
     val streamingContext = StreamingUtils.createStreamingContext(sparkSession.sparkContext,
       Some(parameters.getOrElse("duration-type", "seconds").asInstanceOf[String]),
       Some(parameters.getOrElse("duration", "10").asInstanceOf[String]))
-
     val kafkaParams = Map[String, Object](
       ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> parameters("kafkaNodes").asInstanceOf[String],
       ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG -> classOf[StringDeserializer],
       ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG -> classOf[StringDeserializer],
       ConsumerConfig.GROUP_ID_CONFIG -> parameters.getOrElse("groupId", "default_stream_listener").asInstanceOf[String],
       ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> "earliest",
-      ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG -> (false: java.lang.Boolean)
-    )
+      ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG -> (false: java.lang.Boolean))
     val stream = KafkaUtils.createDirectStream[String, String](streamingContext,
       LocationStrategies.PreferConsistent,
       ConsumerStrategies.Subscribe[String, String](topics, kafkaParams))
 
     val defaultParser = new KafkaStreamingDataParser
-    val streamingParsers = DriverUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))
+    val streamingParsers = StreamingUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))
     stream.foreachRDD { rdd: RDD[ConsumerRecord[String, String]] =>
       if (!rdd.isEmpty()) {
         logger.debug("RDD received")
         // Need to commit the offsets in Kafka that we have consumed
         val offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
         // Convert the RDD into a dataFrame
-        val parser = DriverUtils.getStreamingParser[ConsumerRecord[String, String]](rdd, streamingParsers)
+        val parser = StreamingUtils.getStreamingParser[ConsumerRecord[String, String]](rdd, streamingParsers)
         val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)
         // Refresh the execution plan prior to processing new data
-        PipelineDependencyExecutor.executePlan(DriverUtils.addInitialDataFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame))
-        // commit offsets after pipeline(s) completes
-        stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetRanges)
-        logger.debug(s"Committing Kafka offsets ${offsetRanges.mkString(",")}")
+        logger.debug(s"Processing offsets ${offsetRanges.mkString}")
+        DriverUtils.processExecutionPlan(driverSetup, executionPlan, Some(dataFrame), () => {
+          // commit offsets after pipeline(s) completes
+          stream.asInstanceOf[CanCommitOffsets].commitAsync(offsetRanges)
+          logger.debug(s"Committing Kafka offsets ${offsetRanges.mkString(",")}")
+        }, commonParameters.terminateAfterFailures, 1, commonParameters.maxRetryAttempts)
       }
     }
 

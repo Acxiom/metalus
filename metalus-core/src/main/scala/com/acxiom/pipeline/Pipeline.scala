@@ -98,17 +98,20 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
   }
 
   /**
-    * Get the named global value.
+    * Get the named global value (considering GlobalLinks)
     *
     * @param globalName The name of the global property to return.
     * @return An option containing the value or None
     */
   def getGlobal(globalName: String): Option[Any] = {
-    if (this.globals.isDefined && this.globals.get.contains(globalName)) {
-      this.globals.get.get(globalName)
-    } else {
-      None
-    }
+    this.globals.flatMap(x => {
+      x.collectFirst{
+        case ("GlobalLinks", v:Map[_,_]) if v.isInstanceOf[Map[String, Any]] && v.asInstanceOf[Map[String, Any]].contains(globalName) =>
+          v.asInstanceOf[Map[String, Any]].getOrElse(globalName, "")
+        case (k, v:Option[_]) if k == globalName => v.get
+        case (k, v) if k == globalName => v
+      }
+    })
   }
 
   def getGlobalAs[T](globalName: String): Option[T] = {
@@ -337,9 +340,10 @@ case class PipelineParameters(parameters: List[PipelineParameter] = List()) {
   * This class represents the result of executing a list of pipelines.
   *
   * @param pipelineContext The final pipeline context when execution stopped
-  * @param success Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
+  * @param success         Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
+  * @param paused          Flag indicating whether the "failure" was actually a pause
   */
-case class PipelineExecutionResult(pipelineContext: PipelineContext, success: Boolean)
+case class PipelineExecutionResult(pipelineContext: PipelineContext, success: Boolean, paused: Boolean)
 
 /**
   * Contains the current pipeline and step information
