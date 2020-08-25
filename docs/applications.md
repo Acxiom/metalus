@@ -59,6 +59,7 @@ implement the _SparkListener_ interface it will be registered with Spark.
 * [pipelineManager](pipeline-manager.md) - Performs lookups based on pipeline ids. Parameters for the _PipelineManager_ will
 attempt to parse objects and lists of objects.
 * _sparkUdfs_ - A list of UDF classes to register with the Spark session.
+* _json4sSerializers_ - Contains lists of custom serializer and enum serializer classes used by json4s.
 
 Using any of the options listed requires a JSON object that contains two parameters:
 

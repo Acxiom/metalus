@@ -86,15 +86,15 @@ trait PipelineStepMapper {
    * @param parameter The step parameter
    * @return
    */
-  def mapByType(value: Option[String], parameter: Parameter): Any = {
+  def mapByType(value: Option[String], parameter: Parameter, pipelineContext: PipelineContext): Any = {
     if (value.isDefined) {
       val convertedVal = castToType(value.get, parameter)
       convertedVal match {
-        case s: String => mapByValue(Some(s), parameter)
+        case s: String => mapByValue(Some(s), parameter, pipelineContext)
         case _ => convertedVal
       }
     } else {
-      mapByValue(value, parameter)
+      mapByValue(value, parameter, pipelineContext)
     }
   }
 
@@ -231,7 +231,7 @@ trait PipelineStepMapper {
       castToType(returnValue.get, parameter)
     } else {
       // use mapByType when no valid values are returned
-      mapByType(None, parameter)
+      mapByType(None, parameter, pipelineContext)
     }
   }
 
@@ -255,7 +255,7 @@ trait PipelineStepMapper {
   private def handleMapParameter(map: Map[_, _], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
     val workingMap = map.asInstanceOf[Map[String, Any]]
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
-      implicit val formats: Formats = DefaultFormats
+      implicit val formats: Formats = pipelineContext.getJson4sFormats
       // Skip the embedded variable mapping if this is a step-group pipeline parameter
       if (workingMap.getOrElse("category", "pipeline").asInstanceOf[String] == "step-group") {
         DriverUtils.parseJson(Serialization.write(workingMap), parameter.className.get)
@@ -279,7 +279,7 @@ trait PipelineStepMapper {
   private def handleListParameter(list: List[_], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
     val dropNone = pipelineContext.getGlobalAs[Boolean]("dropNoneFromLists").getOrElse(true)
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
-      implicit val formats: Formats = DefaultFormats
+      implicit val formats: Formats = pipelineContext.getJson4sFormats
       list.map(value =>
         DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get))
     } else if (list.head.isInstanceOf[Map[_, _]]) {
@@ -378,7 +378,7 @@ trait PipelineStepMapper {
       case g if g.startsWith("&") =>
         logger.debug(s"Fetching pipeline value for ${pipelinePath.mainValue.substring(1)}")
         pipelineContext.pipelineManager.getPipeline(pipelinePath.mainValue.substring(1))
-      case o if o.nonEmpty => Some(mapByType(Some(o), parameter))
+      case o if o.nonEmpty => Some(mapByType(Some(o), parameter, pipelineContext))
       case _ => None
     }
   }
@@ -507,8 +507,8 @@ trait PipelineStepMapper {
     }
   }
 
-  private def mapByValue(value: Option[String], parameter: Parameter): Any = {
-    implicit val formats: Formats = DefaultFormats
+  private def mapByValue(value: Option[String], parameter: Parameter, pipelineContext: PipelineContext): Any = {
+    implicit val formats: Formats = pipelineContext.getJson4sFormats
     if (value.getOrElse("").startsWith("[") || value.getOrElse("").startsWith("{")) {
       parse(value.get).values // option 1: using the first byte of the string
     } else if (value.isDefined) {

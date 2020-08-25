@@ -150,8 +150,7 @@ object DriverUtils {
     * @param className The fully qualified name of the class.
     * @return An instantiation of the class from the provided JSON.
     */
-  def parseJson(json: String, className: String): Any = {
-    implicit val formats: Formats = DefaultFormats
+  def parseJson(json: String, className: String)(implicit formats: Formats): Any = {
     val clazz = Class.forName(className)
     val scalaType = Reflector.scalaTypeOf(clazz)
     Extraction.extract(parse(json), scalaType)

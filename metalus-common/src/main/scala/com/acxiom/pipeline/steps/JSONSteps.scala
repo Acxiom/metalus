@@ -2,6 +2,8 @@ package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.applications.{ApplicationUtils, ClassInfo, Json4sSerializers}
+import com.acxiom.pipeline.utils.DriverUtils
 import org.apache.spark.sql.DataFrame
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
@@ -9,7 +11,7 @@ import org.json4s.{DefaultFormats, Formats}
 
 @StepObject
 object JSONSteps {
-  private implicit val formats: Formats = DefaultFormats
+  private val formatsDescription = Some("Json4s Formats object that will override the pipeline context formats")
 
   @StepFunction("3464dc85-5111-40fc-9bfb-1fd6fc8a2c17",
     "Convert JSON String to Map",
@@ -17,8 +19,10 @@ object JSONSteps {
     "Pipeline",
     "JSON")
   @StepParameters(Map(
-    "jsonString" -> StepParameter(None, Some(true), None, None, None, None, Some("The JSON string to convert to a map"))))
-  def jsonStringToMap(jsonString: String): Option[Map[String, Any]] = {
+    "jsonString" -> StepParameter(None, Some(true), None, None, None, None, Some("The JSON string to convert to a map")),
+    "formats" -> StepParameter(None, Some(false), None, None, None, None, formatsDescription)))
+  def jsonStringToMap(jsonString: String, formats: Option[Formats] = None, pipelineContext: PipelineContext): Option[Map[String, Any]] = {
+    implicit val f: Formats = formats.getOrElse(pipelineContext.getJson4sFormats)
     parse(jsonString).extractOpt[Map[String, Any]]
   }
 
@@ -28,8 +32,10 @@ object JSONSteps {
     "Pipeline",
     "JSON")
   @StepParameters(Map(
-    "jsonMap" -> StepParameter(None, Some(true), None, None, None, None, Some("The JSON map to convert to a JSON string"))))
-  def jsonMapToString(jsonMap: Map[String, Any]): String = {
+    "jsonMap" -> StepParameter(None, Some(true), None, None, None, None, Some("The JSON map to convert to a JSON string")),
+    "formats" -> StepParameter(None, Some(false), None, None, None, None, formatsDescription)))
+  def jsonMapToString(jsonMap: Map[String, Any], formats: Option[Formats] = None, pipelineContext: PipelineContext): String = {
+    implicit val f: Formats = formats.getOrElse(pipelineContext.getJson4sFormats)
     Serialization.write(jsonMap)
   }
 
@@ -39,9 +45,28 @@ object JSONSteps {
     "Pipeline",
     "JSON")
   @StepParameters(Map(
-    "obj" -> StepParameter(None, Some(true), None, None, None, None, Some("The object to convert to a JSON string"))))
-  def objectToJsonString(obj: AnyRef): String = {
+    "obj" -> StepParameter(None, Some(true), None, None, None, None, Some("The object to convert to a JSON string")),
+    "formats" -> StepParameter(None, Some(false), None, None, None, None, formatsDescription)))
+  def objectToJsonString(obj: AnyRef, formats: Option[Formats] = None, pipelineContext: PipelineContext): String = {
+    implicit val f: Formats = formats.getOrElse(pipelineContext.getJson4sFormats)
     Serialization.write(obj)
+  }
+
+  @StepFunction("880c5151-f7cd-40bb-99f2-06dbb20a6523",
+    "Convert JSON String to object",
+    "This step will convert the provided JSON string into an object that can be passed to other steps",
+    "Pipeline",
+    "JSON")
+  @StepParameters(Map(
+    "jsonString" -> StepParameter(None, Some(true), None, None, None, None, Some("The JSON string to convert to an object")),
+    "objectName" -> StepParameter(None, Some(true), None, None, None, None, Some("The fully qualified class name of the object")),
+    "formats" -> StepParameter(None, Some(false), None, None, None, None, formatsDescription)))
+  def jsonStringToObject(jsonString: String,
+                         objectName: String,
+                         formats: Option[Formats] = None,
+                         pipelineContext: PipelineContext): Any = {
+    implicit val f: Formats = formats.getOrElse(pipelineContext.getJson4sFormats)
+    DriverUtils.parseJson(jsonString, objectName)
   }
 
   @StepFunction("68958a29-aab5-4f7e-9ffd-af99c33c512b",
@@ -50,8 +75,10 @@ object JSONSteps {
     "Pipeline",
     "JSON")
   @StepParameters(Map(
-    "schema" -> StepParameter(None, Some(true), None, None, None, None, Some("The JSON string to convert to a Schema"))))
-  def jsonStringToSchema(schema: String): Schema = {
+    "schema" -> StepParameter(None, Some(true), None, None, None, None, Some("The JSON string to convert to a Schema")),
+    "formats" -> StepParameter(None, Some(false), None, None, None, None, formatsDescription)))
+  def jsonStringToSchema(schema: String, formats: Option[Formats] = None, pipelineContext: PipelineContext): Schema = {
+    implicit val f: Formats = formats.getOrElse(pipelineContext.getJson4sFormats)
     parse(schema).extract[Schema]
   }
 
@@ -72,5 +99,21 @@ object JSONSteps {
       jsonString.split("\n").toSeq
     }
     pipelineContext.sparkSession.get.read.option("multiline", multiline).json(data.toDS())
+  }
+
+  @StepFunction("f3891201-5138-4cab-aebc-bcc319228543",
+    "Build JSON4S Formats",
+    "This step will build a json4s Formats object that can be used to override the default",
+    "Pipeline",
+    "JSON")
+  @StepParameters(Map(
+    "customSerializers" -> StepParameter(None, Some(false), description = Some("List of custom serializer classes")),
+    "enumIdSerializers" -> StepParameter(None, Some(false), description = Some("List of Enumeration classes to serialize by id")),
+    "enumNameSerializers" -> StepParameter(None, Some(false), description = Some("List of Enumeration classes to serialize by name"))))
+  def buildJsonFormats(customSerializers: Option[List[ClassInfo]] = None,
+                       enumIdSerializers: Option[List[ClassInfo]] = None,
+                       enumNameSerializers: Option[List[ClassInfo]] = None): Formats = {
+    val json4sSerializers = Json4sSerializers(customSerializers, enumIdSerializers, enumNameSerializers)
+    ApplicationUtils.getJson4sFormats(Some(json4sSerializers))
   }
 }
