@@ -121,6 +121,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(global.isDefined)
       assert(global.get.isInstanceOf[Silkie])
       assert(global.get.asInstanceOf[Silkie].color == Color.GOLD)
+      removeSparkListeners(executionPlan.head.pipelineContext.sparkSession.get)
+      executionPlan.head.pipelineContext.sparkSession.get.stop()
     }
   }
 
