@@ -106,6 +106,22 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       removeSparkListeners(executionPlan.head.pipelineContext.sparkSession.get)
       executionPlan.head.pipelineContext.sparkSession.get.stop()
     }
+
+    it("Should support EnumIdSerialization") {
+      val app = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/application-enum-test.json")).mkString)
+      val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
+        .setMaster("local")
+      val executionPlan = ApplicationUtils.createExecutionPlan(app, Some(Map[String, Any]("rootLogLevel" -> true,
+        "customLogLevels" -> "")), sparkConf,
+        PipelineListener())
+      assert(executionPlan.nonEmpty)
+      val ctx = executionPlan.head.pipelineContext
+      assert(ctx.globals.isDefined)
+      val global = ctx.getGlobal("silkie")
+      assert(global.isDefined)
+      assert(global.get.isInstanceOf[Silkie])
+      assert(global.get.asInstanceOf[Silkie].color == Color.GOLD)
+    }
   }
 
   describe("ApplicationDriverSetup") {
