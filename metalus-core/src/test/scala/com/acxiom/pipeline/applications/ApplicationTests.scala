@@ -8,6 +8,7 @@ import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline._
 import com.acxiom.pipeline.api.BasicAuthorization
+import com.acxiom.pipeline.applications.Color.Color
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, urlPathEqualTo}
 import org.apache.commons.io.FileUtils
@@ -20,8 +21,11 @@ import org.apache.spark.PackagePrivateSparkTestHelper
 import org.apache.spark.scheduler.SparkListener
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.expressions.UserDefinedFunction
+import org.json4s.JsonAST.JString
+import org.json4s.ext.EnumNameSerializer
+import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
-import org.json4s.{DefaultFormats, Formats}
+import org.json4s.{CustomSerializer, DefaultFormats, Formats, JObject}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
 import scala.io.Source
@@ -79,6 +83,46 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       }
       removeSparkListeners(SparkSession.builder().getOrCreate())
       assert(thrown.getMessage == "Either execution pipelines, pipelineIds or application pipelines must be provided for an execution")
+    }
+
+    it("Should load custom json4s formats from the application json") {
+      val app = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/application-json4s-test.json")).mkString)
+      val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
+        .setMaster("local")
+      val executionPlan = ApplicationUtils.createExecutionPlan(app, Some(Map[String, Any]("rootLogLevel" -> true,
+        "customLogLevels" -> "")), sparkConf,
+        PipelineListener())
+      assert(executionPlan.nonEmpty)
+      val ctx = executionPlan.head.pipelineContext
+      assert(ctx.globals.isDefined)
+      val global = ctx.getGlobal("coop")
+      assert(global.isDefined)
+      assert(global.get.isInstanceOf[Coop])
+      val coop = global.get.asInstanceOf[Coop]
+      assert(coop.name == "chicken-coop")
+      assert(coop.color == Color.WHITE)
+      assert(coop.chickens.exists(c => c.breed == "silkie" && c.color == Color.BUFF))
+      assert(coop.chickens.exists(c => c.breed == "polish" && c.color == Color.BLACK))
+      removeSparkListeners(executionPlan.head.pipelineContext.sparkSession.get)
+      executionPlan.head.pipelineContext.sparkSession.get.stop()
+    }
+
+    it("Should support EnumIdSerialization") {
+      val app = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/application-enum-test.json")).mkString)
+      val sparkConf = DriverUtils.createSparkConf(Array(classOf[LongWritable], classOf[UrlEncodedFormEntity]))
+        .setMaster("local")
+      val executionPlan = ApplicationUtils.createExecutionPlan(app, Some(Map[String, Any]("rootLogLevel" -> true,
+        "customLogLevels" -> "")), sparkConf,
+        PipelineListener())
+      assert(executionPlan.nonEmpty)
+      val ctx = executionPlan.head.pipelineContext
+      assert(ctx.globals.isDefined)
+      val global = ctx.getGlobal("silkie")
+      assert(global.isDefined)
+      assert(global.get.isInstanceOf[Silkie])
+      assert(global.get.asInstanceOf[Silkie].color == Color.GOLD)
+      removeSparkListeners(executionPlan.head.pipelineContext.sparkSession.get)
+      executionPlan.head.pipelineContext.sparkSession.get.stop()
     }
   }
 
@@ -201,8 +245,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       removeSparkListeners(setup.pipelineContext.sparkSession.get)
       setup.pipelineContext.sparkSession.get.stop()
 
-      val application = DriverUtils.parseJson(applicationJson, "com.acxiom.pipeline.applications.Application").asInstanceOf[Application]
       implicit val formats: Formats = DefaultFormats
+      val application = DriverUtils.parseJson(applicationJson, "com.acxiom.pipeline.applications.Application").asInstanceOf[Application]
       val json = org.json4s.native.Serialization.write(ApplicationResponse(application))
 
       wireMockServer.addStubMapping(get(urlPathEqualTo("/applications/54321"))
@@ -568,3 +612,36 @@ class TestUDF(name: String) extends PipelineUDF {
     sparkSession.udf.register(name, func)
   }
 }
+
+object Color extends Enumeration {
+  type Color = Value
+  val BLACK, GOLD, BUFF, WHITE = Value
+}
+
+trait Chicken {
+  val breed: String
+  val color: Color
+}
+
+case class Silkie(color: Color) extends Chicken {
+  override val breed: String = "silkie"
+}
+
+case class Polish(color: Color) extends Chicken {
+  override val breed: String = "polish"
+}
+
+case class Coop(name: String, chickens: List[Chicken], color: Color)
+
+class ChickenSerializer extends CustomSerializer[Chicken](f => ( {
+  case json: JObject =>
+    implicit val formats: Formats = DefaultFormats + new EnumNameSerializer(Color) + new ChickenSerializer
+    if((json \ "breed") == JString("silkie")) {
+      json.extract[Silkie]
+    } else {
+      json.extract[Polish]
+    }
+}, {
+  case chicken: Chicken =>
+    parse(s"""{"breed":"${chicken.breed},"color":"${chicken.color.toString}"}""")
+}))

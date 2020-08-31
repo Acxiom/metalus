@@ -28,6 +28,7 @@
             * [QuerySteps](../metalus-common/docs/querysteps.md)
             * [ScalaSteps](../metalus-common/docs/scalascriptsteps.md)
             * [SFTPSteps](../metalus-common/docs/sftpsteps.md)
+            * [StringSteps](../metalus-common/docs/stringsteps.md)
             * [TransformationSteps](../metalus-common/docs/transformationsteps.md)
         * Pipelines/Step Groups
             * [SFTP to HDFS](../metalus-common/docs/sftp2hdfs.md)
@@ -69,4 +70,5 @@
     * [Driver Utils](driver-utils.md)
     * [Streaming Utils](streaming-utils.md)
     * [Script Engine](script-engine.md)
+    * [Custom Serializers](serialization.md)
 * [Contributing](contributions.md)

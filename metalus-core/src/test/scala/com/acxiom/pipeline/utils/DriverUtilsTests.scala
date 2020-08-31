@@ -71,6 +71,7 @@ class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
   }
 
   describe("DriverUtils - JSON conversion") {
+    implicit val formats: Formats = DefaultFormats
     it("Should convert JSON to case class") {
       val json =
         """

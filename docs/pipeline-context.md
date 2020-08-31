@@ -21,3 +21,4 @@ have been processed.
 * **stepMessages** - A Spark accumulator used for registering message for code that executes remotely.
 * **rootAudit** - The base [ExecutionAudit](executionaudits.md) used for tracking pipeline and step audits.
 * **pipelineManager** - The [PipelineManager](pipeline-manager.md) used to load pipelines during the exection and for [step groups](step-groups.md).
+* **json4sFormats** - The json4s Formats used when deserializing globals.

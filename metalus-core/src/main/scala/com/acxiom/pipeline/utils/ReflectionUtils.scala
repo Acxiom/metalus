@@ -31,12 +31,17 @@ object ReflectionUtils {
     val symbols = classMirror.symbol.info.decls.filter(s => s.isConstructor).toList
     if (symbols.nonEmpty) {
       val method = getMethodBySymbol(symbols.head, parameters.getOrElse(Map[String, Any]()), Some(symbols))
-      classMirror.reflectConstructor(method)
-      classMirror.reflectConstructor(method)(mapMethodParameters(method.paramLists.head, parameters.getOrElse(Map[String, Any]()), mirror,
+      classMirror.reflectConstructor(method)(mapMethodParameters(method.paramLists.flatten, parameters.getOrElse(Map[String, Any]()), mirror,
         mirror.reflect(mirror.reflectModule(module)), symbols.head.asTerm.fullName, method.typeSignature, None,
         PipelineExecutionInfo(), validateParameterTypes)
         : _*)
     }
+  }
+
+  def loadEnumeration(objectName: String): Enumeration = {
+    val mirror = ru.runtimeMirror(getClass.getClassLoader)
+    val module = mirror.staticModule(objectName)
+    mirror.reflectModule(module).instance.asInstanceOf[Enumeration]
   }
 
   /**

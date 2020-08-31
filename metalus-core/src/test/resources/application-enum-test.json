@@ -1,0 +1,127 @@
+{
+  "sparkConf": {
+    "kryoClasses": [
+      "org.apache.hadoop.io.LongWritable",
+      "org.apache.http.client.entity.UrlEncodedFormEntity"
+    ],
+    "setOptions": [
+      {
+        "name": "spark.hadoop.io.compression.codecs",
+        "value": "org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec,hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec,org.apache.hadoop.io.compress.GzipCodec"
+      }
+    ]
+  },
+  "stepPackages": [
+    "com.acxiom.pipeline.steps",
+    "com.acxiom.pipeline"
+  ],
+  "pipelineListener": {
+    "className": "com.acxiom.pipeline.applications.TestPipelineListener",
+    "parameters": {
+      "name": "Test Pipeline Listener"
+    }
+  },
+  "sparkListeners": [
+    {
+      "className":"com.acxiom.pipeline.applications.TestSparkListener",
+      "parameters": {
+        "name": "Listener1"
+      }
+    },
+    {}
+  ],
+  "sparkUdfs": [
+    {
+      "className":"com.acxiom.pipeline.applications.TestUDF",
+      "parameters": {
+        "name": "chicken"
+      }
+    },
+    {}
+  ],
+  "securityManager": {
+    "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
+    "parameters": {
+      "name": "Test Security Manager"
+    }
+  },
+  "stepMapper": {
+    "className": "com.acxiom.pipeline.applications.TestPipelineStepMapper",
+    "parameters": {
+      "name": "Test Step Mapper"
+    }
+  },
+  "pipelines": [
+    {
+      "id": "Pipeline1",
+      "name": "Pipeline 1",
+      "steps": [
+        {
+          "id": "Pipeline1Step1",
+          "displayName": "Pipeline1Step1",
+          "type": "pipeline",
+          "params": [
+            {
+              "type": "text",
+              "name": "value",
+              "required": true,
+              "value": "!mappedObject"
+            }
+          ],
+          "engineMeta": {
+            "spark": "ExecutionSteps.normalFunction"
+          }
+        }
+      ]
+    }
+  ],
+  "globals": {
+    "silkie": {
+      "className": "com.acxiom.pipeline.applications.Silkie",
+      "object": {
+        "color": 1
+      }
+    }
+  },
+  "json4sSerializers": {
+    "enumIdSerializers": [
+      {"className": "com.acxiom.pipeline.applications.Color"}
+    ]
+  },
+  "executions": [
+    {
+      "id": "0",
+      "pipelineIds": ["Pipeline1"],
+      "securityManager": {
+        "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
+        "parameters": {
+          "name": "Sub Security Manager"
+        }
+      },
+      "mergeGlobals": true,
+      "globals": {
+        "number": 2,
+        "float": 3.5,
+        "string": "sub string",
+        "stringList": ["someString"],
+        "mappedObject": {
+          "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+          "object": {
+            "name": "Execution Mapped Object",
+            "subObjects": [
+              {
+                "name": "Sub Object 1a"
+              },
+              {
+                "name": "Sub Object 2a"
+              },
+              {
+                "name": "Sub Object 3"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

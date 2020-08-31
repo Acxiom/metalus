@@ -4,6 +4,7 @@ import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.util.CollectionAccumulator
+import org.json4s.{DefaultFormats, Formats}
 
 import scala.collection.JavaConversions._
 
@@ -47,19 +48,20 @@ case class DefaultPipeline(override val id: Option[String] = None,
 /**
   * Global object that may be passed to step functions.
   *
-  * @param sparkConf        The Spark Configuration Object.
-  * @param sparkSession     The Spark Session Object.
-  * @param globals          Contains all global objects.
-  * @param security         The PipelineSecurityManager to use when processing steps
-  * @param parameters       The pipeline parameters being used. Contains initial parameters as well as the result
-  *                         of steps that have been processed.
-  * @param stepPackages     The list of packages to consider when searching for step objects.
-  * @param parameterMapper  Used to map parameters to step functions
-  * @param pipelineListener Used to communicate progress through the pipeline
-  * @param stepMessages     Used for logging messages from steps.
-  * @param rootAudit        The base audit record
-  * @param pipelineManager  The PipelineManager to use for Step Groups.
-  * @param credentialProvider  The CredentialProvider to use for accessing credentials.
+  * @param sparkConf          The Spark Configuration Object.
+  * @param sparkSession       The Spark Session Object.
+  * @param globals            Contains all global objects.
+  * @param security           The PipelineSecurityManager to use when processing steps
+  * @param parameters         The pipeline parameters being used. Contains initial parameters as well as the result
+  *                           of steps that have been processed.
+  * @param stepPackages       The list of packages to consider when searching for step objects.
+  * @param parameterMapper    Used to map parameters to step functions
+  * @param pipelineListener   Used to communicate progress through the pipeline
+  * @param stepMessages       Used for logging messages from steps.
+  * @param rootAudit          The base audit record
+  * @param pipelineManager    The PipelineManager to use for Step Groups.
+  * @param credentialProvider The CredentialProvider to use for accessing credentials.
+  * @param json4sFormats      The json4s Formats used when serializing/deserializing json.
   */
 case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            sparkSession: Option[SparkSession] = None,
@@ -72,7 +74,8 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            stepMessages: Option[CollectionAccumulator[PipelineStepMessage]],
                            rootAudit: ExecutionAudit = ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
                            pipelineManager: PipelineManager = PipelineManager(List()),
-                           credentialProvider: Option[CredentialProvider] = None) {
+                           credentialProvider: Option[CredentialProvider] = None,
+                           json4sFormats: Option[Formats] = None) {
   /**
     * Get the named global value as a string.
     *
@@ -278,6 +281,12 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
       getGlobalString("groupId")
     )
   }
+
+  /**
+   * Returns current json4s Formats on the pipeline context, or DefaultFormats
+   * @return A json4s Formats object.
+   */
+  def getJson4sFormats: Formats = json4sFormats.getOrElse(DefaultFormats)
 }
 
 case class PipelineParameter(pipelineId: String, parameters: Map[String, Any])

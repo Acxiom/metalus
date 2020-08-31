@@ -198,7 +198,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         Parameter(name = Some("badValue"), value=None,`type`=Some("string")), pipelineContext).asInstanceOf[Option[_]].isEmpty)
 
       assert(pipelineContext.parameterMapper.mapByType(None, Parameter(name = Some("defaultparam"),
-        defaultValue = Some("default chosen"), `type` = Some("text"))) == "default chosen")
+        defaultValue = Some("default chosen"), `type` = Some("text")), pipelineContext) == "default chosen")
     }
 
     it("should cast string values to different numeric types") {
