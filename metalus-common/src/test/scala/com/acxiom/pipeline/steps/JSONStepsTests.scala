@@ -94,6 +94,26 @@ class JSONStepsTests extends FunSpec with BeforeAndAfterAll {
       assert(string.nonEmpty)
       assert(string.compareTo(jsonString.replaceAll("\\s+","")) == 0)
     }
+
+    it("Should convert a JSON string to an object") {
+      val json =
+        """
+          |{
+          |   "property1": "moo",
+          |   "property2": {
+          |      "subproperty1": "moo2",
+          |      "subproperty2": 1
+          |   }
+          |}
+          |""".stripMargin
+      val res = JSONSteps.jsonStringToObject(json, "com.acxiom.pipeline.steps.TestObject", None,
+        pipelineContext)
+      assert(res.isInstanceOf[TestObject])
+      val test = res.asInstanceOf[TestObject]
+      assert(test.property1 == "moo")
+      assert(test.property2.subproperty1 == "moo2")
+      assert(test.property2.subproperty2 == 1)
+    }
   }
 
   describe("JSONSteps - Schema") {
@@ -178,7 +198,7 @@ class JSONStepsTests extends FunSpec with BeforeAndAfterAll {
       assert(coop.chickens.exists(c => c.breed == "polish" && c.color == Color.BLACK))
     }
 
-    it("should be a formats object with only default formats if no custom serializers are provided") {
+    it("should build a formats object with only default formats if no custom serializers are provided") {
       val formats = JSONSteps.buildJsonFormats()
       assert(formats.customSerializers.isEmpty)
       val res = JSONSteps.jsonStringToMap("""{"k1":"v1","k2":"v2"}""", Some(formats), pipelineContext)

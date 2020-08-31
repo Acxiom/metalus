@@ -33,6 +33,13 @@ object ApplicationUtils {
     }
   }
 
+  /**
+   * Build a json4s Formats object using the ClassInfo objects in json4sSerializers. If json4sSerializers is not
+   * provided, the Formats object will only use DefaultFormats.
+   *
+   * @param json4sSerializers Contains ClassInfo objects for custom serializers and enum serializers.
+   * @return A json4s Formats object.
+   */
   def getJson4sFormats(json4sSerializers: Option[Json4sSerializers]): Formats = {
     json4sSerializers.map{ j =>
       val enumNames = j.enumNameSerializers.map(_.map(ci => new EnumNameSerializer(ReflectionUtils.loadEnumeration(ci.className.getOrElse("")))))

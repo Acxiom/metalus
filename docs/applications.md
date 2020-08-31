@@ -82,9 +82,11 @@ Globals may be strings, numbers, arrays or objects.
 
 #### Objects
 Globals attributes may contain JSON objects which will be converted into a Scala map unless the object contains two
-attributes named _className_ and _object_. The library will attempt to instantiate the _case class_ with the values
-stored in the _object_ attribute. The two attributes are *only required* for the top level object. Any objects embedded
-will automatically get picked up as long as they are defined in the main object case class.
+attributes named _className_ and _object_. The two attributes are *only required* for the top level object.
+Any objects embedded  will automatically get picked up as long as they are defined in the main object case class.
+By default, library will attempt to instantiate _case classes_ with the values stored in the _object_ attribute.
+To serialize more complicated objects with _traits_ and _Enumerations_, custom serializers can be provided using the
+_json4sSerializers_ object. More on custom serializers can be found [here](serialization.md).
 
 #### Arrays
 Values of a global entry may be an array of any of the supported types except array. When embedding objects, refer to 
