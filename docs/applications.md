@@ -37,6 +37,12 @@ initialize the file manager.
 a URL. Any parameters required to instantiate the _Authorization_ instance need to be prefixed with _authorization._ so
 they are identified and passed in. To use basic authorization, consider this class signature: 
 
+### [CredentialProvider](credentialprovider.md)
+This implementation overrides the default implementation provided by _DriverSetup_ to use the application globals object.
+This allows developers the opportunity to override the default implementation using the _credential-provider_ global. The
+does not _credential-provider_ may still be passed on the command line. The main purpose of this override is to allow 
+credentials to be embedded in the application JSON instead of being passed on the command line.
+
 ## Configuration Sections
 There are a number of sections that may be used to customize an application.
 
@@ -53,6 +59,7 @@ implement the _SparkListener_ interface it will be registered with Spark.
 * [pipelineManager](pipeline-manager.md) - Performs lookups based on pipeline ids. Parameters for the _PipelineManager_ will
 attempt to parse objects and lists of objects.
 * _sparkUdfs_ - A list of UDF classes to register with the Spark session.
+* _json4sSerializers_ - Contains lists of custom serializer and enum serializer classes used by json4s.
 
 Using any of the options listed requires a JSON object that contains two parameters:
 
@@ -75,9 +82,11 @@ Globals may be strings, numbers, arrays or objects.
 
 #### Objects
 Globals attributes may contain JSON objects which will be converted into a Scala map unless the object contains two
-attributes named _className_ and _object_. The library will attempt to instantiate the _case class_ with the values
-stored in the _object_ attribute. The two attributes are *only required* for the top level object. Any objects embedded
-will automatically get picked up as long as they are defined in the main object case class.
+attributes named _className_ and _object_. The two attributes are *only required* for the top level object.
+Any objects embedded  will automatically get picked up as long as they are defined in the main object case class.
+By default, library will attempt to instantiate _case classes_ with the values stored in the _object_ attribute.
+To serialize more complicated objects with _traits_ and _Enumerations_, custom serializers can be provided using the
+_json4sSerializers_ object. More on custom serializers can be found [here](serialization.md).
 
 #### Arrays
 Values of a global entry may be an array of any of the supported types except array. When embedding objects, refer to 

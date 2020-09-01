@@ -113,10 +113,11 @@ containing name value pairs.
 The **params** array contains all of the step function parameters except those of type **PipelineContext**. Each parameter
 has seven possible parameters:
 
-* **type** - The parameter [type](parameter-mapping.md#types). Must be one of: integer, list, boolean, script, string, text, result, object
-* **name** - The name of the parameter. This **must** match the name of the parameter on the step function
-* **required** - Boolean flag indicating whether this parameter is required to have a value
-* **defaultValue** - An optional default value that will be used if a value is not provided
+* **type** - The parameter [type](parameter-mapping.md#types). Must be one of: integer, list, boolean, script, scalaScript, string, text, result, object
+* **name** - The name of the parameter. This **must** match the name of the parameter on the step function.
+* **description** - Describes what this parameter should do.
+* **required** - Boolean flag indicating whether the requirement of this value
+* **defaultValue** - An optional default value that will be used when no value is provided
 * **language** - An optional script language this parameter expects the value to conform. This should only be present if the **type** is set to *script*
 * **className** - If the **type** is **object**, then this should represent the fully qualified class name that is expected
 * **parameterType** - An optional attribute that represents the fully qualified class name (or primitive name) of the 
@@ -127,3 +128,15 @@ Branch steps differ from all other steps in that additional **params** of type *
 determine the next step which will be executed. The name of these parameters must match the possible primary return type
 value. Only branch steps should have result types and must contain at least one. There is no limit to the number of result
 parameters that may be added.
+
+#### Scala Script Parameters
+Step parameters given a type of **scalaScript** will be compiled and evaluated, with the result of the script passed to the step.
+These scripts consist of a binding section and a scala script. The bindings section must be enclosed by parenthesis.
+Each binding contains a name, value, and type, broken out as **\<name>:\<value>:\<type>**. Multiple bindings can be provided using a comma separated list.
+Colons can be escaped using a backslash.
+A sample scala script is provided below:
+```scala
+(list:@GetList:Option[List[String]],pattern:!mypattern || [a-z]+:String)
+// script
+list.getOrElse(List()).filter(s => s.matches(pattern))
+```

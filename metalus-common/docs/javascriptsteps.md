@@ -8,16 +8,28 @@ objects are provided:
 
 * **pipelineContext** - The current *PipelineContext* is provided to allow access to current state. This object is read only.
 * **ReflectionUtils** - This utility allows the script to extract values from Scala objects including *Options*.
-* **userValue** - Optional user provided value.
 
-There are two step functions provided:
+There are three step functions provided:
 
 ## Execute script 
 This step function will simply execute the script and return a *PipelineStepResponse*.
+Full parameter descriptions are listed below:
+* **script** - The script to execute.
 
 ## Execute script with value 
-This step function will execute the script making the value available io the script with the variable name **userValue**
+This step function will execute the script making the value available in the script with the variable name **userValue**
 and return a *PipelineStepResponse*.
+Full parameter descriptions are listed below: 
+* **script** - The script to execute.
+* **value** - The value that will be bound in the script as "userValue".
+
+## Execute script with values
+This step function will execute a script and bind each key/value pair in the provided values map to be usable in the script.
+Returns a *PipelineStepResponse*.
+Full parameter descriptions are listed below:
+* **script** - The script to execute.
+* **values** - Map of values to bind. Each key value pair will be bound to the script using the key.
+* **unwrapOptions** - Optional flag to control whether option values get unwrapped. Defaulted to true.
 
 ## Example
 This example demonstrates how to read a file into a *DataFrame* using nothing but Javascript. This script assumes the 

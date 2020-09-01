@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.acxiom.pipeline.utils.JavaScriptEngine
 import com.acxiom.pipeline.{PipelineContext, PipelineStepResponse}
 import javax.script.SimpleBindings
@@ -14,7 +14,9 @@ object JavascriptSteps {
     "Executes a script and returns the result",
     "Pipeline",
     "Scripting")
-  def processScript(@StepParameter(Some("script"), Some(true), None, Some("javascript"), None, None) script: String,
+  @StepParameters(Map("script" -> StepParameter(None, Some(true), None,
+    Some("javascript"), description = Some("Javascript to execute"))))
+  def processScript(script: String,
                     pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new JavaScriptEngine
     val bindings = new SimpleBindings()
@@ -24,16 +26,44 @@ object JavascriptSteps {
   }
 
   @StepFunction("570c9a80-8bd1-5f0c-9ae0-605921fe51e2",
-    "Javascript Step with additional object provided",
-    "Executes a script and returns the result",
+    "Javascript Step with single object provided",
+    "Executes a script with single object provided and returns the result",
     "Pipeline",
     "Scripting")
-  def processScriptWithValue(@StepParameter(Some("script"), Some(true), None, Some("javascript"), None, None) script: String,
+  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("javascript"), description = Some("Javascript script to execute")),
+    "value" -> StepParameter(None, Some(true), description = Some("Value to bind to the script"))))
+  def processScriptWithValue(script: String,
                              value: Any, pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new JavaScriptEngine
     val bindings = new SimpleBindings()
     bindings.put("logger", logger)
     val result = engine.executeScriptWithObject(script, value, bindings, pipelineContext)
+    handleResult(result)
+  }
+
+  @StepFunction("f92d4816-3c62-4c29-b420-f00994bfcd86",
+    "Javascript Step with map of objects provided",
+    "Executes a script with map of objects provided and returns the result",
+    "Pipeline",
+    "Scripting")
+  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("javascript"), description = Some("Javascript script to execute")),
+    "values" -> StepParameter(None, Some(true), description = Some("Map of name/value pairs to bind to the script")),
+    "unwrapOptions" -> StepParameter(None, Some(false), description = Some("Flag to control option unwrapping behavior"))))
+  def processScriptWithValues(@StepParameter(Some("script"), Some(true), None, Some("javascript"), None, None) script: String,
+                             values: Map[String, Any], unwrapOptions: Option[Boolean] = None, pipelineContext: PipelineContext): PipelineStepResponse = {
+    val engine = new JavaScriptEngine
+    val bindings = new SimpleBindings()
+    bindings.put("logger", logger)
+    values.foreach{
+      case (name, value) =>
+        val unwrapped = value match {
+          case s: Some[_] if unwrapOptions.getOrElse(true) => s.get
+          case None if unwrapOptions.getOrElse(true) => None.orNull
+          case v => v
+        }
+        bindings.put(name, unwrapped)
+    }
+    val result = engine.executeScript(script, bindings, pipelineContext)
     handleResult(result)
   }
 

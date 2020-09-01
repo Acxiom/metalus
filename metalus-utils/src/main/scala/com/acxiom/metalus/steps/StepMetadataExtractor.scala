@@ -4,7 +4,7 @@ import java.util.jar.JarFile
 
 import com.acxiom.metalus.{Extractor, Metadata, Output}
 import com.acxiom.pipeline.annotations._
-import com.acxiom.pipeline.{EngineMeta, StepResults}
+import com.acxiom.pipeline.{Constants, EngineMeta, StepResults}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
@@ -65,10 +65,13 @@ class StepMetadataExtractor extends Extractor {
         })
       }
       definition.steps.foreach(step => {
+        val jarList = step.tags.filter(_.endsWith(".jar")).mkString
+        val headers =
+          Some(Map[String, String]("User-Agent" -> s"Metalus / ${System.getProperty("user.name")} / $jarList"))
         if (http.getContentLength(s"steps/${step.id}") > 0) {
-          http.putJsonContent(s"steps/${step.id}", Serialization.write(step))
+          http.putJsonContent(s"steps/${step.id}", Serialization.write(step), headers)
         } else {
-          http.postJsonContent("steps", Serialization.write(step))
+          http.postJsonContent("steps", Serialization.write(step), headers)
         }
       })
     } else {
@@ -159,6 +162,13 @@ class StepMetadataExtractor extends Extractor {
                                          packageName: String, jarName: String): (List[StepDefinition], Set[String]) = {
     if (ann.isDefined) {
       val params = symbol.asMethod.paramLists.head
+      val annParams = symbol.annotations.find(_.tree.tpe =:= ru.typeOf[StepParameters])
+      val parameterAnnotations = if (annParams.isDefined) {
+        Some(annParams.get.tree.children.tail.head.children.tail.map(tree => {
+          tree.children.head.children.head.children.head.children.tail.head.toString().replaceAll("\"", "") ->
+            parseStepParameterTree(tree.children(1).children.tail)
+        }).toMap)
+      } else { None }
       val parameters = if (params.nonEmpty) {
         params.foldLeft(List[StepFunctionParameter](), caseClasses)((paramsAndClasses, paramSymbol) => {
           val stepParams = paramsAndClasses._1
@@ -167,19 +177,7 @@ class StepMetadataExtractor extends Extractor {
             val parameterInfo = getParameterInfo(paramSymbol)
             val annotations = paramSymbol.annotations
             val a1 = annotations.find(_.tree.tpe =:= ru.typeOf[StepParameter])
-            val updatedStepParams = if (a1.isDefined) {
-              stepParams :+ annotationToStepFunctionParameter(a1.get, paramSymbol, parameterInfo)
-            } else {
-              stepParams :+ StepFunctionParameter(getParameterType(paramSymbol, parameterInfo.caseClass),
-                paramSymbol.name.toString,
-                required = false, None, None,
-                if (parameterInfo.caseClass) {
-                  Some(parameterInfo.className)
-                } else {
-                  None
-                },
-                parameterType = Some(parameterInfo.className))
-            }
+            val updatedStepParams = generateStepParameter(parameterAnnotations, paramSymbol, stepParams, parameterInfo, a1)
             // only add non-private case classes to the case class set
             val updatedCaseClassSet = if (parameterInfo.caseClass && !annotations.exists(_.tree.tpe =:= ru.typeOf[PrivateObject])) {
               paramsAndClasses._2 + parameterInfo.className
@@ -204,6 +202,28 @@ class StepMetadataExtractor extends Extractor {
         List(jarName))
       (newSteps, parameters._2)
     } else { (steps, caseClasses) }
+  }
+
+  private def generateStepParameter(parameterAnnotations: Option[Map[String, StepParameterInfo]],
+                                    paramSymbol: ru.Symbol,
+                                    stepParams: List[StepFunctionParameter],
+                                    parameterInfo: ParameterInfo,
+                                    a1: Option[ru.Annotation]) = {
+    if (a1.isDefined) {
+      stepParams :+ annotationToStepFunctionParameter(parseStepParameterTree(a1.get.tree.children.tail), paramSymbol, parameterInfo)
+    } else if (parameterAnnotations.isDefined && parameterAnnotations.get.contains(paramSymbol.name.toString)) {
+      stepParams :+ annotationToStepFunctionParameter(parameterAnnotations.get(paramSymbol.name.toString), paramSymbol, parameterInfo)
+    } else {
+      stepParams :+ StepFunctionParameter(getParameterType(paramSymbol, parameterInfo.caseClass),
+        paramSymbol.name.toString,
+        required = false, None, None,
+        if (parameterInfo.caseClass) {
+          Some(parameterInfo.className)
+        } else {
+          None
+        },
+        parameterType = Some(parameterInfo.className))
+    }
   }
 
   private def getReturnType(method: ru.MethodSymbol): Option[com.acxiom.pipeline.StepResults] = {
@@ -278,51 +298,61 @@ class StepMetadataExtractor extends Extractor {
   /**
     * This function converts the step parameter annotation into a StepFunctionParameter.
     *
-    * @param annotation  The annotation to convert
-    * @param paramSymbol The parameter information
+    * @param stepParameter The step parameter information
+    * @param paramSymbol   The parameter information
     * @return
     */
-  private def annotationToStepFunctionParameter(annotation: ru.Annotation,
+  private def annotationToStepFunctionParameter(stepParameter: StepParameterInfo,
                                                 paramSymbol: ru.Symbol,
                                                 parameterInfo: ParameterInfo): StepFunctionParameter = {
-    val typeValue = annotation.tree.children.tail.head.toString()
-    val requiredValue = annotation.tree.children.tail(1).toString()
-    val defaultValue = annotation.tree.children.tail(2).toString()
-    val language = annotation.tree.children.tail(3).toString()
-    val className = annotation.tree.children.tail(3 + 1).toString()
-    val parameterType = annotation.tree.children.tail(3 + 2).toString()
     StepFunctionParameter(
-      if (isValueSet(typeValue)) {
-        getAnnotationValue(typeValue, stringValue = true).asInstanceOf[String]
+      if (isValueSet(stepParameter.typeValue)) {
+        getAnnotationValue(stepParameter.typeValue, stringValue = true).asInstanceOf[String]
       } else {
         getParameterType(paramSymbol, parameterInfo.caseClass)
       },
       paramSymbol.name.toString,
-      if (isValueSet(requiredValue)) {
-        getAnnotationValue(requiredValue, stringValue = false).asInstanceOf[Boolean]
+      if (isValueSet(stepParameter.requiredValue)) {
+        getAnnotationValue(stepParameter.requiredValue, stringValue = false).asInstanceOf[Boolean]
       } else {
         !paramSymbol.asTerm.isParamWithDefault
       },
-      if (isValueSet(defaultValue)) {
-        Some(getAnnotationValue(defaultValue, stringValue = true).asInstanceOf[String])
+      if (isValueSet(stepParameter.defaultValue)) {
+        Some(getAnnotationValue(stepParameter.defaultValue, stringValue = true).asInstanceOf[String])
       } else {
         None
       },
-      if (isValueSet(language)) {
-        Some(getAnnotationValue(language, stringValue = true).asInstanceOf[String])
+      if (isValueSet(stepParameter.language)) {
+        Some(getAnnotationValue(stepParameter.language, stringValue = true).asInstanceOf[String])
       } else {
         None
       },
-      if (isValueSet(className)) {
-        Some(getAnnotationValue(className, stringValue = true).asInstanceOf[String])
+      if (isValueSet(stepParameter.className)) {
+        Some(getAnnotationValue(stepParameter.className, stringValue = true).asInstanceOf[String])
       } else {
         Some(parameterInfo.className)
       },
-      if (isValueSet(parameterType)) {
-        Some(getAnnotationValue(parameterType, stringValue = true).asInstanceOf[String])
+      if (isValueSet(stepParameter.parameterType)) {
+        Some(getAnnotationValue(stepParameter.parameterType, stringValue = true).asInstanceOf[String])
+      } else {
+        None
+      },
+      if (isValueSet(stepParameter.description)) {
+        Some(getAnnotationValue(stepParameter.description, stringValue = true).asInstanceOf[String])
       } else {
         None
       })
+  }
+
+  private def parseStepParameterTree(tree: List[ru.Tree]): StepParameterInfo = {
+    val typeValue = tree.head.toString()
+    val requiredValue = tree(Constants.ONE).toString()
+    val defaultValue = tree(Constants.TWO).toString()
+    val language = tree(Constants.THREE).toString()
+    val className = tree(Constants.FOUR).toString()
+    val parameterType = tree(Constants.FIVE).toString()
+    val description = tree(Constants.SIX).toString()
+    StepParameterInfo(typeValue, requiredValue, defaultValue, language, className, parameterType, description)
   }
 
   private def getParameterInfo(paramSymbol: ru.Symbol): ParameterInfo = {
@@ -372,3 +402,10 @@ case class StepMetadata(value: String,
                         pkgObjs: List[PackageObject]) extends Metadata
 
 case class ParameterInfo(className: String, caseClass: Boolean)
+case class StepParameterInfo(typeValue: String,
+                             requiredValue: String,
+                             defaultValue: String,
+                             language: String,
+                             className: String,
+                             parameterType: String,
+                             description: String)

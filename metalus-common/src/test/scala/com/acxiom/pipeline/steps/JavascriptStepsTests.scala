@@ -96,5 +96,44 @@ class JavascriptStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhen
       assert(count == 1000)
       assert(df.schema.fields.length == 7)
     }
+
+    it("Should handle multiple values") {
+      val scriptWithDerivedTypes =
+        """
+          |if (v2) {
+          |   v1 + v3
+          |} else {
+          |   -1
+          |}
+          |""".stripMargin
+      val mappings: Map[String, Any] = Map(
+        "v1" -> 1,
+        "v2" -> true,
+        "v3" -> 3
+      )
+      val result = JavascriptSteps.processScriptWithValues(scriptWithDerivedTypes, mappings, None, pipelineContext)
+      assert(result.primaryReturn.isDefined)
+      val res = result.primaryReturn.get.asInstanceOf[Double]
+      assert(res == 4)
+    }
+
+    it("Should unwrap options") {
+      val script =
+        """
+          |if (value) {
+          |   value + ' rule!'
+          |} else {
+          |   'chickens rule!'
+          |}
+          |""".stripMargin
+      val mappings: Map[String, Any] = Map("value" -> None)
+      val result1 = JavascriptSteps.processScriptWithValues(script, mappings, None, pipelineContext)
+      assert(result1.primaryReturn.isDefined)
+      assert(result1.primaryReturn.get.asInstanceOf[String] == "chickens rule!")
+      val betterMappings: Map[String, Any] = Map("value" -> Some("silkies"))
+      val result2 = JavascriptSteps.processScriptWithValues(script, betterMappings, None, pipelineContext)
+      assert(result2.primaryReturn.isDefined)
+      assert(result2.primaryReturn.get.asInstanceOf[String] == "silkies rule!")
+    }
   }
 }

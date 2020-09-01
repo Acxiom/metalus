@@ -15,6 +15,10 @@ object MockStepObject {
     default
   }
 
+  def mockStepFunctionWithDefaultValueNoOption(string: String, default: String = "default chicken"): String = {
+    default
+  }
+
   def mockStepWithListOfOptions(s: List[Option[String]]): String ={
     s.flatten.mkString(",")
   }
@@ -32,6 +36,11 @@ object MockStepObject {
   }
 
   def mockStepFunctionWithPrimitives(i: Int, l: Long, d: Double, f: Float, c: Char, by: Option[Byte], s: Short, a: Any): Int ={
+    i
+  }
+
+  def mockStepFunctionWithBoxClasses(i: Integer, l: java.lang.Long, d: java.lang.Double, f: java.lang.Float, c: Character,
+                                     by: java.lang.Byte, s: java.lang.Short): Int = {
     i
   }
 

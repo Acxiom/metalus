@@ -119,9 +119,10 @@ downloading jars.
 * --repo - An optional comma separated list of repositories to scan for dependencies
 * --extra-classpath - An optional classpath to append to the normal classpath. This will only be used during metadata 
 extraction and not dependency resolution.
-* --staging-dir - An optional directory path to stage jars
-* --clean-staging - Indicates whether the staging directory should be cleaned. Defaults to false.
+* --staging-dir - An optional directory path to stage jars.
+* --clean-staging - Indicates whether the staging directory should be cleaned. Defaults value is false.
 * --no-auth-download - Boolean indicating that the jar download should not use the auth parameters meant for metadata extraction.
+* --allow-self-signed-certs - Boolean flag enabling self signed certificates. Default value is false.
 
 **Authorization**:
 When pushing metadata to an API, [authorization](httprestclient.md#authorization) is not used unless the authorization 

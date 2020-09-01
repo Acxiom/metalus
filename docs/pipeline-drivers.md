@@ -1,11 +1,21 @@
 [Documentation Home](readme.md)
 
 # Pipeline Drivers
-Pipeline drivers are the entry point for any Metalus application. A default and Kafka based (streaming) drivers are 
-provided. The pipeline driver chosen requires a *DriverSetup* to configure the application prior to execution.
+Pipeline drivers are the entry point for any Metalus application. A default driver is provided for batch processing. The 
+pipeline driver chosen requires a *DriverSetup* to configure the application prior to execution.
+
+## Default Pipeline Driver
+The **DefaultPipelineDriver** is provided for most batch processing.
+### Command line parameters
+*Required parameters:*
+* **driverSetupClass** - This class will handle all of the initial setup such as building out pipelines, creating the PipelineContext.
+
+*Optional Parameters:*
+* **maxRetryAttempts** - [number] The number of times data will attempt to process before failing. Default is 0.
+* **terminateAfterFailures** - [boolean] After processing has been retried, fail the process. Default is false.
 
 ## DriverSetup
-The *DriverSetup* is invoked by the chosen driver class with a map containing all of the application command line 
+The *DriverSetup* is invoked by the chosen driver class with a map containing the application command line 
 parameters from the 'spark-submit' command. The *DriverSetup* will then be responsible for creating the *SparkSession*, 
 *PipelineContext* and execution plan. When executing the 'spark-submit' class, one application parameter is required, 
 *driverSetupClass* which is used to initialize the *DriverSetup* implementation.
@@ -16,6 +26,10 @@ This flow demonstrates how the chosen driver interacts with the *DriverSetup*:
 
 There are no special instructions for creating the *SparkSession*. Both the *SparkSession* and *SparkConf* are required
 by the [PipelineContext](pipeline-context.md).
+
+### CredentialProvider
+The _DriverSetup_ is responsible for providing a [CredentialProvider](credentialprovider.md) that may be used by the 
+driver to obtain any required credentials.
 
 ### Logging Parameters 
 There are several command line parameters provided to help control the application log levels:
@@ -28,6 +42,9 @@ is _INFO_.
 ```shell script
 --customLogLevels com.test:INFO,com.another.test:DEBUG,org.apache:WARN
 ```
+### handleExecutionResult
+This function will be called by the drivers to parse the results and determine if the execution was successful. The base
+functionality calls this [utility](./driver-utils.md#handle-execution-results).
 
 ## DriverSetup - Streaming
 Using Spark Streaming API, additional drivers provide streaming functionality. As data is consumed, it is converted to a 
@@ -42,22 +59,11 @@ This flow demonstrates how the chosen driver interacts with the *DriverSetup*:
 
 ![Streaming Driver Flow](images/Streaming_Driver_Flow.png "Streaming Driver Flow")
 
-## KafkaPipelineDriver
-This driver provides basic support for streaming data from [Kafka](http://kafka.apache.org/) topics. As data is consumed,
-the RDD will be converted into a DataFrame with three columns:
-
-* **key** - the record key
-* **value** - the data
-* **topic** - The topic the data arrived on
-
-### Command line parameters
-*Required parameters:*
-* **driverSetupClass** - This class will handle all of the initial setup such as building out pipelines, creating the PipelineContext.
-* **topics** - a comma separated list of topics to monitor
-* **kafkaNodes** - a comma separated list of Kafka brokers to consume data
-
-*Optional Parameters:*
-* **duration-type** - [minutes | **seconds**] Corresponds to the *duration* parameter.
-* **duration** - [number] How long the driver should wait before processing the next batch of data. Default is 10 seconds.
-* **groupId** - [string] This is the group id where the Kafka consumer should listen
-* **terminationPeriod** - [number] The number of ms the system should run and then shut down.
+### Streaming Data Parsers
+The default behavior of the provided streaming drivers when creating a data collection is to populate three fields: 
+topic, key and value. The pipeline is responsible for retrieving the value for each row and parsing. This behavior can
+be overridden by using the _StreamDataParsers_ trait. This trait provides two functions: _canParse_ and _parseRDD_. Both
+functions take the RDD provided by the streaming driver. The _canParse_ function is used by the driver to identify which
+parser to use when more than one parser is available. The _parseRDD_ function is called to create the DataFrame. Additional
+parsers are provided by using the _streaming-parsers_ command line parameter and providing a comma separated list containing
+the fully qualified classname of the parsers to use.

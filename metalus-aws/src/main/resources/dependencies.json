@@ -14,17 +14,19 @@
       {
         "groupId": "com.amazonaws",
         "artifactId": "amazon-kinesis-client",
-        "version": "1.8.10"
+        "version": "${kinesis.client.version}"
       },
       {
         "groupId": "com.amazonaws",
         "artifactId": "aws-java-sdk-s3",
-        "version": "1.11.271"
+        "version": "1.11.271",
+        "scope": "extraction"
       },
       {
         "groupId": "com.amazonaws",
         "artifactId": "aws-java-sdk-core",
-        "version": "1.11.76"
+        "version": "1.11.76",
+        "scope": "extraction"
       }
     ]
   }

@@ -27,7 +27,8 @@ Here is a working example:
       {
         "groupId": "org.mongodb",
         "artifactId": "mongo-java-driver",
-        "version": "3.11.2"
+        "version": "3.11.2",
+        "scope": "extraction"
       }
     ]
   }
@@ -48,6 +49,8 @@ downloading jars.
 * --output-path - A path to write the jar files.
 * --path-prefix - An optional path prefix to add to each jar in the classpath
 * --jar-separator - An optional separator character to use when building the classpath
+* --include-scopes - An optional parameter that defines additional scopes to include on the classpath in addition to runtime.
+* --allow-self-signed-certs - Boolean flag enabling self signed certificates. Default value is false.
 
 **Authorization**:
 When pushing metadata to an API or downloading jars, [authorization](httprestclient.md#authorization) is not used unless 
@@ -98,12 +101,19 @@ Developers may choose to override the repo within the _dependencies.json_ file b
       {
         "groupId": "org.mongodb",
         "artifactId": "mongo-java-driver",
-        "version": "3.11.2"
+        "version": "3.11.2",
+        "scope": "extraction"
       }
     ]
   }
 }
 ```
+
+**Note:** the _scope_ attribute is used to differentiate between artifacts that should be included on the classpath. The
+default is _runtime_. Marking an artifact with a scope of _extraction_ indicates that the dependency is only used during
+metadata extraction. Custom scope values may be used and a single dependency may have more than one value separated by 
+commas. If a custom scope is provided, the value of _runtime_ must be included if that dependency should also be available
+at runtime.
 
 Additionally, the repo may be overridden when calling the script by passing the following command line parameter:
 

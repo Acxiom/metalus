@@ -12,6 +12,7 @@
         * [Flow Control](flow-control.md)
             * [Fork/Join](fork-join.md)
         * [Parameter Mapping](parameter-mapping.md)
+            * [Reserved Globals](parameter-mapping.md#reserved-globals)
         * [Execution and Data Flow](pipeline-flow.md)
 * [Step Libraries](step-libraries.md)
     * [Metalus Common](../metalus-common/readme.md)
@@ -23,9 +24,11 @@
             * [HiveSteps](../metalus-common/docs/hivesteps.md)
             * [JavascriptSteps](../metalus-common/docs/javascriptsteps.md)
             * [JDBCSteps](../metalus-common/docs/jdbcsteps.md)
+            * [JSONSteps](../metalus-common/docs/jsonsteps.md)
             * [QuerySteps](../metalus-common/docs/querysteps.md)
             * [ScalaSteps](../metalus-common/docs/scalascriptsteps.md)
             * [SFTPSteps](../metalus-common/docs/sftpsteps.md)
+            * [StringSteps](../metalus-common/docs/stringsteps.md)
             * [TransformationSteps](../metalus-common/docs/transformationsteps.md)
         * Pipelines/Step Groups
             * [SFTP to HDFS](../metalus-common/docs/sftp2hdfs.md)
@@ -33,9 +36,22 @@
     * [Metalus AWS](../metalus-aws/readme.md)
         * Steps
             * [S3Steps](../metalus-aws/docs/s3steps.md)
+            * [KinesisSteps](../metalus-aws/docs/kinesissteps.md)
         * Extensions
             * [S3FileManager](../metalus-aws/docs/s3filemanager.md)
             * [Kinesis Pipeline Driver](../metalus-aws/docs/kinesispipelinedriver.md)
+    * [Metalus GCP](../metalus-gcp/readme.md)
+        * Steps
+            * [GCSSteps](../metalus-gcp/docs/gcssteps.md)
+            * [PubSubSteps](../metalus-gcp/docs/pubsubsteps.md)
+        * Extensions
+            * [GCSFileManager](../metalus-gcp/docs/gcsfilemanager.md)
+            * [PubSub Pipeline Driver](../metalus-gcp/docs/pubsubpipelinedriver.md)
+    * [Metalus Kafka](../metalus-kafka/readme.md)
+        * Steps
+            * [KafkaSteps](../metalus-kafka/docs/kafkasteps.md)
+        * Extensions
+            * [Kafka Pipeline Driver](../metalus-kafka/docs/kafkapipelinedriver.md)
     * [Metalus Mongo](../metalus-mongo/readme.md)
         * Steps
             * [Mongo Steps](../metalus-mongo/docs/mongosteps.md)
@@ -44,6 +60,7 @@
 * Advanced
     * [Metadata Extractor](metadata-extractor.md)
     * [Dependency Manager](dependency-manager.md)
+    * [Credential Provider](credentialprovider.md)
     * [File Manager](filemanager.md)
     * [Drivers](pipeline-drivers.md)
     * [Audits](executionaudits.md)
@@ -53,4 +70,5 @@
     * [Driver Utils](driver-utils.md)
     * [Streaming Utils](streaming-utils.md)
     * [Script Engine](script-engine.md)
+    * [Custom Serializers](serialization.md)
 * [Contributing](contributions.md)

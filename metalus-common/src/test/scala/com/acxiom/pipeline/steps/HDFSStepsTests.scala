@@ -126,6 +126,24 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       assert(writtenData == chickens)
     }
+    it("Should save a DataFrame") {
+      val spark = this.sparkSession
+      import spark.implicits._
+
+      val dataFrame = chickens.toDF("id", "chicken")
+      val path = miniCluster.getURI + "/data/chickens.csv"
+      DataFrameSteps.saveDataFrame(dataFrame,
+        DataFrameWriterOptions("csv", "overwrite", Some(Map("path" -> path))))
+      val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
+      assert(list.size == 3)
+      var writtenData: Seq[(String, String)] = Seq()
+      list.foreach(l => {
+        val tuple = l.split(',')
+        writtenData = writtenData ++ Seq((tuple(0), tuple(1)))
+      })
+      writtenData.sortBy(t => t._1)
+      assert(writtenData == chickens)
+    }
   }
 
   describe("HDFS Steps - Basic Reading") {
@@ -182,6 +200,16 @@ class HDFSStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       assert(dataFrame.count() == 3)
       val result = dataFrame.take(3).map(r => (r.getString(0), r.getString(1))).toSeq
       assert(result == chickens)
+    }
+
+    it("Should load a a DataFrame") {
+      val csv = "1,silkie\n2,polish\n3,sultan"
+      val path = miniCluster.getURI + "/data/chickens2.csv"
+      writeHDFSContext(fs, path, csv)
+      val dataFrame = DataFrameSteps.loadDataFrame(DataFrameReaderOptions("csv", Some(Map("path" -> path))), pipelineContext)
+      val results = dataFrame.collect().map(r => (r.getString(0), r.getString(1))).toSeq
+      assert(results.size == 3)
+      assert(results == chickens)
     }
   }
 

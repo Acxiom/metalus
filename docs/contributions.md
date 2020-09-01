@@ -10,7 +10,7 @@ discussions.
 * Start by forking the main GutHub [repository](https://github.com/Acxiom/metalus).
 * Commit all changes to the develop branch.
 * Create proper scaladoc comments for any new or changed functions.
-    * Step functions should have proper [annotations](step-annotations.md).
+    * Step functions must have proper [annotations](step-annotations.md).
 * Provide a thorough unit test for the change.
 * Provide any additional documentation required by individual projects.
 * Discuss contributions on [Slack](https://join.slack.com/t/acxiom-metalus/shared_invite/enQtODY3OTU0ODE5NzUwLTc2Zjc0MzE2MjYzZjBmZjJkODQxODhhOTM4N2VmZjNhZGVlN2Q3N2QzNWU3ZTk4NWExNWM2YzZkYTVjNjNiNWQ)

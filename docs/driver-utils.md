@@ -31,3 +31,8 @@ _fileLoaderClassName_ parameter.
 
 ## Add Initial DataFrame to Execution Plan
 This function is used by streaming drivers to inject the DataFrame created from the stream into the execution plan.
+
+## Handle execution results
+This function will parse the results and throw any exception that is present in the _error_ field. Any result that is not
+successful, but is paused will return true. Any other non-successful executions will result in a false being returned
+with the execution and pipeline ids. 

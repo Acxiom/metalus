@@ -8,7 +8,8 @@ import scala.tools.reflect.ToolBox
 class ScalaScriptEngine extends ScriptEngine {
 
   override val engineName: String = "scala"
-  private val toolBox = universe.runtimeMirror(getClass.getClassLoader).mkToolBox()
+  private val mirror = universe.runtimeMirror(getClass.getClassLoader)
+  private val toolBox = mirror.mkToolBox()
 
   /**
     * This function will execute a simple self-contained scala script and return the result.
@@ -64,7 +65,7 @@ class ScalaScriptEngine extends ScriptEngine {
     * @param `type` The type of the value.
     * @return A Bindings object.
     */
-  def createBindings(name: String, value: Any, `type`: String = "Any"): Bindings = {
+  def createBindings(name: String, value: Any, `type`: Option[String] = None): Bindings = {
     Bindings(Map[String, Binding](name -> Binding(name, value, `type`)))
   }
 
@@ -92,17 +93,28 @@ class ScalaScriptEngine extends ScriptEngine {
   }
 
   private def getValString(binding: Binding): String = {
-    if (binding.`type` == "Any") {
+    val finalType = binding.`type`.getOrElse(deriveBindingType(binding))
+    if (finalType == "Any") {
       s"""val ${binding.name} = bindings.get.getBinding("${binding.name}").value"""
     } else {
-      s"""val ${binding.name} = bindings.get.getBinding("${binding.name}").value.asInstanceOf[${binding.`type`}]"""
+      s"""val ${binding.name} = bindings.get.getBinding("${binding.name}").value.asInstanceOf[$finalType]"""
+    }
+  }
+
+  private def deriveBindingType(binding: Binding): String = {
+    val className = binding.value.getClass.getCanonicalName
+    val sym = mirror.staticClass(className)
+    if(sym.typeParams.isEmpty){
+      className
+    } else {
+      s"$className[${sym.typeParams.map(_ => "Any").mkString(",")}]"
     }
   }
 }
 
 case class Bindings(bindings: Map[String, Binding] = Map[String, Binding]()) {
 
-  def setBinding(name: String, value: Any, `type`: String = "Any"): Bindings = {
+  def setBinding(name: String, value: Any, `type`: Option[String] = None): Bindings = {
     this.copy(bindings = this.bindings ++ Map[String, Binding](name -> Binding(name, value, `type`)))
   }
 
@@ -111,4 +123,4 @@ case class Bindings(bindings: Map[String, Binding] = Map[String, Binding]()) {
   }
 }
 
-case class Binding(name: String, value: Any, `type`: String = "Any")
+case class Binding(name: String, value: Any, `type`: Option[String] = None)

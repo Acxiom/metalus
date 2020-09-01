@@ -9,6 +9,8 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 
+import scala.util.Random
+
 class HiveStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
   val MASTER = "local[2]"
@@ -79,6 +81,34 @@ class HiveStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
       val frame = HiveSteps.readDataFrame("breeds", None, pipelineContext)
       assert(frame.count() == 3)
       assert(frame.where("breed = 'leghorn'").count() == 1)
+    }
+
+    it("should drop various objects") {
+      val length = 10
+      val name = "a_" + Random.alphanumeric.take(length).mkString
+      val spark = this.sparkSession
+      import spark.implicits._
+      val dataFrame = chickens.toDF("id", "chicken")
+      sparkSession.sql(s"create database $name")
+      HiveSteps.writeDataFrame(dataFrame, s"$name.t", None)
+      sparkSession.sql(s"create view $name.v AS select chicken from $name.t")
+      HiveSteps.drop(s"$name.v", Some("view"), pipelineContext = pipelineContext)
+      HiveSteps.drop(s"$name.t", pipelineContext = pipelineContext)
+      HiveSteps.drop(s"$name.t", None, Some(true), pipelineContext = pipelineContext)
+      HiveSteps.drop(s"$name", Some("schema"), pipelineContext = pipelineContext)
+      assert(!sparkSession.sql(s"show databases").collect().map(_.getString(0)).contains(name))
+    }
+
+    it("should perform cascade deletions") {
+      val length = 10
+      val name = "a_" + Random.alphanumeric.take(length).mkString
+      val spark = this.sparkSession
+      import spark.implicits._
+      val dataFrame = chickens.toDF("id", "chicken")
+      sparkSession.sql(s"create database $name")
+      HiveSteps.writeDataFrame(dataFrame, s"$name.t", None)
+      HiveSteps.drop(s"$name", Some("schema"), None, Some(true), pipelineContext = pipelineContext)
+      assert(!sparkSession.sql(s"show databases").collect().map(_.getString(0)).contains(name))
     }
   }
 }

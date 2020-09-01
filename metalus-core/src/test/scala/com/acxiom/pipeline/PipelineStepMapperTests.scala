@@ -69,7 +69,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       ),
       PipelineParameter("pipeline-id-2", Map("rawInteger" -> 2, "rawDecimal" -> 15.65)),
       PipelineParameter("pipeline-id-3", Map("rawInteger" -> 3, "step1" -> PipelineStepResponse(Some(List(1,2,3)),
-        Some(Map("namedKey" -> "namedValue")))))
+        Some(Map("namedKey" -> "namedValue"))), "step3" -> PipelineStepResponse(Some("fred_on_the_head"), None)))
     ))
 
     val broadCastGlobal = Map[String, Any](
@@ -79,7 +79,12 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       "link7" -> "#pipeline-id-1.step2.namedKey2String", "link8" -> "embedded!{pipelineId}::concat_value", "link9" -> "link_override"
     )
     val globalParameters = Map("pipelineId" -> "pipeline-id-3", "lastStepId" -> "step1", "globalString" -> "globalValue1", "globalInteger" -> FIVE,
-      "globalBoolean" -> true, "globalTestObject" -> globalTestObject, "GlobalLinks" -> broadCastGlobal, "link9" -> "root_value")
+      "globalBoolean" -> true, "globalTestObject" -> globalTestObject, "GlobalLinks" -> broadCastGlobal, "link9" -> "root_value",
+      "extractMethodsEnabled" -> true,
+      "complexList" -> List(DefaultPipelineStepResponse(Some("moo")), DefaultPipelineStepResponse(Some("moo2"))),
+      "optionsList" -> List(Some("1"), Some("2"), None, Some("3")),
+      "numericString" -> "1", "bigIntGlobal" -> BigInt(1), "booleanString" -> "true"
+    )
 
     val subPipeline = Pipeline(Some("mypipeline"), Some("My Pipeline"))
 
@@ -89,73 +94,98 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
 
     it("should pull the appropriate value for given parameters") {
       val tests = List(
-        ("basic string concatenation missing value", Parameter(value=Some("!{bad-value}::concat_value")), "None::concat_value"),
-        ("basic string concatenation", Parameter(value=Some("!{pipelineId}::concat_value")), "pipeline-id-3::concat_value"),
-        ("embedded string concatenation", Parameter(value=Some("embedded!{pipelineId}::concat_value")), "embeddedpipeline-id-3::concat_value"),
-        ("embedded string concatenation in GlobalLink", Parameter(value=Some("!link8")), "embeddedpipeline-id-3::concat_value"),
+        ("basic string concatenation missing value", Parameter(value = Some("!{bad-value}::concat_value")), "None::concat_value"),
+        ("basic string concatenation", Parameter(value = Some("!{pipelineId}::concat_value")), "pipeline-id-3::concat_value"),
+        ("embedded string concatenation", Parameter(value = Some("embedded!{pipelineId}::concat_value")), "embeddedpipeline-id-3::concat_value"),
+        ("embedded string concatenation in GlobalLink", Parameter(value = Some("!link8")), "embeddedpipeline-id-3::concat_value"),
         ("multiple embedded string concatenation",
-          Parameter(value=Some("!{pipelineId}::!{globalBoolean}::#{pipeline-id-1.step2.namedKey2Map.childKey2Integer}::@{pipeline-id-1.step3}")),
+          Parameter(value = Some("!{pipelineId}::!{globalBoolean}::#{pipeline-id-1.step2.namedKey2Map.childKey2Integer}::@{pipeline-id-1.step3}")),
           "pipeline-id-3::true::2::fred"),
-        ("multiple embedded string concatenation using BroadCast", Parameter(value=Some("!link1")), "pipeline-id-3::true::2::fred"),
-        ("string concatenation object override", Parameter(value=Some("somestring::!{globalTestObject}::concat_value")), globalTestObject),
-        ("script", Parameter(value=Some("my_script"),`type`=Some("script")), "my_script"),
-        ("boolean", Parameter(value=Some(true),`type`=Some("boolean")), true),
-        ("cast to a boolean", Parameter(value=Some("true"),`type`=Some("boolean")), true),
-        ("int", Parameter(value=Some(1),`type`=Some("integer")), 1),
-        ("cast to an int", Parameter(value=Some("15"),`type`=Some("integer")), 15),
-        ("big int", Parameter(value=Some(BigInt("5")),`type`=Some("integer")), BigInt("5")),
-        ("decimal", Parameter(value=Some(BigInt("5")),`type`=Some("integer")), BigInt("5")),
-        ("list", Parameter(value=Some(List("5")),`type`=Some("integer")), List("5")),
-        ("string list", Parameter(value=Some("[\"a\", \"b\", \"c\" \"d\"]"),`type`=Some("list")), List("a", "b", "c", "d")),
-        ("int list", Parameter(value=Some("[1, 2, 3]"),`type`=Some("list")), List(1, 2, 3)),
-        ("default value", Parameter(name = Some("fred"), defaultValue=Some("default value"),`type`=Some("string")), "default value"),
-        ("string from global", Parameter(value=Some("!globalString"),`type`=Some("string")), "globalValue1"),
-        ("GlobalLink overrides root global", Parameter(value=Some("!link9"),`type`=Some("string")), "link_override"),
-        ("boolean from global", Parameter(value=Some("!globalBoolean"),`type`=Some("boolean")), true),
-        ("integer from global", Parameter(value=Some("!globalInteger"),`type`=Some("integer")), FIVE),
-        ("test object from global", Parameter(value=Some("!globalTestObject"),`type`=Some("string")), globalTestObject),
-        ("child object from global", Parameter(value=Some("!globalTestObject.intField"),`type`=Some("integer")), globalTestObject.intField),
-        ("non-step value from pipeline", Parameter(value=Some("$pipeline-id-1.rawKey1"),`type`=Some("string")), "rawValue1"),
-        ("integer from current pipeline", Parameter(value=Some("$rawInteger"),`type`=Some("integer")), 3),
-        ("missing global parameter", Parameter(value=Some("!fred"),`type`=Some("string")), None),
-        ("missing runtime parameter", Parameter(value=Some("$fred"),`type`=Some("string")), None),
-        ("None runtime parameter", Parameter(name = Some("red test"), value=Some("$pipeline-id-1.red"),`type`=Some("string")), None),
-        ("integer from specific pipeline", Parameter(value=Some("$pipeline-id-2.rawInteger"),`type`=Some("integer")), 2),
-        ("decimal from specific pipeline", Parameter(value=Some("$pipeline-id-2.rawDecimal"),`type`=Some("decimal")), 15.65),
-        ("primary from current pipeline using @", Parameter(value=Some("@step1"),`type`=Some("string")), List(1,2,3)),
-        ("primary from current pipeline using @ in GlobalLink", Parameter(value=Some("!link2"),`type`=Some("string")), List(1,2,3)),
-        ("primary from current pipeline using $", Parameter(value=Some("$step1.primaryReturn"),`type`=Some("string")), List(1,2,3)),
-        ("primary from current pipeline using $ in GlobalLink", Parameter(value=Some("!link3"),`type`=Some("string")), List(1,2,3)),
-        ("primary from specific pipeline using @", Parameter(value=Some("@pipeline-id-1.step1.primaryKey1String"),`type`=Some("string")),
+        ("multiple embedded string concatenation using BroadCast", Parameter(value = Some("!link1")), "pipeline-id-3::true::2::fred"),
+        ("string concatenation object override", Parameter(value = Some("somestring::!{globalTestObject}::concat_value")), globalTestObject),
+        ("script", Parameter(value = Some("my_script"), `type` = Some("script")), "my_script"),
+        ("boolean", Parameter(value = Some(true), `type` = Some("boolean")), true),
+        ("cast to a boolean", Parameter(value = Some("true"), `type` = Some("boolean")), true),
+        ("int", Parameter(value = Some(1), `type` = Some("integer")), 1),
+        ("cast to an int", Parameter(value = Some("15"), `type` = Some("integer")), 15),
+        ("big int", Parameter(value = Some(BigInt("5")), `type` = Some("integer")), BigInt("5")),
+        ("decimal", Parameter(value = Some(BigInt("5")), `type` = Some("integer")), BigInt("5")),
+        ("list", Parameter(value = Some(List("5")), `type` = Some("integer")), List("5")),
+        ("string list", Parameter(value = Some("[\"a\", \"b\", \"c\" \"d\"]"), `type` = Some("list")), List("a", "b", "c", "d")),
+        ("int list", Parameter(value = Some("[1, 2, 3]"), `type` = Some("list")), List(1, 2, 3)),
+        ("default value", Parameter(name = Some("fred"), defaultValue = Some("default value"), `type` = Some("string")), "default value"),
+        ("string from global", Parameter(value = Some("!globalString"), `type` = Some("string")), "globalValue1"),
+        ("GlobalLink overrides root global", Parameter(value = Some("!link9"), `type` = Some("string")), "link_override"),
+        ("boolean from global", Parameter(value = Some("!globalBoolean"), `type` = Some("boolean")), true),
+        ("integer from global", Parameter(value = Some("!globalInteger"), `type` = Some("integer")), FIVE),
+        ("test object from global", Parameter(value = Some("!globalTestObject"), `type` = Some("string")), globalTestObject),
+        ("child object from global", Parameter(value = Some("!globalTestObject.intField"), `type` = Some("integer")), globalTestObject.intField),
+        ("non-step value from pipeline", Parameter(value = Some("$pipeline-id-1.rawKey1"), `type` = Some("string")), "rawValue1"),
+        ("integer from current pipeline", Parameter(value = Some("$rawInteger"), `type` = Some("integer")), 3),
+        ("missing global parameter", Parameter(value = Some("!fred"), `type` = Some("string")), None),
+        ("missing runtime parameter", Parameter(value = Some("$fred"), `type` = Some("string")), None),
+        ("None runtime parameter", Parameter(name = Some("red test"), value = Some("$pipeline-id-1.red"), `type` = Some("string")), None),
+        ("integer from specific pipeline", Parameter(value = Some("$pipeline-id-2.rawInteger"), `type` = Some("integer")), 2),
+        ("decimal from specific pipeline", Parameter(value = Some("$pipeline-id-2.rawDecimal"), `type` = Some("decimal")), 15.65),
+        ("primary from current pipeline using @", Parameter(value = Some("@step1"), `type` = Some("string")), List(1, 2, 3)),
+        ("primary from current pipeline using @ in GlobalLink", Parameter(value = Some("!link2"), `type` = Some("string")), List(1, 2, 3)),
+        ("primary from current pipeline using $", Parameter(value = Some("$step1.primaryReturn"), `type` = Some("string")), List(1, 2, 3)),
+        ("primary from current pipeline using $ in GlobalLink", Parameter(value = Some("!link3"), `type` = Some("string")), List(1, 2, 3)),
+        ("primary from specific pipeline using @", Parameter(value = Some("@pipeline-id-1.step1.primaryKey1String"), `type` = Some("string")),
           "primaryKey1Value"),
-        ("primary from specific pipeline using @ in GlobalLink", Parameter(value=Some("!link4"),`type`=Some("string")), "primaryKey1Value"),
-        ("primary from specific pipeline using $", Parameter(value=Some("$pipeline-id-1.step1.primaryReturn.primaryKey1String"),`type`=Some("string")),
+        ("primary from specific pipeline using @ in GlobalLink", Parameter(value = Some("!link4"), `type` = Some("string")), "primaryKey1Value"),
+        ("primary from specific pipeline using $", Parameter(value = Some("$pipeline-id-1.step1.primaryReturn.primaryKey1String"), `type` = Some("string")),
           "primaryKey1Value"),
-        ("primary from specific pipeline using $ in GlobalLink", Parameter(value=Some("!link5"),`type`=Some("string")), "primaryKey1Value"),
-        ("namedReturns from specific pipeline using $", Parameter(value=Some("$pipeline-id-1.step2.namedReturns.namedKey2String"), `type`=Some("string")),
+        ("primary from specific pipeline using $ in GlobalLink", Parameter(value = Some("!link5"), `type` = Some("string")), "primaryKey1Value"),
+        ("namedReturns from specific pipeline using $", Parameter(value = Some("$pipeline-id-1.step2.namedReturns.namedKey2String"), `type` = Some("string")),
           "namedKey2Value"),
-        ("namedReturns from specific pipeline using $ in GlobalLink", Parameter(value=Some("!link6"), `type`=Some("string")),
+        ("namedReturns from specific pipeline using $ in GlobalLink", Parameter(value = Some("!link6"), `type` = Some("string")),
           "namedKey2Value"),
-        ("namedReturns from specific pipeline using #", Parameter(value=Some("#pipeline-id-1.step2.namedKey2String"),`type`=Some("string")),
+        ("namedReturns from specific pipeline using #", Parameter(value = Some("#pipeline-id-1.step2.namedKey2String"), `type` = Some("string")),
           "namedKey2Value"),
-        ("namedReturns from specific pipeline using #", Parameter(value=Some("!link7"),`type`=Some("string")), "namedKey2Value"),
-        ("namedReturns from specific pipeline using # to be None", Parameter(value=Some("#pipeline-id-1.step2.nothing"),`type`=Some("string")), None),
-        ("namedReturns from current pipeline using #", Parameter(value=Some("#step1.namedKey"),`type`=Some("string")), "namedValue"),
-        ("resolve case class", Parameter(value=Some(classMap), className = Some("com.acxiom.pipeline.ParameterTest")), ParameterTest(Some("fred"), Some(3))),
-        ("resolve map", Parameter(value=Some(classMap)), classMap),
-        ("resolve pipeline", Parameter(value=Some("&mypipeline")), subPipeline),
-        ("fail to resolve pipeline", Parameter(value=Some("&mypipeline1")), None),
-        ("fail to get global string", Parameter(value=Some("!invalidGlobalString")), None),
-        ("fail to detect null", Parameter(value=Some("$nullValue || default string")), "default string"),
-        ("recursive test", Parameter(value=Some("?pipeline-id-1.recursiveTest")), "rawValue1"),
-        ("recursive test", Parameter(value=Some("$pipeline-id-1.recursiveTest")), "$pipeline-id-1.rawKey1"),
-        ("lastStepId test", Parameter(value=Some("@LastStepId"),`type`=Some("string")), List(1,2,3)),
-        ("lastStepId with or", Parameter(value=Some("!not_here || @LastStepId"),`type`=Some("string")), List(1,2,3))
+        ("namedReturns from specific pipeline using #", Parameter(value = Some("!link7"), `type` = Some("string")), "namedKey2Value"),
+        ("namedReturns from specific pipeline using # to be None", Parameter(value = Some("#pipeline-id-1.step2.nothing"), `type` = Some("string")), None),
+        ("namedReturns from current pipeline using #", Parameter(value = Some("#step1.namedKey"), `type` = Some("string")), "namedValue"),
+        ("resolve case class", Parameter(value = Some(classMap), className = Some("com.acxiom.pipeline.ParameterTest")), ParameterTest(Some("fred"), Some(3))),
+        ("resolve map", Parameter(value = Some(classMap)), classMap),
+        ("resolve pipeline", Parameter(value = Some("&mypipeline")), subPipeline),
+        ("fail to resolve pipeline", Parameter(value = Some("&mypipeline1")), None),
+        ("fail to get global string", Parameter(value = Some("!invalidGlobalString")), None),
+        ("fail to detect null", Parameter(value = Some("$nullValue || default string")), "default string"),
+        ("recursive test", Parameter(value = Some("?pipeline-id-1.recursiveTest")), "rawValue1"),
+        ("recursive test", Parameter(value = Some("$pipeline-id-1.recursiveTest")), "$pipeline-id-1.rawKey1"),
+        ("lastStepId test", Parameter(value = Some("@LastStepId"), `type` = Some("string")), List(1, 2, 3)),
+        ("lastStepId with or", Parameter(value = Some("!not_here || @LastStepId"), `type` = Some("string")), List(1, 2, 3)),
+        ("lastStepId with method extraction", Parameter(value = Some("@LastStepId.nonEmpty"), `type` = Some("boolean")), true),
+        ("inline list in inline map",
+          Parameter(value = Some(Map[String, Any]("list" -> List("!globalString"))), `type` = Some("text")), Map("list" -> List("globalValue1"))),
+        ("script to map a list of step returns",
+          Parameter(value = Some(
+            """(list: !complexList :Option[List[com.acxiom.pipeline.DefaultPipelineStepResponse]])
+              |list.getOrElse(List()).map(r => r.primaryReturn.get)
+              |""".stripMargin), `type` = Some("scalascript")), List("moo", "moo2")),
+        ("simple script with tuple",
+          Parameter(value = Some(
+            """()("moo", 1)"""), `type` = Some("scalascript")), ("moo", 1)),
+        ("script with implicit",
+          Parameter(value = Some(
+            """(list:!optionsList:List[Option[String]])(list.flatten)"""), `type` = Some("scalascript")), List("1", "2", "3")),
+        ("script with escaped binding",
+          Parameter(value = Some(
+            """(s:cChickens\:Rule\\:String)(s.toLowerCase.drop(1))"""), `type` = Some("scalascript")), "chickens:rule\\"),
+        ("Casting String global to int", Parameter(value = Some("!numericString"), `type` = Some("int")), 1),
+        ("Casting String global to bigInt", Parameter(value = Some("!numericString"), `type` = Some("bigInt")), BigInt(1)),
+        ("Casting String global to double", Parameter(value = Some("!numericString"), `type` = Some("double")), 1.0D),
+        ("Casting BigInt global to long", Parameter(value = Some("!bigIntGlobal"), `type` = Some("long")), 1L),
+        ("Casting BigInt global to BigDecimal", Parameter(value = Some("!bigIntGlobal"), `type` = Some("BigDecimal")), BigDecimal(1)),
+        ("Casting bigInt global to String", Parameter(value = Some("!bigIntGlobal"), `type` = Some("String")), "1"),
+        ("Casting String global to boolean", Parameter(value = Some("!booleanString"), `type` = Some("boolean")), true),
+        ("Use default value", Parameter(name = Some("defaultparam"), defaultValue = Some("default chosen"), `type` = Some("text")), "default chosen")
       )
-
       tests.foreach(test => {
         Then(s"test ${test._1}")
-        assert(pipelineContext.parameterMapper.mapParameter(test._2, pipelineContext) == test._3)
+        val ret = pipelineContext.parameterMapper.mapParameter(test._2, pipelineContext)
+        assert(ret == test._3)
       })
 
       val thrown = intercept[RuntimeException] {
@@ -166,6 +196,71 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       assert(thrown.getMessage == msg)
       assert(pipelineContext.parameterMapper.mapParameter(
         Parameter(name = Some("badValue"), value=None,`type`=Some("string")), pipelineContext).asInstanceOf[Option[_]].isEmpty)
+
+      assert(pipelineContext.parameterMapper.mapByType(None, Parameter(name = Some("defaultparam"),
+        defaultValue = Some("default chosen"), `type` = Some("text")), pipelineContext) == "default chosen")
+    }
+
+    it("should cast string values to different numeric types") {
+      Map(
+        "int" -> 1,
+        "integer" -> 1,
+        "long" -> 1L,
+        "float" -> 1.0F,
+        "double" -> 1.0D,
+        "byte" -> 1.toByte,
+        "short" -> 1.toShort,
+        "bigint" -> BigInt(1),
+        "bigdecimal" -> BigDecimal(1)
+      ).foreach{ case (typeName, expected) =>
+        val ret = pipelineContext.parameterMapper.mapParameter(Parameter(value = Some("!numericString"), `type` = Some(typeName)), pipelineContext)
+        assert(ret == expected)
+      }
+    }
+
+    it("should cast numeric values to different numeric and string types") {
+      Map(
+        "int" -> 1,
+        "integer" -> 1,
+        "long" -> 1L,
+        "float" -> 1.0F,
+        "double" -> 1.0D,
+        "byte" -> 1.toByte,
+        "short" -> 1.toShort,
+        "character" -> 1.toChar,
+        "char" -> 1.toChar,
+        "boolean" -> true,
+        "bigint" -> BigInt(1),
+        "bigdecimal" -> BigDecimal(1),
+        "string" -> "1"
+      ).foreach{ case (typeName, expected) =>
+        val ret = pipelineContext.parameterMapper.mapParameter(Parameter(value = Some("!bigIntGlobal"), `type` = Some(typeName)), pipelineContext)
+        assert(ret == expected)
+      }
+    }
+
+    it("Should throw the appropriate error when given script with malformed bindings") {
+      val thrown = intercept[PipelineException] {
+        pipelineContext.parameterMapper.mapParameter(Parameter(value = Some(
+          """(list)list.flatten"""), `type` = Some("scalascript")), pipelineContext)
+      }
+      assert(thrown.getMessage == "Unable to execute script: Illegal binding format: [list]. Expected format: <name>:<value>:<type>")
+    }
+
+    it("Should throw the appropriate error when given malformed bindings") {
+      val thrown = intercept[PipelineException] {
+        pipelineContext.parameterMapper.mapParameter(Parameter(value = Some(
+          """(chk:chicken:String chk.toLowerCase"""), `type` = Some("scalascript")), pipelineContext)
+      }
+      assert(thrown.getMessage == "Unable to execute script: Malformed bindings. Expected enclosing character: [)].")
+    }
+
+    it("Should throw the appropriate error when given a malformed script") {
+      val thrown = intercept[PipelineException] {
+        pipelineContext.parameterMapper.mapParameter(Parameter(value = Some(
+          """(df:@DataFrame:DataFrame df.count()"""), `type` = Some("scalascript")), pipelineContext)
+      }
+      assert(thrown.getMessage == "Unable to execute script: script is empty. Ensure bindings are properly enclosed.")
     }
 
     it("Should create a parameter map") {
@@ -259,7 +354,23 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       assert(list.length == 3)
       assert(list.head == "string")
       assert(list(1) == FIVE)
-      assert(list(2) == Some("global->globalValue1->value"))
+      assert(list(2) == "global->globalValue1->value")
+    }
+
+    it("Should respect the dropNoneFromLists option") {
+      val objectParameter = Parameter(value=Some(List("string", FIVE, "!NotHere")))
+      val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
+      val list = parameterValue.asInstanceOf[List[Any]]
+      assert(list.length == 2)
+      assert(list.head == "string")
+      assert(list(1) == FIVE)
+      val contextWithOption = pipelineContext.setGlobal("dropNoneFromLists", false)
+      val anotherValue = pipelineContext.parameterMapper.mapParameter(objectParameter, contextWithOption)
+      val anotherList = anotherValue.asInstanceOf[List[Any]]
+      assert(anotherList.length == 3)
+      assert(anotherList.head == "string")
+      assert(anotherList(1) == FIVE)
+      assert(anotherList(2) == null)
     }
 
     it("Should perform || logic") {
@@ -292,6 +403,68 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       assert(ctx.parameterMapper.mapParameter(param, ctx) == "default string")
       assert(ctx.parameterMapper.mapParameter(Parameter(value = Some("$string")), ctx) == "some string")
       assert(ctx.parameterMapper.mapParameter(Parameter(value = Some("$int")), ctx) == 1)
+    }
+
+    it("Should replace complex variables in a map") {
+      val objectMap = Map[String, Any](
+        "string" -> "!globalString",
+        "num" -> "!globalInteger",
+        "concatString" -> "global->!{globalString}->value",
+        "embeddedMap" -> Map[String, Any](
+          "embeddedBoolean" -> "$badValue || !globalBoolean",
+          "stepResponse" -> "@step3",
+          "mappedInteger" -> "?rawInteger",
+          "runtimeInteger" -> "$rawInteger",
+          "parameterTest" -> Map[String, Any](
+            "className" -> "com.acxiom.pipeline.ParameterTest",
+            "object" -> Map[String, Any]("string" -> "fred1", "num" -> 4)
+          ),
+          "listMap" -> List(
+            Map[String, Any](
+            "className" -> "com.acxiom.pipeline.ParameterTest",
+            "object" -> Map[String, Any]("string" -> "fred2", "num" -> 5)
+          ),
+            Map[String, Any](
+              "className" -> "com.acxiom.pipeline.ParameterTest",
+              "object" -> Map[String, Any]("string" -> "fred3", "num" -> 6)
+            ))
+        ),
+      "embeddedObject" -> Map[String, Any](
+        "stepResponse" -> "@step3",
+        "embeddedTest" -> Map[String, Any](
+          "className" -> "com.acxiom.pipeline.ParameterTest",
+          "object" -> Map[String, Any]("string" -> "fred4", "num" -> 7)
+        )
+      ))
+      val objectParameter = Parameter(value=Some(objectMap))
+      val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
+      assert(parameterValue.asInstanceOf[Map[String, Any]]("string").asInstanceOf[Option[String]].contains("globalValue1"))
+      assert(parameterValue.asInstanceOf[Map[String, Any]]("num").asInstanceOf[Option[Int]].contains(FIVE))
+      assert(parameterValue.asInstanceOf[Map[String, Any]]("concatString").asInstanceOf[Option[String]].contains("global->globalValue1->value"))
+
+      assert(parameterValue.asInstanceOf[Map[String, Any]]("embeddedMap").isInstanceOf[Map[String, Any]])
+      val embeddedMap = parameterValue.asInstanceOf[Map[String, Any]]("embeddedMap").asInstanceOf[Map[String, Any]]
+      assert(embeddedMap("embeddedBoolean").asInstanceOf[Option[Boolean]].contains(true))
+      assert(embeddedMap("stepResponse").asInstanceOf[Option[String]].contains("fred_on_the_head"))
+      assert(embeddedMap("mappedInteger").asInstanceOf[Option[Int]].contains(3))
+      assert(embeddedMap("runtimeInteger").asInstanceOf[Option[Int]].contains(3))
+
+      assert(embeddedMap("parameterTest").isInstanceOf[ParameterTest])
+      val parameterTest = embeddedMap("parameterTest").asInstanceOf[ParameterTest]
+      assert(parameterTest == ParameterTest(Some("fred1"), Some(Constants.FOUR)))
+
+      assert(embeddedMap("listMap").isInstanceOf[List[ParameterTest]])
+      val listTest = embeddedMap("listMap").asInstanceOf[List[ParameterTest]]
+      assert(listTest.length == 2)
+      assert(listTest.head == ParameterTest(Some("fred2"), Some(Constants.FIVE)))
+      assert(listTest(1) == ParameterTest(Some("fred3"), Some(Constants.SIX)))
+
+      assert(parameterValue.asInstanceOf[Map[String, Any]]("embeddedObject").isInstanceOf[Map[String, Any]])
+      val embeddedObject = parameterValue.asInstanceOf[Map[String, Any]]("embeddedObject").asInstanceOf[Map[String, Any]]
+      assert(embeddedObject("stepResponse").asInstanceOf[Option[String]].contains("fred_on_the_head"))
+      assert(embeddedObject("embeddedTest").isInstanceOf[ParameterTest])
+      val embeddedTest = embeddedObject("embeddedTest").asInstanceOf[ParameterTest]
+      assert(embeddedTest == ParameterTest(Some("fred4"), Some(Constants.SEVEN)))
     }
   }
 }

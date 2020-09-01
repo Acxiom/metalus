@@ -21,6 +21,7 @@ case class StepFunctionParameter(`type`: String,
                                  defaultValue: Option[String] = None,
                                  language: Option[String] = None,
                                  className: Option[String] = None,
-                                 parameterType: Option[String] = None)
+                                 parameterType: Option[String] = None,
+                                 description: Option[String] = None)
 
 case class PackageObject(id: String, schema: String)

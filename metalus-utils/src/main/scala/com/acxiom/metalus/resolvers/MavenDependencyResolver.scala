@@ -14,8 +14,9 @@ class MavenDependencyResolver extends DependencyResolver {
   private val localFileManager = new LocalFileManager
 
   override def copyResources(outputPath: File, dependencies: Map[String, Any], parameters: Map[String, Any]): List[Dependency] = {
-    val providedRepos = getRepos(parameters)
-    val dependencyRepos = getRepos(dependencies)
+    val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).toString.toLowerCase == "true"
+    val providedRepos = getRepos(parameters, allowSelfSignedCerts)
+    val dependencyRepos = getRepos(dependencies, allowSelfSignedCerts)
     val repoList = providedRepos ::: dependencyRepos
 
     val libraries = dependencies.getOrElse("libraries", List[Map[String, Any]]()).asInstanceOf[List[Map[String, Any]]]
@@ -34,15 +35,13 @@ class MavenDependencyResolver extends DependencyResolver {
           if (dependencyFile.exists()) {
             dependencyFile.delete()
           }
-          val output = localFileManager.getOutputStream(dependencyFile.getAbsolutePath, append = false)
-          val deps = if (localFileManager.copy(repoResult.input.get, output, FileManager.DEFAULT_COPY_BUFFER_SIZE)) {
+          val deps = if (DependencyResolver.copyJarWithRetry(localFileManager, repoResult.input.get, path, dependencyFile.getAbsolutePath)) {
             dependencies :+ Dependency(artifactId, version, dependencyFile)
           } else {
             logger.warn(s"Failed to copy file: $dependencyFileName")
             dependencies
           }
           repoResult.input.get.close()
-          output.close()
           deps
         } else {
           logger.info(s"File exists: $dependencyFileName")
@@ -57,11 +56,11 @@ class MavenDependencyResolver extends DependencyResolver {
     })
   }
 
-  private def getRepos(parameters: Map[String, Any]): List[Repo] = {
+  private def getRepos(parameters: Map[String, Any], allowSelfSignedCerts: Boolean): List[Repo] = {
     val repos = parameters.getOrElse("repo", "https://repo1.maven.org/maven2/").asInstanceOf[String]
     (repos.split(",").map(repo => {
       if (repo.trim.startsWith("http")) {
-        ApiRepo(HttpRestClient(repo))
+        ApiRepo(HttpRestClient(repo, allowSelfSignedCerts))
       } else {
         LocalRepo(localFileManager, repo)
       }

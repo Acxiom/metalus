@@ -1,8 +1,9 @@
 package com.acxiom.pipeline.utils
 
-import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
+import com.acxiom.pipeline._
+import com.acxiom.pipeline.api.HttpRestClient
+import com.acxiom.pipeline.drivers.{DriverSetup, ResultSummary}
 import com.acxiom.pipeline.fs.FileManager
-import com.acxiom.pipeline.{DefaultPipeline, Pipeline, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
@@ -12,6 +13,7 @@ import org.json4s.native.JsonMethods.parse
 import org.json4s.reflect.Reflector
 import org.json4s.{DefaultFormats, Extraction, Formats}
 
+import scala.annotation.tailrec
 import scala.io.Source
 
 object DriverUtils {
@@ -78,18 +80,35 @@ object DriverUtils {
     parameters
   }
 
-  def getHttpRestClient(url: String, parameters: Map[String, Any], skipAuth: Option[Boolean] = None): HttpRestClient = {
-    val authorizationClass = "authorization.class"
-    if (parameters.contains(authorizationClass).&&(!skipAuth.getOrElse(false))) {
-      val authorizationParameters = parameters.filter(entry =>
-        entry._1.startsWith("authorization.") && entry._1 != authorizationClass)
-        .map(entry => entry._1.substring("authorization.".length) -> entry._2)
-      HttpRestClient(url,
-        ReflectionUtils.loadClass(parameters(authorizationClass).asInstanceOf[String], Some(authorizationParameters))
-          .asInstanceOf[Authorization])
+  /**
+    * Create an HttpRestClient.
+    *
+    * @param url                         The base URL
+    * @param credentialProvider          The credential provider to use for auth
+    * @param skipAuth                    Flag allowing auth to be skipped
+    * @param allowSelfSignedCertificates Flag to allow accepting self signed certs when making https calls
+    * @return An HttpRestClient
+    */
+  def getHttpRestClient(url: String,
+                        credentialProvider: CredentialProvider,
+                        skipAuth: Option[Boolean] = None,
+                        allowSelfSignedCertificates: Boolean = false): HttpRestClient = {
+    val credential = credentialProvider.getNamedCredential("DefaultAuthorization")
+    if (credential.isDefined.&&(!skipAuth.getOrElse(false))) {
+      HttpRestClient(url, credential.get.asInstanceOf[AuthorizationCredential].authorization, allowSelfSignedCertificates)
     } else {
-      HttpRestClient(url)
+      HttpRestClient(url, allowSelfSignedCertificates)
     }
+  }
+
+  /**
+    * Given a map of parameters, create the CredentialProvider
+    * @param parameters The map of parameters to pass to the constructor of the CredentialProvider
+    * @return A CredentialProvider
+    */
+  def getCredentialProvider(parameters: Map[String, Any]): CredentialProvider = {
+    val providerClass = parameters.getOrElse("credential-provider", "com.acxiom.pipeline.DefaultCredentialProvider").asInstanceOf[String]
+    ReflectionUtils.loadClass(providerClass, Some(Map("parameters" -> parameters))).asInstanceOf[CredentialProvider]
   }
 
   /**
@@ -131,8 +150,7 @@ object DriverUtils {
     * @param className The fully qualified name of the class.
     * @return An instantiation of the class from the provided JSON.
     */
-  def parseJson(json: String, className: String): Any = {
-    implicit val formats: Formats = DefaultFormats
+  def parseJson(json: String, className: String)(implicit formats: Formats): Any = {
     val clazz = Class.forName(className)
     val scalaType = Reflector.scalaTypeOf(clazz)
     Extraction.extract(parse(json), scalaType)
@@ -153,6 +171,85 @@ object DriverUtils {
       execution.parents))
   }
 
+  /**
+    * Once the execution completes, parse the results. If an unexpected exception was thrown, it will be thrown. The
+    * result of this function will be false if the success is false and the process was not paused. A pause will
+    * result in this function returning true.
+    * @param results The execution results
+    * @return true if everything executed properly (or paused), false if anything failed. Any non-pipeline errors will be thrown
+    */
+  def handleExecutionResult(results: Option[Map[String, DependencyResult]]): ResultSummary = {
+    if (results.isEmpty) {
+      ResultSummary(success = true, None, None)
+    } else {
+      results.get.foldLeft(ResultSummary(success = true, None, None))((result, entry) => {
+        // Ensure that non-pipeline errors get thrown so the resource scheduler handles it
+        if (entry._2.error.isDefined) {
+          throw entry._2.error.get
+        }
+        // If any job failed, then the execution is failed
+        if (entry._2.result.isDefined && !entry._2.result.get.success && !entry._2.result.get.paused) {
+          val execInfo = entry._2.result.get.pipelineContext.getPipelineExecutionInfo
+          ResultSummary(entry._2.result.get.success, execInfo.executionId, execInfo.pipelineId)
+        } else {
+          result
+        }
+      })
+    }
+  }
+
+  /**
+    * This function will add the DataFrame to the globals as "initialDataFrame", process the executionPlan then
+    * process the results using the "DriverSetup.handleExecutionResult" function. Upon successful execution, the
+    * provided "successFunc" will be called. A non-successful execution will result in the process being retried
+    * until "maxAttempts" has been reached. Upon continued failures, processing will either stop or if
+    * "throwExceptionOnFailure" is set, a Runtime exception will be thrown.
+    * @param driverSetup The DriverSetup to use for processing the execution result.
+    * @param executionPlan The execution plan to process
+    * @param dataFrame The DataFrame to be processed
+    * @param successFunc A function to call once a successful execution has occurred
+    * @param throwExceptionOnFailure Boolean flag indicating whether to throw an exception when all attempts have been exhausted
+    * @param attempt The current attempt
+    * @param maxAttempts The maximum number of attempts before failing
+    */
+  @tailrec
+  def processExecutionPlan(driverSetup: DriverSetup,
+                           executionPlan: List[PipelineExecution],
+                           dataFrame: Option[DataFrame],
+                           successFunc: () => Unit,
+                           throwExceptionOnFailure: Boolean,
+                           attempt: Int = 1,
+                           maxAttempts: Int = Constants.FIVE): Unit = {
+    val plan = if (dataFrame.isDefined) {
+      DriverUtils.addInitialDataFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame.get)
+    } else {
+      executionPlan
+    }
+    val results = driverSetup.handleExecutionResult(PipelineDependencyExecutor.executePlan(plan))
+    if (results.success) {
+      // Call provided function once execution is successful
+      successFunc()
+    } else {
+      if (attempt >= maxAttempts) {
+        if (throwExceptionOnFailure) {
+          throw new IllegalStateException(s"Failed to process execution plan after $attempt attempts")
+        }
+      } else {
+        processExecutionPlan(driverSetup, executionPlan, dataFrame, successFunc, throwExceptionOnFailure, attempt + 1, maxAttempts)
+      }
+    }
+  }
+
+  /**
+    * This function will pull the common parameters from the command line.
+    * @param parameters The parameter map
+    * @return Common parameters
+    */
+  def parseCommonParameters(parameters: Map[String, Any]): CommonParameters =
+    CommonParameters(parameters("driverSetupClass").asInstanceOf[String],
+      parameters.getOrElse("maxRetryAttempts", "0").toString.toInt,
+      parameters.getOrElse("terminateAfterFailures", "false").toString.toBoolean)
+
   def loadJsonFromFile(path: String,
                        fileLoaderClassName: String = "com.acxiom.pipeline.fs.LocalFileManager",
                        parameters: Map[String, Any] = Map[String, Any]()): String = {
@@ -172,3 +269,5 @@ object DriverUtils {
     json
   }
 }
+
+case class CommonParameters(initializationClass: String, maxRetryAttempts: Int, terminateAfterFailures: Boolean)

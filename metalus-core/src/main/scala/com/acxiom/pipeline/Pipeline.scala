@@ -1,9 +1,10 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.audits.{ExecutionAudit, AuditType}
+import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.util.CollectionAccumulator
+import org.json4s.{DefaultFormats, Formats}
 
 import scala.collection.JavaConversions._
 
@@ -22,36 +23,45 @@ trait Pipeline {
   def name: Option[String] = None
   def steps: Option[List[PipelineStep]] = None
   def category: Option[String] = Some("pipeline")
+  def tags: Option[List[String]] = None
+  def stepGroupResult: Option[Any] = None
 }
 
 /**
   * Contains the a pipeline definition to be executed.
   *
-  * @param id       The unique id of this pipeline.
-  * @param name     The pipeline name used for logging and errors.
-  * @param steps    A list of steps to execute.
-  * @param category The category of pipeline: pipeline or step-group
+  * @param id              The unique id of this pipeline.
+  * @param name            The pipeline name used for logging and errors.
+  * @param steps           A list of steps to execute.
+  * @param category        The category of pipeline: pipeline or step-group
+  * @param tags            A list of tags to use to help describe the pipeline
+  * @param stepGroupResult A mapping used to provide a single result after a step-group has executed instead of
+  *                        the default map of step results.
   */
 case class DefaultPipeline(override val id: Option[String] = None,
                            override val name: Option[String] = None,
                            override val steps: Option[List[PipelineStep]] = None,
-                           override val category: Option[String] = Some("pipeline")) extends Pipeline
+                           override val category: Option[String] = Some("pipeline"),
+                           override val tags: Option[List[String]] = None,
+                           override val stepGroupResult: Option[Any] = None) extends Pipeline
 
 /**
   * Global object that may be passed to step functions.
   *
-  * @param sparkConf        The Spark Configuration Object.
-  * @param sparkSession     The Spark Session Object.
-  * @param globals          Contains all global objects.
-  * @param security         The PipelineSecurityManager to use when processing steps
-  * @param parameters       The pipeline parameters being used. Contains initial parameters as well as the result
-  *                         of steps that have been processed.
-  * @param stepPackages     The list of packages to consider when searching for step objects.
-  * @param parameterMapper  Used to map parameters to step functions
-  * @param pipelineListener Used to communicate progress through the pipeline
-  * @param stepMessages     Used for logging messages from steps.
-  * @param rootAudit        The base audit record
-  * @param pipelineManager  The PipelineManager to use for Step Groups.
+  * @param sparkConf          The Spark Configuration Object.
+  * @param sparkSession       The Spark Session Object.
+  * @param globals            Contains all global objects.
+  * @param security           The PipelineSecurityManager to use when processing steps
+  * @param parameters         The pipeline parameters being used. Contains initial parameters as well as the result
+  *                           of steps that have been processed.
+  * @param stepPackages       The list of packages to consider when searching for step objects.
+  * @param parameterMapper    Used to map parameters to step functions
+  * @param pipelineListener   Used to communicate progress through the pipeline
+  * @param stepMessages       Used for logging messages from steps.
+  * @param rootAudit          The base audit record
+  * @param pipelineManager    The PipelineManager to use for Step Groups.
+  * @param credentialProvider The CredentialProvider to use for accessing credentials.
+  * @param json4sFormats      The json4s Formats used when serializing/deserializing json.
   */
 case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            sparkSession: Option[SparkSession] = None,
@@ -63,7 +73,9 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
                            pipelineListener: Option[PipelineListener] = Some(PipelineListener()),
                            stepMessages: Option[CollectionAccumulator[PipelineStepMessage]],
                            rootAudit: ExecutionAudit = ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
-                           pipelineManager: PipelineManager = PipelineManager(List())) {
+                           pipelineManager: PipelineManager = PipelineManager(List()),
+                           credentialProvider: Option[CredentialProvider] = None,
+                           json4sFormats: Option[Formats] = None) {
   /**
     * Get the named global value as a string.
     *
@@ -86,17 +98,24 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
   }
 
   /**
-    * Get the named global value.
+    * Get the named global value (considering GlobalLinks)
     *
     * @param globalName The name of the global property to return.
     * @return An option containing the value or None
     */
   def getGlobal(globalName: String): Option[Any] = {
-    if (this.globals.isDefined && this.globals.get.contains(globalName)) {
-      this.globals.get.get(globalName)
-    } else {
-      None
-    }
+    this.globals.flatMap(x => {
+      x.collectFirst{
+        case ("GlobalLinks", v:Map[_,_]) if v.isInstanceOf[Map[String, Any]] && v.asInstanceOf[Map[String, Any]].contains(globalName) =>
+          v.asInstanceOf[Map[String, Any]].getOrElse(globalName, "")
+        case (k, v:Option[_]) if k == globalName => v.get
+        case (k, v) if k == globalName => v
+      }
+    })
+  }
+
+  def getGlobalAs[T](globalName: String): Option[T] = {
+    globals.flatMap(_.get(globalName).map(_.asInstanceOf[T]))
   }
 
   /**
@@ -253,6 +272,21 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     val audit = getStepAudit(pipelineId, stepId, groupId).get.setMetric(name, value)
     this.setStepAudit(pipelineId, audit)
   }
+
+  def getPipelineExecutionInfo: PipelineExecutionInfo = {
+    PipelineExecutionInfo(
+      getGlobalString("stepId"),
+      getGlobalString("pipelineId"),
+      getGlobalString("executionId"),
+      getGlobalString("groupId")
+    )
+  }
+
+  /**
+   * Returns current json4s Formats on the pipeline context, or DefaultFormats
+   * @return A json4s Formats object.
+   */
+  def getJson4sFormats: Formats = json4sFormats.getOrElse(DefaultFormats)
 }
 
 case class PipelineParameter(pipelineId: String, parameters: Map[String, Any])
@@ -306,6 +340,28 @@ case class PipelineParameters(parameters: List[PipelineParameter] = List()) {
   * This class represents the result of executing a list of pipelines.
   *
   * @param pipelineContext The final pipeline context when execution stopped
-  * @param success Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
+  * @param success         Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
+  * @param paused          Flag indicating whether the "failure" was actually a pause
   */
-case class PipelineExecutionResult(pipelineContext: PipelineContext, success: Boolean)
+case class PipelineExecutionResult(pipelineContext: PipelineContext, success: Boolean, paused: Boolean)
+
+/**
+  * Contains the current pipeline and step information
+  *
+  * @param stepId      The current step being executed
+  * @param pipelineId  The current pipeline being executed
+  * @param executionId The current execution being executed
+  * @param groupId     The current group being executed
+  */
+case class PipelineExecutionInfo(stepId: Option[String] = None,
+                                 pipelineId: Option[String] = None,
+                                 executionId: Option[String] = None,
+                                 groupId: Option[String] = None) {
+  def displayPipelineStepString: String = {
+    s"pipeline ${pipelineId.getOrElse("")} step ${stepId.getOrElse("")}"
+  }
+
+  def displayString: String = {
+    s"execution ${executionId.getOrElse("")} group ${groupId.getOrElse("")} pipeline ${pipelineId.getOrElse("")} step ${stepId.getOrElse("")}"
+  }
+}
