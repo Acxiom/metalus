@@ -83,17 +83,9 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     * @return An option containing the value or None
     */
   def getGlobalString(globalName: String): Option[String] = {
-    if (this.globals.isDefined && this.globals.get.contains(globalName)) {
-      this.globals.get(globalName) match {
-        case str: String =>
-          Some(str)
-        case _: Option[_] =>
-          this.globals.get(globalName).asInstanceOf[Option[String]]
-        case _ =>
-          None
-      }
-    } else {
-      None
+    getGlobal(globalName).flatMap{
+      case s: String => Some(s)
+      case _ => None
     }
   }
 
@@ -108,14 +100,14 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
       x.collectFirst{
         case ("GlobalLinks", v:Map[_,_]) if v.isInstanceOf[Map[String, Any]] && v.asInstanceOf[Map[String, Any]].contains(globalName) =>
           v.asInstanceOf[Map[String, Any]].getOrElse(globalName, "")
-        case (k, v:Option[_]) if k == globalName => v.get
-        case (k, v) if k == globalName => v
+        case (k, v:Some[_]) if k == globalName => v.get
+        case (k, v) if k == globalName && !v.isInstanceOf[Option[_]] => v
       }
     })
   }
 
   def getGlobalAs[T](globalName: String): Option[T] = {
-    globals.flatMap(_.get(globalName).map(_.asInstanceOf[T]))
+    getGlobal(globalName).map(_.asInstanceOf[T])
   }
 
   /**
