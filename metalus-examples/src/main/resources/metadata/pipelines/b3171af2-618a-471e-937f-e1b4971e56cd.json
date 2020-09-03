@@ -1,0 +1,79 @@
+{
+  "id": "b3171af2-618a-471e-937f-e1b4971e56cd",
+  "name": "Extract Product Data Pipeline",
+  "steps": [
+    {
+      "id": "MAPFIELDSSTEP",
+      "stepId": "07dc7c8e-7474-4b23-a108-0d8b551a404a",
+      "displayName": "Adhere DataFrame to Schema",
+      "description": "Adhere DataFrame to Schema",
+      "type": "step-group",
+      "nextStepId": "GROUPDATASTEP",
+      "params": [
+        {
+          "type": "string",
+          "name": "pipelineId",
+          "required": true,
+          "value": "07dc7c8e-7474-4b23-a108-0d8b551a404a"
+        },
+        {
+          "type": "object",
+          "name": "pipelineMappings",
+          "required": true,
+          "value": {
+            "dataFrame": "!inputFileDataFrame",
+            "destinationSchema": {
+              "className": "com.acxiom.pipeline.steps.Schema",
+              "object": {
+                "attributes": [
+                  {
+                    "name": "PRODUCT_NAME",
+                    "dataType": {
+                      "baseType": "String"
+                    }
+                  },
+                  {
+                    "name": "PRODUCT_ID",
+                    "dataType": {
+                      "baseType": "String"
+                    }
+                  },
+                  {
+                    "name": "COST",
+                    "dataType": {
+                      "baseType": "Double"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "GROUPDATASTEP",
+      "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
+      "displayName": "Performs a grouping and aggregation of the data",
+      "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "string",
+          "name": "dataFrame",
+          "required": true,
+          "value": "@MAPFIELDSSTEP"
+        },
+        {
+          "type": "string",
+          "name": "groupByField",
+          "required": true,
+          "value": "PRODUCT_ID"
+        }
+      ],
+      "engineMeta": {
+        "spark": "GroupingSteps.groupByField"
+      }
+    }
+  ]
+}

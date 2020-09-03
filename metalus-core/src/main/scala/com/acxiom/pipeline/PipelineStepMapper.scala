@@ -2,9 +2,9 @@ package com.acxiom.pipeline
 
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, ScalaScriptEngine}
 import org.apache.log4j.Logger
+import org.json4s.Formats
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
-import org.json4s.{DefaultFormats, Formats}
 
 import scala.annotation.tailrec
 import scala.math.ScalaNumericConversions
@@ -276,7 +276,7 @@ trait PipelineStepMapper {
       implicit val formats: Formats = pipelineContext.getJson4sFormats
       list.map(value =>
         DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get))
-    } else if (list.head.isInstanceOf[Map[_, _]]) {
+    } else if (list.nonEmpty && list.head.isInstanceOf[Map[_, _]]) {
       list.map(value => {
         val map = value.asInstanceOf[Map[String, Any]]
         if (map.contains("className") && map.contains("object")) {
