@@ -12,9 +12,25 @@ execute in parallel if there are enough resources.
 Once complete, a final execution will write the data to a Mongo database.
 
 [Parameter Mappings](parameter-mapping.md) will be used throughout this example to demonstrate the reusable nature of 
-Pipelines. This document is not concerned with explaining this feature in detail, but it is suggested that developers
-become familiar before going too far.
+Pipelines. Several application parameters provided will be used for mapping. Since application parameters get 
+automatically added to the _Globals_, the values can be accessed using the global mapping syntax:
 
+|Command Line Parameter|Global Syntax|
+|----------------|-------------------|
+|input_url       |!input_url|
+|input_format    |!input_format|
+|input_separator |!input_separator|
+|mongoURI        |!mongoURI|
+
+Step mappings will also be used. Below is a table showing the mappings used in the first execution pipeline:
+
+|Step Name|Step Syntax|
+|----------------|-------------|
+|READHEADERSTEP|@READHEADERSTEP|
+|CREATESCHEMASTEP|@CREATESCHEMASTEP|
+
+Note that the **@** syntax will automatically pull the _primaryReturn_ of the step response and not the entire step 
+response.
 ## Example Code
 All the code exists in this project as a way to quick start. This example will highlight and explain each of the features
 including how to make a step.
@@ -28,16 +44,6 @@ starts.
 
 The initial file should have a basic structure that has configuration for the *SparkConf*, *stepPackages*, *globals*,
 and an empty *executions* array.
-
-The *globals* object contains a [GlobalLinks](executions.md#global-links) sub-object that contains *linked* global names 
-referencing the dataframes that will be used by the other executions. 
-
-The **inputFileDataFrame** dataframe will be used by the **PROD**, **CUST**, **CC** and **ORD** executions. The **GlobalLink**
-definition allows the pipeline to reference **!inputFileDataFrame** instead of the actual path:
-**!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn**.
-
-Additional **GlobalLinks** have been defined for the output of the **PROD**, **CUST**, **CC** and **ORD** executions 
-which will be referenced in the **SAVE** execution.
  
 ```json
 {
@@ -70,6 +76,15 @@ which will be referenced in the **SAVE** execution.
   "executions": []
 }
 ```
+The *globals* object contains a [GlobalLinks](executions.md#global-links) sub-object that contains *linked* global names 
+referencing the dataframes that will be used by the other executions. 
+
+The **inputFileDataFrame** dataframe will be used by the **PROD**, **CUST**, **CC** and **ORD** executions. The **GlobalLink**
+definition allows the pipeline to reference **!inputFileDataFrame** instead of the [full path](executions.md#execution-results-syntax):
+**!ROOT.pipelineParameters.f2dc5894-fe7d-4134-b0da-e5a3b8763a6e.LOADFILESTEP.primaryReturn**.
+
+Additional **GlobalLinks** have been defined for the output of the **PROD**, **CUST**, **CC** and **ORD** executions 
+which will be referenced in the **SAVE** execution.
 
 ## First Execution
 The first execution will be responsible for the following actions:
@@ -78,7 +93,8 @@ The first execution will be responsible for the following actions:
 * Load orders.csv
 
 Three [steps](steps.md) will be created and added to the *InputOutputSteps* object. Each step will provide proper 
-[annotations](step-annotations.md).
+[annotations](step-annotations.md). Step annotations make it easier to [generate](metadata-extractor.md) the JSON metadata 
+used in building [JSON pipelines](json-pipelines.md). 
 
 ### readHeader
 The _readHeader_ step will only work with local files.
@@ -1004,6 +1020,17 @@ for iteration. The _forkMethod_ is set to parallel to allow Metalus to attempt t
     }
   ]
 ```
+The [scalascript](step-templates.md#scala-script-parameters) mapping was added to demonstrate the ability to dynamically 
+build mappings. This prevents the need for unnecessary steps to massage data into a format that a step requires. A script
+may also have data mapped into the parameters. Notice how the first parameter uses the **Global** syntax to access the
+DataFrame produced by the **PROD** execution. Note that it is referencing the **GlobalLink**. Any mapping syntax can 
+be used except embedded _scalascript_.
+
+```scala
+(prodDF:!productDataFrame:org.apache.spark.sql.DataFrame,custDF:!customerDataFrame,ccDF:!creditCardDataFrame,ordDF:!orderDataFrame:) List((\"products\", prodDF), (\"customers\", custDF), (\"creditCards\", ccDF), (\"orders\", ordDF))
+``` 
+
+This simple mapping could have been accomplished with a map.
 
 ### Final Execution JSON
 ```json
