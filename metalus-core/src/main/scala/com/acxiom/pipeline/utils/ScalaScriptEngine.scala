@@ -93,6 +93,7 @@ class ScalaScriptEngine extends ScriptEngine {
   }
 
   private def getValString(binding: Binding): String = {
+    println("MOO")
     val finalType = binding.`type`.getOrElse(deriveBindingType(binding))
     if (finalType == "Any") {
       s"""val ${binding.name} = bindings.get.getBinding("${binding.name}").value"""
@@ -102,12 +103,20 @@ class ScalaScriptEngine extends ScriptEngine {
   }
 
   private def deriveBindingType(binding: Binding): String = {
-    val className = binding.value.getClass.getCanonicalName
-    val sym = mirror.staticClass(className)
-    if(sym.typeParams.isEmpty){
-      className
-    } else {
-      s"$className[${sym.typeParams.map(_ => "Any").mkString(",")}]"
+    try {
+      if (EnumChecker.isEnumValue(binding.value)) {
+        "Any"
+      } else {
+        val className = binding.value.getClass.getCanonicalName
+        val sym = mirror.staticClass(className)
+        if (sym.typeParams.isEmpty) {
+          className
+        } else {
+          s"$className[${sym.typeParams.map(_ => "Any").mkString(",")}]"
+        }
+      }
+    } catch {
+      case _: Throwable => "Any"
     }
   }
 }
@@ -124,3 +133,9 @@ case class Bindings(bindings: Map[String, Binding] = Map[String, Binding]()) {
 }
 
 case class Binding(name: String, value: Any, `type`: Option[String] = None)
+
+private[pipeline] object EnumChecker extends Enumeration {
+  def isEnumValue(value: Any): Boolean = {
+    value.isInstanceOf[Enumeration#Val]
+  }
+}
