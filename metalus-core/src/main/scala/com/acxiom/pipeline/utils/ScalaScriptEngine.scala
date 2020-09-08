@@ -93,7 +93,6 @@ class ScalaScriptEngine extends ScriptEngine {
   }
 
   private def getValString(binding: Binding): String = {
-    println("MOO")
     val finalType = binding.`type`.getOrElse(deriveBindingType(binding))
     if (finalType == "Any") {
       s"""val ${binding.name} = bindings.get.getBinding("${binding.name}").value"""
