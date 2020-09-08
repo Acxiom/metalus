@@ -41,12 +41,12 @@ object ApplicationUtils {
    * @return A json4s Formats object.
    */
   def getJson4sFormats(json4sSerializers: Option[Json4sSerializers]): Formats = {
-    json4sSerializers.map{ j =>
+    json4sSerializers.map { j =>
       val enumNames = j.enumNameSerializers.map(_.map(ci => new EnumNameSerializer(ReflectionUtils.loadEnumeration(ci.className.getOrElse("")))))
         .getOrElse(List())
       val enumIds = j.enumIdSerializers.map(_.map(ci => new EnumSerializer(ReflectionUtils.loadEnumeration(ci.className.getOrElse("")))))
         .getOrElse(List())
-      val customSerializers = j.customSerializers.map(_.map{ ci =>
+      val customSerializers = j.customSerializers.map(_.map { ci =>
         ReflectionUtils.loadClass(ci.className.getOrElse(""), ci.parameters).asInstanceOf[CustomSerializer[_]]
       }).getOrElse(List())
       (customSerializers ++ enumNames ++ enumIds).foldLeft(DefaultFormats: Formats) { (formats, custom) =>
@@ -80,7 +80,7 @@ object ApplicationUtils {
     val rootGlobals = globals.getOrElse(Map[String, Any]()) // Create the default globals
     val defaultGlobals = generateGlobals(application.globals, rootGlobals, Some(rootGlobals))
     val globalListener = generatePipelineListener(application.pipelineListener, Some(pipelineListener), applicationTriggers.validateArgumentTypes)
-    val globalSecurityManager = generateSecurityManager(application.securityManager,Some(PipelineSecurityManager()), applicationTriggers.validateArgumentTypes)
+    val globalSecurityManager = generateSecurityManager(application.securityManager, Some(PipelineSecurityManager()), applicationTriggers.validateArgumentTypes)
     val globalStepMapper = generateStepMapper(application.stepMapper, Some(PipelineStepMapper()), applicationTriggers.validateArgumentTypes)
     val globalPipelineParameters = generatePipelineParameters(application.pipelineParameters, Some(PipelineParameters()))
     val pipelineManager = generatePipelineManager(application.pipelineManager,
@@ -149,18 +149,18 @@ object ApplicationUtils {
       // Get the remaining pipelines listed in pipelineIds
       pipelineIds.filter(id => !filteredExecutionPipelines.exists(_.id.getOrElse("") == id))
         .foldLeft(filteredExecutionPipelines)((pipelines, pipelineId) => {
-        val pipeline = applicationPipelines.find(p => p.id.getOrElse("") == pipelineId)
-        if (pipeline.isDefined) {
-          pipelines :+ pipeline.get
-        } else {
-          val lookupPipeline = pipelineManager.getPipeline(pipelineId)
-          if (lookupPipeline.isDefined) {
-            pipelines :+ lookupPipeline.get
+          val pipeline = applicationPipelines.find(p => p.id.getOrElse("") == pipelineId)
+          if (pipeline.isDefined) {
+            pipelines :+ pipeline.get
           } else {
-            pipelines
+            val lookupPipeline = pipelineManager.getPipeline(pipelineId)
+            if (lookupPipeline.isDefined) {
+              pipelines :+ lookupPipeline.get
+            } else {
+              pipelines
+            }
           }
-        }
-      })
+        })
     } else if (executionPipelines.nonEmpty) {
       executionPipelines
     } else if (applicationPipelines.nonEmpty) {
