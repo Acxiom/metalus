@@ -8,11 +8,16 @@ import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
 
+import scala.io.Source
+
 trait ApplicationDriverSetup extends DriverSetup {
   val logger: Logger = Logger.getLogger(getClass)
   // Load the Application configuration
   protected def loadApplication: Application = {
-    val json = if (parameters.contains("applicationJson")) {
+    val json = if (parameters.contains("applicationId")) {
+      Source.fromInputStream(getClass.getResourceAsStream(s"/metadata/applications/${parameters("applicationId")}.json"))
+        .mkString
+    } else if (parameters.contains("applicationJson")) {
       parameters("applicationJson").asInstanceOf[String]
     } else if (parameters.contains("applicationConfigPath")) {
       val path = parameters("applicationConfigPath").toString
@@ -23,7 +28,8 @@ trait ApplicationDriverSetup extends DriverSetup {
         DriverUtils.loadJsonFromFile(path, className, parameters)
       }
     } else {
-      throw new RuntimeException("Either the applicationJson or the applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
+      throw new RuntimeException("Either the applicationId, applicationJson or the" +
+        " applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
     }
     logger.debug(s"Loaded application json: $json")
     ApplicationUtils.parseApplication(json)
@@ -31,6 +37,7 @@ trait ApplicationDriverSetup extends DriverSetup {
 
   // Clean out the application properties from the parameters
   protected def cleanParams: Map[String, Any] = parameters.filterKeys {
+    case "applicationId" => false
     case "applicationJson" => false
     case "applicationConfigPath" => false
     case "applicationConfigurationLoader" => false
