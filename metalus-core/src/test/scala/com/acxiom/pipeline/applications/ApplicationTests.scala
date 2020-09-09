@@ -273,6 +273,25 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       wireMockServer.stop()
     }
 
+    it("Should create an application from jar metadata") {
+      val setup = ApplicationDriverSetup(Map[String, Any](
+        "applicationId" -> "testApp",
+        "rootLogLevel" -> "ERROR",
+        "customLogLevels" -> "com.test:INFO,com.test1:DEBUG"))
+      verifyDriverSetup(setup)
+      verifyApplication(setup.executionPlan.get)
+      verifyListeners(setup.pipelineContext.sparkSession.get)
+      verifyUDF(setup.pipelineContext.sparkSession.get)
+      assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
+      assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
+      assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
+      assert(Logger.getLogger("com.test").getLevel.toString == "INFO")
+      assert(Logger.getLogger("com.test1").getLevel.toString == "DEBUG")
+
+      removeSparkListeners(setup.pipelineContext.sparkSession.get)
+      setup.pipelineContext.sparkSession.get.stop()
+    }
+
     it("Should respect the 'enableHiveSupport' parameter") {
       val thrown = intercept[IllegalArgumentException] {
         val ads = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson,
@@ -309,7 +328,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
         ads.executionPlan
       }
       assert(Option(thrown).isDefined)
-      assert(thrown.getMessage == "Either the applicationJson or the applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
+      assert(thrown.getMessage == "Either the applicationId, applicationJson or the" +
+        " applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
     }
   }
 
