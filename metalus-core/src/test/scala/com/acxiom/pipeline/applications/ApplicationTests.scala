@@ -328,7 +328,8 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
         ads.executionPlan
       }
       assert(Option(thrown).isDefined)
-      assert(thrown.getMessage == "Either the applicationJson or the applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
+      assert(thrown.getMessage == "Either the applicationId, applicationJson or the" +
+        " applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
     }
   }
 
