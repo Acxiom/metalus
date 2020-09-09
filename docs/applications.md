@@ -23,6 +23,8 @@ Developers wishing to provide custom application driver setup may extend this tr
 This driver setup class will load an application JSON configuration and create the execution plan used by the
 _DefaultPipelineDriver_ class to execute the Spark job. The following parameters are required:
 
+* **applicationId** - This is the name of a JSON file stored in the metadata/applications folder on the classpath resources.
+The *'.json'* extension is assumed and should be left off of the parameter.
 * **applicationJson** - This parameter is useful when passing the contents of the configuration as a string. This is not 
 a recommended option since large configurations could have issues.
 * **applicationConfigPath** - This is the path to the configuration JSON. This may be a path on a file system or a URL to a REST API. 
