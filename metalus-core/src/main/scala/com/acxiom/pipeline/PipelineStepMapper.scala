@@ -16,7 +16,6 @@ object PipelineStepMapper {
 class DefaultPipelineStepMapper extends PipelineStepMapper
 
 trait PipelineStepMapper {
-  implicit val formats: Formats = DefaultFormats
   val logger: Logger = Logger.getLogger(getClass)
 
   /**
@@ -308,6 +307,7 @@ trait PipelineStepMapper {
     * @return A map with substituted values
     */
   private def mapEmbeddedVariables(classMap: Map[String, Any], pipelineContext: PipelineContext): Map[String, Any] = {
+    implicit val formats: Formats = pipelineContext.getJson4sFormats
     classMap.foldLeft(classMap)((map, entry) => {
       entry._2 match {
         case s: String if containsSpecialCharacters(s) =>

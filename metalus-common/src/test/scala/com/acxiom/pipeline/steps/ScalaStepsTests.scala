@@ -2,7 +2,6 @@ package com.acxiom.pipeline.steps
 
 import java.io.File
 import java.nio.file.{FileSystems, Files, Path, StandardCopyOption}
-import java.util
 
 import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
@@ -118,7 +117,7 @@ class ScalaStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       val scriptWithDerivedTypes =
         """
           |val tmp = if (v2) v1 + v4.last.asInstanceOf[Int] else -1
-          |(v3.toUpperCase, tmp, v5.collect().toList)
+          |(v3.toUpperCase, tmp, v5.collect().toList, v6.toString)
           |""".stripMargin
       val df = pipelineContext.sparkSession.get.sql("select 1 as id")
       val mappings: Map[String, Any] = Map(
@@ -126,15 +125,17 @@ class ScalaStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
         "v2" -> true,
         "v3" -> "chicken",
         "v4" -> List(1,2,3),
-        "v5" -> df
+        "v5" -> df,
+        "v6" -> ChickenColors.BUFF
       )
       val result = ScalaSteps.processScriptWithValues(scriptWithDerivedTypes, mappings, None, None, pipelineContext)
       assert(result.primaryReturn.isDefined)
-      val tuple = result.primaryReturn.get.asInstanceOf[(String, Int, List[Row])]
+      val tuple = result.primaryReturn.get.asInstanceOf[(String, Int, List[Row], String)]
       assert(tuple._1 == "CHICKEN")
       assert(tuple._2 == 4)
       assert(tuple._3.size == 1)
       assert(tuple._3.head.getInt(0) == 1)
+      assert(tuple._4 == "BUFF")
     }
 
     it("Should respect the unwrapOptions flag"){
@@ -155,4 +156,9 @@ class ScalaStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       assert(unrwappedString == "chicken")
     }
   }
+}
+
+object ChickenColors extends Enumeration {
+  type ChickenColors = Value
+  val GOLD, WHITE, BLACK, BUFF, GRAY = Value
 }
