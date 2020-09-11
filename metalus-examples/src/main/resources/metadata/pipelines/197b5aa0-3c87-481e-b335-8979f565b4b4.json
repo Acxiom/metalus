@@ -1,0 +1,56 @@
+{
+  "id": "197b5aa0-3c87-481e-b335-8979f565b4b4",
+  "name": "Extract Credit Card Data Pipeline",
+  "steps": [
+    {
+      "id": "MAPFIELDSSTEP",
+      "stepId": "07dc7c8e-7474-4b23-a108-0d8b551a404a",
+      "displayName": "Adhere DataFrame to Schema",
+      "description": "Adhere DataFrame to Schema",
+      "type": "step-group",
+      "nextStepId": "GROUPDATASTEP",
+      "params": [
+        {
+          "type": "string",
+          "name": "pipelineId",
+          "required": true,
+          "value": "07dc7c8e-7474-4b23-a108-0d8b551a404a"
+        },
+        {
+          "type": "object",
+          "name": "pipelineMappings",
+          "required": true,
+          "value": {
+            "dataFrame": "!inputFileDataFrame",
+            "destinationSchema": "!creditCardSchema",
+            "destinationTransforms": "!creditCardTransforms"
+          }
+        }
+      ]
+    },
+    {
+      "id": "GROUPDATASTEP",
+      "stepId": "99ad5ed4-b907-5635-8f2a-1c9012f6f5a7",
+      "displayName": "Performs a grouping and aggregation of the data",
+      "description": "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "string",
+          "name": "dataFrame",
+          "required": true,
+          "value": "@MAPFIELDSSTEP"
+        },
+        {
+          "type": "string",
+          "name": "groupByField",
+          "required": true,
+          "value": "CUSTOMER_ID"
+        }
+      ],
+      "engineMeta": {
+        "spark": "GroupingSteps.groupByField"
+      }
+    }
+  ]
+}
