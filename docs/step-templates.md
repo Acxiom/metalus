@@ -135,7 +135,7 @@ value. Only branch steps should have result types and must contain at least one.
 parameters that may be added.
 
 #### Scala Script Parameters
-Step parameters given a type of **scalaScript** will be compiled and evaluated, with the result of the script passed to the step.
+Step parameters given a type of **scalascript** will be compiled and evaluated, with the result of the script passed to the step.
 These scripts consist of a binding section and a scala script. The bindings section must be enclosed by parenthesis.
 Each binding contains a name, value, and type, broken out as **\<name>:\<value>:\<type>**. Multiple bindings can be provided using a comma separated list.
 Colons can be escaped using a backslash.
