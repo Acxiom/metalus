@@ -7,7 +7,7 @@ with a pipeline context with no pipeline parameters and globals that are only po
 pipelineMappings parameter.
 
 ## Step Group Result
-The _stepGroupResult_ parameter of a pipeline defines a mapping that provides a single primary response tha can be 
+The _stepGroupResult_ parameter of a pipeline defines a mapping that provides a single primary response that can be 
 referenced easily from other steps. Normal mappings apply as well as [scalascript](./parameter-mapping.md#types) 
 mappings. This will override the [default return](#default-return) by placing the mapped value into the primary response 
 and the [default return](#default-return) into the _namedReturns_ response.
