@@ -5,7 +5,7 @@ import java.nio.file.Files
 import java.util.jar.JarFile
 
 import com.acxiom.metalus.resolvers.{Dependency, DependencyResolver}
-import com.acxiom.pipeline.fs.{FileManager, LocalFileManager}
+import com.acxiom.pipeline.fs.LocalFileManager
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
 import org.apache.log4j.Logger
 
@@ -60,9 +60,11 @@ object DependencyManager {
   }
 
   private def copyStepJarToLocal(localFileManager: LocalFileManager, jar: JarFile, outputFile: File) = {
-    if (!outputFile.exists()) {
-      val outputStream = localFileManager.getOutputStream(outputFile.getAbsolutePath, append = false)
-      localFileManager.copy(localFileManager.getInputStream(jar.getName), outputStream, FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)
+    if (!outputFile.exists() || outputFile.length() == 0) {
+      DependencyResolver.copyJarWithRetry(localFileManager,
+        localFileManager.getInputStream(jar.getName),
+        jar.getName,
+        outputFile.getAbsolutePath)
     }
   }
 
