@@ -94,14 +94,14 @@ object DependencyManager {
       val dependencyType = dependencyMap.get.head._1
       val resolverName = s"com.acxiom.metalus.resolvers.${dependencyType.toLowerCase.capitalize}DependencyResolver"
       val resolver = ReflectionUtils.loadClass(resolverName).asInstanceOf[DependencyResolver]
-      val filteredLIbraries = dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]]
+      val filteredLibraries = dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]]
         .getOrElse("libraries", List[Map[String, Any]]()).asInstanceOf[List[Map[String, Any]]].filter(library => {
         val artifactId = library("artifactId").asInstanceOf[String]
         val version = library("version").asInstanceOf[String]
         val artifactScopes = library.getOrElse("scope", "runtime").asInstanceOf[String].split(',').toList
         !dependencies.exists(dep => dep.name == artifactId && dep.version == version) && scopes.exists(artifactScopes.contains)
       })
-      val updatedDependencyMap = dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]] + ("libraries" -> filteredLIbraries)
+      val updatedDependencyMap = dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]] + ("libraries" -> filteredLibraries)
       resolver.copyResources(output, updatedDependencyMap, parameters)
     } else {
       List()

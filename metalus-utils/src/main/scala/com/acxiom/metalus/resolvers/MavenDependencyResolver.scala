@@ -91,7 +91,6 @@ class MavenDependencyResolver extends DependencyResolver {
 
 trait Repo {
   def rootPath: String
-  def exists(path: String): Boolean
   def getInputStream(path: String): InputStream
   def getLastModifiedDate(path: String): Date
 
@@ -108,19 +107,11 @@ trait Repo {
 }
 
 case class ApiRepo(http: HttpRestClient, rootPath: String) extends Repo {
-  override def exists(path: String): Boolean = http.exists(path)
   override def getInputStream(path: String): InputStream = http.getInputStream(path)
   override def getLastModifiedDate(path: String): Date = http.getLastModifiedDate(path)
 }
 
 case class LocalRepo(fileManager: FileManager, rootPath: String) extends Repo {
-  override def exists(path: String): Boolean = {
-    if (fileManager.exists(new URI(s"$rootPath/repository/$path").normalize().getPath)) {
-      true
-    } else {
-      fileManager.exists(new URI(s"$rootPath/${normalizePath(path)}").normalize().getPath)
-    }
-  }
   override def getInputStream(path: String): InputStream = {
     if (fileManager.exists(new URI(s"$rootPath/repository/$path").normalize().getPath)) {
       fileManager.getInputStream(new URI(s"$rootPath/repository/$path").normalize().getPath)

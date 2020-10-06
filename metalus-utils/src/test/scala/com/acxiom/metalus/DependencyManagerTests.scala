@@ -49,10 +49,10 @@ class DependencyManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
       Files.copy(getClass.getResourceAsStream("/main-1.0.0.jar"), mainJar)
       Files.copy(getClass.getResourceAsStream("/dependency-1.0.0.jar"), dependencyJar)
       val params = Array("--jar-files", mainJar.toFile.getAbsolutePath,
-        "--output-path", stagingDirectory.toFile.getAbsolutePath,
+        "--output-path", s"${stagingDirectory.toFile.getAbsolutePath}/staging",
         "--repo", tempDirectory.toFile.getAbsolutePath)
       DependencyManager.main(params)
-      val stagedFiles = stagingDirectory.toFile.list()
+      val stagedFiles = new File(stagingDirectory.toFile, "staging").list()
       assert(stagedFiles.length == 2)
       assert(stagedFiles.contains("main-1.0.0.jar"))
       assert(stagedFiles.contains("dependency-1.0.0.jar"))
@@ -75,12 +75,21 @@ class DependencyManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
       Files.copy(getClass.getResourceAsStream("/dependency-1.0.0.jar"), dependencyJar)
       val params = Array("--jar-files", mainJar.toFile.getAbsolutePath,
         "--output-path", stagingDirectory.toFile.getAbsolutePath,
-        "--repo", tempDirectory.toFile.getAbsolutePath)
-      DependencyManager.main(params)
+        "--repo", tempDirectory.toFile.getAbsolutePath,
+        "--path-prefix", "s3a://jar_dir/")
+      val outputStream = new ByteArrayOutputStream()
+      Console.withOut(outputStream) {
+        DependencyManager.main(params)
+      }
       val stagedFiles = stagingDirectory.toFile.list()
       assert(stagedFiles.length == 2)
       assert(stagedFiles.contains("main-1.0.0.jar"))
       assert(stagedFiles.contains("dependency-1.0.0.jar"))
+      // Validate the output path
+      val outputJars = outputStream.toString.split(",")
+      assert(outputJars.length == 2)
+      assert(outputJars.contains("s3a://jar_dir/main-1.0.0.jar"))
+      assert(outputJars.contains("s3a://jar_dir/dependency-1.0.0.jar"))
       FileUtils.deleteDirectory(tempDirectory.toFile)
       FileUtils.deleteDirectory(stagingDirectory.toFile)
     }
