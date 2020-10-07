@@ -3,12 +3,12 @@ Metalus provides several mechanisms for handling errors. Each method provides di
 together to provide a comprehensive solution.
 ## Execution Result Handling
 The _DriverSetup_ trait provides the function _handleExecutionResult_ which is called by the driver upon completion
-of an execution plan. The default behavior is will scan the results of the execution and throw the first exception
-that is encountered. The application parameters _maxRetryAttempts_ can be used to retry an execution if it fails but 
+of an execution plan. The default behavior is will scan the results of the execution looking for any exceptions not
+handled by the application. The application parameters _maxRetryAttempts_ can be used to retry an execution if it fails but 
 does not throw an exception. The default is 0. The application parameter _terminateAfterFailures_ can be used to
 indicate an exception should be thrown when all retries are exhausted. The default is false indicating the application
-should stop running. Developers wishing to change this behavior can provide a custom 
-[DriverSetup](pipeline-drivers.md#driversetup).
+should stop running. 
+Developers wishing to change this behavior can provide a custom [DriverSetup](pipeline-drivers.md#driversetup).
 
 ![Default Driver Flow](images/Default_Driver_Flow.png)
 ## Next Step Error Handling
@@ -19,11 +19,13 @@ needs to perform some cleanup, the exception needs to be parsed, or a different 
 
 The flow depicted below shows how the _nextStepOnError_ would fow for a simple pipeline. The first two steps (1 and 2)
 both execute normally and invoke _Error Step_. The  _Error Step_ will throw an exception which will invoke the
-_Error Handler_ step and then complete the pipeline. _Step 4_ will never be executed when there is an exception.
+_Error Handler_ step and then complete the pipeline. _Step 4_ will never be executed when there is an exception. Metalus
+will consider this as a successful execution.
 
 ![Next Step On Error Flow](images/next_step_on_error_flow.png)
 ## Pipeline Exceptions
-Metalus uses the _PipelineStepException_ trait as the base for application exceptions. Pipeline exceptions stop the 
+Metalus uses the _PipelineStepException_ trait as the base for application exceptions. Any exception that extends
+the _PipelineStepException_ trait will automatically be handled by Metalus. Pipeline exceptions stop the 
 pipeline from processing at the specific step where the issue occurred. There are three implementations provided that 
 provide different behaviors. Developers should extend these exceptions to provide more specific information.
 
@@ -35,7 +37,7 @@ flows, the PipelineListener will be called with the exception.
 ![Pipeline Exception Flow](images/Pipeline_Exception_Handling.png)
 ### PipelineException
 This exception is the most common and is used to stop processing and indicate an application error has occurred. The
-_retry_ behavior defined by [exception result handling](#exception-result-handling) will tag this execution as failed.
+_retry_ behavior defined by [exception result handling](#execution-result-handling) will tag this execution as failed.
 ### PauseException
 This exception is similar to the [pipeline exception](#pipelineexception) except that it will flag the result as paused
 and be treated as a successful application execution.
