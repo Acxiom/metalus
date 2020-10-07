@@ -14,6 +14,7 @@
         * [Parameter Mapping](parameter-mapping.md)
             * [Reserved Globals](parameter-mapping.md#reserved-globals)
         * [Execution and Data Flow](pipeline-flow.md)
+    * [Error Handling](error-handling.md)
 * [Step Libraries](step-libraries.md)
     * [Metalus Common](../metalus-common/readme.md)
         * Steps
