@@ -4,11 +4,10 @@ together to provide a comprehensive solution.
 ## Execution Result Handling
 The _DriverSetup_ trait provides the function _handleExecutionResult_ which is called by the driver upon completion
 of an execution plan. The default behavior is will scan the results of the execution looking for any exceptions not
-handled by the application. The application parameters _maxRetryAttempts_ can be used to retry an execution if it fails but 
-does not throw an exception. The default is 0. The application parameter _terminateAfterFailures_ can be used to
-indicate an exception should be thrown when all retries are exhausted. The default is false indicating the application
-should stop running. 
-Developers wishing to change this behavior can provide a custom [DriverSetup](pipeline-drivers.md#driversetup).
+handled by the application. The application parameters _maxRetryAttempts_ can be used to retry an execution if it fails 
+but does not have an unhandled exception. The default is 0. The application parameter _terminateAfterFailures_ can be 
+used to indicate an exception should be thrown when all retries are exhausted. The default is false indicating the 
+application should stop running. Developers wishing to change this behavior can provide a custom [DriverSetup](pipeline-drivers.md#driversetup).
 
 ![Default Driver Flow](images/Default_Driver_Flow.png)
 ## Next Step Error Handling
@@ -27,7 +26,13 @@ will consider this as a successful execution.
 Metalus uses the _PipelineStepException_ trait as the base for application exceptions. Any exception that extends
 the _PipelineStepException_ trait will automatically be handled by Metalus. Pipeline exceptions stop the 
 pipeline from processing at the specific step where the issue occurred. There are three implementations provided that 
-provide different behaviors. Developers should extend these exceptions to provide more specific information.
+provide different behaviors:
+
+* [PipelineException](#pipelineexception)
+* [PauseException](#pauseexception)
+* [ForkedPipelineStepException](#forkedpipelinestepexception)
+
+Developers should extend these exceptions to provide more specific information.
 
 The flow below shows the difference between how an exception versus a message stops processing. The top flow
 shows how an exception will stop processing in the middle of a pipeline. The bottom flow shows how using a
