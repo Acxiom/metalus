@@ -1,9 +1,9 @@
 package com.acxiom.pipeline.drivers
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{Dataset, SparkSession}
 
-trait StreamingDataParser[T] extends Serializable {
+trait StreamingDataParser[T, R] extends Serializable {
   /**
     * Determines if this parser can parse the incoming data
     *
@@ -18,5 +18,5 @@ trait StreamingDataParser[T] extends Serializable {
     * @param rdd The RDD to parse
     * @return A DataFrame containing the data in a proper structure.
     */
-  def parseRDD(rdd: RDD[T], sparkSession: SparkSession): DataFrame
+  def parseRDD(rdd: RDD[T], sparkSession: SparkSession): Dataset[R]
 }

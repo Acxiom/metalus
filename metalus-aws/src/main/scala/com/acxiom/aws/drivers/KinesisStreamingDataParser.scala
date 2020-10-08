@@ -5,7 +5,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 
-class KinesisStreamingDataParser extends StreamingDataParser[Row] {
+class KinesisStreamingDataParser extends StreamingDataParser[Row, Row] {
   /**
     * Responsible for parsing the RDD into a DataFrame. This function will take the value and create
     * a DataFrame with a given structure.

@@ -8,7 +8,7 @@ import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.streaming.pubsub.SparkPubsubMessage
 
-class PubSubStreamingDataParser(subscription: String) extends StreamingDataParser[SparkPubsubMessage] {
+class PubSubStreamingDataParser(subscription: String) extends StreamingDataParser[SparkPubsubMessage, Row] {
   /**
     * Responsible for parsing the RDD into a DataFrame. This function will take the value and create
     * a DataFrame with a given structure.

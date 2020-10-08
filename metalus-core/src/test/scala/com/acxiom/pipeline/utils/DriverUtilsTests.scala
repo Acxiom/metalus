@@ -115,7 +115,7 @@ class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
 
     it("Should load StreamingDataParsers") {
       val parameters = Map[String, Any]("streaming-parsers" -> "com.acxiom.pipeline.utils.TestStreamingDataParser")
-      val parsers = StreamingUtils.generateStreamingDataParsers(parameters, Some(List[StreamingDataParser[List[String]]]()))
+      val parsers = StreamingUtils.generateStreamingDataParsers(parameters, Some(List[StreamingDataParser[List[String], Row]]()))
       assert(parsers.nonEmpty)
       assert(parsers.length == 1)
       assert(parsers.head.isInstanceOf[TestStreamingDataParser])
@@ -166,7 +166,7 @@ class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
   }
 }
 
-class TestStreamingDataParser extends StreamingDataParser[List[String]] {
+class TestStreamingDataParser extends StreamingDataParser[List[String], Row] {
   override def canParse(rdd: RDD[List[String]]): Boolean = true
 
   override def parseRDD(rdd: RDD[List[String]], sparkSession: SparkSession): DataFrame = {
