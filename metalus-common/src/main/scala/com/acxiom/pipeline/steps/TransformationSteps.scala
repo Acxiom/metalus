@@ -4,7 +4,7 @@ import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter,
 import com.acxiom.pipeline.{PipelineContext, PipelineException}
 import org.apache.log4j.Logger
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.{MapType, StructType}
+import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{Column, DataFrame}
 
 @StepObject
