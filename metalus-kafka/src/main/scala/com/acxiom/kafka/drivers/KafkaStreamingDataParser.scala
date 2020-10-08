@@ -6,7 +6,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 
-class KafkaStreamingDataParser extends StreamingDataParser[ConsumerRecord[String, String], Row] {
+class KafkaStreamingDataParser extends StreamingDataParser[ConsumerRecord[String, String]] {
   /**
     * Responsible for parsing the RDD into a DataFrame. This function will take the value and create
     * a DataFrame with a given structure.

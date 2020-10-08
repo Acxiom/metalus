@@ -329,7 +329,7 @@ object SparkTestHelper {
   val ERROR_PIPELINE = List(Pipeline(Some("1"), Some("Error Pipeline"), Some(List(BRANCH_STEP,ERROR_STEP,MESSAGE_PROCESSING_STEP))))
 }
 
-class TestKafkaStreamingDataParserPipe extends StreamingDataParser[ConsumerRecord[String, String], Row] {
+class TestKafkaStreamingDataParserPipe extends StreamingDataParser[ConsumerRecord[String, String]] {
   override def canParse(rdd: RDD[ConsumerRecord[String, String]]): Boolean = {
     !rdd.map(r => r.value.contains("|")).collect.contains(false)
   }
@@ -344,7 +344,7 @@ class TestKafkaStreamingDataParserPipe extends StreamingDataParser[ConsumerRecor
   }
 }
 
-class TestKafkaStreamingDataParserComma extends StreamingDataParser[ConsumerRecord[String, String], Row] {
+class TestKafkaStreamingDataParserComma extends StreamingDataParser[ConsumerRecord[String, String]] {
   override def canParse(rdd: RDD[ConsumerRecord[String, String]]): Boolean = {
     !rdd.map(r => r.value.contains(",")).collect.contains(false)
   }

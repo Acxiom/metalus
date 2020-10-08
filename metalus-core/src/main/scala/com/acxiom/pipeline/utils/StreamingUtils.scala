@@ -65,16 +65,16 @@ object StreamingUtils {
     * @return A list of streaming parsers
     */
   def generateStreamingDataParsers[T, R](parameters: Map[String, Any],
-                                      parsers: Option[List[StreamingDataParser[T, R]]] = None): List[StreamingDataParser[T, R]] = {
+                                      parsers: Option[List[StreamingDataParser[T]]] = None): List[StreamingDataParser[T]] = {
     val parsersList = if (parsers.isDefined) {
       parsers.get
     } else {
-      List[StreamingDataParser[T, R]]()
+      List[StreamingDataParser[T]]()
     }
     // Add any parsers to the head of the list
     if (parameters.contains("streaming-parsers")) {
       parameters("streaming-parsers").asInstanceOf[String].split(',').foldLeft(parsersList)((list, p) => {
-        ReflectionUtils.loadClass(p, Some(parameters)).asInstanceOf[StreamingDataParser[T, R]] :: list
+        ReflectionUtils.loadClass(p, Some(parameters)).asInstanceOf[StreamingDataParser[T]] :: list
       })
     } else {
       parsersList
@@ -87,6 +87,6 @@ object StreamingUtils {
     * @param parsers A list of parsers tp consider.
     * @return The first parser that indicates it can parse the RDD.
     */
-  def getStreamingParser[T, R](rdd: RDD[T], parsers: List[StreamingDataParser[T, R]]): Option[StreamingDataParser[T, R]] =
+  def getStreamingParser[T, R](rdd: RDD[T], parsers: List[StreamingDataParser[T]]): Option[StreamingDataParser[T]] =
     parsers.find(p => p.canParse(rdd))
 }
