@@ -15,9 +15,10 @@ executions complete with a favorable status before executing.
 
 ![Pipeline Execution Plan Example](images/Execution_Plan_Example.png "Pipeline Execution Dependencies")
 
-When one execution has a dependency on one or more executions, the *globals* and *parameters* objects will be taken from the final 
-[PipelineContext](pipeline-context.md) and injected into the globals object of the child executions _PipelineContext_. Values
-may be accessed using the following mapping syntax:
+## Execution Results Syntax
+When one execution has a dependency on one or more executions, the *globals* and *parameters* objects will be taken from 
+the final [PipelineContext](pipeline-context.md) and injected into the globals object of the child executions 
+_PipelineContext_. Values access is available using the following mapping syntax:
 
 Access the primary return of a step:
 ```json
