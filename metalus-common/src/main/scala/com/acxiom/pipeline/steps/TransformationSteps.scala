@@ -4,7 +4,7 @@ import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter,
 import com.acxiom.pipeline.{PipelineContext, PipelineException}
 import org.apache.log4j.Logger
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{MapType, StructType}
 import org.apache.spark.sql.{Column, DataFrame}
 
 @StepObject
@@ -324,6 +324,44 @@ object TransformationSteps {
     "expression" -> StepParameter(None, Some(true), description = Some("The expression to apply to the DataFrame to filter rows"))))
   def applyFilter(dataFrame: DataFrame, expression: String): DataFrame = {
     dataFrame.where(expression)
+  }
+
+  @StepFunction(
+    "42c328ac-a6bd-49ca-b597-b706956d294c",
+    "Flatten a DataFrame",
+    "This step will flatten all nested fields contained in a DataFrame",
+    "Pipeline",
+    "Transforms")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to flatten")),
+    "separator" -> StepParameter(None, Some(false), Some("_"), description = Some("Separator to place between nested field names")),
+    "fieldList" -> StepParameter(None, Some(false), description = Some("List of fields to flatten. Will flatten all fields if left empty")),
+    "depth" -> StepParameter(None, Some(false), description = Some("How deep should we traverse when flattening."))))
+  def flattenDataFrame(dataFrame: DataFrame,
+                       separator: Option[String] = None,
+                       fieldList: Option[List[String]] = None,
+                       depth: Option[Int] = None): DataFrame = {
+    val traversalDepth = depth.getOrElse(-1)
+    if (dataFrame.schema.fields.exists(_.dataType.isInstanceOf[StructType]) && traversalDepth != 0) {
+      val shouldFlatten: (String, Int) => Boolean = if (traversalDepth <= 0) {
+        (name, d) => d > 0 || fieldList.isEmpty || fieldList.get.contains(name)
+      } else {
+        (name, d) => d < depth.get && (d > 0 || fieldList.isEmpty || fieldList.get.contains(name))
+      }
+
+      def traverse(structType: StructType, prefix: String = "", currentDepth: Int = 0): List[String] = {
+        structType.fields.foldLeft(List[String]()) {
+          case (f, field) if shouldFlatten(field.name, currentDepth) && field.dataType.isInstanceOf[StructType] =>
+            f ++ traverse(field.dataType.asInstanceOf[StructType], s"$prefix${field.name}.", currentDepth + 1)
+          case (f, field) => f :+ s"$prefix${field.name}"
+        }
+      }
+
+      val selectExpressions = traverse(dataFrame.schema)
+        .map(s => org.apache.spark.sql.functions.col(s).as(s.replaceAllLiterally(".", separator.getOrElse("_"))))
+      dataFrame.select(selectExpressions: _*)
+    } else {
+      dataFrame
+    }
   }
 
   /**

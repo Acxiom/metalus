@@ -205,6 +205,20 @@ in the expression.
 |dataFrame|DataFrame|a data frame containing data to be filtered| n/a |
 |expression|String|the expression containing the filter criteria|n/a|
 
+## flattenDataFrame()
+This step will bring all nested fields(or a provided subset) to the "top" level of columns.
+Flattened columns will be named in the pattern "parent<sep>child<sep>grandchild".
+The separated used in named defaults to an underscore, and can be overridden.
+By default, all struct fields will be flattened, specific top level structs can be specified using the fieldList parameter.
+
+### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|DataFrame|a data frame with nested data to flatten| n/a |
+|separator|String|an optional separator to place between parent and child names of flattened fields| _ |
+|fieldList|List[String]|optional list of top level fields to flatten. Will flatten all fields if not provided| n/a |
+|depth|Int|optional depth of traversal. By default, will perform a full traversal| n/a |
+
 ## standardizeColumnNames()
 This step will standardize the column names on the dataframe provided.  Standardization includes only replacing non-alphanumeric
 and non-underscore characters (including whitespace) with an underscore (removing duplicate underscores from the final name)
