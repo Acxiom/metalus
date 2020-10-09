@@ -210,6 +210,7 @@ This step will bring all nested fields(or a provided subset) to the "top" level 
 Flattened columns will be named in the pattern "parent<sep>child<sep>grandchild".
 The separated used in named defaults to an underscore, and can be overridden.
 By default, all struct fields will be flattened, specific top level structs can be specified using the fieldList parameter.
+*__Note__*: maps and arrays will not be flattened using this step.
 
 ### Input Parameters
 | Name | Type | Description | Default |

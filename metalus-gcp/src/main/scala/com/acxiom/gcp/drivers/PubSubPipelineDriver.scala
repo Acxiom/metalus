@@ -5,6 +5,7 @@ import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}
 import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.Row
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.pubsub.{PubsubUtils, SparkGCPCredentials, SparkPubsubMessage}
 
@@ -50,7 +51,7 @@ object PubSubPipelineDriver {
     messagesStream.foreachRDD { rdd: RDD[SparkPubsubMessage] =>
       if (!rdd.isEmpty()) {
         logger.debug("RDD received")
-        val parser = StreamingUtils.getStreamingParser[SparkPubsubMessage](rdd, streamingParsers)
+        val parser = StreamingUtils.getStreamingParser[SparkPubsubMessage, Row](rdd, streamingParsers)
         val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)
         DriverUtils.processExecutionPlan(driverSetup, executionPlan, Some(dataFrame), () => {logger.debug("Completing RDD")},
           commonParameters.terminateAfterFailures, 1, commonParameters.maxRetryAttempts)

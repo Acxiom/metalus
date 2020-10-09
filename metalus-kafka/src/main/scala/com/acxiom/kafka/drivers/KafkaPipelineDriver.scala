@@ -6,6 +6,7 @@ import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.Row
 import org.apache.spark.streaming.kafka010._
 
 /**
@@ -62,7 +63,7 @@ object KafkaPipelineDriver {
         // Need to commit the offsets in Kafka that we have consumed
         val offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
         // Convert the RDD into a dataFrame
-        val parser = StreamingUtils.getStreamingParser[ConsumerRecord[String, String]](rdd, streamingParsers)
+        val parser = StreamingUtils.getStreamingParser[ConsumerRecord[String, String], Row](rdd, streamingParsers)
         val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)
         // Refresh the execution plan prior to processing new data
         logger.debug(s"Processing offsets ${offsetRanges.mkString}")

@@ -75,7 +75,7 @@ object KinesisPipelineDriver {
       if (!rdd.isEmpty()) {
         logger.debug("RDD received")
         // Convert the RDD into a dataFrame
-        val parser = StreamingUtils.getStreamingParser[Row](rdd, streamingParsers)
+        val parser = StreamingUtils.getStreamingParser[Row, Row](rdd, streamingParsers)
         val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)
         // Refresh the execution plan prior to processing new data
         DriverUtils.processExecutionPlan(driverSetup, executionPlan, Some(dataFrame), () => {logger.debug("Completing RDD")},
