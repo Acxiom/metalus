@@ -83,7 +83,9 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       "extractMethodsEnabled" -> true,
       "complexList" -> List(DefaultPipelineStepResponse(Some("moo")), DefaultPipelineStepResponse(Some("moo2"))),
       "optionsList" -> List(Some("1"), Some("2"), None, Some("3")),
-      "numericString" -> "1", "bigIntGlobal" -> BigInt(1), "booleanString" -> "true"
+      "numericString" -> "1", "bigIntGlobal" -> BigInt(1),
+      "booleanString" -> "true",
+      "runtimeGlobal" -> "$rawKey1"
     )
 
     val subPipeline = Pipeline(Some("mypipeline"), Some("My Pipeline"))
@@ -180,6 +182,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("Casting BigInt global to BigDecimal", Parameter(value = Some("!bigIntGlobal"), `type` = Some("BigDecimal")), BigDecimal(1)),
         ("Casting bigInt global to String", Parameter(value = Some("!bigIntGlobal"), `type` = Some("String")), "1"),
         ("Casting String global to boolean", Parameter(value = Some("!booleanString"), `type` = Some("boolean")), true),
+        ("Global String with runtime character", Parameter(value = Some("!runtimeGlobal"), `type` = Some("text")), "$rawKey1"),
         ("Use default value", Parameter(name = Some("defaultparam"), defaultValue = Some("default chosen"), `type` = Some("text")), "default chosen")
       )
       tests.foreach(test => {

@@ -110,6 +110,11 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     getGlobal(globalName).map(_.asInstanceOf[T])
   }
 
+  def isGlobalLink(globalName: String): Boolean = {
+    val links = getGlobalAs[Map[String, Any]]("GlobalLinks")
+    links.getOrElse(Map[String, Any]()).containsKey(globalName)
+  }
+
   /**
     * This function will add or update a single entry on the globals map.
     *
