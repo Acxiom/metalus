@@ -6,7 +6,7 @@ import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.{Row, SparkSession}
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 
 class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
@@ -378,7 +378,10 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       val expected = List((1, "silkie"), (2,"polish"))
       val res = TransformationSteps.union(df1, df2, Some(false))
       assert(res.collect().map(r => (r.getInt(0), r.getString(1))).toList == expected)
-      assert(TransformationSteps.union(res, df1).collect().map(r => (r.getInt(0), r.getString(1))).toList == expected)
+      assert(TransformationSteps.union(res, df1)
+        .asInstanceOf[DataFrame]
+        .collect()
+        .map(r => (r.getInt(0), r.getString(1))).toList == expected)
     }
 
     it("should standardize column names") {
@@ -491,7 +494,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
         """{"id":3, "name": "polish", "stats": {"toes": 4, "skin_color": "white", "comb": "v-comb"}}"""
       ).toDS
       val nestedDf = spark.read.json(json)
-      val flatDf = TransformationSteps.flattenDataFrame(nestedDf)
+      val flatDf = TransformationSteps.flattenDataFrame(nestedDf).asInstanceOf[DataFrame]
       assert(flatDf.count() == 3)
       assert(List("id" , "name", "stats_comb", "stats_skin_color", "stats_toes").forall(flatDf.columns.contains))
       val result = flatDf.where("id = 3").collect().head
@@ -507,7 +510,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
         """{"id":3, "name": "polish", "misc": {"bearded": true}, "stats": {"toes": 4, "skin_color": "white", "comb": "v-comb"}}"""
       ).toDS
       val nestedDf = spark.read.json(json)
-      val flatDf = TransformationSteps.flattenDataFrame(nestedDf, Some(":"), Some(List("stats")))
+      val flatDf = TransformationSteps.flattenDataFrame(nestedDf, Some(":"), Some(List("stats"))).asInstanceOf[DataFrame]
       assert(flatDf.count() == 3)
       assert(List("id" , "name", "stats:comb", "stats:skin_color", "stats:toes", "misc").forall(flatDf.columns.contains))
       val result = flatDf.where("id = 3").collect().head
@@ -524,6 +527,15 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       assert(row.getInt(1) == 2)
       assert(row.getInt(2) == 3)
     }
+
+    it("should be idempotent when flattening a flat dataframe") {
+      val sql = "select 1 as a, 2 as b, 3 as c"
+      val df = sparkSession.sql(sql)
+      val flatDf = TransformationSteps.flattenDataFrame(df)
+      assert(flatDf.count == 1)
+      assert(flatDf == df)
+    }
+
   }
 
   describe("Schema Tests") {

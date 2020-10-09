@@ -4,7 +4,7 @@ import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.acxiom.pipeline.applications.{ApplicationUtils, ClassInfo, Json4sSerializers}
 import com.acxiom.pipeline.utils.DriverUtils
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Dataset}
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
@@ -99,6 +99,21 @@ object JSONSteps {
       jsonString.split("\n").toSeq
     }
     pipelineContext.sparkSession.get.read.option("multiline", multiline).json(data.toDS())
+  }
+
+  @StepFunction("d5cd835e-5e8f-49c0-9706-746d5a4d7b3a",
+    "Convert JSON String Dataset to DataFrame",
+    "This step will convert the provided JSON string Dataset into a DataFrame that can be passed to other steps",
+    "Pipeline",
+    "JSON")
+  @StepParameters(Map(
+    "dataset" -> StepParameter(None, Some(true), None, None, None, None, Some("The dataset containing JSON strings")),
+    "dataFrameReaderOptions" -> StepParameter(None, Some(false), None, None, None, None, Some("The JSON parsing options"))))
+  def jsonDatasetToDataFrame(dataset: Dataset[String],
+                             dataFrameReaderOptions: Option[DataFrameReaderOptions] = None,
+                             pipelineContext: PipelineContext): DataFrame = {
+    DataFrameSteps.getDataFrameReader(dataFrameReaderOptions.getOrElse(DataFrameReaderOptions("json")), pipelineContext)
+      .json(dataset)
   }
 
   @StepFunction("f3891201-5138-4cab-aebc-bcc319228543",

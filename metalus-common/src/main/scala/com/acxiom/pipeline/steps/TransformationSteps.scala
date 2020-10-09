@@ -5,7 +5,7 @@ import com.acxiom.pipeline.{PipelineContext, PipelineException}
 import org.apache.log4j.Logger
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.sql.{Column, DataFrame, Dataset, Row}
 
 @StepObject
 object TransformationSteps {
@@ -33,7 +33,7 @@ object TransformationSteps {
     "transforms" -> StepParameter(None, Some(true), description = transformsDescription),
     "addNewColumns" -> StepParameter(None, Some(false), Some("true"),
       description = addNewColumnsDescription)))
-  def mapToDestinationDataFrame(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, transforms: Transformations = Transformations(List()),
+  def mapToDestinationDataFrame(inputDataFrame: Dataset[_], destinationDataFrame: Dataset[_], transforms: Transformations = Transformations(List()),
                              addNewColumns: Option[Boolean] = None): DataFrame = {
     mapDataFrameToSchema(inputDataFrame, Schema.fromStructType(destinationDataFrame.schema), transforms, addNewColumns)
   }
@@ -57,7 +57,7 @@ object TransformationSteps {
     "transforms" -> StepParameter(None, Some(true), description = transformsDescription),
     "addNewColumns" -> StepParameter(None, Some(false), Some("true"),
       description = addNewColumnsDescription)))
-  def mapDataFrameToSchema(inputDataFrame: DataFrame, destinationSchema: Schema, transforms: Transformations = Transformations(List()),
+  def mapDataFrameToSchema(inputDataFrame: Dataset[_], destinationSchema: Schema, transforms: Transformations = Transformations(List()),
                            addNewColumns: Option[Boolean] = None): DataFrame = {
     // create a struct type with cleaned names to pass to methods that need structtype
     val structType = destinationSchema.toStructType(transforms)
@@ -66,7 +66,7 @@ object TransformationSteps {
     val transformedDF = applyTransforms(aliasedDF, transforms)
     val fullDF = addMissingDestinationAttributes(transformedDF, structType)
     val typedDF = convertDataTypesToDestination(fullDF, structType)
-    val filteredDF = if(transforms.filter.isEmpty) typedDF else applyFilter(typedDF, transforms.filter.get)
+    val filteredDF = if(transforms.filter.isEmpty) typedDF else applyFilter(typedDF, transforms.filter.get).asInstanceOf[DataFrame]
     orderAttributesToDestinationSchema(filteredDF, structType, addNewColumns.getOrElse(true))
   }
 
@@ -91,7 +91,7 @@ object TransformationSteps {
     "addNewColumns" -> StepParameter(None, Some(false), Some("true"),
       description = addNewColumnsDescription),
     "distinct" -> StepParameter(None, Some(false), Some("true"), description = Some("Flag to determine whether a distinct union should be performed"))))
-  def mergeDataFrames(inputDataFrame: DataFrame, destinationDataFrame: DataFrame, transforms: Transformations = Transformations(List()),
+  def mergeDataFrames(inputDataFrame: Dataset[_], destinationDataFrame: Dataset[_], transforms: Transformations = Transformations(List()),
                       addNewColumns: Option[Boolean] = None, distinct: Option[Boolean] = None): DataFrame = {
     // map to destination dataframe
     val mappedFromDF = mapToDestinationDataFrame(inputDataFrame, destinationDataFrame, transforms, addNewColumns)
@@ -116,7 +116,7 @@ object TransformationSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The input DataFrame")),
     "transforms" -> StepParameter(None, Some(true),
       description = transformsDescription)))
-  def applyTransforms(dataFrame: DataFrame, transforms: Transformations): DataFrame = {
+  def applyTransforms(dataFrame: Dataset[_], transforms: Transformations): DataFrame = {
     // pull out mappings that contain a transform
     val mappingsWithTransforms = transforms.columnDetails.filter(_.expression.nonEmpty).map(x => {
       if(transforms.standardizeColumnNames.getOrElse(false)) { x.copy(outputField = cleanColumnName(x.outputField)) } else x
@@ -160,7 +160,7 @@ object TransformationSteps {
     "Transforms")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to select from")),
     "expressions" -> StepParameter(None, Some(true), description = Some("List of expressions to select"))))
-  def selectExpressions(dataFrame: DataFrame, expressions: List[String]): DataFrame = {
+  def selectExpressions(dataFrame: Dataset[_], expressions: List[String]): DataFrame = {
     dataFrame.selectExpr(expressions: _*)
   }
 
@@ -182,7 +182,7 @@ object TransformationSteps {
     "expression" -> StepParameter(None, Some(true), description = Some("The expression used for the column")),
     "standardizeColumnName" -> StepParameter(None, Some(false), Some("true"),
       description = Some("Flag to control whether the column names should be cleansed"))))
-  def addColumn(dataFrame: DataFrame, columnName: String, expression: String, standardizeColumnName: Option[Boolean] = None): DataFrame = {
+  def addColumn(dataFrame: Dataset[_], columnName: String, expression: String, standardizeColumnName: Option[Boolean] = None): DataFrame = {
     addColumns(dataFrame, Map(columnName -> expression), standardizeColumnName)
   }
 
@@ -201,9 +201,11 @@ object TransformationSteps {
     "columns" -> StepParameter(None, Some(true), description = Some("A map of column names and expressions")),
     "standardizeColumnNames" -> StepParameter(None, Some(false), Some("true"),
       description = Some("Flag to control whether the column names should be cleansed"))))
-  def addColumns(dataFrame: DataFrame, columns: Map[String, String], standardizeColumnNames: Option[Boolean] = None): DataFrame = {
-    columns.foldLeft(dataFrame) { case (frame, (name, expression)) =>
-      frame.withColumn(if(standardizeColumnNames.getOrElse(true)) cleanColumnName(name) else name, expr(expression))
+  def addColumns(dataFrame: Dataset[_], columns: Map[String, String], standardizeColumnNames: Option[Boolean] = None): DataFrame = {
+    val (first, remaining) = columns.splitAt(1)
+    val getName: String => String = if (standardizeColumnNames.getOrElse(true)) cleanColumnName else identity
+    remaining.foldLeft(dataFrame.withColumn(getName(first.head._1), expr(first.head._2))) { case (frame, (name, expression)) =>
+      frame.withColumn(getName(name), expr(expression))
     }
   }
 
@@ -220,7 +222,7 @@ object TransformationSteps {
     "Transforms")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to drop columns from")),
     "columnNames" -> StepParameter(None, Some(true), description = Some("Columns to drop off the DataFrame"))))
-  def dropColumns(dataFrame: DataFrame, columnNames: List[String]): DataFrame = {
+  def dropColumns(dataFrame: Dataset[_], columnNames: List[String]): DataFrame = {
     dataFrame.drop(columnNames: _*)
   }
 
@@ -245,7 +247,7 @@ object TransformationSteps {
     "leftAlias" -> StepParameter(None, Some(false), Some("left"), description = Some("Left side alias")),
     "rightAlias" -> StepParameter(None, Some(false), Some("right"), description = Some("Right side alias")),
     "joinType" -> StepParameter(None, Some(false), Some("inner"), description = Some("Type of join to perform"))))
-  def join(left: DataFrame, right: DataFrame,
+  def join(left: Dataset[_], right: Dataset[_],
            expression: Option[String] = None,
            leftAlias: Option[String] = None,
            rightAlias: Option[String] = None,
@@ -278,7 +280,7 @@ object TransformationSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to group")),
     "groupings" -> StepParameter(None, Some(true), description = Some("List of expressions to group by")),
     "aggregations" -> StepParameter(None, Some(true), description = Some("List of aggregations to apply"))))
-  def groupBy(dataFrame: DataFrame, groupings: List[String], aggregations: List[String]): DataFrame = {
+  def groupBy(dataFrame: Dataset[_], groupings: List[String], aggregations: List[String]): DataFrame = {
     val aggregates = aggregations.map(expr)
     val group = dataFrame.groupBy(groupings.map(expr): _*)
     if (aggregates.length == 1) {
@@ -303,7 +305,7 @@ object TransformationSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The initial DataFrame")),
     "append" -> StepParameter(None, Some(true), description = Some("The dataFrame to append")),
     "distinct" -> StepParameter(None, Some(false), Some("true"), description = Some("Flag to control distinct behavior"))))
-  def union(dataFrame: DataFrame, append: DataFrame, distinct: Option[Boolean] = None): DataFrame = {
+  def union[T](dataFrame: Dataset[T], append: Dataset[T], distinct: Option[Boolean] = None): Dataset[T] = {
     val res = dataFrame.unionByName(append)
     if(distinct.getOrElse(true)) res.distinct() else res
   }
@@ -322,7 +324,7 @@ object TransformationSteps {
     "Transforms")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to filter")),
     "expression" -> StepParameter(None, Some(true), description = Some("The expression to apply to the DataFrame to filter rows"))))
-  def applyFilter(dataFrame: DataFrame, expression: String): DataFrame = {
+  def applyFilter(dataFrame: Dataset[_], expression: String): Dataset[_] = {
     dataFrame.where(expression)
   }
 
@@ -336,10 +338,10 @@ object TransformationSteps {
     "separator" -> StepParameter(None, Some(false), Some("_"), description = Some("Separator to place between nested field names")),
     "fieldList" -> StepParameter(None, Some(false), description = Some("List of fields to flatten. Will flatten all fields if left empty")),
     "depth" -> StepParameter(None, Some(false), description = Some("How deep should we traverse when flattening."))))
-  def flattenDataFrame(dataFrame: DataFrame,
+  def flattenDataFrame(dataFrame: Dataset[_],
                        separator: Option[String] = None,
                        fieldList: Option[List[String]] = None,
-                       depth: Option[Int] = None): DataFrame = {
+                       depth: Option[Int] = None): Dataset[_] = {
     val traversalDepth = depth.getOrElse(-1)
     if (dataFrame.schema.fields.exists(_.dataType.isInstanceOf[StructType]) && traversalDepth != 0) {
       val shouldFlatten: (String, Int) => Boolean = if (traversalDepth <= 0) {
@@ -525,7 +527,7 @@ object TransformationSteps {
     * @param transforms the transformations object containing the inputAliases
     * @return  a dataframe with updated column names
     */
-  private[steps] def applyAliasesToInputDataFrame(dataFrame: DataFrame, transforms: Transformations): DataFrame = {
+  private[steps] def applyAliasesToInputDataFrame(dataFrame: Dataset[_], transforms: Transformations): DataFrame = {
     // create a map of all aliases to the output name
     val inputAliasMap = transforms.columnDetails.flatMap(m => {
       m.inputAliases.map(a => {
