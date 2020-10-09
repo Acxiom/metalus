@@ -4,6 +4,7 @@
 TransformationSteps provides the user with steps that can help transform data into a pre-defined schema or integrate into an existing
 data frame.  This includes reordering columns, adding placeholders for missing columns, applying transformations from input to output,
 standardizing column names, and converting column data types to match the destination.
+*__Note__*: maps and arrays will not be flattened using this step.
 
 Instructions for alternate column names on input or transforms are stored in a 'Mappings' object explained in more
 detail below:
