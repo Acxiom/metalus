@@ -4,7 +4,6 @@
 TransformationSteps provides the user with steps that can help transform data into a pre-defined schema or integrate into an existing
 data frame.  This includes reordering columns, adding placeholders for missing columns, applying transformations from input to output,
 standardizing column names, and converting column data types to match the destination.
-*__Note__*: maps and arrays will not be flattened using this step.
 
 Instructions for alternate column names on input or transforms are stored in a 'Mappings' object explained in more
 detail below:
@@ -211,6 +210,7 @@ This step will bring all nested fields(or a provided subset) to the "top" level 
 Flattened columns will be named in the pattern "parent<sep>child<sep>grandchild".
 The separated used in named defaults to an underscore, and can be overridden.
 By default, all struct fields will be flattened, specific top level structs can be specified using the fieldList parameter.
+*__Note__*: maps and arrays will not be flattened using this step.
 
 ### Input Parameters
 | Name | Type | Description | Default |
