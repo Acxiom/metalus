@@ -8,7 +8,7 @@ import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.Dataset
 import org.json4s.native.JsonMethods.parse
 import org.json4s.reflect.Reflector
 import org.json4s.{DefaultFormats, Extraction, Formats}
@@ -163,7 +163,7 @@ object DriverUtils {
     * @return
     */
   def addInitialDataFrameToExecutionPlan(executionPlan: List[PipelineExecution],
-                                         initialDataFrame: DataFrame): List[PipelineExecution] = {
+                                         initialDataFrame: Dataset[_]): List[PipelineExecution] = {
     executionPlan.map(execution => PipelineExecution(execution.id,
       execution.pipelines,
       execution.initialPipelineId,
@@ -215,7 +215,7 @@ object DriverUtils {
   @tailrec
   def processExecutionPlan(driverSetup: DriverSetup,
                            executionPlan: List[PipelineExecution],
-                           dataFrame: Option[DataFrame],
+                           dataFrame: Option[Dataset[_]],
                            successFunc: () => Unit,
                            throwExceptionOnFailure: Boolean,
                            attempt: Int = 1,

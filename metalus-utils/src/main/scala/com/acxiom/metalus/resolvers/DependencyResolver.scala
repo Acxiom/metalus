@@ -14,6 +14,7 @@ object DependencyResolver {
   private val logger = Logger.getLogger(getClass)
 
   def getDependencyJson(file: String, parameters: Map[String, Any]): Option[Map[String, Any]] = {
+    logger.info(s"Resolving dependencies for: $file")
     val jar = new JarFile(new File(file))
     val jarEntry = jar.getJarEntry("dependencies.json")
     if (Option(jarEntry).isEmpty) {
