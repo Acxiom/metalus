@@ -3,7 +3,7 @@ Metalus provides several mechanisms for handling errors. Each method provides di
 together to provide a comprehensive solution.
 ## Execution Result Handling
 The _DriverSetup_ trait provides the function _handleExecutionResult_ which is called by the driver upon completion
-of an execution plan. The default behavior is will scan the results of the execution looking for any exceptions not
+of an execution plan. The default behavior will scan the results of the execution looking for any exceptions not
 handled by the application. The application parameters _maxRetryAttempts_ can be used to retry an execution if it fails 
 but does not have an unhandled exception. The default is 0. The application parameter _terminateAfterFailures_ can be 
 used to indicate an exception should be thrown when all retries are exhausted. The default is false indicating the 
@@ -25,8 +25,8 @@ will consider this as a successful execution.
 ## Pipeline Exceptions
 Metalus uses the _PipelineStepException_ trait as the base for application exceptions. Any exception that extends
 the _PipelineStepException_ trait will automatically be handled by Metalus. Pipeline exceptions stop the 
-pipeline from processing at the specific step where the issue occurred. There are three implementations provided that 
-provide different behaviors:
+pipeline from processing at the specific step where the issue occurred. There are three implementations provided each with
+different behaviors:
 
 * [PipelineException](#pipelineexception)
 * [PauseException](#pauseexception)
