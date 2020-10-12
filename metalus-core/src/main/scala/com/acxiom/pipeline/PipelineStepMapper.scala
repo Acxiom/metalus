@@ -487,11 +487,13 @@ trait PipelineStepMapper {
     logger.debug(s"Fetching global value for $value.$extractPath")
     val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
     val initGlobal = pipelineContext.getGlobal(value.substring(1))
+    val globalLink = pipelineContext.isGlobalLink(value.substring(1))
     val applyMethod = pipelineContext.getGlobal("extractMethodsEnabled").asInstanceOf[Option[Boolean]]
 
     if(initGlobal.isDefined) {
       val global = initGlobal.get match {
-        case s: String => returnBestValue(s, Parameter(), pipelineContext.copy(globals = Some(globals - "GlobalLinks")))
+        case s: String if globalLink => returnBestValue(s, Parameter(), pipelineContext.copy(globals = Some(globals - "GlobalLinks")))
+        case s: String => Some(s)
         case default => Some(default)
       }
 
