@@ -23,7 +23,7 @@ Full parameter descriptions are listed below:
 * **dataFrameReader** - DataFrameReader to use.
 
 ## Get DataFrameWriter
-Given a DataFrameWriterOptions object, this step will build a DataFrameWriter[Row].
+Given a DataFrameWriterOptions object, this step will build a DataFrameWriter[_].
 Full parameter descriptions are listed below:
 
 * **dataFrameWriterOptions** - DataFrameWriterOptions object used to configure the DataFrameWriter.
@@ -36,7 +36,7 @@ Full parameter descriptions are listed below:
 * **dataFrameWriterOptions** - DataFrameWriterOptions to use.
 
 ## Save Using DataFrameWriter
-Given a DataFrameWriter[Row] object, this step will save a DataFrame.
+Given a DataFrameWriter[_] object, this step will save a DataFrame.
 Full parameter descriptions are listed below:
 
 * **dataFrameWriter** - DataFrameWriter to use.

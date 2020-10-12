@@ -2,7 +2,7 @@ package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Dataset}
 
 @StepObject
 object HiveSteps {
@@ -26,7 +26,7 @@ object HiveSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to write")),
     "table" -> StepParameter(None, Some(true), description = Some("The name of the table to write to")),
     "options" -> StepParameter(None, Some(false), description = Some("The DataFrameWriterOptions to use"))))
-  def writeDataFrame(dataFrame: DataFrame, table: String, options: Option[DataFrameWriterOptions] = None): Unit = {
+  def writeDataFrame(dataFrame: Dataset[_], table: String, options: Option[DataFrameWriterOptions] = None): Unit = {
     DataFrameSteps.getDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions())).saveAsTable(table)
   }
 

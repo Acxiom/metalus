@@ -5,7 +5,7 @@ import java.util.UUID.randomUUID
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import org.apache.log4j.Logger
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Dataset}
 
 @StepObject
 object QuerySteps {
@@ -31,7 +31,7 @@ object QuerySteps {
     "Query")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The dataframe to store")),
   "viewName" -> StepParameter(None, Some(false), None, None, None, None, viewNameDesc)))
-  def dataFrameToTempView(dataFrame: DataFrame, viewName: Option[String], pipelineContext: PipelineContext): String = {
+  def dataFrameToTempView(dataFrame: Dataset[_], viewName: Option[String], pipelineContext: PipelineContext): String = {
     val outputViewName = if(viewName.isEmpty) generateTempViewName else viewName.get
     logger.info(s"storing dataframe to tempView '$outputViewName")
     dataFrame.createOrReplaceTempView(outputViewName)
@@ -125,7 +125,7 @@ object QuerySteps {
     "variableMap" -> StepParameter(None, Some(false), None, None, None, None, variableMapDesc),
     "inputViewName" -> StepParameter(None, Some(true), None, None, None, None, inputViewNameDesc),
     "outputViewName" -> StepParameter(None, Some(false), None, None, None, None, viewNameDesc)))
-  def dataFrameQueryToTempView(dataFrame: DataFrame, query: String, variableMap: Option[Map[String, String]],
+  def dataFrameQueryToTempView(dataFrame: Dataset[_], query: String, variableMap: Option[Map[String, String]],
                                inputViewName: String, outputViewName: Option[String], pipelineContext: PipelineContext): String = {
     val finalViewName = if(outputViewName.isEmpty) generateTempViewName else outputViewName.get
     logger.info(s"query dataframe to tempView '$outputViewName")
@@ -159,7 +159,7 @@ object QuerySteps {
     "query" -> StepParameter(Some("script"), Some(true), None, Some("sql"), None, None, queryDesc),
     "variableMap" -> StepParameter(None, Some(false), None, None, None, None, variableMapDesc),
     "inputViewName" -> StepParameter(None, Some(true), None, None, None, None, inputViewNameDesc)))
-  def dataFrameQueryToDataFrame(dataFrame: DataFrame, query: String, variableMap: Option[Map[String, String]],
+  def dataFrameQueryToDataFrame(dataFrame: Dataset[_], query: String, variableMap: Option[Map[String, String]],
                                 inputViewName: String, pipelineContext: PipelineContext): DataFrame = {
     // store the dataframe as a TempView
     dataFrameToTempView(dataFrame, Some(inputViewName), pipelineContext)

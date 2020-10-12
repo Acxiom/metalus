@@ -51,6 +51,13 @@ Full parameter descriptions listed below:
 
 * **jsonString** - The JSON string to convert to a DataFrame.
 
+## Convert JSON String Dataset to DataFrame
+Given a Dataset of JSON strings, this step will convert it to a DataFrame that can be passed to other steps. 
+Full parameter descriptions listed below:
+
+* **dataset** - The dataset containing JSON strings.
+* **dataFrameReaderOptions** - The JSON parsing options.
+
 ## Build JSON4S Formats
 Provide lists of custom serializer classes and enumeration classes to build a new Formats object that can be used to
  override the Formats on the pipelineContext.

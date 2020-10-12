@@ -3,7 +3,7 @@ package com.acxiom.pipeline.steps
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.acxiom.pipeline.fs.HDFSFileManager
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Dataset}
 
 @StepObject
 object HDFSSteps {
@@ -42,7 +42,7 @@ object HDFSSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to write")),
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The GCS path to write data")),
     "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional DataFrame Options"))))
-  def writeToPath(dataFrame: DataFrame,
+  def writeToPath(dataFrame: Dataset[_],
                      path: String,
                      options: Option[DataFrameWriterOptions] = None): Unit = {
     DataFrameSteps.getDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions())).save(path)
