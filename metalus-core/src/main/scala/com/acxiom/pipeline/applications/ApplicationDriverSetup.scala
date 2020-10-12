@@ -115,12 +115,12 @@ trait ApplicationDriverSetup extends DriverSetup {
 
   /**
     * Returns the CredentialProvider to use during for this job. This function overrides the parent and
-    * uses the application globals to instantiate the CredentialProvider.
+    * uses the application globals and parameters to instantiate the CredentialProvider.
     *
     * @return The credential provider.
     */
   override def credentialProvider: CredentialProvider = {
-    DriverUtils.getCredentialProvider(application.globals.getOrElse(parameters))
+    DriverUtils.getCredentialProvider(application.globals.getOrElse(Map()) ++ parameters)
   }
 }
 
