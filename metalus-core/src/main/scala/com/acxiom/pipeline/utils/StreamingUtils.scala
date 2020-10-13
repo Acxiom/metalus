@@ -4,7 +4,7 @@ import com.acxiom.pipeline.drivers.StreamingDataParser
 import org.apache.log4j.Logger
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.streaming.{Duration, Seconds, StreamingContext}
+import org.apache.spark.streaming.{Duration, Milliseconds, Minutes, Seconds, StreamingContext}
 
 object StreamingUtils {
   private val logger = Logger.getLogger(getClass)
@@ -37,11 +37,14 @@ object StreamingUtils {
     new StreamingContext(sparkContext, duration.getOrElse(getDuration()))
   }
 
-  def getDuration(durationType: Option[String] = Some(DEFAULT_DURATION_TYPE),
-                          duration: Option[String] = Some(DEFAULT_DURATION)): Duration = {
-    durationType match {
-      case Some("seconds") => Seconds(duration.get.toInt)
-      case _ => Seconds("30".toInt)
+  def getDuration(durationType: Option[String] = None,
+                          duration: Option[String] = None): Duration = {
+    val finalDuration = duration.getOrElse(DEFAULT_DURATION).toInt
+    durationType.getOrElse(DEFAULT_DURATION_TYPE).toLowerCase match {
+      case "milliseconds" => Milliseconds(finalDuration)
+      case "seconds" => Seconds(finalDuration)
+      case "minutes" => Minutes(finalDuration)
+      case _ => Seconds(finalDuration)
     }
   }
 
@@ -64,7 +67,7 @@ object StreamingUtils {
     * @param parsers An initial list of parsers. The new parsers will be prepended to this list.
     * @return A list of streaming parsers
     */
-  def generateStreamingDataParsers[T, R](parameters: Map[String, Any],
+  def generateStreamingDataParsers[T](parameters: Map[String, Any],
                                       parsers: Option[List[StreamingDataParser[T]]] = None): List[StreamingDataParser[T]] = {
     val parsersList = if (parsers.isDefined) {
       parsers.get
@@ -87,6 +90,6 @@ object StreamingUtils {
     * @param parsers A list of parsers tp consider.
     * @return The first parser that indicates it can parse the RDD.
     */
-  def getStreamingParser[T, R](rdd: RDD[T], parsers: List[StreamingDataParser[T]]): Option[StreamingDataParser[T]] =
+  def getStreamingParser[T](rdd: RDD[T], parsers: List[StreamingDataParser[T]]): Option[StreamingDataParser[T]] =
     parsers.find(p => p.canParse(rdd))
 }

@@ -63,7 +63,7 @@ object KafkaPipelineDriver {
         // Need to commit the offsets in Kafka that we have consumed
         val offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
         // Convert the RDD into a dataFrame
-        val parser = StreamingUtils.getStreamingParser[ConsumerRecord[String, String], Row](rdd, streamingParsers)
+        val parser = StreamingUtils.getStreamingParser[ConsumerRecord[String, String]](rdd, streamingParsers)
         val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)
         // Refresh the execution plan prior to processing new data
         logger.debug(s"Processing offsets ${offsetRanges.mkString}")

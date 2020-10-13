@@ -51,7 +51,7 @@ object PubSubPipelineDriver {
     messagesStream.foreachRDD { rdd: RDD[SparkPubsubMessage] =>
       if (!rdd.isEmpty()) {
         logger.debug("RDD received")
-        val parser = StreamingUtils.getStreamingParser[SparkPubsubMessage, Row](rdd, streamingParsers)
+        val parser = StreamingUtils.getStreamingParser[SparkPubsubMessage](rdd, streamingParsers)
         val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)
         DriverUtils.processExecutionPlan(driverSetup, executionPlan, Some(dataFrame), () => {logger.debug("Completing RDD")},
           commonParameters.terminateAfterFailures, 1, commonParameters.maxRetryAttempts)

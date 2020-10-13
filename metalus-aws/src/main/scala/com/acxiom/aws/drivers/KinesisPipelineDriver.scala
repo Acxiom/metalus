@@ -53,8 +53,8 @@ object KinesisPipelineDriver {
     // Get the credential provider
     val credentialProvider = driverSetup.credentialProvider
     val awsCredential = credentialProvider.getNamedCredential("AWSCredential").asInstanceOf[Option[AWSCredential]]
-    val duration = StreamingUtils.getDuration(Some(parameters.getOrElse("duration-type", "seconds").asInstanceOf[String]),
-      Some(parameters.getOrElse("duration", "10").asInstanceOf[String]))
+    val duration = StreamingUtils.getDuration(parameters.get("duration-type").map(_.asInstanceOf[String]),
+      parameters.get("duration").map(_.asInstanceOf[String]))
     val streamingContext =
       StreamingUtils.createStreamingContext(sparkSession.sparkContext, Some(duration))
     // Get the client
@@ -66,23 +66,22 @@ object KinesisPipelineDriver {
     // Create the Kinesis DStreams
     val kinesisStreams = createKinesisDStreams(credentialProvider, appName, duration, streamingContext, numStreams, region, streamName)
     logger.info("Created " + kinesisStreams.size + " Kinesis DStreams")
-    val defaultParser = new KinesisStreamingDataParser
+    val defaultParser = new KinesisStreamingDataParser(appName)
     val streamingParsers = StreamingUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))
     // Union all the streams (in case numStreams > 1)
     val allStreams = streamingContext.union(kinesisStreams)
-    allStreams.foreachRDD { (rdd: RDD[Row], time: Time) =>
+    allStreams.foreachRDD { (rdd: RDD[Record], time: Time) =>
       logger.debug(s"Checking RDD for data(${time.toString()}): ${rdd.count()}")
       if (!rdd.isEmpty()) {
         logger.debug("RDD received")
         // Convert the RDD into a dataFrame
-        val parser = StreamingUtils.getStreamingParser[Row, Row](rdd, streamingParsers)
+        val parser = StreamingUtils.getStreamingParser[Record](rdd, streamingParsers)
         val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)
         // Refresh the execution plan prior to processing new data
         DriverUtils.processExecutionPlan(driverSetup, executionPlan, Some(dataFrame), () => {logger.debug("Completing RDD")},
           commonParameters.terminateAfterFailures, 1, commonParameters.maxRetryAttempts)
       }
     }
-
     streamingContext.start()
     StreamingUtils.setTerminationState(streamingContext, parameters)
     logger.info("Shutting down Kinesis Pipeline Driver")
@@ -124,16 +123,7 @@ object KinesisPipelineDriver {
       } else {
         dynamoDBBuilder
       }
-
-      kinesisBuilder.buildWithMessageHandler((r: Record) => {
-        try {
-          Row(r.getPartitionKey, new String(r.getData.array()), appName)
-        } catch {
-          case t: Throwable =>
-            logger.error(s"Unable to parse incoming record: ${t.getMessage}", t)
-            throw t
-        }
-      })
+      kinesisBuilder.buildWithMessageHandler(identity)
     }
   }
 }
