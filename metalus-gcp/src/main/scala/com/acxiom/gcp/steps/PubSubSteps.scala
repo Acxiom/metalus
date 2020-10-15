@@ -5,7 +5,6 @@ import java.util.concurrent.TimeUnit
 
 import com.acxiom.gcp.utils.GCPCredential
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
-import com.acxiom.pipeline.steps.ScalaSteps.getClass
 import com.acxiom.pipeline.{Constants, PipelineContext}
 import com.google.api.gax.core.FixedCredentialsProvider
 import com.google.api.gax.retrying.RetrySettings
@@ -13,7 +12,6 @@ import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.pubsub.v1.Publisher
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.PubsubMessage
-import org.apache.log4j.Logger
 import org.apache.spark.sql.DataFrame
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization
@@ -21,7 +19,6 @@ import org.threeten.bp.Duration
 
 @StepObject
 object PubSubSteps {
-  private val logger = Logger.getLogger(getClass)
   private val topicDescription: Some[String] = Some("The topic within the Pub/Sub")
   private val retrySettings = RetrySettings.newBuilder
     .setInitialRetryDelay(Duration.ofMillis(Constants.ONE_HUNDRED))
