@@ -39,6 +39,7 @@ object KinesisPipelineDriver {
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("driverSetupClass", "streamName", "region")))
     val commonParameters = DriverUtils.parseCommonParameters(parameters)
+    val streamingParameters = StreamingUtils.parseCommonStreamingParameters(parameters)
     val driverSetup = ReflectionUtils.loadClass(commonParameters.initializationClass,
       Some(Map("parameters" -> parameters))).asInstanceOf[DriverSetup]
     if (driverSetup.executionPlan.isEmpty) {
@@ -72,7 +73,7 @@ object KinesisPipelineDriver {
     val allStreams = streamingContext.union(kinesisStreams)
     allStreams.foreachRDD { (rdd: RDD[Record], time: Time) =>
       logger.debug(s"Checking RDD for data(${time.toString()}): ${rdd.count()}")
-      if (!rdd.isEmpty()) {
+      if (streamingParameters.processEmptyRDD || !rdd.isEmpty()) {
         logger.debug("RDD received")
         // Convert the RDD into a dataFrame
         val parser = StreamingUtils.getStreamingParser[Record](rdd, streamingParsers)

@@ -31,6 +31,7 @@ object KafkaPipelineDriver {
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("driverSetupClass", "topics", "kafkaNodes")))
     val commonParameters = DriverUtils.parseCommonParameters(parameters)
+    val streamingParameters = StreamingUtils.parseCommonStreamingParameters(parameters)
     val driverSetup = ReflectionUtils.loadClass(commonParameters.initializationClass,
       Some(Map("parameters" -> parameters))).asInstanceOf[DriverSetup]
     val topics = parameters("topics").asInstanceOf[String].split(",")
@@ -58,7 +59,7 @@ object KafkaPipelineDriver {
     val defaultParser = new KafkaStreamingDataParser
     val streamingParsers = StreamingUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))
     stream.foreachRDD { rdd: RDD[ConsumerRecord[String, String]] =>
-      if (!rdd.isEmpty()) {
+      if (streamingParameters.processEmptyRDD || !rdd.isEmpty()) {
         logger.debug("RDD received")
         // Need to commit the offsets in Kafka that we have consumed
         val offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
@@ -74,7 +75,6 @@ object KafkaPipelineDriver {
         }, commonParameters.terminateAfterFailures, 1, commonParameters.maxRetryAttempts)
       }
     }
-
     streamingContext.start()
     StreamingUtils.setTerminationState(streamingContext, parameters)
     logger.info("Shutting down Kafka Pipeline Driver")

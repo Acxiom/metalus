@@ -92,4 +92,15 @@ object StreamingUtils {
     */
   def getStreamingParser[T](rdd: RDD[T], parsers: List[StreamingDataParser[T]]): Option[StreamingDataParser[T]] =
     parsers.find(p => p.canParse(rdd))
+
+  /**
+   * Helper function that build a CommonStreamingParameters object using the parameters map.
+   * @param parameters passed to metalus from the spark submit.
+   * @return a CommonStreamingParameters object
+   */
+  def parseCommonStreamingParameters(parameters: Map[String, Any]): CommonStreamingParameters = {
+    CommonStreamingParameters(parameters.getOrElse("processEmptyRDD", false).asInstanceOf[Boolean])
+  }
 }
+
+case class CommonStreamingParameters(processEmptyRDD: Boolean)
