@@ -49,18 +49,6 @@ object PubSubSteps {
     publishDataFrame(dataFrame, separator, topicName, creds)
   }
 
-  @StepFunction("9ac119ba-77e2-47b7-99ed-413a40f57cbe",
-    "Moo",
-    "Moo",
-    "Pipeline",
-    "GCP")
-  def moo(dataFrame: DataFrame, seconds: Int): Unit = {
-    logger.info(s"COUNT: ${dataFrame.count}")
-    Thread.sleep(seconds * 1000)
-    dataFrame.show()
-    dataFrame.write.mode("append").csv("/Users/dafree/stream/out.csv")
-  }
-
   @StepFunction("aaa880e1-4190-4ffe-9fda-4150680f17c9",
     "Write DataFrame to a PubSub Topic Using Global Credentials",
     "This step will write a DataFrame to a PubSub Topic using the CredentialProvider to get Credentials",
