@@ -49,18 +49,18 @@ object PipelineExecutor {
       })
       val exCtx = ctx.setRootAudit(ctx.rootAudit.setEnd(System.currentTimeMillis()))
       PipelineExecutionResult(handleEvent(exCtx, "executionFinished", List(executingPipelines, exCtx)),
-        success = true, paused = false)
+        success = true, paused = false, None)
     } catch {
       case fe: ForkedPipelineStepException =>
         fe.exceptions.foreach(entry =>
           logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
-        PipelineExecutionResult(esContext, success = false, paused = false)
+        PipelineExecutionResult(esContext, success = false, paused = false, Some(fe))
       case p: PauseException =>
         logger.info(s"Paused pipeline flow at ${p.pipelineProgress.getOrElse(PipelineExecutionInfo()).displayPipelineStepString}. ${p.message}")
-        PipelineExecutionResult(esContext, success = false, paused = true)
+        PipelineExecutionResult(esContext, success = false, paused = true, Some(p))
       case pse: PipelineStepException =>
         logger.error(s"Stopping pipeline because of an exception", pse)
-        PipelineExecutionResult(esContext, success = false, paused = false)
+        PipelineExecutionResult(esContext, success = false, paused = false, Some(pse))
       case t: Throwable => throw t
     }
   }

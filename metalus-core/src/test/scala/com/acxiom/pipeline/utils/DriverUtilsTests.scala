@@ -151,7 +151,7 @@ class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
     it ("Should report unsuccessful execution") {
       val result = DriverUtils.handleExecutionResult(Some(Map[String, DependencyResult](
         "one" -> DependencyResult(PipelineExecution("one", List(), None, None.orNull, None),
-          Some(PipelineExecutionResult(context, success = false, paused = false)), None))))
+          Some(PipelineExecutionResult(context, success = false, paused = false, None)), None))))
       assert(!result.success)
       assert(result.failedExecution.getOrElse("") == "e1")
       assert(result.failedPipeline.getOrElse("") == "p1")
@@ -160,7 +160,7 @@ class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
     it ("Should report successful execution when pipeline is paused") {
       val result = DriverUtils.handleExecutionResult(Some(Map[String, DependencyResult](
         "one" -> DependencyResult(PipelineExecution("one", List(), None, None.orNull, None),
-          Some(PipelineExecutionResult(context, success = false, paused = true)), None))))
+          Some(PipelineExecutionResult(context, success = false, paused = true, None)), None))))
       assert(result.success)
     }
   }
