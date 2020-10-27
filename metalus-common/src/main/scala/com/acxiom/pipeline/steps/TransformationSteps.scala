@@ -324,7 +324,7 @@ object TransformationSteps {
     "Transforms")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to filter")),
     "expression" -> StepParameter(None, Some(true), description = Some("The expression to apply to the DataFrame to filter rows"))))
-  def applyFilter(dataFrame: Dataset[_], expression: String): Dataset[_] = {
+  def applyFilter[T](dataFrame: Dataset[T], expression: String): Dataset[T] = {
     dataFrame.where(expression)
   }
 
@@ -402,7 +402,7 @@ object TransformationSteps {
     "Pipeline", "Transforms")
   @StepParameters(Map("idColumnName" -> StepParameter(None, Some(true), description = Some("The name to provide the id column")),
     "dataFrame" -> StepParameter(None, Some(true), description = Some("The data frame to add the column"))))
-  def addUniqueIdToDataFrame(idColumnName: String, dataFrame: DataFrame): DataFrame = {
+  def addUniqueIdToDataFrame(idColumnName: String, dataFrame: Dataset[_]): DataFrame = {
     logger.info(s"adding unique id,name=$idColumnName")
     dataFrame.withColumn(cleanColumnName(idColumnName), monotonically_increasing_id)
   }
@@ -422,7 +422,7 @@ object TransformationSteps {
     "columnName" -> StepParameter(None, Some(true), description = Some("The name to provide the id column")),
     "columnValue" -> StepParameter(None, Some(true), description = Some("The name of the new column")),
     "standardizeColumnName" -> StepParameter(None, Some(false), Some("true"), description = Some("The value to add"))))
-  def addStaticColumnToDataFrame(dataFrame: DataFrame, columnName: String, columnValue: Any,
+  def addStaticColumnToDataFrame(dataFrame: Dataset[_], columnName: String, columnValue: Any,
                                  standardizeColumnName: Option[Boolean] = None): DataFrame = {
     val name = if(standardizeColumnName.getOrElse(true)) cleanColumnName(columnName) else columnName
     logger.info(s"adding static column,name=$name,value=$columnValue")

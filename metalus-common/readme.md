@@ -6,12 +6,14 @@ using Spark.
 
 ## Step Classes
 * [ApiSteps](docs/apisteps.md)
+* [CSVSteps](docs/csvsteps.md)
 * [DataFrameSteps](docs/dataframesteps.md)
 * [FileManagerSteps](docs/filemanagersteps.md)
 * [HDFSSteps](docs/hdfssteps.md)
 * [HiveSteps](docs/hivesteps.md)
 * [JavascriptSteps](docs/javascriptsteps.md)
 * [JDBCSteps](docs/jdbcsteps.md)
+* [JSONSteps](docs/jsonsteps.md)
 * [QuerySteps](docs/querysteps.md)
 * [ScalaSteps](docs/scalascriptsteps.md)
 * [SFTPSteps](docs/sftpsteps.md)

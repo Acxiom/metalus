@@ -51,8 +51,8 @@ object DataFrameSteps {
     "InputOutput")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to use when creating the DataFrameWriter")),
     "options" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrameWriterOptions to use when writing the DataFrame"))))
-  def getDataFrameWriter(dataFrame: Dataset[_],
-                         options: DataFrameWriterOptions): DataFrameWriter[_] = {
+  def getDataFrameWriter[T](dataFrame: Dataset[T],
+                         options: DataFrameWriterOptions): DataFrameWriter[T] = {
     buildDataFrameWriter(dataFrame, options)
   }
 
@@ -86,7 +86,7 @@ object DataFrameSteps {
     "InputOutput")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to persist")),
     "storageLevel" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional storage mechanism to use when persisting the DataFrame"))))
-  def persistDataFrame(dataFrame: Dataset[_], storageLevel: String = "MEMORY_AND_DISK"): Dataset[_] = {
+  def persistDataFrame[T](dataFrame: Dataset[T], storageLevel: String = "MEMORY_AND_DISK"): Dataset[T] = {
     dataFrame.persist(StorageLevel.fromString(storageLevel.toUpperCase))
   }
 
@@ -97,7 +97,7 @@ object DataFrameSteps {
     "InputOutput")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to unpersist")),
     "blocking" -> StepParameter(None, Some(false), None, None, None, None, Some("Optional flag to indicate whether to block while unpersisting"))))
-  def unpersistDataFrame(dataFrame: Dataset[_], blocking: Boolean = false): Dataset[_] = {
+  def unpersistDataFrame[T](dataFrame: Dataset[T], blocking: Boolean = false): Dataset[T] = {
     dataFrame.unpersist(blocking)
   }
 
@@ -112,11 +112,11 @@ object DataFrameSteps {
       Some("Flag indicating whether to repartition by range. This takes precedent over the shuffle flag")),
     "shuffle" -> StepParameter(None, Some(false), None, None, None, None, Some("Flag indicating whether to perform a normal partition")),
     "partitionExpressions" -> StepParameter(None, Some(false), None, None, None, None, Some("The partition expressions to use"))))
-  def repartitionDataFrame(dataFrame: Dataset[_],
+  def repartitionDataFrame[T](dataFrame: Dataset[T],
                            partitions: Int,
                            rangePartition: Option[Boolean] = None,
                            shuffle: Option[Boolean] = None,
-                           partitionExpressions: Option[List[String]] = None): Dataset[_] = {
+                           partitionExpressions: Option[List[String]] = None): Dataset[T] = {
     val expressions = partitionExpressions.map(e => e.map(expr))
     if (rangePartition.getOrElse(false)) {
       repartitionByRange(dataFrame, partitions, expressions)
@@ -135,7 +135,7 @@ object DataFrameSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to sort")),
     "expressions" -> StepParameter(None, Some(true), None, None, None, None, Some("List of expressions to apply prior to the sort")),
     "descending" -> StepParameter(None, Some(false), None, None, None, None, Some("Flag indicating to sort order"))))
-  def sortDataFrame(dataFrame: DataFrame, expressions: List[String], descending: Option[Boolean] = None): DataFrame = {
+  def sortDataFrame[T](dataFrame: Dataset[T], expressions: List[String], descending: Option[Boolean] = None): Dataset[T] = {
     val sortOrders = if (descending.getOrElse(false)) {
       expressions.map(e => expr(e).desc)
     } else {
@@ -144,7 +144,7 @@ object DataFrameSteps {
     dataFrame.sort(sortOrders: _*)
   }
 
-  private def repartitionByRange(dataFrame: Dataset[_], partitions: Int, partitionExpressions: Option[List[Column]] = None): Dataset[_] = {
+  private def repartitionByRange[T](dataFrame: Dataset[T], partitions: Int, partitionExpressions: Option[List[Column]] = None): Dataset[T] = {
     if (partitionExpressions.isDefined) {
       dataFrame.repartitionByRange(partitions, partitionExpressions.get: _*)
     } else {
@@ -152,7 +152,7 @@ object DataFrameSteps {
     }
   }
 
-  private def repartition(dataFrame: Dataset[_], partitions: Int, partitionExpressions: Option[List[Column]] = None): Dataset[_] = {
+  private def repartition[T](dataFrame: Dataset[T], partitions: Int, partitionExpressions: Option[List[Column]] = None): Dataset[T] = {
     if (partitionExpressions.isDefined) {
       dataFrame.repartition(partitions, partitionExpressions.get: _*)
     } else {
@@ -184,7 +184,7 @@ object DataFrameSteps {
     * @param options   A DataFrameWriterOptions object for configuring the writer.
     * @return A DataFrameWriter[Row] based on the provided options.
     */
-  private def buildDataFrameWriter(dataFrame: Dataset[_], options: DataFrameWriterOptions): DataFrameWriter[_] = {
+  private def buildDataFrameWriter[T](dataFrame: Dataset[T], options: DataFrameWriterOptions): DataFrameWriter[T] = {
     val writer = dataFrame.write.format(options.format)
       .mode(options.saveMode)
       .options(options.options.getOrElse(Map[String, String]()))
