@@ -14,7 +14,7 @@ application should stop running. Developers wishing to change this behavior can 
 A step which defines the _nextStepOnError_ attribute will force the execution of the defined step id instead of the 
 normal execution path. A PipelineStepException will be set as the PrimaryStepResponse for the failed step. Normal
 execution will proceed from the defined error handling step. The primary response of the step in error will be the
-exception and can be accessed using the _lastStepId_ global. This method of handling errors is useful when the pipeline
+exception and can be accessed using the _LastStepId_ variable. This method of handling errors is useful when the pipeline
 needs to perform some cleanup, the exception needs to be parsed, or a different execution path needs to be followed.
 
 The flow depicted below shows how the _nextStepOnError_ would fow for a simple pipeline. The first two steps (1 and 2)
