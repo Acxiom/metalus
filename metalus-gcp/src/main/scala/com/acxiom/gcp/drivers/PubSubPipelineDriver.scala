@@ -15,6 +15,7 @@ object PubSubPipelineDriver {
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("driverSetupClass", "projectId", "subscription")))
     val commonParameters = DriverUtils.parseCommonParameters(parameters)
+    val streamingParameters = StreamingUtils.parseCommonStreamingParameters(parameters)
     val driverSetup = ReflectionUtils.loadClass(commonParameters.initializationClass,
       Some(Map("parameters" -> parameters))).asInstanceOf[DriverSetup]
     val projectId = parameters("projectId").asInstanceOf[String]
@@ -49,9 +50,9 @@ object PubSubPipelineDriver {
     val defaultParser = new PubSubStreamingDataParser(subscription)
     val streamingParsers = StreamingUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))
     messagesStream.foreachRDD { rdd: RDD[SparkPubsubMessage] =>
-      if (!rdd.isEmpty()) {
+      if (streamingParameters.processEmptyRDD || !rdd.isEmpty()) {
         logger.debug("RDD received")
-        val parser = StreamingUtils.getStreamingParser[SparkPubsubMessage, Row](rdd, streamingParsers)
+        val parser = StreamingUtils.getStreamingParser[SparkPubsubMessage](rdd, streamingParsers)
         val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)
         DriverUtils.processExecutionPlan(driverSetup, executionPlan, Some(dataFrame), () => {logger.debug("Completing RDD")},
           commonParameters.terminateAfterFailures, 1, commonParameters.maxRetryAttempts)

@@ -20,7 +20,9 @@ streams. As data is consumed, the RDD will be converted into a DataFrame with th
 * **terminationPeriod** - [number] The number of ms the system should run and then shut down. 
 * **maxRetryAttempts** - [number] The number of times data will attempt to process before failing. Default is 0.
 * **terminateAfterFailures** - [boolean] After processing has been retried, fail the process. Default is false.
-
+* **processEmptyRDD** - [boolean] When true, will trigger executions for each window interval
+ regardless of whether any messages have been received.
+ 
 ### Authorization
 The _DriverSetup_ is responsible for providing a [CredentialProvider](../../docs/credentialprovider.md) which may be 
 used to locate the "GCPCredential". The system default will be used if none can be found.
