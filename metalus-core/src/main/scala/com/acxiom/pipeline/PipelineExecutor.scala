@@ -690,7 +690,7 @@ object PipelineExecutor {
                            pipeline: Pipeline,
                            steps: Map[String, PipelineStep],
                            forkSteps: List[PipelineStep]): List[PipelineStep] = {
-    step.`type`.getOrElse("").toLowerCase match {
+    val list = step.`type`.getOrElse("").toLowerCase match {
       case "fork" => throw PipelineException(message = Some("fork steps may not be embedded other fork steps!"),
         pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
       case "branch" =>
@@ -704,6 +704,12 @@ object PipelineExecutor {
       case "join" => conditionallyAddStepToList(step, forkSteps)
       case _ if !steps.contains(step.nextStepId.getOrElse("")) => conditionallyAddStepToList(step, forkSteps)
       case _ => getForkSteps(steps(step.nextStepId.getOrElse("")), pipeline, steps, conditionallyAddStepToList(step, forkSteps))
+    }
+
+    if (step.nextStepOnError.isDefined) {
+      getForkSteps(steps(step.nextStepOnError.getOrElse("")), pipeline, steps, list)
+    } else {
+      list
     }
   }
 

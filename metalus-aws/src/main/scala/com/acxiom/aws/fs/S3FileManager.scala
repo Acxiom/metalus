@@ -4,7 +4,7 @@ import java.io.{FileNotFoundException, InputStream, OutputStream}
 
 import com.acxiom.aws.utils.S3Utilities
 import com.acxiom.pipeline.fs.{FileInfo, FileManager}
-import com.amazonaws.auth.{AWSStaticCredentialsProvider, AnonymousAWSCredentials, BasicAWSCredentials}
+import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 
@@ -17,15 +17,12 @@ class S3FileManager(s3Client: AmazonS3, bucket: String) extends FileManager {
            bucket: String,
            accessKeyId: Option[String] = None,
            secretAccessKey: Option[String] = None) = {
-    this(AmazonS3ClientBuilder.standard()
-      .withCredentials(new AWSStaticCredentialsProvider(
-          if (accessKeyId.isDefined && secretAccessKey.isDefined) {
-            new BasicAWSCredentials(accessKeyId.get, secretAccessKey.get)
-          } else {
-            new AnonymousAWSCredentials()
-          }))
-      .withRegion(region)
-      .build(), bucket)
+    this((if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+      AmazonS3ClientBuilder.standard()
+        .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKeyId.get, secretAccessKey.get)))
+    } else {
+      AmazonS3ClientBuilder.standard()
+    }).withRegion(region).build(), bucket)
   }
 
   /**
