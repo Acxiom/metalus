@@ -5,6 +5,7 @@ import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}
 import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.Row
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.pubsub.{PubsubUtils, SparkGCPCredentials, SparkPubsubMessage}
 
@@ -14,6 +15,7 @@ object PubSubPipelineDriver {
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("driverSetupClass", "projectId", "subscription")))
     val commonParameters = DriverUtils.parseCommonParameters(parameters)
+    val streamingParameters = StreamingUtils.parseCommonStreamingParameters(parameters)
     val driverSetup = ReflectionUtils.loadClass(commonParameters.initializationClass,
       Some(Map("parameters" -> parameters))).asInstanceOf[DriverSetup]
     val projectId = parameters("projectId").asInstanceOf[String]
@@ -48,7 +50,7 @@ object PubSubPipelineDriver {
     val defaultParser = new PubSubStreamingDataParser(subscription)
     val streamingParsers = StreamingUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))
     messagesStream.foreachRDD { rdd: RDD[SparkPubsubMessage] =>
-      if (!rdd.isEmpty()) {
+      if (streamingParameters.processEmptyRDD || !rdd.isEmpty()) {
         logger.debug("RDD received")
         val parser = StreamingUtils.getStreamingParser[SparkPubsubMessage](rdd, streamingParsers)
         val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)

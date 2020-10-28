@@ -10,14 +10,14 @@ import org.apache.log4j.Logger
 
 class MavenDependencyResolver extends DependencyResolver {
   private val logger = Logger.getLogger(getClass)
-  private val defaultMavenRepo = ApiRepo(HttpRestClient("https://repo1.maven.org/maven2/"))
+  private val defaultMavenRepo = ApiRepo(HttpRestClient("https://repo1.maven.org/maven2/"), "https://repo1.maven.org/maven2/")
   private val localFileManager = new LocalFileManager
 
   override def copyResources(outputPath: File, dependencies: Map[String, Any], parameters: Map[String, Any]): List[Dependency] = {
     val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).toString.toLowerCase == "true"
     val providedRepos = getRepos(parameters, allowSelfSignedCerts)
     val dependencyRepos = getRepos(dependencies, allowSelfSignedCerts)
-    val repoList = providedRepos ::: dependencyRepos
+    val repoList = ((providedRepos ::: dependencyRepos) :+ defaultMavenRepo).distinct
 
     val libraries = dependencies.getOrElse("libraries", List[Map[String, Any]]()).asInstanceOf[List[Map[String, Any]]]
     libraries.foldLeft(List[Dependency]())((dependencies, library) => {
@@ -30,6 +30,7 @@ class MavenDependencyResolver extends DependencyResolver {
       val repoResult = getInputStream(repoList, path)
       if (repoResult.input.isDefined) {
         val updatedFiles = if (!dependencyFile.exists() ||
+          dependencyFile.length() == 0 ||
           repoResult.lastModifiedDate.get.getTime > dependencyFile.lastModified()) {
           logger.info(s"Copying file: $dependencyFileName")
           if (dependencyFile.exists()) {
@@ -58,13 +59,17 @@ class MavenDependencyResolver extends DependencyResolver {
 
   private def getRepos(parameters: Map[String, Any], allowSelfSignedCerts: Boolean): List[Repo] = {
     val repos = parameters.getOrElse("repo", "https://repo1.maven.org/maven2/").asInstanceOf[String]
-    (repos.split(",").map(repo => {
-      if (repo.trim.startsWith("http")) {
-        ApiRepo(HttpRestClient(repo, allowSelfSignedCerts))
+    repos.split(",").foldLeft(List[Repo]())((repoList, repo) => {
+      if (repoList.exists(_.rootPath == repo)) {
+        repoList
       } else {
-        LocalRepo(localFileManager, repo)
+        repoList :+ (if (repo.trim.startsWith("http")) {
+          ApiRepo(HttpRestClient(repo, allowSelfSignedCerts), repo)
+        } else {
+          LocalRepo(localFileManager, repo)
+        })
       }
-    }) :+ defaultMavenRepo).toList
+    })
   }
 
   private def getInputStream(repos: List[Repo], path: String): RepoResult = {
@@ -85,21 +90,42 @@ class MavenDependencyResolver extends DependencyResolver {
 }
 
 trait Repo {
-  def exists(path: String): Boolean
+  def rootPath: String
   def getInputStream(path: String): InputStream
   def getLastModifiedDate(path: String): Date
+
+  override def hashCode(): Int = rootPath.hashCode
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case repo: Repo =>
+        rootPath.equals(repo.rootPath)
+      case _ =>
+        false
+    }
+  }
 }
 
-case class ApiRepo(http: HttpRestClient) extends Repo {
-  override def exists(path: String): Boolean = http.exists(path)
+case class ApiRepo(http: HttpRestClient, rootPath: String) extends Repo {
   override def getInputStream(path: String): InputStream = http.getInputStream(path)
   override def getLastModifiedDate(path: String): Date = http.getLastModifiedDate(path)
 }
 
 case class LocalRepo(fileManager: FileManager, rootPath: String) extends Repo {
-  override def exists(path: String): Boolean = fileManager.exists(new URI(s"$rootPath/${normalizePath(path)}").normalize().getPath)
-  override def getInputStream(path: String): InputStream = fileManager.getInputStream(new URI(s"$rootPath/${normalizePath(path)}").normalize().getPath)
-  override def getLastModifiedDate(path: String): Date = new Date(new File(new URI(s"$rootPath/${normalizePath(path)}").normalize().getPath).lastModified())
+  override def getInputStream(path: String): InputStream = {
+    if (fileManager.exists(new URI(s"$rootPath/repository/$path").normalize().getPath)) {
+      fileManager.getInputStream(new URI(s"$rootPath/repository/$path").normalize().getPath)
+    } else {
+      fileManager.getInputStream(new URI(s"$rootPath/${normalizePath(path)}").normalize().getPath)
+    }
+  }
+  override def getLastModifiedDate(path: String): Date = {
+    if (fileManager.exists(new URI(s"$rootPath/repository/$path").normalize().getPath)) {
+      new Date(new File(new URI(s"$rootPath/repository/$path").normalize().getPath).lastModified())
+    } else {
+      new Date(new File(new URI(s"$rootPath/${normalizePath(path)}").normalize().getPath).lastModified())
+    }
+  }
   private def normalizePath(path: String) = path.substring(path.lastIndexOf("/") + 1)
 }
 

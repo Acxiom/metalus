@@ -70,7 +70,7 @@ provided in the Transformation object.
 ### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|inputDataFrame|DataFrame|a data frame containing data to be mapped to destination| n/a |
+|inputDataFrame|Dataset[_]|a data frame containing data to be mapped to destination| n/a |
 |destinationSchema|Schema|the schema that the new data should conform to| n/a |
 |transforms|Transformations|the object containing transforms and input aliases|Transformations(List())|
 |addNewColumns|Boolean|a flag representing whether new columns on input (not on destination) should be added to output|true|    
@@ -83,8 +83,8 @@ for missing columns), filters, and any input aliases and transformation that mig
 ### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|inputDataFrame|DataFrame|a data frame containing data to be mapped to destination| n/a |
-|destinationDataFrame|DataFrame|the data frame that the new data should conform to| n/a |
+|inputDataFrame|Dataset[_]|a data frame containing data to be mapped to destination| n/a |
+|destinationDataFrame|Dataset[_]|the data frame that the new data should conform to| n/a |
 |transforms|Transformations|the object containing transforms and input aliases|Transformations(List())|
 |addNewColumns|Boolean|a flag representing whether new columns on input (not on destination) should be added to output|true|    
 
@@ -95,8 +95,8 @@ will be a combination of the inputDataFrame (w/transforms, etc...) and the desti
 ### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|inputDataFrame|DataFrame|a data frame to be merged with destination| n/a |
-|destinationDataFrame|DataFrame|the data frame that the new data should conform to| n/a |
+|inputDataFrame|Dataset[_]|a data frame to be merged with destination| n/a |
+|destinationDataFrame|Dataset[_]|the data frame that the new data should conform to| n/a |
 |transforms|Transformations|the object containing transforms and input aliases|Transformations(List())|
 |addNewColumns|Boolean|a flag representing whether new columns on input (not on destination) should be added to output|true|    
 |distinct|Boolean|flag to indicate whether a distinct union should be performed|true|
@@ -109,7 +109,7 @@ if the Transformations object includes expressions for columns that do not exist
 ### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|dataFrame|DataFrame|a data frame containing data to be transformed| n/a |
+|dataFrame|Dataset[_]|a data frame containing data to be transformed| n/a |
 |transforms|Transformations|the object containing transforms and input aliases|n/a|
 
 ## selectExpressions()
@@ -120,7 +120,7 @@ This step will select a list of expressions from an existing data frame.
 ### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|dataFrame|DataFrame|a data frame to select from| n/a |
+|dataFrame|Dataset[_]|a data frame to select from| n/a |
 |expressions|List[String]|the list of expressions to select|n/a|
 
 ## addColumn()
@@ -130,7 +130,7 @@ This step will append a new column to the end of the provided dataFrame.
 ### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|dataFrame|DataFrame|a data frame to append the column to| n/a |
+|dataFrame|Dataset[_]|a data frame to append the column to| n/a |
 |columnName|String|name of the column to add|n/a|
 |expression|String|spark sql expression for the column value|n/a|
 |standardizeColumnName|Boolean|flag to control whether the column name should be standardized|true|
@@ -142,7 +142,7 @@ This step will append a new column to the end of the provided dataFrame.
 ### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|dataFrame|DataFrame|a data frame to append the columns to| n/a |
+|dataFrame|Dataset[_]|a data frame to append the columns to| n/a |
 |columns|Map[String,String]|Map of column name/expressions|n/a|
 |standardizeColumnNames|Boolean|flag to control whether column names should be standardized|true|
 
@@ -153,7 +153,7 @@ This step will return a data frame minus the provided column names.
 ### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|dataFrame|DataFrame|a data frame to drop columns from| n/a |
+|dataFrame|Dataset[_]|a data frame to drop columns from| n/a |
 |columnNames|List[String]|List of columns to drop.|n/a|
 
 ##join()
@@ -164,8 +164,8 @@ This step will join two data frames together.
 ### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|left|DataFrame|left side of the join| n/a |
-|right|DataFrame|right side of the join| n/a |
+|left|Dataset[_]|left side of the join| n/a |
+|right|Dataset[_]|right side of the join| n/a |
 |expression|String|optional join expression|n/a|
 |leftAlias|String|alias for the left side of the join|left|
 |rightAlias|String|alias for the right side of the join|right|
@@ -178,7 +178,7 @@ The resulting DataFrame will have a combination of the grouping expressions and 
 ### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|dataFrame|DataFrame|data frame to group| n/a |
+|dataFrame|Dataset[_]|data frame to group| n/a |
 |groupings|List[String]|list of string expressions to group on|n/a|
 |aggregations|List[String]|list of string aggregate expressions|n/a|
 
@@ -190,8 +190,8 @@ UNION ALL and UNION DISTINCT behavior can be toggled, and will perform a DISTINC
 ### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|dataFrame|DataFrame|initial data frame| n/a |
-|append|DataFrame|data frame to append| n/a |
+|dataFrame|Dataset[_]|initial data frame| n/a |
+|append|Dataset[_]|data frame to append| n/a |
 |distinct|Boolean|flag to indicate whether a distinct should be performed|true|
 
 ## applyFilter()
@@ -202,8 +202,23 @@ in the expression.
 ### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|dataFrame|DataFrame|a data frame containing data to be filtered| n/a |
+|dataFrame|Dataset[_]|a data frame containing data to be filtered| n/a |
 |expression|String|the expression containing the filter criteria|n/a|
+
+## flattenDataFrame()
+This step will bring all nested fields(or a provided subset) to the "top" level of columns.
+Flattened columns will be named in the pattern "parent<sep>child<sep>grandchild".
+The separated used in named defaults to an underscore, and can be overridden.
+By default, all struct fields will be flattened, specific top level structs can be specified using the fieldList parameter.
+*__Note__*: maps and arrays will not be flattened using this step.
+
+### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|Dataset[_]|a data frame with nested data to flatten| n/a |
+|separator|String|an optional separator to place between parent and child names of flattened fields| _ |
+|fieldList|List[String]|optional list of top level fields to flatten. Will flatten all fields if not provided| n/a |
+|depth|Int|optional depth of traversal. By default, will perform a full traversal| n/a |
 
 ## standardizeColumnNames()
 This step will standardize the column names on the dataframe provided.  Standardization includes only replacing non-alphanumeric
@@ -212,7 +227,7 @@ and non-underscore characters (including whitespace) with an underscore (removin
 ### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|dataFrame|DataFrame|a data frame containing columns to be standardized| n/a |
+|dataFrame|Dataset[_]|a data frame containing columns to be standardized| n/a |
 
 #### addUniqueIdToDataFrame()
 This step will add a unique Id to an existing dataframe (using the 'monatonically_increase_id' spark udf)
@@ -221,7 +236,7 @@ This step will add a unique Id to an existing dataframe (using the 'monatonicall
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
 |idColumnName|String|the name to use for the newly created attribute| n/a |
-|dataFrame|DataFrame|the data frame to modify| n/a |
+|dataFrame|Dataset[_]|the data frame to modify| n/a |
 
 #### addStaticColumnToDataFrame()
 This step will add a static value to every row of an existing DataFrame
@@ -229,7 +244,7 @@ This step will add a static value to every row of an existing DataFrame
 ##### Input Parameters
 | Name | Type | Description | Default |
 | --- |:---|:--- |:---:|
-|dataFrame|DataFrame|the data frame to modify| n/a |
+|dataFrame|Dataset[_]|the data frame to modify| n/a |
 |columnName|String|the name for the new attribute| n/a |
 |columnValue|Any|the string value to set for the new attribute on each row| n/a |
 |standardizeColumnName|Boolean|flag to control whether the column name should be standardized|true|

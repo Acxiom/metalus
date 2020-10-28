@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import org.apache.spark.sql.DataFrame
 
 @StepObject
@@ -28,6 +28,8 @@ object GroupingSteps {
     "Performs a grouping across all columns in the DataFrame and aggregation using the groupByField of the data.",
     "Pipeline",
     "Example")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, description = Some("The DataFrame to group")),
+    "groupByField" -> StepParameter(None, Some(true), None, None, description = Some("The column name to use for grouping"))))
   def groupByField(dataFrame: DataFrame, groupByField: String): DataFrame = {
     dataFrame.groupBy(dataFrame.schema.fields.map(field => dataFrame(field.name)): _*).agg(dataFrame(groupByField))
   }

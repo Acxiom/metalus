@@ -21,11 +21,11 @@ is a _PipelineContext_. The *path* and *options* parameters **must** be represen
 
 ## [Metadata Extractor](metadata-extractor.md)
 The easiest way to generate step templates is to add an annotation to the step object and step function that may be 
-scanned using the [metadata extractor utility](metadata-extractor.md). The **StepFunction** annotation is used to provide 
+scanned using the [metadata extractor utility](metadata-extractor.md). The **StepFunction** annotation provides 
 information that cannot be gathered from the step function as well as mark the function as being a step. The annotation
 **must** be fully filled in with the following parameters: id, displayName, description, type, category. A description 
-of each is provided in the [JSON Step Template](step-templates.md) section. The scala object containing the step function(s)
-must have the **StepObject** annotation. A complete list of annotations may be found [here](step-annotations.md).
+of each is provided in the [JSON Step Template](step-templates.md) section. The **StepParameters** annotation provides
+additional information for each parameter. The _description_ being the most important since it cannot be derived.
 
 ```scala
   @StepFunction("87db259d-606e-46eb-b723-82923349640f",
@@ -33,7 +33,12 @@ must have the **StepObject** annotation. A complete list of annotations may be f
     "This step will read a dataFrame from the given HDFS path",
     "Pipeline",
     "InputOutput")
+  @StepParameters(Map("path" -> StepParameter(None, Some(true), None, None, None, None, Some("The HDFS path to load data into the DataFrame")),
+    "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The options to use when loading the DataFrameReader"))))
 ```
+
+The scala object containing the step function(s) must have the **StepObject** annotation. Here is a complete list of 
+[annotations](step-annotations.md).
 
 The [metadata extractor utility](metadata-extractor.md) will infer the remaining information from the function itself. Tags
 will be automatically populated with the name of the jar file where the step function was located.
@@ -130,7 +135,7 @@ value. Only branch steps should have result types and must contain at least one.
 parameters that may be added.
 
 #### Scala Script Parameters
-Step parameters given a type of **scalaScript** will be compiled and evaluated, with the result of the script passed to the step.
+Step parameters given a type of **scalascript** will be compiled and evaluated, with the result of the script passed to the step.
 These scripts consist of a binding section and a scala script. The bindings section must be enclosed by parenthesis.
 Each binding contains a name, value, and type, broken out as **\<name>:\<value>:\<type>**. Multiple bindings can be provided using a comma separated list.
 Colons can be escaped using a backslash.

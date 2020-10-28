@@ -5,7 +5,7 @@ import java.util.Properties
 
 import com.acxiom.pipeline.{PipelineContext, PipelineStepResponse}
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
 
 import scala.collection.JavaConversions._
@@ -119,7 +119,7 @@ object JDBCSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to be written")),
     "jdbcOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("Options for configuring the JDBC connection")),
     "saveMode" -> StepParameter(None, Some(false), None, None, None, None, saveModeDesc)))
-  def writeWithJDBCOptions(dataFrame: DataFrame,
+  def writeWithJDBCOptions(dataFrame: Dataset[_],
                            jdbcOptions: JDBCOptions,
                            saveMode: String = "Overwrite"): Unit = {
     val options = DataFrameWriterOptions("jdbc", saveMode, Some(jdbcOptions.asProperties.toMap))
@@ -145,7 +145,7 @@ object JDBCSteps {
     "table" -> StepParameter(None, Some(true), None, None, None, None, tableDesc),
     "connectionProperties" -> StepParameter(None, Some(false), None, None, None, None, connectionPropertiesDesc),
     "saveMode" -> StepParameter(None, Some(false), None, None, None, None, saveModeDesc)))
-  def writeWithProperties(dataFrame: DataFrame,
+  def writeWithProperties(dataFrame: Dataset[_],
                           url: String,
                           table: String,
                           connectionProperties: Option[Map[String, String]] = None,
@@ -170,7 +170,7 @@ object JDBCSteps {
     "InputOutput")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, dfWriteDesc),
     "jDBCStepsOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("Options for the JDBC connect and spark DataFrameWriter"))))
-  def writeWithStepOptions(dataFrame: DataFrame,
+  def writeWithStepOptions(dataFrame: Dataset[_],
                            jDBCStepsOptions: JDBCDataFrameWriterOptions): Unit = {
     val properties = new Properties()
     properties.putAll(jDBCStepsOptions.writerOptions.options.getOrElse(Map[String, String]()))

@@ -3,7 +3,7 @@ package com.acxiom.pipeline.steps
 import java.io.FileInputStream
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 
@@ -25,6 +25,10 @@ object InputOutputSteps {
     "This step will load a file from the provided URL using the provided schema",
     "Pipeline",
     "Example")
+  @StepParameters(Map("url" -> StepParameter(None, Some(true), None, None, description = Some("The file url")),
+    "format" -> StepParameter(None, Some(true), None, None, description = Some("The file format")),
+    "separator" -> StepParameter(None, Some(false), None, None, description = Some("The column separator")),
+    "schema" -> StepParameter(None, Some(false), None, None, description = Some("The optional schema to use"))))
   def loadFileWithSchema(url: String, format: String, separator: Option[String], schema: Option[StructType] = None,
                          pipelineContext: PipelineContext): DataFrame = {
     val dfr = if (separator.isDefined) {
@@ -54,6 +58,9 @@ object InputOutputSteps {
     "This step will load the first line of a file and parse it into column names",
     "Pipeline",
     "Example")
+  @StepParameters(Map("url" -> StepParameter(None, Some(true), None, None, description = Some("The file url")),
+  "format" -> StepParameter(None, Some(true), None, None, description = Some("The file format")),
+  "separator" -> StepParameter(None, Some(false), None, None, description = Some("The column separator"))))
   def readHeader(url: String, format: String, separator: Option[String]): List[String] = {
     val input = new FileInputStream(url)
     val head = Source.fromInputStream(input).getLines().next()
@@ -66,6 +73,7 @@ object InputOutputSteps {
     "This step will create a DataFrame schema from a list of column names",
     "Pipeline",
     "Example")
+  @StepParameters(Map("columnNames" -> StepParameter(None, Some(true), None, None, description = Some("The list of column names"))))
   def createSchema(columnNames: List[String]): StructType = {
     StructType(columnNames.map(StructField(_, StringType, nullable = true)))
   }

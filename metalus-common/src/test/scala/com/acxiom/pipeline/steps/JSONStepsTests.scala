@@ -9,6 +9,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types.StringType
 import org.json4s.{CustomSerializer, DefaultFormats, Formats, JObject}
 import org.json4s.JsonAST.JString
 import org.json4s.ext.EnumNameSerializer
@@ -164,6 +165,36 @@ class JSONStepsTests extends FunSpec with BeforeAndAfterAll {
         validateDataFrame("""[{ "col1": "row1_col1", "col2": "row1_col2", "col3": "row1_col3" },
           |{ "col1": "row2_col1", "col2": "row2_col2", "col3": "row2_col3" },
           |{ "col1": "row3_col1", "col2": "row3_col2", "col3": "row3_col3" }]""".stripMargin)
+    }
+
+    it("Should convert a Dataset[String] of JSON strings to a DataFrame") {
+      val spark = sparkSession
+      import spark.implicits._
+      val json = Seq(
+        """{"id":1, "name": "silkie", "stats": {"toes": 5, "skin_color": "black", "comb": "walnut"}}""",
+        """{"id":2, "name":"leghorn", "stats": {"toes": 4, "skin_color": "yellow", "comb": "single"}}""",
+        """{"id":3, "name": "polish", "stats": {"toes": 4, "skin_color": "white", "comb": "v-comb"}}"""
+      ).toDS
+      val df = JSONSteps.jsonDatasetToDataFrame(json, None, pipelineContext)
+      assert(df.count == 3)
+      assert(df.columns.length == 3)
+      assert(df.where("stats.toes = 5").selectExpr("name").first.getString(0) == "silkie")
+    }
+
+    it("Should convert a Dataset[String] of JSON strings to a DataFrame and respect options") {
+      val spark = sparkSession
+      import spark.implicits._
+      val json = Seq(
+        """{"id":1, "name": "silkie", "stats": {"toes": 5, "skin_color": "black", "comb": "walnut"}}""",
+        """{"id":2, "name":"leghorn", "stats": {"toes": 4, "skin_color": "yellow", "comb": "single"}}""",
+        """{"id":3, "name": "polish", "stats": {"toes": 4, "skin_color": "white", "comb": "v-comb"}}"""
+      ).toDS
+      val dataFrameReaderOptions = DataFrameReaderOptions("json", Some(Map("primitivesAsString" -> "true")))
+      val df = JSONSteps.jsonDatasetToDataFrame(json, Some(dataFrameReaderOptions), pipelineContext)
+      assert(df.count == 3)
+      assert(df.columns.length == 3)
+      assert(df.schema.fields.exists(f => f.name == "id" && f.dataType == StringType))
+      assert(df.where("stats.toes = '5'").selectExpr("name").first.getString(0) == "silkie")
     }
   }
 

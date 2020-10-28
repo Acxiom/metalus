@@ -5,7 +5,7 @@ import java.nio.file.Files
 import java.util.jar.JarFile
 
 import com.acxiom.metalus.resolvers.{Dependency, DependencyResolver}
-import com.acxiom.pipeline.fs.{FileManager, LocalFileManager}
+import com.acxiom.pipeline.fs.LocalFileManager
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
 import org.apache.log4j.Logger
 
@@ -60,9 +60,11 @@ object DependencyManager {
   }
 
   private def copyStepJarToLocal(localFileManager: LocalFileManager, jar: JarFile, outputFile: File) = {
-    if (!outputFile.exists()) {
-      val outputStream = localFileManager.getOutputStream(outputFile.getAbsolutePath, append = false)
-      localFileManager.copy(localFileManager.getInputStream(jar.getName), outputStream, FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)
+    if (!outputFile.exists() || outputFile.length() == 0) {
+      DependencyResolver.copyJarWithRetry(localFileManager,
+        localFileManager.getInputStream(jar.getName),
+        jar.getName,
+        outputFile.getAbsolutePath)
     }
   }
 
@@ -92,14 +94,14 @@ object DependencyManager {
       val dependencyType = dependencyMap.get.head._1
       val resolverName = s"com.acxiom.metalus.resolvers.${dependencyType.toLowerCase.capitalize}DependencyResolver"
       val resolver = ReflectionUtils.loadClass(resolverName).asInstanceOf[DependencyResolver]
-      val filteredLIbraries = dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]]
+      val filteredLibraries = dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]]
         .getOrElse("libraries", List[Map[String, Any]]()).asInstanceOf[List[Map[String, Any]]].filter(library => {
         val artifactId = library("artifactId").asInstanceOf[String]
         val version = library("version").asInstanceOf[String]
         val artifactScopes = library.getOrElse("scope", "runtime").asInstanceOf[String].split(',').toList
         !dependencies.exists(dep => dep.name == artifactId && dep.version == version) && scopes.exists(artifactScopes.contains)
       })
-      val updatedDependencyMap = dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]] + ("libraries" -> filteredLIbraries)
+      val updatedDependencyMap = dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]] + ("libraries" -> filteredLibraries)
       resolver.copyResources(output, updatedDependencyMap, parameters)
     } else {
       List()

@@ -4,7 +4,7 @@ import com.acxiom.pipeline.drivers.StreamingDataParser
 import org.apache.log4j.Logger
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.streaming.{Duration, Seconds, StreamingContext}
+import org.apache.spark.streaming.{Duration, Milliseconds, Minutes, Seconds, StreamingContext}
 
 object StreamingUtils {
   private val logger = Logger.getLogger(getClass)
@@ -37,11 +37,14 @@ object StreamingUtils {
     new StreamingContext(sparkContext, duration.getOrElse(getDuration()))
   }
 
-  def getDuration(durationType: Option[String] = Some(DEFAULT_DURATION_TYPE),
-                          duration: Option[String] = Some(DEFAULT_DURATION)): Duration = {
-    durationType match {
-      case Some("seconds") => Seconds(duration.get.toInt)
-      case _ => Seconds("30".toInt)
+  def getDuration(durationType: Option[String] = None,
+                          duration: Option[String] = None): Duration = {
+    val finalDuration = duration.getOrElse(DEFAULT_DURATION).toInt
+    durationType.getOrElse(DEFAULT_DURATION_TYPE).toLowerCase match {
+      case "milliseconds" => Milliseconds(finalDuration)
+      case "seconds" => Seconds(finalDuration)
+      case "minutes" => Minutes(finalDuration)
+      case _ => Seconds(finalDuration)
     }
   }
 
@@ -89,4 +92,15 @@ object StreamingUtils {
     */
   def getStreamingParser[T](rdd: RDD[T], parsers: List[StreamingDataParser[T]]): Option[StreamingDataParser[T]] =
     parsers.find(p => p.canParse(rdd))
+
+  /**
+   * Helper function that build a CommonStreamingParameters object using the parameters map.
+   * @param parameters passed to metalus from the spark submit.
+   * @return a CommonStreamingParameters object
+   */
+  def parseCommonStreamingParameters(parameters: Map[String, Any]): CommonStreamingParameters = {
+    CommonStreamingParameters(parameters.getOrElse("processEmptyRDD", false).asInstanceOf[Boolean])
+  }
 }
+
+case class CommonStreamingParameters(processEmptyRDD: Boolean)

@@ -49,18 +49,18 @@ object PipelineExecutor {
       })
       val exCtx = ctx.setRootAudit(ctx.rootAudit.setEnd(System.currentTimeMillis()))
       PipelineExecutionResult(handleEvent(exCtx, "executionFinished", List(executingPipelines, exCtx)),
-        success = true, paused = false)
+        success = true, paused = false, None)
     } catch {
       case fe: ForkedPipelineStepException =>
         fe.exceptions.foreach(entry =>
           logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
-        PipelineExecutionResult(esContext, success = false, paused = false)
+        PipelineExecutionResult(esContext, success = false, paused = false, Some(fe))
       case p: PauseException =>
         logger.info(s"Paused pipeline flow at ${p.pipelineProgress.getOrElse(PipelineExecutionInfo()).displayPipelineStepString}. ${p.message}")
-        PipelineExecutionResult(esContext, success = false, paused = true)
+        PipelineExecutionResult(esContext, success = false, paused = true, Some(p))
       case pse: PipelineStepException =>
         logger.error(s"Stopping pipeline because of an exception", pse)
-        PipelineExecutionResult(esContext, success = false, paused = false)
+        PipelineExecutionResult(esContext, success = false, paused = false, Some(pse))
       case t: Throwable => throw t
     }
   }
@@ -690,7 +690,7 @@ object PipelineExecutor {
                            pipeline: Pipeline,
                            steps: Map[String, PipelineStep],
                            forkSteps: List[PipelineStep]): List[PipelineStep] = {
-    step.`type`.getOrElse("").toLowerCase match {
+    val list = step.`type`.getOrElse("").toLowerCase match {
       case "fork" => throw PipelineException(message = Some("fork steps may not be embedded other fork steps!"),
         pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
       case "branch" =>
@@ -704,6 +704,12 @@ object PipelineExecutor {
       case "join" => conditionallyAddStepToList(step, forkSteps)
       case _ if !steps.contains(step.nextStepId.getOrElse("")) => conditionallyAddStepToList(step, forkSteps)
       case _ => getForkSteps(steps(step.nextStepId.getOrElse("")), pipeline, steps, conditionallyAddStepToList(step, forkSteps))
+    }
+
+    if (step.nextStepOnError.isDefined) {
+      getForkSteps(steps(step.nextStepOnError.getOrElse("")), pipeline, steps, list)
+    } else {
+      list
     }
   }
 

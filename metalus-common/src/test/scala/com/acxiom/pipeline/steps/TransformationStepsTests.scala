@@ -6,7 +6,7 @@ import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.{Row, SparkSession}
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 
 class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
@@ -378,7 +378,10 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       val expected = List((1, "silkie"), (2,"polish"))
       val res = TransformationSteps.union(df1, df2, Some(false))
       assert(res.collect().map(r => (r.getInt(0), r.getString(1))).toList == expected)
-      assert(TransformationSteps.union(res, df1).collect().map(r => (r.getInt(0), r.getString(1))).toList == expected)
+      assert(TransformationSteps.union(res, df1)
+        .asInstanceOf[DataFrame]
+        .collect()
+        .map(r => (r.getInt(0), r.getString(1))).toList == expected)
     }
 
     it("should standardize column names") {
@@ -481,6 +484,58 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       }
       assert(thrown.getMessage.startsWith("Expression must be provided for all non-cross joins."))
     }
+
+    it("should flatten a dataFrame") {
+      val spark = sparkSession
+      import spark.implicits._
+      val json = Seq(
+        """{"id":1, "name": "silkie", "stats": {"toes": 5, "skin_color": "black", "comb": "walnut"}}""",
+        """{"id":2, "name":"leghorn", "stats": {"toes": 4, "skin_color": "yellow", "comb": "single"}}""",
+        """{"id":3, "name": "polish", "stats": {"toes": 4, "skin_color": "white", "comb": "v-comb"}}"""
+      ).toDS
+      val nestedDf = spark.read.json(json)
+      val flatDf = TransformationSteps.flattenDataFrame(nestedDf).asInstanceOf[DataFrame]
+      assert(flatDf.count() == 3)
+      assert(List("id" , "name", "stats_comb", "stats_skin_color", "stats_toes").forall(flatDf.columns.contains))
+      val result = flatDf.where("id = 3").collect().head
+      assert(result.getAs[String]("stats_comb") == "v-comb")
+    }
+
+    it("should flatten specific columns") {
+      val spark = sparkSession
+      import spark.implicits._
+      val json = Seq(
+        """{"id":1, "name": "silkie", "misc": {"bearded": true}, "stats": {"toes": 5, "skin_color": "black", "comb": "walnut"}}""",
+        """{"id":2, "name":"leghorn", "misc": {"bearded": false}, "stats": {"toes": 4, "skin_color": "yellow", "comb": "single"}}""",
+        """{"id":3, "name": "polish", "misc": {"bearded": true}, "stats": {"toes": 4, "skin_color": "white", "comb": "v-comb"}}"""
+      ).toDS
+      val nestedDf = spark.read.json(json)
+      val flatDf = TransformationSteps.flattenDataFrame(nestedDf, Some(":"), Some(List("stats"))).asInstanceOf[DataFrame]
+      assert(flatDf.count() == 3)
+      assert(List("id" , "name", "stats:comb", "stats:skin_color", "stats:toes", "misc").forall(flatDf.columns.contains))
+      val result = flatDf.where("id = 3").collect().head
+      assert(result.getAs[String]("stats:comb") == "v-comb")
+      assert(flatDf.where("misc.bearded = true").count() == 2)
+    }
+
+    it("should respect depth when flattening") {
+      val sql = "select named_struct('sub', named_struct('a', 1, 'sub', named_struct('c', 3)), 'b', 2) as nested"
+      val flatDf = TransformationSteps.flattenDataFrame(sparkSession.sql(sql), depth = Some(2))
+      assert(List("nested_sub_a", "nested_sub_sub", "nested_b").forall(flatDf.columns.contains))
+      val row = flatDf.selectExpr("nested_sub_a", "nested_b", "nested_sub_sub.c").collect().head
+      assert(row.getInt(0) == 1)
+      assert(row.getInt(1) == 2)
+      assert(row.getInt(2) == 3)
+    }
+
+    it("should be idempotent when flattening a flat dataframe") {
+      val sql = "select 1 as a, 2 as b, 3 as c"
+      val df = sparkSession.sql(sql)
+      val flatDf = TransformationSteps.flattenDataFrame(df)
+      assert(flatDf.count == 1)
+      assert(flatDf == df)
+    }
+
   }
 
   describe("Schema Tests") {

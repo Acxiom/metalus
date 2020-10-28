@@ -2,9 +2,9 @@ package com.acxiom.pipeline
 
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, ScalaScriptEngine}
 import org.apache.log4j.Logger
+import org.json4s.Formats
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
-import org.json4s.{DefaultFormats, Formats}
 
 import scala.annotation.tailrec
 import scala.math.ScalaNumericConversions
@@ -276,7 +276,7 @@ trait PipelineStepMapper {
       implicit val formats: Formats = pipelineContext.getJson4sFormats
       list.map(value =>
         DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get))
-    } else if (list.head.isInstanceOf[Map[_, _]]) {
+    } else if (list.nonEmpty && list.head.isInstanceOf[Map[_, _]]) {
       list.map(value => {
         val map = value.asInstanceOf[Map[String, Any]]
         if (map.contains("className") && map.contains("object")) {
@@ -487,11 +487,13 @@ trait PipelineStepMapper {
     logger.debug(s"Fetching global value for $value.$extractPath")
     val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
     val initGlobal = pipelineContext.getGlobal(value.substring(1))
+    val globalLink = pipelineContext.isGlobalLink(value.substring(1))
     val applyMethod = pipelineContext.getGlobal("extractMethodsEnabled").asInstanceOf[Option[Boolean]]
 
     if(initGlobal.isDefined) {
       val global = initGlobal.get match {
-        case s: String => returnBestValue(s, Parameter(), pipelineContext.copy(globals = Some(globals - "GlobalLinks")))
+        case s: String if globalLink => returnBestValue(s, Parameter(), pipelineContext.copy(globals = Some(globals - "GlobalLinks")))
+        case s: String => Some(s)
         case default => Some(default)
       }
 

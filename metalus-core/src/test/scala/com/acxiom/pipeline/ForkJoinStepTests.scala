@@ -211,6 +211,39 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(!executionResult.success)
       results.validate()
     }
+
+    it("Should process list and use nextStepOnError using parallel processing") {
+      val params = Some(List(
+        Parameter(Some("text"), Some("string"), value = Some("!lastStepId")),
+        Parameter(Some("boolean"), Some("boolean"), value = Some(false))
+      ))
+      val pipelineSteps = List(generateDataStep, simpleForkParallelStep, processValueStep.copy(nextStepId = Some("BRANCH_VALUE")),
+        errorBranchStep, errorValueStep.copy(nextStepId = Some("JOIN"), nextStepOnError = Some("ON_ERROR")),
+        simpleMockStep.copy(id = Some("ON_ERROR"), nextStepId = Some("JOIN"), params = params),
+        joinStep.copy(nextStepId = Some("PROCESS_RAW_VALUE")), simpleMockStep)
+      val pipeline = Pipeline(Some("ON_ERROR_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineSteps))
+      val results = new ListenerValidations
+      SparkTestHelper.pipelineListener = new PipelineListener {
+        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+          exception match {
+            case _ =>
+              val e = Option(exception.getCause).getOrElse(exception)
+              results.addValidation(
+                "One of the executions should have failed!",
+                valid = e.getMessage == message)
+          }
+        }
+      }
+      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      assert(executionResult.success)
+      val parameters = executionResult.pipelineContext.parameters.getParametersByPipelineId("ON_ERROR_FORK_TEST")
+      assert(parameters.isDefined)
+      assert(parameters.get.parameters("ON_ERROR").isInstanceOf[PipelineStepResponse])
+      assert(parameters.get.parameters("ON_ERROR").asInstanceOf[PipelineStepResponse]
+        .primaryReturn.get.asInstanceOf[List[_]](1).asInstanceOf[Option[String]].get == "EXCEPTION")
+      assert(parameters.get.parameters("ON_ERROR").asInstanceOf[PipelineStepResponse]
+        .primaryReturn.get.asInstanceOf[List[_]](2).asInstanceOf[Option[String]].get == "EXCEPTION")
+    }
   }
 
   private def verifySimpleForkSteps(pipeline: Pipeline, executionResult: PipelineExecutionResult, extraStep: Boolean = false) = {
