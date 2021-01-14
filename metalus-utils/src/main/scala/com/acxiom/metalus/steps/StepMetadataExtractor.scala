@@ -1,14 +1,12 @@
 package com.acxiom.metalus.steps
 
-import java.util.jar.JarFile
-
 import com.acxiom.metalus.{Extractor, Metadata, Output}
 import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.{Constants, EngineMeta, StepResults}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.json4s.native.Serialization
-import org.json4s.{DefaultFormats, Formats}
 
+import java.util.jar.JarFile
 import scala.collection.JavaConversions._
 import scala.reflect.ScalaSignature
 import scala.reflect.internal.pickling.ByteCodecs
@@ -17,7 +15,6 @@ import scala.tools.scalap.scalax.rules.scalasig.{ByteCode, ScalaSigAttributePars
 import scala.util.{Failure, Success, Try}
 
 class StepMetadataExtractor extends Extractor {
-  implicit val formats: Formats = DefaultFormats
 
   override def getMetaDataType: String = "steps"
 

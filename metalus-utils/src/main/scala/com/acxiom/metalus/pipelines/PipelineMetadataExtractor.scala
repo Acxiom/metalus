@@ -1,18 +1,15 @@
 package com.acxiom.metalus.pipelines
 
-import java.util.jar.JarFile
-
 import com.acxiom.metalus.{Extractor, Metadata, Output}
-import com.acxiom.pipeline.{DefaultPipeline, Pipeline}
 import com.acxiom.pipeline.utils.DriverUtils
+import com.acxiom.pipeline.{DefaultPipeline, Pipeline}
 import org.json4s.native.Serialization
-import org.json4s.{DefaultFormats, Formats}
 
+import java.util.jar.JarFile
 import scala.collection.JavaConversions._
 import scala.io.Source
 
 class PipelineMetadataExtractor extends Extractor {
-  implicit val formats: Formats = DefaultFormats
 
   /**
     * Called by the MetadataExtractor to extract metadata from the provided jar files and write the data using the provided output.

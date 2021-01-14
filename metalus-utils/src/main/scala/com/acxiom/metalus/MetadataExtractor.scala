@@ -1,11 +1,16 @@
 package com.acxiom.metalus
 
+import com.acxiom.pipeline.api.HttpRestClient
+import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
+import org.json4s.native.JsonMethods.parse
+import org.json4s.native.Serialization
+import org.json4s.{DefaultFormats, Formats}
+
 import java.io.{File, FileWriter}
 import java.net.URI
 import java.util.jar.JarFile
-
-import com.acxiom.pipeline.api.HttpRestClient
-import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
+import scala.collection.JavaConversions._
+import scala.io.Source
 
 object MetadataExtractor {
   private val DEFAULT_EXTRACTORS = List[String](
@@ -46,6 +51,7 @@ object MetadataExtractor {
 }
 
 trait Extractor {
+  implicit val formats: Formats = DefaultFormats
   val FOUR: Int = 4
   val SEVEN: Int = 7
 
@@ -55,7 +61,17 @@ trait Extractor {
     * Called by the MetadataExtractor to extract metadata from the provided jar files and write the data using the provided output.
     * @param jarFiles A list of JarFile objects that should be scanned.
     */
-  def extractMetadata(jarFiles: List[JarFile]): Metadata
+  def extractMetadata(jarFiles: List[JarFile]): Metadata = {
+    val path = s"metadata/$getMetaDataType"
+    val executionsList = jarFiles.foldLeft(List[Map[String, Any]]())((executions, file) => {
+      file.entries().toList
+        .filter(f => f.getName.startsWith(path) && f.getName.endsWith(".json"))
+        .foldLeft(executions)((exeList, json) => {
+          exeList :+ parse(Source.fromInputStream(file.getInputStream(json)).mkString).extract[Map[String, Any]]
+        })
+    })
+    MapMetadata(Serialization.write(executionsList), executionsList)
+  }
 
   /**
     * This function should return a simple type that indicates what type of metadata this extractor produces.
@@ -90,5 +106,7 @@ trait Metadata {
 }
 
 case class JsonMetaData(value: String) extends Metadata
+
+case class MapMetadata(value: String, mapList: List[Map[String, Any]]) extends Metadata
 
 case class Output(api: Option[HttpRestClient], path: Option[File])
