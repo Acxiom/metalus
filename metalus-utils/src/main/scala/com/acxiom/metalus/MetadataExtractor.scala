@@ -62,19 +62,28 @@ trait Extractor {
     * @param jarFiles A list of JarFile objects that should be scanned.
     */
   def extractMetadata(jarFiles: List[JarFile]): Metadata = {
-    val path = s"metadata/$getMetaDataType"
-    val executionsList = jarFiles.foldLeft(List[Map[String, Any]]())((executions, file) => {
+    val executionsList = parseJsonMaps(s"metadata/$getMetaDataType", jarFiles)
+    MapMetadata(Serialization.write(executionsList), executionsList)
+  }
+
+  private[metalus] def parseJsonMaps(path: String, jarFiles: List[JarFile], addFileName: Boolean = false) = {
+    jarFiles.foldLeft(List[Map[String, Any]]())((maps, file) => {
       file.entries().toList
         .filter(f => f.getName.startsWith(path) && f.getName.endsWith(".json"))
-        .foldLeft(executions)((exeList, json) => {
-          exeList :+ parse(Source.fromInputStream(file.getInputStream(json)).mkString).extract[Map[String, Any]]
+        .foldLeft(maps)((mapList, json) => {
+          val map = parse(Source.fromInputStream(file.getInputStream(json)).mkString).extract[Map[String, Any]]
+          if (addFileName) {
+            mapList :+ (map + ("fileName" -> file.getName))
+          } else {
+            mapList :+ map
+          }
         })
     })
-    MapMetadata(Serialization.write(executionsList), executionsList)
   }
 
   /**
     * This function should return a simple type that indicates what type of metadata this extractor produces.
+    *
     * @return A simple string name.
     */
   def getMetaDataType: String

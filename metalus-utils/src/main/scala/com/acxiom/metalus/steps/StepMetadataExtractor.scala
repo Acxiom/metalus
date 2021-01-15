@@ -6,6 +6,7 @@ import com.acxiom.pipeline.{Constants, EngineMeta, StepResults}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.json4s.native.Serialization
 
+import java.io.{File, FileWriter}
 import java.util.jar.JarFile
 import scala.collection.JavaConversions._
 import scala.reflect.ScalaSignature
@@ -39,7 +40,11 @@ class StepMetadataExtractor extends Extractor {
       stepMappings._1,
       buildPackageObjects(stepMappings._2)
     )
-    StepMetadata(Serialization.write(definition), definition.pkgs, definition.steps, definition.pkgObjs)
+    StepMetadata(Serialization.write(definition),
+      definition.pkgs,
+      definition.steps,
+      definition.pkgObjs,
+      parseJsonMaps("metadata/stepForms", jarFiles, addFileName = true))
   }
 
   /**
@@ -49,6 +54,7 @@ class StepMetadataExtractor extends Extractor {
     * @param output   Information about how to output the metadata.
     */
   override def writeOutput(metadata: Metadata, output: Output): Unit = {
+    val path = "metadata/stepForms"
     if (output.api.isDefined) {
       val http = output.api.get
       val definition = metadata.asInstanceOf[StepMetadata]
@@ -71,24 +77,49 @@ class StepMetadataExtractor extends Extractor {
           http.postJsonContent("steps", Serialization.write(step), headers)
         }
       })
+      definition.stepForms.foreach(map => {
+        val jarList = map.getOrElse("tags", List("No Jar Defined")).asInstanceOf[List[String]].filter(_.endsWith(".jar")).mkString
+        val name = map.getOrElse("fileName", "none").asInstanceOf[String]
+        val id = name.substring(name.indexOf(path) + path.length + 1, name.indexOf(".json"))
+        val headers =
+          Some(Map[String, String]("User-Agent" -> s"Metalus / ${System.getProperty("user.name")} / $jarList"))
+        http.putJsonContent(s"executions/$id/template", Serialization.write(map), headers)
+      })
     } else {
       super.writeOutput(metadata, output)
+      // Handle writing stepForms to file
+      val definition = metadata.asInstanceOf[StepMetadata]
+      if (definition.stepForms.nonEmpty && output.path.nonEmpty) {
+        val file = new File(output.path.get, "stepForms.json")
+        val writer = new FileWriter(file)
+        writer.write(Serialization.write(definition.stepForms.map(m => {
+          val id = m.getOrElse("fileName", "none").asInstanceOf[String]
+          val updatedMap = m + ("stepId" -> id)
+          updatedMap - "fileName"
+        })))
+        writer.flush()
+        writer.close()
+      }
     }
   }
 
   private def isStepObject(stepPath: String): Boolean = {
-    val clazz = Class.forName(stepPath, false, getClass.getClassLoader)
-    val containsAnnotation = clazz.isAnnotationPresent(classOf[scala.reflect.ScalaSignature])
-    // Iterate the annotations in case there are multiple
-    if (containsAnnotation) {
-      clazz.getAnnotationsByType(classOf[ScalaSignature]).exists(annotation => {
-        val bytes = annotation.bytes.getBytes("UTF-8")
-        val len = ByteCodecs.decode(bytes)
-        val byteCode = Some(ByteCode(bytes.take(len)))
-        byteCode.map(ScalaSigAttributeParsers.parse).get.symbols.exists(s => s.name == "StepObject")
-      })
-    } else {
-      false
+    try {
+      val clazz = Class.forName(stepPath, false, getClass.getClassLoader)
+      val containsAnnotation = clazz.isAnnotationPresent(classOf[scala.reflect.ScalaSignature])
+      // Iterate the annotations in case there are multiple
+      if (containsAnnotation) {
+        clazz.getAnnotationsByType(classOf[ScalaSignature]).exists(annotation => {
+          val bytes = annotation.bytes.getBytes("UTF-8")
+          val len = ByteCodecs.decode(bytes)
+          val byteCode = Some(ByteCode(bytes.take(len)))
+          byteCode.map(ScalaSigAttributeParsers.parse).get.symbols.exists(s => s.name == "StepObject")
+        })
+      } else {
+        false
+      }
+    } catch {
+      case _: Throwable => false
     }
   }
 
@@ -396,7 +427,8 @@ class StepMetadataExtractor extends Extractor {
 case class StepMetadata(value: String,
                         pkgs: List[String],
                         steps: List[StepDefinition],
-                        pkgObjs: List[PackageObject]) extends Metadata
+                        pkgObjs: List[PackageObject],
+                        stepForms: List[Map[String, Any]]) extends Metadata
 
 case class ParameterInfo(className: String, caseClass: Boolean)
 case class StepParameterInfo(typeValue: String,
