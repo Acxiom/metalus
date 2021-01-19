@@ -24,6 +24,8 @@ object DriverUtils {
 
   private val SPARK_MASTER = "spark.master"
 
+  private[utils] val resultMap = scala.collection.mutable.Map[String, Option[Map[String, DependencyResult]]]("results" -> None)
+
   /**
     * Creates a SparkConf with the provided class array. This function will also set properties required to run on a cluster.
     *
@@ -221,12 +223,15 @@ object DriverUtils {
                            attempt: Int = 1,
                            maxAttempts: Int = Constants.FIVE): Unit = {
     val plan = if (dataFrame.isDefined) {
-      DriverUtils.addInitialDataFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame.get)
+      DriverUtils.addInitialDataFrameToExecutionPlan(
+        driverSetup.refreshExecutionPlan(executionPlan, resultMap("results")), dataFrame.get)
     } else {
       executionPlan
     }
-    val results = driverSetup.handleExecutionResult(PipelineDependencyExecutor.executePlan(plan))
+    val executorResultMap = PipelineDependencyExecutor.executePlan(plan)
+    val results = driverSetup.handleExecutionResult(executorResultMap)
     if (results.success) {
+      resultMap += ("results" -> executorResultMap)
       // Call provided function once execution is successful
       successFunc()
     } else {

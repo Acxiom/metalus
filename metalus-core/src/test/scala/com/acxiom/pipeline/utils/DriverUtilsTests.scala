@@ -111,6 +111,13 @@ class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
       },
         throwExceptionOnFailure = true, 1, 0)
       assert(passed, "DataFrame was not injected into PipelineContext Globals!")
+      assert(DriverUtils.resultMap("results").isDefined)
+      val resultMap = DriverUtils.resultMap("results").get
+      assert(resultMap.size == 2)
+      assert(resultMap("ONE").execution.id == "ONE")
+      assert(resultMap("ONE").result.get.success)
+      assert(resultMap("TWO").execution.id == "TWO")
+      assert(resultMap("TWO").result.get.success)
     }
 
     it("Should load StreamingDataParsers") {
