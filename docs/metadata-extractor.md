@@ -188,7 +188,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -227,7 +226,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -260,7 +258,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -293,7 +290,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -332,7 +328,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -351,7 +346,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -378,7 +372,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -417,7 +410,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -443,7 +435,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -470,7 +461,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -514,7 +504,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -552,7 +541,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -602,7 +590,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -635,7 +622,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -680,7 +666,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -726,7 +711,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -771,7 +755,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -804,7 +787,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -836,7 +818,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -862,7 +843,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -894,7 +874,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -933,7 +912,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -966,7 +944,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -992,7 +969,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -1043,7 +1019,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -1088,7 +1063,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -1114,7 +1088,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -1158,7 +1131,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -1214,7 +1186,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -1276,7 +1247,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -1302,7 +1272,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -1352,7 +1321,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -1379,7 +1347,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -1412,7 +1379,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -1439,7 +1405,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     },
@@ -1472,7 +1437,6 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
         }
       },
       "tags": [
-        "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
         "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
       ]
     }

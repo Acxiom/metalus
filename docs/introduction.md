@@ -40,24 +40,21 @@ Metalus core provides the base library required to run metalus applications and 
 
 |Spark Version|Scala Version|Library|
 |-------------|-------------|-------|
-|2.3          |2.11         |[Maven 2.11 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-core_2.11-spark_2.3)|
 |2.4          |2.11         |[Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-core_2.11-spark_2.4)|
-|2.4          |2.12         |[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-core_2.12-spark_2.4)|
+|3.0          |2.12         |[Maven 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-core_2.12-spark_3.0)|
 
 ## Metalus Common
 Metalus common provides a step library for building basic applications.
 
 |Spark Version|Scala Version|Library|
 |-------------|-------------|-------|
-|2.3          |2.11         |[Maven 2.11 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-common_2.11-spark_2.3)|
 |2.4          |2.11         |[Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-common_2.11-spark_2.4)|
-|2.4          |2.12         |[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-common_2.12-spark_2.4)|
+|3.0          |2.12         |[Maven 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-common_2.12-spark_3.0)|
 
 ## Metalus AWS
 Metalus AWS provides a step library for working with AWS technologies.
 
 |Spark Version|Scala Version|Library|
 |-------------|-------------|-------|
-|2.3          |2.11         |[Maven 2.11 Spark 2.3 library](https://search.maven.org/search?q=a:metalus-aws_2.11-spark_2.3)|
 |2.4          |2.11         |[Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-aws_2.11-spark_2.4)|
-|2.4          |2.12         |[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_2.4)|
+|3.0          |2.12         |[Maven 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_3.0)|

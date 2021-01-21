@@ -75,7 +75,6 @@ Below is an example of how a basic two step pipeline may look once complete:
                 "pkg": "com.acxiom.pipeline.steps"
             },
             "tags": [
-              "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
               "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
             ],
             "stepId": "87db259d-606e-46eb-b723-82923349640f"
