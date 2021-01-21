@@ -1,5 +1,3 @@
-# This is a basic workflow that is manually triggered
-
 name: Develop Build
 
 on:
@@ -12,7 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        spark: [2.4, 3.0]
+        spark: ['2.4', '3.0']
     runs-on: ${{ matrix.os }}
     steps:
       - name: Source Checkout
@@ -35,6 +33,4 @@ jobs:
         with:
           java-version: 1.8
       - name: Build with Maven
-        env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-        run: mvn -B -DrepoToken=$coverallsToken clean install scoverage:report coveralls:report
+        run: mvn -B -DrepoToken=${{ secrets.COVERALLS_REPO_TOKEN }} clean install scoverage:report coveralls:report
