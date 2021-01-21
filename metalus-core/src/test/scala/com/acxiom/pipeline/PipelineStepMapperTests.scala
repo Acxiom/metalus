@@ -1,7 +1,5 @@
 package com.acxiom.pipeline
 
-import java.io.File
-
 import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import com.acxiom.pipeline.utils.DriverUtils
 import org.apache.commons.io.FileUtils
@@ -10,6 +8,8 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen, Suite}
+
+import java.io.File
 
 class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen with Suite {
   private val FIVE = 5
@@ -113,8 +113,6 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("big int", Parameter(value = Some(BigInt("5")), `type` = Some("integer")), BigInt("5")),
         ("decimal", Parameter(value = Some(BigInt("5")), `type` = Some("integer")), BigInt("5")),
         ("list", Parameter(value = Some(List("5")), `type` = Some("integer")), List("5")),
-        ("string list", Parameter(value = Some("[\"a\", \"b\", \"c\" \"d\"]"), `type` = Some("list")), List("a", "b", "c", "d")),
-        ("int list", Parameter(value = Some("[1, 2, 3]"), `type` = Some("list")), List(1, 2, 3)),
         ("default value", Parameter(name = Some("fred"), defaultValue = Some("default value"), `type` = Some("string")), "default value"),
         ("string from global", Parameter(value = Some("!globalString"), `type` = Some("string")), "globalValue1"),
         ("GlobalLink overrides root global", Parameter(value = Some("!link9"), `type` = Some("string")), "link_override"),

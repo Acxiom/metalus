@@ -3,7 +3,6 @@ package com.acxiom.pipeline
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, ScalaScriptEngine}
 import org.apache.log4j.Logger
 import org.json4s.Formats
-import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
 
 import scala.annotation.tailrec
@@ -515,9 +514,7 @@ trait PipelineStepMapper {
 
   private def mapByValue(value: Option[String], parameter: Parameter, pipelineContext: PipelineContext): Any = {
     implicit val formats: Formats = pipelineContext.getJson4sFormats
-    if (value.getOrElse("").startsWith("[") || value.getOrElse("").startsWith("{")) {
-      parse(value.get).values // option 1: using the first byte of the string
-    } else if (value.isDefined) {
+    if (value.isDefined) {
       value.get
     } else if (parameter.defaultValue.isDefined) {
       logger.debug(s"Parameter ${parameter.name.get} has a defaultValue of ${parameter.defaultValue.getOrElse("")}")
