@@ -1,7 +1,8 @@
 package com.acxiom.aws.utils
 
-import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.regions.{Region, Regions}
+import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
+import com.amazonaws.regions.Regions
 import com.amazonaws.services.kinesis.{AmazonKinesis, AmazonKinesisClient}
 
 object KinesisUtilities {
@@ -33,12 +34,13 @@ object KinesisUtilities {
                          secretAccessKey: Option[String] = None): AmazonKinesis = {
     val kinesisClient = if (accessKeyId.isDefined) {
       val credentials = new BasicAWSCredentials(accessKeyId.getOrElse(""), secretAccessKey.getOrElse(""))
-      new AmazonKinesisClient(credentials)
+      AmazonKinesisClient.builder().withCredentials(new AWSStaticCredentialsProvider(credentials))
     } else {
-      new AmazonKinesisClient()
+      AmazonKinesisClient.builder()
     }
-    kinesisClient.setRegion(Region.getRegion(Regions.fromName(region)))
-    kinesisClient.setEndpoint(s"https://kinesis.$region.amazonaws.com")
-    kinesisClient
+    kinesisClient.withRegion(Regions.fromName(region))
+    kinesisClient.withEndpointConfiguration(
+      new EndpointConfiguration(s"https://kinesis.$region.amazonaws.com", region))
+    kinesisClient.build()
   }
 }

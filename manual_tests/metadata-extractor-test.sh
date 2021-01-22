@@ -74,5 +74,12 @@ checkResults "metalus-kafka" "steps"
 checkResults "metalus-mongo" "pipelines"
 checkResults "metalus-mongo" "steps"
 
+# Copy the templates to another directory if required
+if [[ -n ${1} && ${1} = true ]]
+then
+  mkdir -p $dir/manual_tests/metadata_templates
+  mv $tmpDir/staging/* $dir/manual_tests/metadata_templates/
+fi
+
 # Cleanup the temp directory
 rm -rf $tmpDir
