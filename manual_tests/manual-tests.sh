@@ -12,7 +12,7 @@ validateResult() {
 # Setup the temporary location for testing
 bindir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 dir=$(dirname "${bindir}")
-cd "$dir"
+cd "$dir" || exit
 
 # Remove snapshot so the metadata uses clean tags
 mvn -B versions:set -DremoveSnapshot
