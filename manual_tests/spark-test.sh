@@ -10,11 +10,11 @@ mkdir $tmpDir
 mkdir -p $serversDir
 
 # Determine Scala/Spark Version
-regex='(metalus-aws_)([^-]*)'
+#regex='(metalus-aws_)([^-]*)'
 sparkRegex='(spark_)([^-]*)'
 jarFiles=`ls $dir/metalus-aws/target/metalus-aws*.jar | grep -v javadoc`
-[[ $jarFiles =~ $regex ]]
-scalaCompat=${BASH_REMATCH[2]}
+#[[ $jarFiles =~ $regex ]]
+#scalaCompat=${BASH_REMATCH[2]}
 [[ $jarFiles =~ $sparkRegex ]]
 sparkCompat=${BASH_REMATCH[2]}
 # Download/Unpack Spark

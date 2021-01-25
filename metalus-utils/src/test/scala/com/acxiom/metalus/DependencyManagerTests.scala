@@ -1,13 +1,14 @@
 package com.acxiom.metalus
 
-import java.io.{ByteArrayOutputStream, File}
-import java.net.URI
-import java.nio.file.{Files, Paths}
-
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, urlEqualTo}
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
+
+import java.io.{ByteArrayOutputStream, File}
+import java.net.URI
+import java.nio.file.{Files, Paths}
+import scala.io.Source
 
 class DependencyManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
   private val HTTP_PORT = 10295
@@ -25,6 +26,22 @@ class DependencyManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
     val bytes = Stream.continually(is.read).takeWhile(_ != -1).map(_.toByte).toArray
     is.close()
     bytes
+  }
+  private lazy val mainJarMd5 = {
+    val is = getClass.getResourceAsStream("/main-1.0.0.jar.md5")
+    val src = Source.fromInputStream(is)
+    val md5 = src.getLines().next()
+    src.close()
+    is.close()
+    md5
+  }
+  private lazy val dependencyJarMd5 = {
+    val is = getClass.getResourceAsStream("/dependency-1.0.0.jar.md5")
+    val src = Source.fromInputStream(is)
+    val md5 = src.getLines().next()
+    src.close()
+    is.close()
+    md5
   }
 
   override def beforeAll(): Unit = {
@@ -139,6 +156,16 @@ class DependencyManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
           .withHeader("content-type", "application/octet-stream")
           .withBody(dependencyJarBytes)
         ).build())
+      wireMockServer.addStubMapping(get(urlEqualTo("/com/acxiom/main/1.0.0/main-1.0.0.jar.md5"))
+        .willReturn(aResponse()
+          .withHeader("content-type", "application/octet-stream")
+          .withBody(mainJarMd5)
+        ).build())
+      wireMockServer.addStubMapping(get(urlEqualTo("/com/acxiom/dependency/1.0.0/dependency-1.0.0.jar.md5"))
+        .willReturn(aResponse()
+          .withHeader("content-type", "application/octet-stream")
+          .withBody(dependencyJarMd5)
+        ).build())
 
       val params = Array("--jar-files", s"http://localhost:${wireMockServer.port()}/com/acxiom/main/1.0.0/main-1.0.0.jar",
         "--output-path", stagingDirectory.toFile.getAbsolutePath,
@@ -205,6 +232,44 @@ class DependencyManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(outputJars.contains("hdfs://jar_dir/needs-main-1.0.1.jar"))
       assert(outputJars.contains("hdfs://jar_dir/main-1.0.0.jar"))
       assert(outputJars.contains("hdfs://jar_dir/dependency-1.0.0.jar"))
+      FileUtils.deleteDirectory(stagingDirectory.toFile)
+      wireMockServer.resetMappings()
+    }
+
+    it("Should fail to download jar with bad md5") {
+      val stagingDirectory = Files.createTempDirectory("metalus_staging_remote_test")
+      stagingDirectory.toFile.deleteOnExit()
+
+      wireMockServer.addStubMapping(get(urlEqualTo("/com/acxiom/main/1.0.0/main-1.0.0.jar"))
+        .willReturn(aResponse()
+          .withHeader("content-type", "application/octet-stream")
+          .withBody(mainJarBytes)
+        ).build())
+      wireMockServer.addStubMapping(get(urlEqualTo("/com/acxiom/dependency/1.0.0/dependency-1.0.0.jar"))
+        .willReturn(aResponse()
+          .withHeader("content-type", "application/octet-stream")
+          .withBody(dependencyJarBytes)
+        ).build())
+      wireMockServer.addStubMapping(get(urlEqualTo("/com/acxiom/main/1.0.0/main-1.0.0.jar.md5"))
+        .willReturn(aResponse()
+          .withHeader("content-type", "application/octet-stream")
+          .withBody(dependencyJarMd5)
+        ).build())
+      wireMockServer.addStubMapping(get(urlEqualTo("/com/acxiom/dependency/1.0.0/dependency-1.0.0.jar.md5"))
+        .willReturn(aResponse()
+          .withHeader("content-type", "application/octet-stream")
+          .withBody(dependencyJarMd5)
+        ).build())
+
+      val params = Array("--jar-files", s"http://localhost:${wireMockServer.port()}/com/acxiom/main/1.0.0/main-1.0.0.jar",
+        "--output-path", stagingDirectory.toFile.getAbsolutePath,
+        "--repo", s"http://localhost:${wireMockServer.port()}")
+      val thrown = intercept[IllegalStateException] {
+        DependencyManager.main(params)
+      }
+      assert(thrown.getMessage == s"Unable to copy jar http://localhost:${wireMockServer.port()}/com/acxiom/main/1.0.0/main-1.0.0.jar")
+      val stagedFiles = stagingDirectory.toFile.list()
+      assert(stagedFiles.isEmpty)
       FileUtils.deleteDirectory(stagingDirectory.toFile)
       wireMockServer.resetMappings()
     }
