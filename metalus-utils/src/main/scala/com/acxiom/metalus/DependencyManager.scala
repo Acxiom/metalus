@@ -1,6 +1,6 @@
 package com.acxiom.metalus
 
-import com.acxiom.metalus.resolvers.{Dependency, DependencyResolver}
+import com.acxiom.metalus.resolvers.{Dependency, DependencyHash, DependencyResolver, HashType}
 import com.acxiom.pipeline.fs.LocalFileManager
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
 import org.apache.log4j.Logger
@@ -30,7 +30,7 @@ object DependencyManager {
         val input = () => http.getInputStream("")
         val dir = Files.createTempDirectory("metalusJarDownloads").toFile
         val localFile = new File(dir, fileName)
-        val md5Hash = DependencyResolver.getRemoteMd5Hash(file, parameters)
+        val md5Hash = DependencyResolver.getRemoteHash(file, parameters)
         localFile.deleteOnExit()
         dir.deleteOnExit()
         val remoteDate = http.getLastModifiedDate("")
@@ -45,8 +45,8 @@ object DependencyManager {
       } else {
         new File(file)
       }
-      val md5Hash = DependencyResolver.generateMD5Hash(new FileInputStream(srcFile))
-      copyStepJarToLocal(localFileManager, new JarFile(srcFile), destFile, md5Hash)
+      val hash = DependencyResolver.generateHash(new FileInputStream(srcFile), HashType.MD5)
+      copyStepJarToLocal(localFileManager, new JarFile(srcFile), destFile, hash)
       cp.addDependency(Dependency(artifactName, artifactName.split("-")(1), destFile))
     })
     // Get the dependencies
@@ -64,7 +64,7 @@ object DependencyManager {
         () => localFileManager.getInputStream(jar.getName),
         jar.getName,
         outputFile.getAbsolutePath,
-        Some(md5Hash))
+        Some(DependencyHash(md5Hash, HashType.MD5)))
     }
   }
 

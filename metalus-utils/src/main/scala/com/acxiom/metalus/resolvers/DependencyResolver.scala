@@ -1,5 +1,6 @@
 package com.acxiom.metalus.resolvers
 
+import com.acxiom.metalus.resolvers.HashType.HashType
 import com.acxiom.pipeline.api.HttpRestClient
 import com.acxiom.pipeline.fs.FileManager
 import com.acxiom.pipeline.utils.DriverUtils
@@ -23,22 +24,32 @@ object DependencyResolver {
     DriverUtils.getHttpRestClient(path, credentialProvider, Some(noAuthDownload), allowSelfSignedCerts)
   }
 
-  def generateMD5Hash(input: InputStream): String = {
-    val MD5 = MessageDigest.getInstance("MD5")
+  def generateHash(input: InputStream, hashType: HashType): String = {
+    val MD5 = MessageDigest.getInstance(HashType.getAlgorithm(hashType))
     Stream.continually(input.read).takeWhile(_ != -1).foreach(b => MD5.update(b.toByte))
     input.close()
     MD5.digest().map(0xFF & _).map { "%02x".format(_) }.foldLeft(""){_ + _}
   }
 
-  def getRemoteMd5Hash(path: String, parameters: Map[String, Any]): Option[String] = {
+  def getRemoteHash(path: String, parameters: Map[String, Any]): Option[DependencyHash] = {
     val http = DependencyResolver.getHttpClientForPath(s"$path.md5", parameters)
+    val httpSha1 = DependencyResolver.getHttpClientForPath(s"$path.sha1", parameters)
     if (http.exists("")) {
-      val src = Source.fromInputStream(http.getInputStream(""))
+      val input = http.getInputStream("")
+      val src = Source.fromInputStream(input)
       val hash = src.getLines().next()
+      input.close()
       src.close()
-      Some(hash)
+      Some(DependencyHash(hash, HashType.MD5))
+    } else if (httpSha1.exists("")) {
+      val input = httpSha1.getInputStream("")
+      val src = Source.fromInputStream(input)
+      val hash = src.getLines().next()
+      input.close()
+      src.close()
+      Some(DependencyHash(hash, HashType.SHA1))
     } else {
-      None
+        None
     }
   }
 
@@ -76,7 +87,7 @@ object DependencyResolver {
     * @param input       The input stream to read the data
     * @param fileName    The name of the file being copied
     * @param outputPath  The local path where data is to be copied
-    * @param md5Hash     An optional md5 hash to compare with the copied file to ensure the copy was succesful
+    * @param hash     An optional md5 hash to compare with the copied file to ensure the copy was succesful
     * @param attempt     The attempt number
     * @return true if the Jar file could be copied
     */
@@ -85,16 +96,16 @@ object DependencyResolver {
                        input: () => InputStream,
                        fileName: String,
                        outputPath: String,
-                       md5Hash: Option[String],
+                       hash: Option[DependencyHash],
                        attempt: Int = 1): Boolean = {
     val output = fileManager.getOutputStream(outputPath, append = false)
     val outputFile = new File(outputPath)
     fileManager.copy(input(), output, FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)
     val result = try {
-      if (md5Hash.isDefined) {
-        val hash = generateMD5Hash(new FileInputStream(new File(outputPath)))
-        if (hash != md5Hash.get) {
-          throw new IllegalStateException(s"File ($outputPath) MD5 hash did not match")
+      if (hash.isDefined) {
+        val hashString = generateHash(new FileInputStream(new File(outputPath)), hash.get.hashType)
+        if (hashString != hash.get.hash) {
+          throw new IllegalStateException(s"File ($outputPath) ${HashType.getAlgorithm(hash.get.hashType)} hash did not match")
         }
       }
       new JarFile(outputFile)
@@ -112,7 +123,7 @@ object DependencyResolver {
         false
     }
     if (!result && attempt <= 5) {
-      copyJarWithRetry(fileManager, input, fileName, outputPath, md5Hash, attempt + 1)
+      copyJarWithRetry(fileManager, input, fileName, outputPath, hash, attempt + 1)
     } else {
       result
     }
@@ -124,3 +135,24 @@ trait DependencyResolver {
 }
 
 case class Dependency(name: String, version: String, localFile: File)
+
+object HashType extends Enumeration {
+  type HashType = Value
+  val MD5, SHA1 = Value
+
+  def getExtension(hashType: HashType): String = {
+    hashType match {
+      case HashType.SHA1 => ".sha1"
+      case _ => ".md5"
+    }
+  }
+
+  def getAlgorithm(hashType: HashType): String = {
+    hashType match {
+      case HashType.SHA1 => "SHA-1"
+      case _ => "MD5"
+    }
+  }
+}
+
+case class DependencyHash(hash: String, hashType: HashType)

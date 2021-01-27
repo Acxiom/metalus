@@ -37,7 +37,7 @@ class MavenDependencyResolver extends DependencyResolver {
             dependencyFile.delete()
           }
           val input = repoResult.input.get
-          val deps = if (DependencyResolver.copyJarWithRetry(localFileManager, input, path, dependencyFile.getAbsolutePath, repoResult.md5)) {
+          val deps = if (DependencyResolver.copyJarWithRetry(localFileManager, input, path, dependencyFile.getAbsolutePath, repoResult.hash)) {
             dependencies :+ Dependency(artifactId, version, dependencyFile)
           } else {
             logger.warn(s"Failed to copy file: $dependencyFileName")
@@ -82,7 +82,7 @@ class MavenDependencyResolver extends DependencyResolver {
           // Make this call to see if we are able to get an input stream
           val input = repo.getInputStream(path)
           input.close()
-          RepoResult(Some(() => repo.getInputStream(path)), Some(repo.getLastModifiedDate(path)), repo.getMd5Hash(path))
+          RepoResult(Some(() => repo.getInputStream(path)), Some(repo.getLastModifiedDate(path)), repo.getHash(path))
         } catch {
           case _: Throwable => initial
         }
@@ -96,7 +96,7 @@ trait Repo {
   def parameters: Map[String, Any]
   def getInputStream(path: String): InputStream
   def getLastModifiedDate(path: String): Date
-  def getMd5Hash(path: String): Option[String]
+  def getHash(path: String): Option[DependencyHash]
 
   override def hashCode(): Int = rootPath.hashCode
 
@@ -113,7 +113,7 @@ trait Repo {
 case class ApiRepo(http: HttpRestClient, rootPath: String, parameters: Map[String, Any]) extends Repo {
   override def getInputStream(path: String): InputStream = http.getInputStream(path)
   override def getLastModifiedDate(path: String): Date = http.getLastModifiedDate(path)
-  override def getMd5Hash(path: String): Option[String] = DependencyResolver.getRemoteMd5Hash(s"$rootPath/$path", parameters)
+  override def getHash(path: String): Option[DependencyHash] = DependencyResolver.getRemoteHash(s"$rootPath/$path", parameters)
 }
 
 case class LocalRepo(fileManager: FileManager, rootPath: String, parameters: Map[String, Any]) extends Repo {
@@ -133,13 +133,15 @@ case class LocalRepo(fileManager: FileManager, rootPath: String, parameters: Map
   }
   private def normalizePath(path: String) = path.substring(path.lastIndexOf("/") + 1)
 
-  override def getMd5Hash(path: String): Option[String] = {
-    if (fileManager.exists(new URI(s"$rootPath/repository/$path").normalize().getPath)) {
-      Some(DependencyResolver.generateMD5Hash(fileManager.getInputStream(s"$rootPath/repository/$path")))
+  override def getHash(path: String): Option[DependencyHash] = {
+    val normalizedPath = if (fileManager.exists(new URI(s"$rootPath/repository/$path").normalize().getPath)) {
+      s"$rootPath/repository/$path"
     } else {
-      Some(DependencyResolver.generateMD5Hash(fileManager.getInputStream(s"$rootPath/${normalizePath(path)}")))
+      s"$rootPath/${normalizePath(path)}"
     }
+    Some(DependencyHash(DependencyResolver.generateHash(fileManager.getInputStream(normalizedPath), HashType.MD5),
+      HashType.MD5))
   }
 }
 
-case class RepoResult(input: Option[() => InputStream], lastModifiedDate: Option[Date], md5: Option[String])
+case class RepoResult(input: Option[() => InputStream], lastModifiedDate: Option[Date], hash: Option[DependencyHash])

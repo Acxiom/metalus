@@ -27,8 +27,8 @@ class DependencyManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
     is.close()
     bytes
   }
-  private lazy val mainJarMd5 = {
-    val is = getClass.getResourceAsStream("/main-1.0.0.jar.md5")
+  private lazy val mainJarSha1 = {
+    val is = getClass.getResourceAsStream("/main-1.0.0.jar.sha1")
     val src = Source.fromInputStream(is)
     val md5 = src.getLines().next()
     src.close()
@@ -156,10 +156,10 @@ class DependencyManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
           .withHeader("content-type", "application/octet-stream")
           .withBody(dependencyJarBytes)
         ).build())
-      wireMockServer.addStubMapping(get(urlEqualTo("/com/acxiom/main/1.0.0/main-1.0.0.jar.md5"))
+      wireMockServer.addStubMapping(get(urlEqualTo("/com/acxiom/main/1.0.0/main-1.0.0.jar.sha1"))
         .willReturn(aResponse()
           .withHeader("content-type", "application/octet-stream")
-          .withBody(mainJarMd5)
+          .withBody(mainJarSha1)
         ).build())
       wireMockServer.addStubMapping(get(urlEqualTo("/com/acxiom/dependency/1.0.0/dependency-1.0.0.jar.md5"))
         .willReturn(aResponse()
