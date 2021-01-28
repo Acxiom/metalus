@@ -36,29 +36,26 @@ object DependencyResolver {
     val http = DependencyResolver.getHttpClientForPath(s"$path.md5", parameters)
     val httpSha1 = DependencyResolver.getHttpClientForPath(s"$path.sha1", parameters)
     if (http.exists("")) {
-      val input = http.getInputStream("")
-      val src = Source.fromInputStream(input)
-      val hash = src.getLines().next()
-      input.close()
-      src.close()
-      Some(DependencyHash(hash, HashType.MD5))
+      Some(DependencyHash(loadRemoteHash(http), HashType.MD5))
     } else if (httpSha1.exists("")) {
-      val input = httpSha1.getInputStream("")
-      val src = Source.fromInputStream(input)
-      val hash = src.getLines().next()
-      input.close()
-      src.close()
-      Some(DependencyHash(hash, HashType.SHA1))
+      Some(DependencyHash(loadRemoteHash(httpSha1), HashType.SHA1))
     } else {
         None
     }
   }
 
-  def copyTempFileToLocal(inputFile: File, outputFile: File): Unit = {
-    if (!outputFile.exists() || outputFile.length() == 0) {
-      Files.move(inputFile.toPath, outputFile.toPath,
-        StandardCopyOption.REPLACE_EXISTING,
-        StandardCopyOption.ATOMIC_MOVE)
+  private def loadRemoteHash(http: HttpRestClient): String = {
+    val input = http.getInputStream("")
+    val src = Source.fromInputStream(input)
+    val hash = src.getLines().next()
+    input.close()
+    src.close()
+    hash
+  }
+
+  def copyTempFileToLocal(inputFile: File, outputFile: File, overwrite: Boolean = false): Unit = {
+    if (overwrite || !outputFile.exists() || outputFile.length() == 0) {
+      Files.move(inputFile.toPath, outputFile.toPath, StandardCopyOption.REPLACE_EXISTING)
     }
   }
 
@@ -114,7 +111,7 @@ object DependencyResolver {
       if (hash.isDefined) {
         val hashString = generateHash(new FileInputStream(new File(outputPath)), hash.get.hashType)
         if (hashString != hash.get.hash) {
-          logger.warn(s"${HashType.getAlgorithm(hash.get.hashType)} Hash mismatch local ($hashString) versus provided (${hash.get.hash})")
+          logger.warn(s"File ($outputPath) ${HashType.getAlgorithm(hash.get.hashType)} Hash mismatch local ($hashString) versus provided (${hash.get.hash})")
           throw new IllegalStateException(s"File ($outputPath) ${HashType.getAlgorithm(hash.get.hashType)} hash did not match")
         }
       }

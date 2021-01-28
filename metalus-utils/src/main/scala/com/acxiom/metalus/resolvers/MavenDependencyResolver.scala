@@ -20,7 +20,8 @@ class MavenDependencyResolver extends DependencyResolver {
     val defaultMavenRepo = ApiRepo(HttpRestClient("https://repo1.maven.org/maven2/"), "https://repo1.maven.org/maven2/", parameters)
     val repoList = ((providedRepos ::: dependencyRepos) :+ defaultMavenRepo).distinct
     val tempDownloadDirectory = Files.createTempDirectory("metalusJarDownloads").toFile
-
+    tempDownloadDirectory.deleteOnExit()
+    val checkDate = parameters.getOrElse("checkDate", "false") == "true"
     val libraries = dependencies.getOrElse("libraries", List[Map[String, Any]]()).asInstanceOf[List[Map[String, Any]]]
     libraries.foldLeft(List[Dependency]())((dependencies, library) => {
       val dependencyFileName = s"${library("artifactId")}-${library("version")}.jar"
@@ -30,12 +31,12 @@ class MavenDependencyResolver extends DependencyResolver {
       val version = library("version").asInstanceOf[String]
       val artifactName = s"$artifactId-$version.jar"
       val path = s"${library("groupId").asInstanceOf[String].replaceAll("\\.", "/")}/$artifactId/$version/$artifactName"
-      val repoResult = getInputStream(repoList, path, parameters)
+      val repoResult = getInputStream(repoList, path)
       if (repoResult.input.isDefined) {
-        val updatedFiles = if (shouldCopyFile(dependencyFile, repoResult.lastModifiedDate.get)) {
+        val updatedFiles = if (shouldCopyFile(dependencyFile, repoResult.lastModifiedDate.get, checkDate)) {
           val input = repoResult.input.get
           val deps = if (DependencyResolver.copyJarWithRetry(localFileManager, input, path, tempFile.getAbsolutePath, repoResult.hash)) {
-            DependencyResolver.copyTempFileToLocal(tempFile, dependencyFile)
+            DependencyResolver.copyTempFileToLocal(tempFile, dependencyFile, checkDate)
             dependencies :+ Dependency(artifactId, version, dependencyFile)
           } else {
             logger.warn(s"Failed to copy file: $dependencyFileName")
@@ -54,14 +55,14 @@ class MavenDependencyResolver extends DependencyResolver {
     })
   }
 
-  private def shouldCopyFile(dependencyFile: File, lastModifiedDate: Date): Boolean = {
+  private def shouldCopyFile(dependencyFile: File, lastModifiedDate: Date, checkDate: Boolean = false): Boolean = {
     if (!dependencyFile.exists()) {
       logger.info(s"Copying file because it does not exist: ${dependencyFile.getName}")
       true
     } else if (dependencyFile.length() == 0) {
       logger.info(s"Copying file because it has a length of 0: ${dependencyFile.getName}")
       true
-    } else if (lastModifiedDate.getTime > dependencyFile.lastModified()) {
+    } else if (checkDate && lastModifiedDate.getTime > dependencyFile.lastModified()) {
       logger.info(s"Copying file because source has been modified: ${dependencyFile.getName}")
       true
     } else {
@@ -84,7 +85,7 @@ class MavenDependencyResolver extends DependencyResolver {
     })
   }
 
-  private def getInputStream(repos: List[Repo], path: String, parameters: Map[String, Any]): RepoResult = {
+  private def getInputStream(repos: List[Repo], path: String): RepoResult = {
     val initial: RepoResult = RepoResult(None, None, None)
     repos.foldLeft(initial)((result, repo) => {
       if (result.input.isDefined) {
