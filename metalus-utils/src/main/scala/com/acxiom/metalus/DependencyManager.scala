@@ -1,13 +1,13 @@
 package com.acxiom.metalus
 
-import com.acxiom.metalus.resolvers.{Dependency, DependencyHash, DependencyResolver, HashType}
+import com.acxiom.metalus.resolvers.DependencyResolver.copyTempFileToLocal
+import com.acxiom.metalus.resolvers.{Dependency, DependencyResolver}
 import com.acxiom.pipeline.fs.LocalFileManager
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
 import org.apache.log4j.Logger
 
-import java.io.{File, FileInputStream}
+import java.io.File
 import java.nio.file.Files
-import java.util.jar.JarFile
 
 object DependencyManager {
 
@@ -45,8 +45,7 @@ object DependencyManager {
       } else {
         new File(file)
       }
-      val hash = DependencyResolver.generateHash(new FileInputStream(srcFile), HashType.MD5)
-      copyStepJarToLocal(localFileManager, new JarFile(srcFile), destFile, hash)
+      copyTempFileToLocal(srcFile, destFile)
       cp.addDependency(Dependency(artifactName, artifactName.split("-")(1), destFile))
     })
     // Get the dependencies
@@ -56,16 +55,6 @@ object DependencyManager {
     val pathPrefix = parameters.getOrElse("path-prefix", "").asInstanceOf[String]
     // Print the classpath to the console
     print(classpath.generateClassPath(pathPrefix, parameters.getOrElse("jar-separator", ",").asInstanceOf[String]))
-  }
-
-  private def copyStepJarToLocal(localFileManager: LocalFileManager, jar: JarFile, outputFile: File, md5Hash: String) = {
-    if (!outputFile.exists() || outputFile.length() == 0) {
-      DependencyResolver.copyJarWithRetry(localFileManager,
-        () => localFileManager.getInputStream(jar.getName),
-        jar.getName,
-        outputFile.getAbsolutePath,
-        Some(DependencyHash(md5Hash, HashType.MD5)))
-    }
   }
 
   private def resolveDependencies(dependencies: List[Dependency],

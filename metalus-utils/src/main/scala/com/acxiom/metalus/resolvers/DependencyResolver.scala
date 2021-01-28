@@ -9,6 +9,7 @@ import org.json4s.native.JsonMethods.parse
 import org.json4s.{DefaultFormats, Formats}
 
 import java.io.{File, FileInputStream, InputStream}
+import java.nio.file.{Files, StandardCopyOption}
 import java.security.MessageDigest
 import java.util.jar.JarFile
 import scala.annotation.tailrec
@@ -50,6 +51,14 @@ object DependencyResolver {
       Some(DependencyHash(hash, HashType.SHA1))
     } else {
         None
+    }
+  }
+
+  def copyTempFileToLocal(inputFile: File, outputFile: File): Unit = {
+    if (!outputFile.exists() || outputFile.length() == 0) {
+      Files.move(inputFile.toPath, outputFile.toPath,
+        StandardCopyOption.REPLACE_EXISTING,
+        StandardCopyOption.ATOMIC_MOVE)
     }
   }
 
@@ -105,6 +114,7 @@ object DependencyResolver {
       if (hash.isDefined) {
         val hashString = generateHash(new FileInputStream(new File(outputPath)), hash.get.hashType)
         if (hashString != hash.get.hash) {
+          logger.warn(s"${HashType.getAlgorithm(hash.get.hashType)} Hash mismatch local ($hashString) versus provided (${hash.get.hash})")
           throw new IllegalStateException(s"File ($outputPath) ${HashType.getAlgorithm(hash.get.hashType)} hash did not match")
         }
       }
