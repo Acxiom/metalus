@@ -44,3 +44,8 @@ Command to execute manual test:
 ```shell
 manual_tests/manual-tests.sh
 ```
+
+Command to execute manual test and keep the generated metadata:
+```shell
+manual_tests/manual-tests.sh true
+```

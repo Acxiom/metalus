@@ -6,7 +6,6 @@ checkResults() {
   file=$2
   stagingDir=`echo $tmpDir/staging/${project}*`
   baseFile=$dir/manual_tests/testData/$project/${file}.json
-  compareFile=$stagingDir/${file}.json
   $dir/manual_tests/jq 'del(.. | .tags?)' $baseFile > $stagingDir/${file}_base.json
   $dir/manual_tests/jq 'del(.. | .tags?)' $stagingDir/${file}.json > $stagingDir/${file}_updated.json
   results=`diff --brief $stagingDir/${file}_base.json $stagingDir/${file}_updated.json`
@@ -26,7 +25,7 @@ mkdir $tmpDir
 
 # Copy the built Metalus Utils to a temporary directory
 cp ${dir}/metalus-utils/target/*.gz $tmpDir
-cd $tmpDir
+cd $tmpDir || exit
 tar xf $tmpDir/*.gz
 
 # Get a list of jar files

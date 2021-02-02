@@ -10,17 +10,18 @@ mkdir $tmpDir
 mkdir -p $serversDir
 
 # Determine Scala/Spark Version
-#regex='(metalus-aws_)([^-]*)'
+regex='(metalus-aws_)([^-]*)'
 sparkRegex='(spark_)([^-]*)'
-jarFiles=`ls $dir/metalus-aws/target/metalus-aws*.jar | grep -v javadoc`
-#[[ $jarFiles =~ $regex ]]
-#scalaCompat=${BASH_REMATCH[2]}
+jarFiles=`ls $dir/metalus-application/target/metalus-application*.jar | grep -v javadoc`
+echo $jarFiles
+[[ $jarFiles =~ $regex ]]
+scalaCompat=${BASH_REMATCH[2]}
 [[ $jarFiles =~ $sparkRegex ]]
 sparkCompat=${BASH_REMATCH[2]}
 # Download/Unpack Spark
-cd $serversDir
 jarFiles=""
-if [[ "$sparkCompat" == "2.4" ]]
+echo "Testing Spark ${sparkCompat} Scala ${scalaCompat}"
+if [[ "${sparkCompat}" == "2.4" ]]
 then
   if [[ ! -f $serversDir/spark-2.4.7-bin-hadoop2.7.tgz ]]
   then
@@ -33,7 +34,7 @@ then
   sparkDir="${serversDir}/spark-2.4.7-bin-hadoop2.7"
   jarFiles="${serversDir}/mongo-spark-connector_2.11-2.4.2.jar,${serversDir}/mongo-java-driver-3.12.7.jar,"
 fi
-if [[ "$sparkCompat" == "3.0" ]]
+if [[ "${sparkCompat}" == "3.0" ]]
 then
   if [[ ! -f $serversDir/spark-3.0.1-bin-hadoop2.7.tgz ]]
   then
