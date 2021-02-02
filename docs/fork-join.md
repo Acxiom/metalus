@@ -22,6 +22,10 @@ parameters are:
 The first step in the set to be used during fork processing should reference the *id* of the fork step to access the 
 data from the list.
 
+#### Embedded Fork
+As of version 1.8, forks may now be embedded within other forks. A join will be required for each fork, including the
+outer fork.
+
 ### Join
 A join type step is used to **join** the executions of the fork step to continue processing in a linear manner. This step 
 type requires a fork step. A join step is not required if all of the remaining steps in the pipeline are to be used to 

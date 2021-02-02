@@ -120,10 +120,16 @@ object PipelineExecutor {
     if (steps.contains(nextStepId.getOrElse("")) && steps(nextStepId.getOrElse("")).`type`.getOrElse("") == "join") {
       sfContext
     } else if (steps.contains(nextStepId.getOrElse(""))) {
-        executeStep(steps(nextStepId.get), pipeline, steps, sfContext)
+      executeStep(steps(nextStepId.get), pipeline, steps, sfContext)
     } else if (nextStepId.isDefined && nextStepId.get.nonEmpty) {
-      throw PipelineException(message = Some("Step Id does not exist in pipeline"),
-        pipelineProgress = Some(PipelineExecutionInfo(nextStepId, Some(sfContext.getGlobalString("pipelineId").getOrElse("")))))
+      val s = steps.find(_._2.nextStepId.getOrElse("") == nextStepId.getOrElse("FUNKYSTEPID"))
+      // See if this is a sub-fork
+      if (s.isDefined && s.get._2.`type`.getOrElse("") == "join") {
+        sfContext
+      } else {
+        throw PipelineException(message = Some(s"Step Id (${nextStepId.get}) does not exist in pipeline"),
+          pipelineProgress = Some(PipelineExecutionInfo(nextStepId, Some(sfContext.getGlobalString("pipelineId").getOrElse("")))))
+      }
     } else {
       sfContext
     }
@@ -451,7 +457,10 @@ object PipelineExecutor {
                               parameterValues: Map[String, Any], pipelineContext: PipelineContext): ForkStepResult = {
     val firstStep = steps(step.nextStepId.getOrElse(""))
     // Create the list of steps that need to be executed starting with the "nextStepId"
-    val newSteps = getForkSteps(firstStep, pipeline, steps, List())
+    val forkFlow = getForkSteps(firstStep, pipeline, steps,
+      ForkStepFlow(List(), pipeline, List[ForkPair](ForkPair(step, None, root = true))))
+    forkFlow.validate()
+    val newSteps = forkFlow.steps
     // Identify the join steps and verify that only one is present
     val joinSteps = newSteps.filter(_.`type`.getOrElse("").toLowerCase == "join")
     val newStepLookup = newSteps.foldLeft(Map[String, PipelineStep]())((map, s) => map + (s.id.get -> s))
@@ -478,10 +487,22 @@ object PipelineExecutor {
         }
       } else { combinedResult }
     })
-    if (finalResult.error.isDefined) { throw finalResult.error.get } else {
+    if (finalResult.error.isDefined) {
+      throw finalResult.error.get
+    } else {
+      val pair = forkFlow.forkPairs.find(p => p.forkStep.id.getOrElse("N0R00TID") == step.id.getOrElse("N0ID"))
       ForkStepResult(if (joinSteps.nonEmpty) {
-        joinSteps.head.nextStepId
-      } else { None }, finalResult.result.get)
+        if (pair.isDefined && pair.get.joinStep.isDefined) {
+          if (steps.contains(pair.get.joinStep.get.nextStepId.getOrElse("N0R00TID")) &&
+            steps(pair.get.joinStep.get.nextStepId.getOrElse("N0R00TID")).`type`.getOrElse("") == "join") {
+            steps(pair.get.joinStep.get.nextStepId.getOrElse("N0R00TID")).nextStepId
+          } else { pair.get.joinStep.get.nextStepId }
+        } else {
+          joinSteps.head.nextStepId
+        }
+      } else {
+        None
+      }, finalResult.result.get)
     }
   }
 
@@ -689,21 +710,25 @@ object PipelineExecutor {
   private def getForkSteps(step: PipelineStep,
                            pipeline: Pipeline,
                            steps: Map[String, PipelineStep],
-                           forkSteps: List[PipelineStep]): List[PipelineStep] = {
+                           forkSteps: ForkStepFlow): ForkStepFlow = {
     val list = step.`type`.getOrElse("").toLowerCase match {
-      case "fork" => throw PipelineException(message = Some("fork steps may not be embedded other fork steps!"),
-        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
       case "branch" =>
-        step.params.get.foldLeft(conditionallyAddStepToList(step, forkSteps))((stepList, param) => {
+        step.params.get.foldLeft(forkSteps.conditionallyAddStepToList(step))((stepList, param) => {
           if (param.`type`.getOrElse("") == "result") {
             getForkSteps(steps(param.value.getOrElse("").asInstanceOf[String]), pipeline, steps, stepList)
           } else {
             stepList
           }
         })
-      case "join" => conditionallyAddStepToList(step, forkSteps)
-      case _ if !steps.contains(step.nextStepId.getOrElse("")) => conditionallyAddStepToList(step, forkSteps)
-      case _ => getForkSteps(steps(step.nextStepId.getOrElse("")), pipeline, steps, conditionallyAddStepToList(step, forkSteps))
+      case "join" =>
+        val flow = forkSteps.conditionallyAddStepToList(step)
+        if (flow.remainingUnclosedForks() > 0) {
+          getForkSteps(steps(step.nextStepId.getOrElse("")), pipeline, steps, flow)
+        } else {
+          flow
+        }
+      case _ if !steps.contains(step.nextStepId.getOrElse("")) => forkSteps.conditionallyAddStepToList(step)
+      case _ => getForkSteps(steps(step.nextStepId.getOrElse("")), pipeline, steps, forkSteps.conditionallyAddStepToList(step))
     }
 
     if (step.nextStepOnError.isDefined) {
@@ -712,23 +737,63 @@ object PipelineExecutor {
       list
     }
   }
-
-  /**
-    * Prevents duplicate steps from being added to the list
-    * @param step The step to be added
-    * @param steps The list of steps to modify
-    * @return A new list containing the steps
-    */
-  private def conditionallyAddStepToList(step: PipelineStep, steps: List[PipelineStep]): List[PipelineStep] = {
-    if (steps.exists(_.id.getOrElse("") == step.id.getOrElse("NONE"))) {
-      steps
-    } else {
-      steps :+ step
-    }
-  }
 }
 
 case class StepGroupResult(audit: ExecutionAudit, pipelineStepResponse: PipelineStepResponse, globalUpdates: List[GlobalUpdates])
 case class GlobalUpdates(stepName: String, pipelineId: String, globalName: String, global: Any)
 case class ForkStepResult(nextStepId: Option[String], pipelineContext: PipelineContext)
 case class ForkStepExecutionResult(index: Int, result: Option[PipelineContext], error: Option[Throwable])
+
+case class ForkPair(forkStep: PipelineStep, joinStep: Option[PipelineStep], root: Boolean = false)
+
+case class ForkStepFlow(steps: List[PipelineStep],
+                        pipeline: Pipeline,
+                        forkPairs: List[ForkPair]) {
+  /**
+    * Prevents duplicate steps from being added to the list
+    * @param step The step to be added
+    * @return A new list containing the steps
+    */
+  def conditionallyAddStepToList(step: PipelineStep): ForkStepFlow = {
+    if (this.steps.exists(_.id.getOrElse("") == step.id.getOrElse("NONE"))) {
+      this
+    } else {
+      step.`type`.getOrElse("").toLowerCase match {
+        case "fork" =>
+          this.copy(steps = steps :+ step, forkPairs = this.forkPairs :+ ForkPair(step, None))
+        case "join" =>
+          val newPairs = this.forkPairs.reverse.map(p => {
+            if (p.joinStep.isEmpty) {
+              p.copy(joinStep = Some(step))
+            } else {
+              p
+            }
+          })
+          this.copy(steps = steps :+ step, forkPairs = newPairs.reverse)
+        case _ => this.copy(steps = steps :+ step)
+      }
+    }
+  }
+
+  def remainingUnclosedForks(): Int = getUnclosedForkPairs.length
+
+  def validate(): Unit = {
+    val unclosedPairs = getUnclosedForkPairs
+    if (this.forkPairs.length > 1 && unclosedPairs.length > 1) {
+      val msg = s"Fork step(s) (${unclosedPairs.map(_.forkStep.id).mkString(",")}) must be closed by join when embedding other forks!"
+      throw PipelineException(message = Some(msg),
+        pipelineProgress = Some(PipelineExecutionInfo(unclosedPairs.head.forkStep.id, pipeline.id)))
+    }
+  }
+
+  private def getUnclosedForkPairs: List[ForkPair] = {
+    val unclosedPairs = this.forkPairs.foldLeft(List[ForkPair]())((list, p) => {
+      if (p.joinStep.isEmpty) {
+        list :+ p
+      } else {
+        list
+      }
+    })
+    unclosedPairs
+  }
+}
