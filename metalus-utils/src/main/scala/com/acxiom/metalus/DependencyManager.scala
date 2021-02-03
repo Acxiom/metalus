@@ -1,6 +1,6 @@
 package com.acxiom.metalus
 
-import com.acxiom.metalus.resolvers.DependencyResolver.copyTempFileToLocal
+import com.acxiom.metalus.resolvers.DependencyResolver.copyFileToLocal
 import com.acxiom.metalus.resolvers.{Dependency, DependencyResolver}
 import com.acxiom.pipeline.fs.LocalFileManager
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
@@ -44,7 +44,7 @@ object DependencyManager {
       } else {
         new File(file)
       }
-      copyTempFileToLocal(srcFile, destFile)
+      copyFileToLocal(srcFile, destFile)
       cp.addDependency(Dependency(artifactName, artifactName.split("-")(1), destFile))
     })
     // Get the dependencies

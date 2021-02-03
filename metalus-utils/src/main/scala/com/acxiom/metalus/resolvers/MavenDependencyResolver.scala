@@ -36,7 +36,7 @@ class MavenDependencyResolver extends DependencyResolver {
         val updatedFiles = if (shouldCopyFile(dependencyFile, repoResult.lastModifiedDate.get, checkDate)) {
           val input = repoResult.input.get
           val deps = if (DependencyResolver.copyJarWithRetry(localFileManager, input, path, tempFile.getAbsolutePath, repoResult.hash)) {
-            DependencyResolver.copyTempFileToLocal(tempFile, dependencyFile, checkDate)
+            DependencyResolver.copyFileToLocal(tempFile, dependencyFile, checkDate)
             dependencies :+ Dependency(artifactId, version, dependencyFile)
           } else {
             logger.warn(s"Failed to copy file: $dependencyFileName")

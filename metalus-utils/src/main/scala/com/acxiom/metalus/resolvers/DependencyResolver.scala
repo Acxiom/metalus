@@ -53,9 +53,9 @@ object DependencyResolver {
     hash
   }
 
-  def copyTempFileToLocal(inputFile: File, outputFile: File, overwrite: Boolean = false): Unit = {
+  def copyFileToLocal(inputFile: File, outputFile: File, overwrite: Boolean = false): Unit = {
     if (overwrite || !outputFile.exists() || outputFile.length() == 0) {
-      Files.move(inputFile.toPath, outputFile.toPath, StandardCopyOption.REPLACE_EXISTING)
+      Files.copy(inputFile.toPath, outputFile.toPath, StandardCopyOption.REPLACE_EXISTING)
     }
   }
 
