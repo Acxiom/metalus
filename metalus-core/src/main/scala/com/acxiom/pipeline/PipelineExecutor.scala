@@ -30,7 +30,7 @@ object PipelineExecutor {
       val pipelineLookup = executingPipelines.map(p => p.id.getOrElse("") -> p.name.getOrElse("")).toMap
       val ctx = executingPipelines.foldLeft(esContext)((accCtx, pipeline) => {
         // Map the steps for easier lookup during execution
-        val stepLookup = createStepLookup(pipeline)
+        val stepLookup = PipelineExecutorValidations.validateAndCreateStepLookup(pipeline)
         val auditCtx = accCtx.setPipelineAudit(
           ExecutionAudit(pipeline.id.get, AuditType.PIPELINE, Map[String, Any](), System.currentTimeMillis(), None, None, Some(List[ExecutionAudit](
             ExecutionAudit(pipeline.steps.get.head.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis())))))
@@ -65,13 +65,6 @@ object PipelineExecutor {
     }
   }
 
-  private def createStepLookup(pipeline: Pipeline) = {
-    pipeline.steps.get.map(step => {
-      validateStep(step, pipeline)
-      step.id.get -> step
-    }).toMap
-  }
-
   /**
     * This function will process step messages and throw any appropriate exceptions
     *
@@ -91,8 +84,6 @@ object PipelineExecutor {
       })
     }
   }
-
-  private val STEPGROUP = "step-group"
 
   @tailrec
   private def executeStep(step: PipelineStep, pipeline: Pipeline, steps: Map[String, PipelineStep],
@@ -117,14 +108,14 @@ object PipelineExecutor {
       case e => throw e
     }
     // Call the next step here
-    if (steps.contains(nextStepId.getOrElse("")) && steps(nextStepId.getOrElse("")).`type`.getOrElse("") == "join") {
+    if (steps.contains(nextStepId.getOrElse("")) && steps(nextStepId.getOrElse("")).`type`.getOrElse("") == PipelineStepType.JOIN) {
       sfContext
     } else if (steps.contains(nextStepId.getOrElse(""))) {
       executeStep(steps(nextStepId.get), pipeline, steps, sfContext)
     } else if (nextStepId.isDefined && nextStepId.get.nonEmpty) {
       val s = steps.find(_._2.nextStepId.getOrElse("") == nextStepId.getOrElse("FUNKYSTEPID"))
       // See if this is a sub-fork
-      if (s.isDefined && s.get._2.`type`.getOrElse("") == "join") {
+      if (s.isDefined && s.get._2.`type`.getOrElse("") == PipelineStepType.JOIN) {
         sfContext
       } else {
         throw PipelineException(message = Some(s"Step Id (${nextStepId.get}) does not exist in pipeline"),
@@ -141,8 +132,8 @@ object PipelineExecutor {
     val parameterValues: Map[String, Any] = pipelineContext.parameterMapper.createStepParameterMap(step, pipelineContext)
     (step.executeIfEmpty.getOrElse(""), step.`type`.getOrElse("").toLowerCase) match {
       // process step normally if empty
-      case ("", "fork") => processForkStep(step, pipeline, steps, parameterValues, pipelineContext)
-      case ("", STEPGROUP) => processStepGroup(step, pipeline, parameterValues, pipelineContext)
+      case ("", PipelineStepType.FORK) => processForkStep(step, pipeline, steps, parameterValues, pipelineContext)
+      case ("", PipelineStepType.STEPGROUP) => processStepGroup(step, pipeline, parameterValues, pipelineContext)
       case ("", _) => ReflectionUtils.processStep(step, pipeline, parameterValues, pipelineContext)
       case (value, _) =>
         logger.debug(s"Evaluating execute if empty: $value")
@@ -160,79 +151,6 @@ object PipelineExecutor {
             logger.debug("Returning existing value")
             PipelineStepResponse(Some(ret), None)
         }
-    }
-  }
-
-  @throws(classOf[PipelineException])
-  private def validateStep(step: PipelineStep, pipeline: Pipeline): Unit = {
-    validatePipelineStep(step, pipeline)
-    step.`type`.getOrElse("").toLowerCase match {
-      case s if s == "pipeline" || s == "branch" =>
-        if(step.engineMeta.isEmpty || step.engineMeta.get.spark.getOrElse("") == "") {
-          throw PipelineException(
-            message = Some(s"EngineMeta is required for [${step.`type`.get}] step [${step.id.get}] in pipeline [${pipeline.id.get}]"),
-            pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
-        }
-      case "fork" => validateForkStep(step, pipeline)
-      case "join" =>
-      case STEPGROUP =>
-        if(step.params.isEmpty ||
-          !step.params.get.exists(p => p.name.getOrElse("") == "pipeline" || p.name.getOrElse("") == "pipelineId")) {
-          throw PipelineException(
-            message = Some(s"Parameter [pipeline] or [pipelineId] is required for step group [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-            pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
-        }
-      case "" =>
-        throw PipelineException(
-          message = Some(s"[type] is required for step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-          pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
-      case unknown =>
-        throw PipelineException(message =
-          Some(s"Unknown pipeline type: [$unknown] for step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-          pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
-    }
-  }
-
-  @throws(classOf[PipelineException])
-  private def validatePipelineStep(step: PipelineStep, pipeline: Pipeline): Unit = {
-    if(step.id.getOrElse("") == ""){
-      throw PipelineException(
-        message = Some(s"Step is missing id in pipeline [${pipeline.id.get}]."),
-        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
-    }
-    if(step.id.get.toLowerCase == "laststepid") {
-      throw PipelineException(
-        message = Some(s"Step id [${step.id.get}] is a reserved id in pipeline [${pipeline.id.get}]."),
-        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
-    }
-  }
-
-  @throws(classOf[PipelineException])
-  private def validateForkStep(step: PipelineStep, pipeline: Pipeline): Unit ={
-    if(step.params.isEmpty) {
-      throw PipelineException(
-        message = Some(s"Parameters [forkByValues] and [forkMethod] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
-    }
-    val forkMethod = step.params.get.find(p => p.name.getOrElse("") == "forkMethod")
-    if(forkMethod.isDefined && forkMethod.get.value.nonEmpty){
-      val method = forkMethod.get.value.get.asInstanceOf[String]
-      if(!(method == "serial" || method == "parallel")){
-        throw PipelineException(
-          message = Some(s"Unknown value [$method] for parameter [forkMethod]." +
-          s" Value must be either [serial] or [parallel] for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-          pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
-      }
-    } else {
-      throw PipelineException(
-        message = Some(s"Parameter [forkMethod] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
-    }
-    val forkByValues = step.params.get.find(p => p.name.getOrElse("") == "forkByValues")
-    if(forkByValues.isEmpty || forkByValues.get.value.isEmpty){
-      throw PipelineException(
-        message = Some(s"Parameter [forkByValues] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
     }
   }
 
@@ -312,7 +230,7 @@ object PipelineExecutor {
 
   private def getNextStepId(step: PipelineStep, result: Any): Option[String] = {
     step.`type`.getOrElse("").toLowerCase match {
-      case "branch" =>
+      case PipelineStepType.BRANCH =>
         // match the result against the step parameter name until we find a match
         val matchValue = result match {
           case response: PipelineStepResponse => response.primaryReturn.getOrElse("").toString
@@ -325,7 +243,7 @@ object PipelineExecutor {
         } else {
           None
         }
-      case "fork" => result.asInstanceOf[ForkStepResult].nextStepId
+      case PipelineStepType.FORK => result.asInstanceOf[ForkStepResult].nextStepId
       case _ => step.nextStepId
     }
   }
@@ -364,7 +282,7 @@ object PipelineExecutor {
           pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id))))
     } else { parameterValues("pipeline").asInstanceOf[Pipeline] }
     val firstStep = subPipeline.steps.get.head
-    val stepLookup = createStepLookup(subPipeline)
+    val stepLookup = PipelineExecutorValidations.validateAndCreateStepLookup(subPipeline)
     val pipelineId = pipeline.id.getOrElse("")
     val stepId = step.id.getOrElse("")
     val groupId = pipelineContext.getGlobalString("groupId")
@@ -462,7 +380,7 @@ object PipelineExecutor {
     forkFlow.validate()
     val newSteps = forkFlow.steps
     // Identify the join steps and verify that only one is present
-    val joinSteps = newSteps.filter(_.`type`.getOrElse("").toLowerCase == "join")
+    val joinSteps = newSteps.filter(_.`type`.getOrElse("").toLowerCase == PipelineStepType.JOIN)
     val newStepLookup = newSteps.foldLeft(Map[String, PipelineStep]())((map, s) => map + (s.id.get -> s))
     // See if the forks should be executed in threads or a loop
     val forkByValues = parameterValues("forkByValues").asInstanceOf[List[Any]]
@@ -494,7 +412,7 @@ object PipelineExecutor {
       ForkStepResult(if (joinSteps.nonEmpty) {
         if (pair.isDefined && pair.get.joinStep.isDefined) {
           if (steps.contains(pair.get.joinStep.get.nextStepId.getOrElse("N0R00TID")) &&
-            steps(pair.get.joinStep.get.nextStepId.getOrElse("N0R00TID")).`type`.getOrElse("") == "join") {
+            steps(pair.get.joinStep.get.nextStepId.getOrElse("N0R00TID")).`type`.getOrElse("") == PipelineStepType.JOIN) {
             steps(pair.get.joinStep.get.nextStepId.getOrElse("N0R00TID")).nextStepId
           } else { pair.get.joinStep.get.nextStepId }
         } else {
@@ -712,7 +630,7 @@ object PipelineExecutor {
                            steps: Map[String, PipelineStep],
                            forkSteps: ForkStepFlow): ForkStepFlow = {
     val list = step.`type`.getOrElse("").toLowerCase match {
-      case "branch" =>
+      case PipelineStepType.BRANCH =>
         step.params.get.foldLeft(forkSteps.conditionallyAddStepToList(step))((stepList, param) => {
           if (param.`type`.getOrElse("") == "result") {
             getForkSteps(steps(param.value.getOrElse("").asInstanceOf[String]), pipeline, steps, stepList)
@@ -720,7 +638,7 @@ object PipelineExecutor {
             stepList
           }
         })
-      case "join" =>
+      case PipelineStepType.JOIN =>
         val flow = forkSteps.conditionallyAddStepToList(step)
         if (flow.remainingUnclosedForks() > 0) {
           getForkSteps(steps(step.nextStepId.getOrElse("")), pipeline, steps, flow)
@@ -759,9 +677,9 @@ case class ForkStepFlow(steps: List[PipelineStep],
       this
     } else {
       step.`type`.getOrElse("").toLowerCase match {
-        case "fork" =>
+        case PipelineStepType.FORK =>
           this.copy(steps = steps :+ step, forkPairs = this.forkPairs :+ ForkPair(step, None))
-        case "join" =>
+        case PipelineStepType.JOIN =>
           val newPairs = this.forkPairs.reverse.map(p => {
             if (p.joinStep.isEmpty) {
               p.copy(joinStep = Some(step))
