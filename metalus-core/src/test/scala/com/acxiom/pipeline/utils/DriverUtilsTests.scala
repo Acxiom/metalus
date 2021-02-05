@@ -6,6 +6,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+import org.apache.spark.streaming.{Milliseconds, Minutes, Seconds}
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.{BeforeAndAfterAll, FunSpec}
@@ -130,6 +131,19 @@ class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
       assert(parser.isDefined)
       assert(parser.get.isInstanceOf[TestStreamingDataParser])
       assert(StreamingUtils.generateStreamingDataParsers(Map[String, Any]()).isEmpty)
+    }
+
+    it("Should get duration") {
+      assert(StreamingUtils.getDuration(Some("minutes"), Some("5")) == Minutes(Constants.FIVE))
+      assert(StreamingUtils.getDuration(Some("milliseconds"), Some("15")) == Milliseconds(Constants.FIFTEEN))
+      assert(StreamingUtils.getDuration(None, None) == Seconds(Constants.TEN))
+      assert(StreamingUtils.getDuration(Some("monkey"), None) == Seconds(Constants.TEN))
+    }
+
+    it("Should parse common streaming parameters") {
+      assert(!StreamingUtils.parseCommonStreamingParameters(Map()).processEmptyRDD)
+      assert(!StreamingUtils.parseCommonStreamingParameters(Map("processEmptyRDD" -> false)).processEmptyRDD)
+      assert(StreamingUtils.parseCommonStreamingParameters(Map("processEmptyRDD" -> true)).processEmptyRDD)
     }
   }
 

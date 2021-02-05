@@ -11,6 +11,7 @@ object Constants {
   val SEVEN: Int = 7
   val NINE = 9
   val TEN: Int = 10
+  val FIFTEEN: Int = 15
   val ONE_HUNDRED: Int = 100
 
   val CONTENT_TYPE_HEADER: String = "Content-Type"
