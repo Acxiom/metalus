@@ -172,6 +172,14 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(results.primaryReturn.isDefined)
       val primary = results.primaryReturn.get.asInstanceOf[Int]
       assert(primary == 10)
+      assert(ctx.rootAudit.children.isDefined)
+      assert(ctx.rootAudit.children.get.length == 1)
+      val pipelineAudit = ctx.rootAudit.children.get.head
+      assert(pipelineAudit.children.isDefined)
+      assert(pipelineAudit.children.get.length == 24)
+      val processValueAudits = pipelineAudit.children.get.filter(_.id == "PROCESS_VALUE")
+      assert(processValueAudits.length == 6)
+      assert(!processValueAudits.exists(_.groupId.isEmpty))
     }
   }
 

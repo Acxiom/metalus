@@ -6,9 +6,6 @@ import com.acxiom.pipeline.utils.ReflectionUtils
 import org.apache.log4j.Logger
 
 import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
 
 object PipelineFlow {
   private val logger = Logger.getLogger(getClass)
@@ -127,12 +124,13 @@ trait PipelineFlow {
     logger.debug(s"Executing Step (${step.id.getOrElse("")}) ${step.displayName.getOrElse("")}")
     val ssContext = PipelineFlow.handleEvent(pipelineContext, "pipelineStepStarted", List(pipeline, step, pipelineContext))
     val (nextStepId, sfContext) = try {
-      val result = processPipelineStep(step, pipeline, steps, ssContext)
+      val result = processPipelineStep(step, pipeline, ssContext)
       // setup the next step
-      val nextStepId = getNextStepId(step, result)
-      val newPipelineContext = result match {
-        case flowResult: FlowResult => updatePipelineContext(step, result, nextStepId, flowResult.pipelineContext)
-        case _ => updatePipelineContext(step, result, nextStepId, ssContext)
+      val (newPipelineContext, nextStepId) = result match {
+        case flowResult: FlowResult => (updatePipelineContext(step, result, flowResult.nextStepId, flowResult.pipelineContext), flowResult.nextStepId)
+        case _ =>
+          val nextStepId = getNextStepId(step, result)
+          (updatePipelineContext(step, result, nextStepId, ssContext), nextStepId)
       }
       // run the step finished event
       val sfContext = PipelineFlow.handleEvent(newPipelineContext, "pipelineStepFinished", List(pipeline, step, newPipelineContext))
@@ -152,7 +150,7 @@ trait PipelineFlow {
     } else if (steps.contains(nextStepId.getOrElse(""))) {
       executeStep(steps(nextStepId.get), pipeline, steps, sfContext)
     } else if (nextStepId.isDefined && nextStepId.get.nonEmpty) {
-      val s = steps.find(_._2.nextStepId.getOrElse("") == nextStepId.getOrElse("FUNKYSTEPID"))
+      val s = this.stepLookup.find(_._2.nextStepId.getOrElse("") == nextStepId.getOrElse("FUNKYSTEPID"))
       // See if this is a sub-fork
       if (s.isDefined && s.get._2.`type`.getOrElse("") == PipelineStepType.JOIN) {
         sfContext
@@ -165,13 +163,13 @@ trait PipelineFlow {
     }
   }
 
-  private def processPipelineStep(step: PipelineStep, pipeline: Pipeline, steps: Map[String, PipelineStep],
-                                  pipelineContext: PipelineContext): Any = {
+  private def processPipelineStep(step: PipelineStep, pipeline: Pipeline, pipelineContext: PipelineContext): Any = {
     // Create a map of values for each defined parameter
     val parameterValues: Map[String, Any] = pipelineContext.parameterMapper.createStepParameterMap(step, pipelineContext)
     (step.executeIfEmpty.getOrElse(""), step.`type`.getOrElse("").toLowerCase) match {
       // process step normally if empty
-      case ("", PipelineStepType.FORK) => processForkStep(step, pipeline, steps, parameterValues, pipelineContext)
+      case ("", PipelineStepType.FORK) =>
+        ForkStepFlow(pipeline, pipelineContext, this.pipelineLookup, this.executingPipelines, step, parameterValues).execute()
       case ("", PipelineStepType.STEPGROUP) =>
         StepGroupFlow(pipeline, pipelineContext, this.pipelineLookup, this.executingPipelines, step, parameterValues).execute()
       case ("", _) => ReflectionUtils.processStep(step, pipeline, parameterValues, pipelineContext)
@@ -199,7 +197,6 @@ trait PipelineFlow {
     val pipelineId = pipelineProgress.pipelineId.getOrElse("")
     val groupId = pipelineProgress.groupId
     val ctx = result match {
-      case forkResult: ForkStepResult => forkResult.pipelineContext
       case flowResult: FlowResult => flowResult.pipelineContext
       case _ =>
         processResponseGlobals(step, result, pipelineId, pipelineContext)
@@ -244,7 +241,6 @@ trait PipelineFlow {
         } else {
           None
         }
-      case PipelineStepType.FORK => result.asInstanceOf[ForkStepResult].nextStepId
       case _ => step.nextStepId
     }
   }
@@ -264,301 +260,6 @@ trait PipelineFlow {
           }
         })
       case _ => updatedCtx
-    }
-  }
-
-  /**
-    * Special handling of fork steps.
-    *
-    * @param step The fork step
-    * @param pipeline The pipeline being executed
-    * @param steps The step lookup
-    * @param parameterValues The parameterValues for this step
-    * @param pipelineContext The current pipeline context
-    * @return The result of processing the forked steps.
-    */
-  private def processForkStep(step: PipelineStep, pipeline: Pipeline, steps: Map[String, PipelineStep],
-                              parameterValues: Map[String, Any], pipelineContext: PipelineContext): ForkStepResult = {
-    val firstStep = steps(step.nextStepId.getOrElse(""))
-    // Create the list of steps that need to be executed starting with the "nextStepId"
-    val forkFlow = getForkSteps(firstStep, pipeline, steps,
-      ForkStepFlow(List(), pipeline, List[ForkPair](ForkPair(step, None, root = true))))
-    forkFlow.validate()
-    val newSteps = forkFlow.steps
-    // Identify the join steps and verify that only one is present
-    val joinSteps = newSteps.filter(_.`type`.getOrElse("").toLowerCase == PipelineStepType.JOIN)
-    val newStepLookup = newSteps.foldLeft(Map[String, PipelineStep]())((map, s) => map + (s.id.get -> s))
-    // See if the forks should be executed in threads or a loop
-    val forkByValues = parameterValues("forkByValues").asInstanceOf[List[Any]]
-    val results = if (parameterValues("forkMethod").asInstanceOf[String] == "parallel") {
-      processForkStepsParallel(forkByValues, firstStep, step.id.get, pipeline, newStepLookup, pipelineContext)
-    } else { // "serial"
-      processForkStepsSerial(forkByValues, firstStep, step.id.get, pipeline, newStepLookup, pipelineContext)
-    }
-    // Gather the results and create a list
-    val finalResult = results.sortBy(_.index).foldLeft(ForkStepExecutionResult(-1, Some(pipelineContext), None))((combinedResult, result) => {
-      if (result.result.isDefined) {
-        val ctx = result.result.get
-        mergeMessages(combinedResult.result.get, ctx.getStepMessages.get, result.index)
-        combinedResult.copy(result = Some(mergeResponses(combinedResult.result.get, ctx, pipeline.id.getOrElse(""), newSteps, result.index)))
-      } else if (result.error.isDefined) {
-        if (combinedResult.error.isDefined) {
-          combinedResult.copy(error = Some(combinedResult.error.get.asInstanceOf[ForkedPipelineStepException].addException(result.error.get, result.index)))
-        } else {
-          combinedResult.copy(error =
-            Some(ForkedPipelineStepException(message = Some("One or more errors has occurred while processing fork step:\n"),
-              exceptions = Map(result.index -> result.error.get))))
-        }
-      } else { combinedResult }
-    })
-    if (finalResult.error.isDefined) {
-      throw finalResult.error.get
-    } else {
-      val pair = forkFlow.forkPairs.find(p => p.forkStep.id.getOrElse("N0R00TID") == step.id.getOrElse("N0ID"))
-      ForkStepResult(if (joinSteps.nonEmpty) {
-        if (pair.isDefined && pair.get.joinStep.isDefined) {
-          if (steps.contains(pair.get.joinStep.get.nextStepId.getOrElse("N0R00TID")) &&
-            steps(pair.get.joinStep.get.nextStepId.getOrElse("N0R00TID")).`type`.getOrElse("") == PipelineStepType.JOIN) {
-            steps(pair.get.joinStep.get.nextStepId.getOrElse("N0R00TID")).nextStepId
-          } else { pair.get.joinStep.get.nextStepId }
-        } else {
-          joinSteps.head.nextStepId
-        }
-      } else {
-        None
-      }, finalResult.result.get)
-    }
-  }
-
-  /**
-    * Merges any messages into the provided PipelineContext. Each message will be converted to a ForkedPipelineStepMessage
-    * to allow tracking of the execution id.
-    *
-    * @param pipelineContext The PipelineContext to merge the messages into
-    * @param messages A list of messages to merge
-    * @param executionId The execution id to attach to each message
-    */
-  private def mergeMessages(pipelineContext: PipelineContext, messages: List[PipelineStepMessage], executionId: Int): Unit = {
-    messages.foreach(message =>
-      pipelineContext.addStepMessage(ForkedPipelineStepMessage(message.message, message.stepId, message.pipelineId, message.messageType, Some(executionId)))
-    )
-  }
-
-  /**
-    * Iterates the list of fork steps merging the results into the provided PipelineContext. Results will be stored as
-    * Options in a list. If this execution does not have a result, then None will be stored in it's place. Secondary
-    * response maps fill have the values stored as a list as well.
-    *
-    * @param pipelineContext The context to write the results.
-    * @param source The source context to retrieve the execution results
-    * @param pipelineId The pipeline id that is used to run these steps.
-    * @param forkSteps A list of steps that were used during the fork porcessing
-    * @param executionId The execution id of this process. This will be used as a position for result storage in the list.
-    * @return A PipelineContext with the merged results.
-    */
-  private def mergeResponses(pipelineContext: PipelineContext, source: PipelineContext, pipelineId: String,
-                             forkSteps: List[PipelineStep], executionId: Int): PipelineContext = {
-    val sourceParameter = source.parameters.getParametersByPipelineId(pipelineId)
-    val sourceParameters = sourceParameter.get.parameters
-    val mergeAuditCtx = pipelineContext.copy(rootAudit = pipelineContext.rootAudit.merge(source.rootAudit))
-    forkSteps.foldLeft(mergeAuditCtx)((ctx, step) => {
-      val rootParameter = ctx.parameters.getParametersByPipelineId(pipelineId)
-      val parameters = if (rootParameter.isEmpty) {
-        Map[String, Any]()
-      } else {
-        rootParameter.get.parameters
-      }
-      // Get the root step response
-      val response = if (parameters.contains(step.id.getOrElse(""))) {
-        val r = parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse]
-        if (r.primaryReturn.isDefined && r.primaryReturn.get.isInstanceOf[List[_]]) {
-          r
-        } else {
-          PipelineStepResponse(Some(List[Any]()), r.namedReturns)
-        }
-      } else {
-        PipelineStepResponse(Some(List[Any]()), Some(Map[String, Any]()))
-      }
-      // Get the source response
-      val updatedResponse = if (sourceParameters.contains(step.id.getOrElse(""))) {
-        val r = sourceParameters(step.id.getOrElse(""))
-        val stepResponse = r match {
-          case a: PipelineStepResponse => a
-          case option: Option[_] if option.isDefined && option.get.isInstanceOf[PipelineStepResponse] => option.get.asInstanceOf[PipelineStepResponse]
-          case option: Option[_] if option.isDefined => PipelineStepResponse(option, None)
-          case any => PipelineStepResponse(Some(any), None)
-        }
-        // Merge the primary response with the root
-        val primaryList = response.primaryReturn.get.asInstanceOf[List[Option[_]]]
-        // See if the list needs to be filled in
-        val responseList = appendForkedResponseToList(primaryList, stepResponse.primaryReturn, executionId)
-        val rootNamedReturns = response.namedReturns.getOrElse(Map[String, Any]())
-        val sourceNamedReturns = stepResponse.namedReturns.getOrElse(Map[String, Any]())
-        val mergedSecondaryReturns = mergeSecondaryReturns(rootNamedReturns, sourceNamedReturns, executionId)
-        // Append this response to the list and update the PipelineStepResponse
-        PipelineStepResponse(Some(responseList), Some(mergedSecondaryReturns))
-      } else {
-        response
-      }
-      ctx.setParameterByPipelineId(pipelineId, step.id.getOrElse(""), updatedResponse)
-    })
-  }
-
-  /**
-    * Merges the values in the sourceNamedReturns into the elements in the rootNamedReturns
-    * @param rootNamedReturns The base map to merge into
-    * @param sourceNamedReturns The source map containing the values
-    * @param executionId The executionId used for list positioning.
-    * @return A map containing the values of the source merged into the root.
-    */
-  private def mergeSecondaryReturns(rootNamedReturns: Map[String, Any],
-                                    sourceNamedReturns: Map[String, Any],
-                                    executionId: Int): Map[String, Any] = {
-    val keys = rootNamedReturns.keySet ++ sourceNamedReturns.keySet
-    keys.foldLeft(rootNamedReturns)((map, key) => {
-      map + (key -> appendForkedResponseToList(
-        rootNamedReturns.getOrElse(key, List[Option[_]]()) match {
-          case list: List[Option[_]] => list
-          case option: Option[_] => List(option)
-          case any => List(Some(any))
-        },
-        sourceNamedReturns.getOrElse(key, None) match {
-          case option: Option[_] => option
-          case any: Any => Some(any)
-        }, executionId))
-    })
-  }
-
-  /**
-    * Appends the provided value to the list at the correct index based on the executionId.
-    * @param list the list to append the value
-    * @param executionId The execution id about to be appended
-    * @return A list with any missing elements populated with None and the provided element appended.
-    */
-  private def appendForkedResponseToList(list: List[Option[_]], value: Option[Any], executionId: Int): List[Option[_]] = {
-    val updateList = if (list.length < executionId) {
-      list ::: List.fill(executionId - list.length)(None)
-    } else {
-      list
-    }
-    updateList :+ value
-  }
-
-  /**
-    * Processes a set of forked steps in serial. All values will be processed regardless of individual failures.
-    * @param forkByValues The values to fork
-    * @param firstStep The first step to process
-    * @param forkStepId The id of the fork step used to store this value
-    * @param pipeline The pipeline being processed/
-    * @param steps The step lookup for the forked steps.
-    * @param pipelineContext The pipeline context to clone while processing.
-    * @return A list of execution results.
-    */
-  private def processForkStepsSerial(forkByValues: Seq[Any],
-                                     firstStep: PipelineStep,
-                                     forkStepId: String,
-                                     pipeline: Pipeline,
-                                     steps: Map[String, PipelineStep],
-                                     pipelineContext: PipelineContext): List[ForkStepExecutionResult] = {
-    forkByValues.zipWithIndex.map(value => {
-      startForkedStepExecution(firstStep, forkStepId, pipeline, steps, pipelineContext, value)
-    }).toList
-  }
-
-  /**
-    * Processes a set of forked steps in parallel. All values will be processed regardless of individual failures.
-    * @param forkByValues The values to fork
-    * @param firstStep The first step to process
-    * @param forkStepId The id of the fork step used to store this value
-    * @param pipeline The pipeline being processed/
-    * @param steps The step lookup for the forked steps.
-    * @param pipelineContext The pipeline context to clone while processing.
-    * @return A list of execution results.
-    */
-  private def processForkStepsParallel(forkByValues: Seq[Any],
-                                       firstStep: PipelineStep,
-                                       forkStepId: String,
-                                       pipeline: Pipeline,
-                                       steps: Map[String, PipelineStep],
-                                       pipelineContext: PipelineContext): List[ForkStepExecutionResult] = {
-    val futures = forkByValues.zipWithIndex.map(value => {
-      Future {
-        startForkedStepExecution(firstStep, forkStepId, pipeline, steps, pipelineContext, value)
-      }
-    })
-    // Wait for all futures to complete
-    Await.ready(Future.sequence(futures), Duration.Inf)
-    // Iterate the futures an extract the result
-    futures.map(_.value.get.get).toList
-  }
-
-  private def startForkedStepExecution(firstStep: PipelineStep,
-                                       forkStepId: String,
-                                       pipeline: Pipeline,
-                                       steps: Map[String, PipelineStep],
-                                       pipelineContext: PipelineContext, value: (Any, Int)) = {
-    try {
-      ForkStepExecutionResult(value._2,
-        Some(executeStep(firstStep, pipeline, steps,
-          createForkPipelineContext(pipelineContext, value._2, firstStep)
-            .setParameterByPipelineId(pipeline.id.get,
-              forkStepId, PipelineStepResponse(Some(value._1), None)))), None)
-    } catch {
-      case t: Throwable => ForkStepExecutionResult(value._2, None, Some(t))
-    }
-  }
-
-  /**
-    * This function will create a new PipelineContext from the provided that includes new StepMessages
-    *
-    * @param pipelineContext The PipelineContext to be cloned.
-    * @param groupId The id of the fork process
-    * @return A cloned PipelineContext
-    */
-  private def createForkPipelineContext(pipelineContext: PipelineContext, groupId: Int, firstStep: PipelineStep): PipelineContext = {
-    pipelineContext.copy(stepMessages =
-      Some(pipelineContext.sparkSession.get.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
-      .setGlobal("groupId", groupId.toString)
-      .setGlobal("stepId", firstStep.id)
-      .setStepAudit(pipelineContext.getGlobalString("pipelineId").get,
-        ExecutionAudit(firstStep.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), None, Some(groupId.toString)))
-  }
-
-  /**
-    * Returns a list of steps that should be executed as part of the fork step
-    * @param step The first step in the chain.
-    * @param steps The full pipeline stepLookup
-    * @param forkSteps The list used to store the steps
-    * @return A list of steps that may be executed as part of fork processing.
-    */
-  private def getForkSteps(step: PipelineStep,
-                           pipeline: Pipeline,
-                           steps: Map[String, PipelineStep],
-                           forkSteps: ForkStepFlow): ForkStepFlow = {
-    val list = step.`type`.getOrElse("").toLowerCase match {
-      case PipelineStepType.BRANCH =>
-        step.params.get.foldLeft(forkSteps.conditionallyAddStepToList(step))((stepList, param) => {
-          if (param.`type`.getOrElse("") == "result") {
-            getForkSteps(steps(param.value.getOrElse("").asInstanceOf[String]), pipeline, steps, stepList)
-          } else {
-            stepList
-          }
-        })
-      case PipelineStepType.JOIN =>
-        val flow = forkSteps.conditionallyAddStepToList(step)
-        if (flow.remainingUnclosedForks() > 0) {
-          getForkSteps(steps(step.nextStepId.getOrElse("")), pipeline, steps, flow)
-        } else {
-          flow
-        }
-      case _ if !steps.contains(step.nextStepId.getOrElse("")) => forkSteps.conditionallyAddStepToList(step)
-      case _ => getForkSteps(steps(step.nextStepId.getOrElse("")), pipeline, steps, forkSteps.conditionallyAddStepToList(step))
-    }
-
-    if (step.nextStepOnError.isDefined) {
-      getForkSteps(steps(step.nextStepOnError.getOrElse("")), pipeline, steps, list)
-    } else {
-      list
     }
   }
 }
