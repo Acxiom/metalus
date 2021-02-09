@@ -2,6 +2,7 @@ package com.acxiom.pipeline.utils
 
 import com.acxiom.pipeline._
 import com.acxiom.pipeline.api.HttpRestClient
+import com.acxiom.pipeline.audits.AuditType
 import com.acxiom.pipeline.drivers.{DriverSetup, ResultSummary}
 import com.acxiom.pipeline.fs.FileManager
 import org.apache.hadoop.io.LongWritable
@@ -9,7 +10,9 @@ import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.Dataset
+import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.JsonMethods.parse
+import org.json4s.native.Serialization
 import org.json4s.reflect.Reflector
 import org.json4s.{DefaultFormats, Extraction, Formats}
 
@@ -181,6 +184,7 @@ object DriverUtils {
     * @return true if everything executed properly (or paused), false if anything failed. Any non-pipeline errors will be thrown
     */
   def handleExecutionResult(results: Option[Map[String, DependencyResult]]): ResultSummary = {
+    implicit val formats: Formats = DefaultFormats + new EnumNameSerializer(AuditType)
     if (results.isEmpty) {
       ResultSummary(success = true, None, None)
     } else {
@@ -194,6 +198,10 @@ object DriverUtils {
           val execInfo = entry._2.result.get.pipelineContext.getPipelineExecutionInfo
           ResultSummary(entry._2.result.get.success, execInfo.executionId, execInfo.pipelineId)
         } else {
+          if (entry._2.result.isDefined &&
+            entry._2.result.get.pipelineContext.getGlobalString("logAudits").getOrElse("false").toLowerCase == "true") {
+            logger.info(s"${entry._2.execution.id} execution audits: ${Serialization.write(entry._2.result.get.pipelineContext.rootAudit)}")
+          }
           result
         }
       })
