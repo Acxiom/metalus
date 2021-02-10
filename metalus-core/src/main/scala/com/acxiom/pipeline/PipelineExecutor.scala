@@ -1,7 +1,7 @@
 package com.acxiom.pipeline
 
 import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
-import com.acxiom.pipeline.flow.{PipelineFlow, PipelineStepFlow}
+import com.acxiom.pipeline.flow.{PipelineFlow, PipelineStepFlow, SplitStepException}
 import org.apache.log4j.Logger
 
 object PipelineExecutor {
@@ -31,6 +31,10 @@ object PipelineExecutor {
         fe.exceptions.foreach(entry =>
           logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
         PipelineExecutionResult(esContext, success = false, paused = false, Some(fe))
+      case se: SplitStepException =>
+        se.exceptions.foreach(entry =>
+          logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
+        PipelineExecutionResult(esContext, success = false, paused = false, Some(se))
       case p: PauseException =>
         logger.info(s"Paused pipeline flow at ${p.pipelineProgress.getOrElse(PipelineExecutionInfo()).displayPipelineStepString}. ${p.message}")
         PipelineExecutionResult(esContext, success = false, paused = true, Some(p))

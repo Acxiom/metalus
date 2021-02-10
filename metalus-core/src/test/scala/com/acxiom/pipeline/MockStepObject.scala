@@ -39,6 +39,14 @@ object MockStepObject {
     ints.flatten.flatMap(_.flatten).sum
   }
 
+  def mockSumSimpleListOfInts(ints: List[Int]): Int ={
+    ints.sum
+  }
+
+  def mockListOfIntsToString(ints: List[Int]): String ={
+    ints.mkString(",")
+  }
+
   def mockStepFunctionWithListParams(list: List[String], seq: Seq[Int], arrayList: java.util.ArrayList[String]): String ={
     s"${list.headOption},${seq.headOption},${if(arrayList.isEmpty) None else Some(arrayList.get(0))}"
   }

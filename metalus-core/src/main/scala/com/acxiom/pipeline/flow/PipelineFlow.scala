@@ -67,6 +67,22 @@ object PipelineFlow {
     }
     context.setGlobal(keyName, global)
   }
+
+  /**
+    * This function will create a new PipelineContext from the provided that includes new StepMessages
+    *
+    * @param pipelineContext The PipelineContext to be cloned.
+    * @param groupId The id of the fork process
+    * @return A cloned PipelineContext
+    */
+  def createForkedPipelineContext(pipelineContext: PipelineContext, groupId: Option[String], firstStep: PipelineStep): PipelineContext = {
+    pipelineContext.copy(stepMessages =
+      Some(pipelineContext.sparkSession.get.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
+      .setGlobal("groupId", groupId)
+      .setGlobal("stepId", firstStep.id)
+      .setStepAudit(pipelineContext.getGlobalString("pipelineId").get,
+        ExecutionAudit(firstStep.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), None, groupId))
+  }
 }
 
 trait PipelineFlow {
@@ -145,7 +161,9 @@ trait PipelineFlow {
       case e => throw e
     }
     // Call the next step here
-    if (steps.contains(nextStepId.getOrElse("")) && steps(nextStepId.getOrElse("")).`type`.getOrElse("") == PipelineStepType.JOIN) {
+    if (steps.contains(nextStepId.getOrElse("")) &&
+      (steps(nextStepId.getOrElse("")).`type`.getOrElse("") == PipelineStepType.JOIN ||
+        steps(nextStepId.getOrElse("")).`type`.getOrElse("") == PipelineStepType.MERGE)) {
       sfContext
     } else if (steps.contains(nextStepId.getOrElse(""))) {
       executeStep(steps(nextStepId.get), pipeline, steps, sfContext)
@@ -172,6 +190,8 @@ trait PipelineFlow {
         ForkStepFlow(pipeline, pipelineContext, this.pipelineLookup, this.executingPipelines, step, parameterValues).execute()
       case ("", PipelineStepType.STEPGROUP) =>
         StepGroupFlow(pipeline, pipelineContext, this.pipelineLookup, this.executingPipelines, step, parameterValues).execute()
+      case ("", PipelineStepType.SPLIT) =>
+        SplitStepFlow(pipeline, pipelineContext, this.pipelineLookup, this.executingPipelines, step).execute()
       case ("", _) => ReflectionUtils.processStep(step, pipeline, parameterValues, pipelineContext)
       case (value, _) =>
         logger.debug(s"Evaluating execute if empty: $value")
@@ -206,16 +226,7 @@ trait PipelineFlow {
           .setGlobal("stepId", nextStepId)
     }
 
-    val updateCtx = if (nextStepId.isDefined) {
-      val metrics = if (ctx.sparkSession.isDefined) {
-        val executorStatus = ctx.sparkSession.get.sparkContext.getExecutorMemoryStatus
-        Map[String, Any]("startExecutorCount" -> executorStatus.size)
-      } else { Map[String, Any]() }
-      ctx.setStepAudit(pipelineId,
-        ExecutionAudit(nextStepId.get, AuditType.STEP, metrics, System.currentTimeMillis(), None, groupId))
-    } else {
-      ctx
-    }
+    val updateCtx = setStepAudit(ctx, nextStepId, pipelineId, groupId)
     val audit = if (updateCtx.sparkSession.isDefined) {
       val executorStatus = updateCtx.sparkSession.get.sparkContext.getExecutorMemoryStatus
       updateCtx.getStepAudit(pipelineId, step.id.get, groupId).get.setEnd(System.currentTimeMillis())
@@ -224,6 +235,21 @@ trait PipelineFlow {
       updateCtx.getStepAudit(pipelineId, step.id.get, groupId).get.setEnd(System.currentTimeMillis())
     }
     updateCtx.setStepAudit(pipelineId, audit)
+  }
+
+  protected def setStepAudit(pipelineContext: PipelineContext, nextStepId: Option[String], pipelineId: String, groupId: Option[String]): PipelineContext = {
+    if (nextStepId.isDefined) {
+      val metrics = if (pipelineContext.sparkSession.isDefined) {
+        val executorStatus = pipelineContext.sparkSession.get.sparkContext.getExecutorMemoryStatus
+        Map[String, Any]("startExecutorCount" -> executorStatus.size)
+      } else {
+        Map[String, Any]()
+      }
+      pipelineContext.setStepAudit(pipelineId,
+        ExecutionAudit(nextStepId.get, AuditType.STEP, metrics, System.currentTimeMillis(), None, groupId))
+    } else {
+      pipelineContext
+    }
   }
 
   private def getNextStepId(step: PipelineStep, result: Any): Option[String] = {

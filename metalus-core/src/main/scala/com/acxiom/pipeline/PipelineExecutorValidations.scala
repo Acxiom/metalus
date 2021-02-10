@@ -25,6 +25,8 @@ object PipelineExecutorValidations {
         }
       case PipelineStepType.FORK => validateForkStep(step, pipeline)
       case PipelineStepType.JOIN =>
+      case PipelineStepType.SPLIT =>
+      case PipelineStepType.MERGE =>
       case PipelineStepType.STEPGROUP =>
         if(step.params.isEmpty ||
           !step.params.get.exists(p => p.name.getOrElse("") == "pipeline" || p.name.getOrElse("") == "pipelineId")) {

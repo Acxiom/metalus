@@ -185,9 +185,11 @@ object PipelineStepResponse {
 }
 
 object PipelineStepType {
+  val BRANCH: String = "branch"
   val FORK: String = "fork"
   val JOIN: String = "join"
+  val MERGE: String = "merge"
   val PIPELINE: String = "pipeline"
-  val BRANCH: String = "branch"
+  val SPLIT: String = "split"
   val STEPGROUP: String = "step-group"
 }

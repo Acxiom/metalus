@@ -1,7 +1,6 @@
 package com.acxiom.pipeline.flow
 
 import com.acxiom.pipeline._
-import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -256,28 +255,12 @@ case class ForkStepFlow(pipeline: Pipeline,
     try {
       ForkStepExecutionResult(index,
         Some(executeStep(firstStep, pipeline, steps,
-          createForkPipelineContext(pipelineContext, groupId, firstStep)
+          PipelineFlow.createForkedPipelineContext(pipelineContext, Some(groupId), firstStep)
             .setParameterByPipelineId(pipeline.id.get,
               forkStepId, PipelineStepResponse(Some(value), None)))), None)
     } catch {
       case t: Throwable => ForkStepExecutionResult(index, None, Some(t))
     }
-  }
-
-  /**
-    * This function will create a new PipelineContext from the provided that includes new StepMessages
-    *
-    * @param pipelineContext The PipelineContext to be cloned.
-    * @param groupId The id of the fork process
-    * @return A cloned PipelineContext
-    */
-  private def createForkPipelineContext(pipelineContext: PipelineContext, groupId: String, firstStep: PipelineStep): PipelineContext = {
-    pipelineContext.copy(stepMessages =
-      Some(pipelineContext.sparkSession.get.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
-      .setGlobal("groupId", groupId)
-      .setGlobal("stepId", firstStep.id)
-      .setStepAudit(pipelineContext.getGlobalString("pipelineId").get,
-        ExecutionAudit(firstStep.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), None, Some(groupId)))
   }
 
   /**
