@@ -145,6 +145,7 @@ class SplitMergeStepTests extends FunSpec with BeforeAndAfterAll with Suite {
     it("Should fail when an error is encountered") {
       val message =
         """One or more errors has occurred while processing split step:
+          | Split Step SUM_VALUES: exception thrown for string value (some other value)
           | Split Step STRING_VALUES: exception thrown for string value (doesn't matter)
           |""".stripMargin
       val pipeline =

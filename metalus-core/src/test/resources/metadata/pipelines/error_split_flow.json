@@ -45,14 +45,14 @@
       "params": [
         {
           "type": "text",
-          "name": "ints",
+          "name": "string",
           "required": false,
-          "value": "@GENERATE_DATA",
+          "value": "some other value",
           "description": ""
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockSumSimpleListOfInts"
+        "spark": "MockStepObject.mockExceptionStepFunction"
       },
       "nextStepId": "MERGE"
     },
