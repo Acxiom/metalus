@@ -24,4 +24,4 @@ case class StepFunctionParameter(`type`: String,
                                  parameterType: Option[String] = None,
                                  description: Option[String] = None)
 
-case class PackageObject(id: String, schema: String)
+case class PackageObject(id: String, schema: String, template: Option[String] = None)

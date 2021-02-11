@@ -38,7 +38,7 @@ class StepMetadataExtractor extends Extractor {
     val definition = PipelineStepsDefinition(
       stepMappings._1.map(_.engineMeta.pkg.getOrElse("")).distinct,
       stepMappings._1,
-      buildPackageObjects(stepMappings._2)
+      buildPackageObjects(stepMappings._2, jarFiles)
     )
     StepMetadata(Serialization.write(definition),
       definition.pkgs,
@@ -123,10 +123,11 @@ class StepMetadataExtractor extends Extractor {
     }
   }
 
-  private def buildPackageObjects(caseClasses: Set[String]): List[PackageObject] = {
+  private def buildPackageObjects(caseClasses: Set[String], jarFiles: List[JarFile]): List[PackageObject] = {
     import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
     import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator
 
+    val forms = parseJsonMaps("metadata/packageForms", jarFiles, addFileName = true)
     caseClasses.map(x => {
       val xClass = Class.forName(x)
       val objectMapper = new ObjectMapper
@@ -136,7 +137,14 @@ class StepMetadataExtractor extends Extractor {
       val jsonSchemaGenerator = new JsonSchemaGenerator(objectMapper, debug = true, config)
       val jsonSchema: JsonNode = jsonSchemaGenerator.generateJsonSchema(xClass)
       val schema = objectMapper.writeValueAsString(jsonSchema).replaceFirst("draft-04", "draft-07")
-      PackageObject(x, schema)
+      val form = forms.find(_.contains(x.replaceAll("\\.", "_")))
+      val template = if (form.isDefined) {
+        val map = form.get(x.replaceAll("\\.", "_")).asInstanceOf[Map[String, Any]]
+        Some(Serialization.write(map))
+      } else {
+        None
+      }
+      PackageObject(x, schema, template)
     }).toList
   }
 
