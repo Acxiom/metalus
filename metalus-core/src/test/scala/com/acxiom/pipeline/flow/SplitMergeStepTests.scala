@@ -97,6 +97,17 @@ class SplitMergeStepTests extends FunSpec with BeforeAndAfterAll with Suite {
   }
 
   describe("Complex Flow Validation") {
+    it("Should fail if more than 2 logical paths are generated") {
+      val pipeline =
+        DriverUtils.parsePipelineJson(
+          Source.fromInputStream(getClass.getResourceAsStream("/metadata/pipelines/invalid_complex_split_flow.json")).mkString).get.head
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      assert(!executionResult.success)
+      assert(executionResult.exception.isDefined)
+      assert(executionResult.exception.get.getMessage == "Flows must either terminate at a single merge step or pipeline end!")
+    }
+
     it("Should process complex split step pipeline") {
       SparkTestHelper.pipelineListener = PipelineListener()
       val executionResult = PipelineExecutor.executePipelines(List(complexSplitPipeline), None, SparkTestHelper.generatePipelineContext())
@@ -116,7 +127,7 @@ class SplitMergeStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       val rootAudit = executionResult.pipelineContext.rootAudit
       assert(rootAudit.children.isDefined && rootAudit.children.get.length == 1)
       val pipelineAudit = rootAudit.children.get.head
-      assert(pipelineAudit.children.isDefined && pipelineAudit.children.get.length == 8)
+      assert(pipelineAudit.children.isDefined && pipelineAudit.children.get.length == 9)
       val childAudits = pipelineAudit.children.get
       assert(childAudits.exists(_.id == "SPLIT"))
       assert(childAudits.exists(_.id == "MERGE"))
@@ -126,6 +137,24 @@ class SplitMergeStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(childAudits.exists(_.id == "GENERATE_DATA"))
       assert(childAudits.exists(_.id == "SUM_VALUES"))
       assert(childAudits.exists(_.id == "SUM_VALUES_NOT_MERGED"))
+      assert(childAudits.exists(_.id == "BRANCH"))
+    }
+  }
+
+  describe("Flow Error Handling") {
+    it("Should fail when an error is encountered") {
+      val message =
+        """One or more errors has occurred while processing split step:
+          | Split Step STRING_VALUES: exception thrown for string value (doesn't matter)
+          |""".stripMargin
+      val pipeline =
+        DriverUtils.parsePipelineJson(
+          Source.fromInputStream(getClass.getResourceAsStream("/metadata/pipelines/error_split_flow.json")).mkString).get.head
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      assert(!executionResult.success)
+      assert(executionResult.exception.isDefined)
+      assert(executionResult.exception.get.getMessage == message)
     }
   }
 }

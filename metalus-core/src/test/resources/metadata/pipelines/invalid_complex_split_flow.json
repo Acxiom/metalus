@@ -1,6 +1,6 @@
 {
-  "id": "complex_split_flow",
-  "name": "Complex Split Flow Test",
+  "id": "invalid_complex_split_flow",
+  "name": "Invalid Complex Split Flow Test",
   "steps": [
     {
       "id": "GENERATE_DATA",
@@ -42,6 +42,13 @@
           "name": "someparam2",
           "required": true,
           "value": "BRANCH",
+          "description": ""
+        },
+        {
+          "type": "result",
+          "name": "someparam3",
+          "required": true,
+          "value": "SUM_VALUES_INVALID",
           "description": ""
         }
       ]
@@ -108,6 +115,23 @@
       "engineMeta": {
         "spark": "MockStepObject.mockSumSimpleListOfInts"
       },
+      "nextStepId": "MERGE2"
+    },
+    {
+      "id": "SUM_VALUES_INVALID",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "ints",
+          "required": false,
+          "value": "@GENERATE_DATA",
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockSumSimpleListOfInts"
+      },
       "nextStepId": "FORMAT_STRING_PART_2"
     },
     {
@@ -132,6 +156,11 @@
       "type": "merge",
       "params": [],
       "nextStepId": "FORMAT_STRING"
+    },
+    {
+      "id": "MERGE2",
+      "type": "merge",
+      "params": []
     },
     {
       "id": "FORMAT_STRING",

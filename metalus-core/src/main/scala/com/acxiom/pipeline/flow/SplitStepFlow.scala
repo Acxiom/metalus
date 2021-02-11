@@ -49,7 +49,7 @@ case class SplitStepFlow(pipeline: Pipeline,
       Await.ready(Future.sequence(futures), Duration.Inf)
       (futures.map(_.value.get.get), None)
     } else {
-      throw PipelineException(message = Some("FLows must either terminate at a single merge step or pipeline end!"),
+      throw PipelineException(message = Some("Flows must either terminate at a single merge step or pipeline end!"),
         pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
     }
     // Merge results once threads complete
@@ -75,6 +75,11 @@ case class SplitStepFlow(pipeline: Pipeline,
     })
   }
 
+  /**
+    * Creates a single future that waits for the flows to complete and then finishes step execution.
+    * @param splitFlows List of flows to execute.
+    * @return A single future for the total execution.
+    */
   private def startComplexSplitFlow(splitFlows: List[SplitFlow]): Future[SplitFlowExecutionResult] = {
     Future {
       val mergeFutures = startSplitFlows(splitFlows)
