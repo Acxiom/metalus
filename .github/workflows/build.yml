@@ -110,3 +110,4 @@ jobs:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }
         run: mvn --settings deployment/release-settings.xml -pl metalus-core,metalus-aws,metalus-common,metalus-gcp,metalus-kafka,metalus-mongo,metalus-utils -B -P release,spark_${{ matrix.spark }} -DskipTests=true -Dgpg.executable=gpg -Dgpg.keyname=F40721C83ED4BD317EA73B225B996D862829DE42 -Dgpg.passphrase=${{ secrets.SIGNING_KEY_PASSPHRASE }} -Dgpg.publicKeyring=deployment/pubring.gpg -Dgpg.secretKeyring=deployment/secring.gpg deploy
       - name: Deploy GitHub
+        run: echo "Should not be run"
