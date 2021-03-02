@@ -62,7 +62,7 @@ object KinesisPipelineDriver {
     // Handle multiple shards
     val numShards = kinesisClient.describeStream(parameters("streamName").asInstanceOf[String]).getStreamDescription.getShards.size
     logger.info("Number of Kinesis shards is : " + numShards)
-    val numStreams = parameters.getOrElse("consumerStreams", numShards).asInstanceOf[Int]
+    val numStreams = parameters.getOrElse("consumerStreams", numShards).asInstanceOf[String].toInt
     // Create the Kinesis DStreams
     val kinesisStreams = createKinesisDStreams(credentialProvider, appName, duration, streamingContext, numStreams, region, streamName)
     logger.info("Created " + kinesisStreams.size + " Kinesis DStreams")

@@ -52,9 +52,6 @@ object MetadataExtractor {
 
 trait Extractor {
   implicit val formats: Formats = DefaultFormats
-  val FOUR: Int = 4
-  val SEVEN: Int = 7
-
   val apiPath: String = ""
 
   /**

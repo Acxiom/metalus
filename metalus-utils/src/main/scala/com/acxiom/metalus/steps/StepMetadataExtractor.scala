@@ -232,7 +232,7 @@ class StepMetadataExtractor extends Extractor {
         ann.get.tree.children.tail(1).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(2).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(3).toString().replaceAll("\"", ""),
-        ann.get.tree.children.tail(FOUR).toString().replaceAll("\"", ""),
+        ann.get.tree.children.tail(Constants.FOUR).toString().replaceAll("\"", ""),
         getBranchResults(parameters._1, symbol),
         EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName), returnType),
         List(jarName))
@@ -279,7 +279,7 @@ class StepMetadataExtractor extends Extractor {
       }
       Some(com.acxiom.pipeline.StepResults(primaryType, secondaryTypes))
     } else if (returnTypeString.startsWith("Option[")) {
-      Some(com.acxiom.pipeline.StepResults(returnTypeString.substring(SEVEN, returnTypeString.length - 1)))
+      Some(com.acxiom.pipeline.StepResults(returnTypeString.substring(Constants.SEVEN, returnTypeString.length - 1)))
     } else if (returnTypeString != "Unit") {
       Some(com.acxiom.pipeline.StepResults(returnTypeString))
     } else {
@@ -317,7 +317,7 @@ class StepMetadataExtractor extends Extractor {
     */
   private def extractCaseClassFromOption(paramSymbol: ru.Symbol): ParameterInfo = {
     val optionString = paramSymbol.typeSignature.toString
-    val className = optionString.substring(SEVEN, optionString.length - 1)
+    val className = optionString.substring(Constants.SEVEN, optionString.length - 1)
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     try {
       val moduleClass = mirror.staticClass(className)
