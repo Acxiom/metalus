@@ -1,5 +1,6 @@
 package com.acxiom.pipeline.steps
 
+import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import org.apache.log4j.Logger
 import org.apache.spark.sql.functions._
@@ -330,6 +331,43 @@ object TransformationSteps {
     // return dataframe with attributes mapped to destination names and data types
     dataFrame.select(columnExprs: _*)
   }
+
+  /*
+   * Begin backwards compatibility functions
+   */
+  def join(left: Dataset[_], right: Dataset[_],
+           expression: Option[String] = None,
+           leftAlias: Option[String] = None,
+           rightAlias: Option[String] = None,
+           joinType: Option[String] = None,
+           pipelineContext: PipelineContext): DataFrame = {
+    DataSteps.join(left, right, expression, leftAlias, rightAlias, joinType, pipelineContext)
+  }
+
+  def groupBy(dataFrame: Dataset[_], groupings: List[String], aggregations: List[String]): DataFrame = {
+    DataSteps.groupBy(dataFrame, groupings, aggregations)
+  }
+
+  def union[T](dataFrame: Dataset[T], append: Dataset[T], distinct: Option[Boolean] = None): Dataset[T] = {
+    DataSteps.union(dataFrame, append, distinct)
+  }
+
+  def addStaticColumnToDataFrame(dataFrame: Dataset[_], columnName: String, columnValue: Any,
+                                 standardizeColumnName: Option[Boolean] = None): DataFrame = {
+    DataSteps.addStaticColumnToDataFrame(dataFrame, columnName, columnValue, standardizeColumnName)
+  }
+
+  def addUniqueIdToDataFrame(idColumnName: String, dataFrame: Dataset[_]): DataFrame = {
+    DataSteps.addUniqueIdToDataFrame(idColumnName, dataFrame)
+  }
+
+  def applyFilter[T](dataFrame: Dataset[T], expression: String): Dataset[T] = {
+    DataSteps.applyFilter(dataFrame, expression)
+  }
+
+  /*
+   * End backwards compatibility functions
+   */
 
   /**
     * adds placeholders for destination columns missing in dataframe
