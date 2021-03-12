@@ -1,23 +1,12 @@
 package com.acxiom.kafka.steps
 
-import java.util.Properties
-
+import com.acxiom.kafka.utils.KafkaUtilities
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Column, DataFrame}
 
 @StepObject
 object KafkaSteps {
-  private val kafkaProducerProperties = new Properties()
-  kafkaProducerProperties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-  kafkaProducerProperties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-  kafkaProducerProperties.put("acks", "all")
-  kafkaProducerProperties.put("retries", "0")
-  kafkaProducerProperties.put("batch.size", "16384")
-  kafkaProducerProperties.put("linger.ms", "1")
-  kafkaProducerProperties.put("buffer.memory", "33554432")
-
   private val topicDescription: Some[String] = Some("The Kafka topic")
   private val nodesDescription: Some[String] = Some("The comma separated Kafka nodes")
   private val clientIdDescription: Some[String] = Some("The optional Kafka clientId")
@@ -81,17 +70,7 @@ object KafkaSteps {
                   topic: String,
                   kafkaNodes: String,
                   key: String,
-                  clientId: String = "metalus_default_kafka_producer_client"): Unit = {
-
-    kafkaProducerProperties.put("bootstrap.servers", kafkaNodes)
-    kafkaProducerProperties.put("client.id", clientId)
-
-    val record = new ProducerRecord[String, String](topic, key, message)
-    val producer = new KafkaProducer[String, String](kafkaProducerProperties)
-    producer.send(record)
-    producer.flush()
-    producer.close()
-  }
+                  clientId: String = "metalus_default_kafka_producer_client"): Unit = KafkaUtilities.postMessage(message, topic, kafkaNodes, key, clientId)
 
   /**
     * Publish DataFrame data to a Kafka topic.

@@ -1,14 +1,10 @@
 package com.acxiom.pipeline.applications
 
-import java.io.{File, FileOutputStream, OutputStreamWriter}
-import java.net.HttpURLConnection
-import java.nio.file.Files
-
-import com.acxiom.pipeline.drivers.DriverSetup
-import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline._
 import com.acxiom.pipeline.api.BasicAuthorization
 import com.acxiom.pipeline.applications.Color.Color
+import com.acxiom.pipeline.drivers.DriverSetup
+import com.acxiom.pipeline.utils.DriverUtils
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, urlPathEqualTo}
 import org.apache.commons.io.FileUtils
@@ -28,6 +24,9 @@ import org.json4s.native.Serialization
 import org.json4s.{CustomSerializer, DefaultFormats, Formats, JObject}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
+import java.io.{File, FileOutputStream, OutputStreamWriter}
+import java.net.HttpURLConnection
+import java.nio.file.Files
 import scala.io.Source
 
 class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
@@ -373,8 +372,9 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     // Ensure the id is set properly
     assert(execution4.id == "3")
     // Use the global listener
-    assert(ctx3.pipelineListener.get.isInstanceOf[TestPipelineListener])
-    assert(ctx3.pipelineListener.get.asInstanceOf[TestPipelineListener].name == "Test Pipeline Listener")
+    assert(ctx3.pipelineListener.get.isInstanceOf[CombinedPipelineListener])
+    assert(ctx3.pipelineListener.get.asInstanceOf[CombinedPipelineListener].listeners.head
+      .asInstanceOf[TestPipelineListener].name == "Test Pipeline Listener")
     // Use a custom security manager
     assert(ctx3.security.asInstanceOf[TestPipelineSecurityManager].name == "Sub Security Manager")
     // Use the global pipeline parameters
@@ -425,8 +425,9 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     // Ensure the id is set properly
     assert(execution3.id == "2")
     // Use the global listener
-    assert(ctx3.pipelineListener.get.isInstanceOf[TestPipelineListener])
-    assert(ctx3.pipelineListener.get.asInstanceOf[TestPipelineListener].name == "Test Pipeline Listener")
+    assert(ctx3.pipelineListener.get.isInstanceOf[CombinedPipelineListener])
+    assert(ctx3.pipelineListener.get.asInstanceOf[CombinedPipelineListener].listeners.head
+      .asInstanceOf[TestPipelineListener].name == "Test Pipeline Listener")
     // Use a custom security manager
     assert(ctx3.security.asInstanceOf[TestPipelineSecurityManager].name == "Sub Security Manager")
     // Use the global pipeline parameters
@@ -543,8 +544,9 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     // Ensure the id is set properly
     assert(execution1.id == "0")
     // Use the global listener
-    assert(ctx1.pipelineListener.get.isInstanceOf[TestPipelineListener])
-    assert(ctx1.pipelineListener.get.asInstanceOf[TestPipelineListener].name == "Test Pipeline Listener")
+    assert(ctx1.pipelineListener.get.isInstanceOf[CombinedPipelineListener])
+    assert(ctx1.pipelineListener.get.asInstanceOf[CombinedPipelineListener].listeners.head
+      .asInstanceOf[TestPipelineListener].name == "Test Pipeline Listener")
     // Use a custom security manager
     assert(ctx1.security.asInstanceOf[TestPipelineSecurityManager].name == "Sub Security Manager")
     // Use the global pipeline parameters
@@ -604,7 +606,6 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(sl.size == 2)
     assert(sl.exists(_.name == "Listener1"))
     assert(sl.exists(_.name == "Listener2"))
-
   }
 
   def removeSparkListeners(spark: SparkSession): Unit = {
