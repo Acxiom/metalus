@@ -28,6 +28,8 @@ pass the namedReturns value to the step function. Embedded object mapping may be
 named value.
 * **&** - When the value begins with this character, the system will search the [pipelineManager](pipeline-manager.md) for the named parameter 
 and pass the pipeline or None to the step function. This is usually used in a step-group.
+* **%** - When the value begins with this character, the system will search the [CredentialProvider](credentialprovider.md)
+on the [PipelineContext](pipeline-context.md) for the named credential.
 
 The **@** and **#** symbols are shortcuts that assume the value in parameters is a PipelineStepResponse.
  A special named parameter, *LastStepId* can be used with these to retrieve the PipelineStepResponse of the last step executed. 

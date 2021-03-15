@@ -18,6 +18,11 @@
       },
       {
         "groupId": "com.amazonaws",
+        "artifactId": "aws-java-sdk-secretsmanager",
+        "version": "1.11.821"
+      },
+      {
+        "groupId": "com.amazonaws",
         "artifactId": "aws-java-sdk-s3",
         "version": "1.11.271",
         "scope": "extraction"
@@ -25,8 +30,7 @@
       {
         "groupId": "com.amazonaws",
         "artifactId": "aws-java-sdk-core",
-        "version": "1.11.76",
-        "scope": "extraction"
+        "version": "1.11.76"
       }
     ]
   }

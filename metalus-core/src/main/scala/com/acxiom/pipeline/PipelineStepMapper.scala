@@ -325,7 +325,7 @@ trait PipelineStepMapper {
   }
 
   private def containsSpecialCharacters(value: String): Boolean = {
-    "([!@$#&?])".r.findAllIn(value).nonEmpty
+    "([!@$%#&?])".r.findAllIn(value).nonEmpty
   }
 
   @tailrec
@@ -348,7 +348,7 @@ trait PipelineStepMapper {
   private def returnBestValue(value: String,
                               parameter: Parameter,
                               pipelineContext: PipelineContext): Option[Any] = {
-    val embeddedVariables = "([!@$#&?]\\{.*?\\})".r.findAllIn(value).toList
+    val embeddedVariables = "([!@$%#&?]\\{.*?\\})".r.findAllIn(value).toList
 
     if (embeddedVariables.nonEmpty) {
       embeddedVariables.foldLeft(Option[Any](value))((finalValue, embeddedValue) => {
@@ -379,14 +379,30 @@ trait PipelineStepMapper {
   private def processValue(parameter: Parameter, pipelineContext: PipelineContext, pipelinePath: PipelinePath) = {
     pipelinePath.mainValue match {
       case p if List('@', '#').contains(p.headOption.getOrElse("")) => getPipelineParameterValue(pipelinePath, pipelineContext)
-      case r if r.startsWith("$") => mapRuntimeParameter(pipelinePath, parameter, recursive = false, pipelineContext)
-      case r if r.startsWith("?") => mapRuntimeParameter(pipelinePath, parameter, recursive = true, pipelineContext)
+      case r if List('$', '?').contains(r.headOption.getOrElse("")) =>
+        mapRuntimeParameter(pipelinePath, parameter, recursive = r.startsWith("?"), pipelineContext)
       case g if g.startsWith("!") => getGlobalParameterValue(g, pipelinePath.extraPath.getOrElse(""), pipelineContext)
       case g if g.startsWith("&") =>
         logger.debug(s"Fetching pipeline value for ${pipelinePath.mainValue.substring(1)}")
         pipelineContext.pipelineManager.getPipeline(pipelinePath.mainValue.substring(1))
+      case g if g.startsWith("%") => getCredential(pipelineContext, pipelinePath)
       case o if o.nonEmpty => Some(mapByType(Some(o), parameter, pipelineContext))
       case _ => None
+    }
+  }
+
+  private def getCredential(pipelineContext: PipelineContext, pipelinePath: PipelinePath) = {
+    val credentialName = pipelinePath.mainValue.substring(1)
+    logger.debug(s"Fetching credential: $credentialName")
+    if (pipelineContext.credentialProvider.isDefined) {
+      val credential = pipelineContext.credentialProvider.get.getNamedCredential(credentialName)
+      if (credential.isDefined) {
+        getSpecificValue(credential.get, pipelinePath, Some(true))
+      } else {
+        None
+      }
+    } else {
+      None
     }
   }
 
@@ -466,7 +482,10 @@ trait PipelineStepMapper {
   }
 
   private def getSpecialCharacter(value: String): String = {
-    if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!") || value.startsWith("#") || value.startsWith("&") || value.startsWith("?")) {
+    if (value.startsWith("@") || value.startsWith("$") ||
+      value.startsWith("!") || value.startsWith("#") ||
+      value.startsWith("&") || value.startsWith("?") ||
+      value.startsWith("%")) {
       value.substring(0, 1)
     } else {
       ""
