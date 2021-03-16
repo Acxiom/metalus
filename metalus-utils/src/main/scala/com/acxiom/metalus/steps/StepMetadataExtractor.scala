@@ -1,14 +1,13 @@
 package com.acxiom.metalus.steps
 
-import java.util.jar.JarFile
-
 import com.acxiom.metalus.{Extractor, Metadata, Output}
 import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.{Constants, EngineMeta, StepResults}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.json4s.native.Serialization
-import org.json4s.{DefaultFormats, Formats}
 
+import java.io.{File, FileWriter}
+import java.util.jar.JarFile
 import scala.collection.JavaConversions._
 import scala.reflect.ScalaSignature
 import scala.reflect.internal.pickling.ByteCodecs
@@ -17,7 +16,6 @@ import scala.tools.scalap.scalax.rules.scalasig.{ByteCode, ScalaSigAttributePars
 import scala.util.{Failure, Success, Try}
 
 class StepMetadataExtractor extends Extractor {
-  implicit val formats: Formats = DefaultFormats
 
   override def getMetaDataType: String = "steps"
 
@@ -40,9 +38,13 @@ class StepMetadataExtractor extends Extractor {
     val definition = PipelineStepsDefinition(
       stepMappings._1.map(_.engineMeta.pkg.getOrElse("")).distinct,
       stepMappings._1,
-      buildPackageObjects(stepMappings._2)
+      buildPackageObjects(stepMappings._2, jarFiles)
     )
-    StepMetadata(Serialization.write(definition), definition.pkgs, definition.steps, definition.pkgObjs)
+    StepMetadata(Serialization.write(definition),
+      definition.pkgs,
+      definition.steps,
+      definition.pkgObjs,
+      parseJsonMaps("metadata/stepForms", jarFiles, addFileName = true))
   }
 
   /**
@@ -52,6 +54,7 @@ class StepMetadataExtractor extends Extractor {
     * @param output   Information about how to output the metadata.
     */
   override def writeOutput(metadata: Metadata, output: Output): Unit = {
+    val path = "metadata/stepForms"
     if (output.api.isDefined) {
       val http = output.api.get
       val definition = metadata.asInstanceOf[StepMetadata]
@@ -74,31 +77,57 @@ class StepMetadataExtractor extends Extractor {
           http.postJsonContent("steps", Serialization.write(step), headers)
         }
       })
+      definition.stepForms.foreach(map => {
+        val jarList = map.getOrElse("tags", List("No Jar Defined")).asInstanceOf[List[String]].filter(_.endsWith(".jar")).mkString
+        val name = map.getOrElse("fileName", "none").asInstanceOf[String]
+        val id = name.substring(name.indexOf(path) + path.length + 1, name.indexOf(".json"))
+        val headers =
+          Some(Map[String, String]("User-Agent" -> s"Metalus / ${System.getProperty("user.name")} / $jarList"))
+        http.putJsonContent(s"executions/$id/template", Serialization.write(map), headers)
+      })
     } else {
       super.writeOutput(metadata, output)
+      // Handle writing stepForms to file
+      val definition = metadata.asInstanceOf[StepMetadata]
+      if (definition.stepForms.nonEmpty && output.path.nonEmpty) {
+        val file = new File(output.path.get, "stepForms.json")
+        val writer = new FileWriter(file)
+        writer.write(Serialization.write(definition.stepForms.map(m => {
+          val id = m.getOrElse("fileName", "none").asInstanceOf[String]
+          val updatedMap = m + ("stepId" -> id)
+          updatedMap - "fileName"
+        })))
+        writer.flush()
+        writer.close()
+      }
     }
   }
 
   private def isStepObject(stepPath: String): Boolean = {
-    val clazz = Class.forName(stepPath, false, getClass.getClassLoader)
-    val containsAnnotation = clazz.isAnnotationPresent(classOf[scala.reflect.ScalaSignature])
-    // Iterate the annotations in case there are multiple
-    if (containsAnnotation) {
-      clazz.getAnnotationsByType(classOf[ScalaSignature]).exists(annotation => {
-        val bytes = annotation.bytes.getBytes("UTF-8")
-        val len = ByteCodecs.decode(bytes)
-        val byteCode = Some(ByteCode(bytes.take(len)))
-        byteCode.map(ScalaSigAttributeParsers.parse).get.symbols.exists(s => s.name == "StepObject")
-      })
-    } else {
-      false
+    try {
+      val clazz = Class.forName(stepPath, false, getClass.getClassLoader)
+      val containsAnnotation = clazz.isAnnotationPresent(classOf[scala.reflect.ScalaSignature])
+      // Iterate the annotations in case there are multiple
+      if (containsAnnotation) {
+        clazz.getAnnotationsByType(classOf[ScalaSignature]).exists(annotation => {
+          val bytes = annotation.bytes.getBytes("UTF-8")
+          val len = ByteCodecs.decode(bytes)
+          val byteCode = Some(ByteCode(bytes.take(len)))
+          byteCode.map(ScalaSigAttributeParsers.parse).get.symbols.exists(s => s.name == "StepObject")
+        })
+      } else {
+        false
+      }
+    } catch {
+      case _: Throwable => false
     }
   }
 
-  private def buildPackageObjects(caseClasses: Set[String]): List[PackageObject] = {
+  private def buildPackageObjects(caseClasses: Set[String], jarFiles: List[JarFile]): List[PackageObject] = {
     import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
     import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator
 
+    val forms = parseJsonMaps("metadata/packageForms", jarFiles, addFileName = true)
     caseClasses.map(x => {
       val xClass = Class.forName(x)
       val objectMapper = new ObjectMapper
@@ -108,7 +137,14 @@ class StepMetadataExtractor extends Extractor {
       val jsonSchemaGenerator = new JsonSchemaGenerator(objectMapper, debug = true, config)
       val jsonSchema: JsonNode = jsonSchemaGenerator.generateJsonSchema(xClass)
       val schema = objectMapper.writeValueAsString(jsonSchema).replaceFirst("draft-04", "draft-07")
-      PackageObject(x, schema)
+      val form = forms.find(_.contains(x.replaceAll("\\.", "_")))
+      val template = if (form.isDefined) {
+        val map = form.get(x.replaceAll("\\.", "_")).asInstanceOf[Map[String, Any]]
+        Some(Serialization.write(map))
+      } else {
+        None
+      }
+      PackageObject(x, schema, template)
     }).toList
   }
 
@@ -196,7 +232,7 @@ class StepMetadataExtractor extends Extractor {
         ann.get.tree.children.tail(1).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(2).toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(3).toString().replaceAll("\"", ""),
-        ann.get.tree.children.tail(FOUR).toString().replaceAll("\"", ""),
+        ann.get.tree.children.tail(Constants.FOUR).toString().replaceAll("\"", ""),
         getBranchResults(parameters._1, symbol),
         EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName), returnType),
         List(jarName))
@@ -243,7 +279,7 @@ class StepMetadataExtractor extends Extractor {
       }
       Some(com.acxiom.pipeline.StepResults(primaryType, secondaryTypes))
     } else if (returnTypeString.startsWith("Option[")) {
-      Some(com.acxiom.pipeline.StepResults(returnTypeString.substring(SEVEN, returnTypeString.length - 1)))
+      Some(com.acxiom.pipeline.StepResults(returnTypeString.substring(Constants.SEVEN, returnTypeString.length - 1)))
     } else if (returnTypeString != "Unit") {
       Some(com.acxiom.pipeline.StepResults(returnTypeString))
     } else {
@@ -281,7 +317,7 @@ class StepMetadataExtractor extends Extractor {
     */
   private def extractCaseClassFromOption(paramSymbol: ru.Symbol): ParameterInfo = {
     val optionString = paramSymbol.typeSignature.toString
-    val className = optionString.substring(SEVEN, optionString.length - 1)
+    val className = optionString.substring(Constants.SEVEN, optionString.length - 1)
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     try {
       val moduleClass = mirror.staticClass(className)
@@ -399,7 +435,8 @@ class StepMetadataExtractor extends Extractor {
 case class StepMetadata(value: String,
                         pkgs: List[String],
                         steps: List[StepDefinition],
-                        pkgObjs: List[PackageObject]) extends Metadata
+                        pkgObjs: List[PackageObject],
+                        stepForms: List[Map[String, Any]]) extends Metadata
 
 case class ParameterInfo(className: String, caseClass: Boolean)
 case class StepParameterInfo(typeValue: String,

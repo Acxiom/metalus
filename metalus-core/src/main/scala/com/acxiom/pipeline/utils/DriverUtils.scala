@@ -2,6 +2,7 @@ package com.acxiom.pipeline.utils
 
 import com.acxiom.pipeline._
 import com.acxiom.pipeline.api.HttpRestClient
+import com.acxiom.pipeline.audits.AuditType
 import com.acxiom.pipeline.drivers.{DriverSetup, ResultSummary}
 import com.acxiom.pipeline.fs.FileManager
 import org.apache.hadoop.io.LongWritable
@@ -9,7 +10,9 @@ import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.Dataset
+import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.JsonMethods.parse
+import org.json4s.native.Serialization
 import org.json4s.reflect.Reflector
 import org.json4s.{DefaultFormats, Extraction, Formats}
 
@@ -23,6 +26,8 @@ object DriverUtils {
   val DEFAULT_KRYO_CLASSES: Array[Class[_ >: LongWritable with UrlEncodedFormEntity <: Object]] = Array(classOf[LongWritable], classOf[UrlEncodedFormEntity])
 
   private val SPARK_MASTER = "spark.master"
+
+  private[utils] val resultMap = scala.collection.mutable.Map[String, Option[Map[String, DependencyResult]]]("results" -> None)
 
   /**
     * Creates a SparkConf with the provided class array. This function will also set properties required to run on a cluster.
@@ -179,6 +184,7 @@ object DriverUtils {
     * @return true if everything executed properly (or paused), false if anything failed. Any non-pipeline errors will be thrown
     */
   def handleExecutionResult(results: Option[Map[String, DependencyResult]]): ResultSummary = {
+    implicit val formats: Formats = DefaultFormats + new EnumNameSerializer(AuditType)
     if (results.isEmpty) {
       ResultSummary(success = true, None, None)
     } else {
@@ -192,6 +198,10 @@ object DriverUtils {
           val execInfo = entry._2.result.get.pipelineContext.getPipelineExecutionInfo
           ResultSummary(entry._2.result.get.success, execInfo.executionId, execInfo.pipelineId)
         } else {
+          if (entry._2.result.isDefined &&
+            entry._2.result.get.pipelineContext.getGlobalString("logAudits").getOrElse("false").toLowerCase == "true") {
+            logger.info(s"${entry._2.execution.id} execution audits: ${Serialization.write(entry._2.result.get.pipelineContext.rootAudit)}")
+          }
           result
         }
       })
@@ -221,12 +231,15 @@ object DriverUtils {
                            attempt: Int = 1,
                            maxAttempts: Int = Constants.FIVE): Unit = {
     val plan = if (dataFrame.isDefined) {
-      DriverUtils.addInitialDataFrameToExecutionPlan(driverSetup.refreshExecutionPlan(executionPlan), dataFrame.get)
+      DriverUtils.addInitialDataFrameToExecutionPlan(
+        driverSetup.refreshExecutionPlan(executionPlan, resultMap("results")), dataFrame.get)
     } else {
       executionPlan
     }
-    val results = driverSetup.handleExecutionResult(PipelineDependencyExecutor.executePlan(plan))
+    val executorResultMap = PipelineDependencyExecutor.executePlan(plan)
+    val results = driverSetup.handleExecutionResult(executorResultMap)
     if (results.success) {
+      resultMap += ("results" -> executorResultMap)
       // Call provided function once execution is successful
       successFunc()
     } else {

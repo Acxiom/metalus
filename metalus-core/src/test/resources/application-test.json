@@ -19,9 +19,16 @@
     "com.acxiom.pipeline"
   ],
   "pipelineListener": {
-    "className": "com.acxiom.pipeline.applications.TestPipelineListener",
+    "className": "com.acxiom.pipeline.CombinedPipelineListener",
     "parameters": {
-      "name": "Test Pipeline Listener"
+      "listeners": [
+        {
+          "className": "com.acxiom.pipeline.applications.TestPipelineListener",
+          "parameters": {
+            "name": "Test Pipeline Listener"
+          }
+        }
+      ]
     }
   },
   "sparkListeners": [

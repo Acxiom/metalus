@@ -1,17 +1,63 @@
 package com.acxiom.metalus.resolvers
 
-import java.io.{File, InputStream}
-import java.util.jar.JarFile
-
+import com.acxiom.metalus.resolvers.HashType.HashType
+import com.acxiom.pipeline.api.HttpRestClient
 import com.acxiom.pipeline.fs.FileManager
+import com.acxiom.pipeline.utils.DriverUtils
 import org.apache.log4j.Logger
 import org.json4s.native.JsonMethods.parse
 import org.json4s.{DefaultFormats, Formats}
 
+import java.io.{File, FileInputStream, InputStream}
+import java.nio.file.{Files, StandardCopyOption}
+import java.security.MessageDigest
+import java.util.jar.JarFile
+import scala.annotation.tailrec
 import scala.io.Source
 
 object DependencyResolver {
   private val logger = Logger.getLogger(getClass)
+
+  def getHttpClientForPath(path: String, parameters: Map[String, Any]): HttpRestClient = {
+    val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).toString.toLowerCase == "true"
+    val credentialProvider = DriverUtils.getCredentialProvider(parameters)
+    val noAuthDownload = parameters.getOrElse("no-auth-download", "false") == "true"
+    DriverUtils.getHttpRestClient(path, credentialProvider, Some(noAuthDownload), allowSelfSignedCerts)
+  }
+
+  def generateHash(input: InputStream, hashType: HashType): String = {
+    val MD5 = MessageDigest.getInstance(HashType.getAlgorithm(hashType))
+    Stream.continually(input.read).takeWhile(_ != -1).foreach(b => MD5.update(b.toByte))
+    input.close()
+    MD5.digest().map(0xFF & _).map { "%02x".format(_) }.foldLeft(""){_ + _}
+  }
+
+  def getRemoteHash(path: String, parameters: Map[String, Any]): Option[DependencyHash] = {
+    val http = DependencyResolver.getHttpClientForPath(s"$path.md5", parameters)
+    val httpSha1 = DependencyResolver.getHttpClientForPath(s"$path.sha1", parameters)
+    if (http.exists("")) {
+      Some(DependencyHash(loadRemoteHash(http), HashType.MD5))
+    } else if (httpSha1.exists("")) {
+      Some(DependencyHash(loadRemoteHash(httpSha1), HashType.SHA1))
+    } else {
+        None
+    }
+  }
+
+  private def loadRemoteHash(http: HttpRestClient): String = {
+    val input = http.getInputStream("")
+    val src = Source.fromInputStream(input)
+    val hash = src.getLines().next()
+    input.close()
+    src.close()
+    hash
+  }
+
+  def copyFileToLocal(inputFile: File, outputFile: File, overwrite: Boolean = false): Unit = {
+    if (overwrite || !outputFile.exists() || outputFile.length() == 0) {
+      Files.copy(inputFile.toPath, outputFile.toPath, StandardCopyOption.REPLACE_EXISTING)
+    }
+  }
 
   def getDependencyJson(file: String, parameters: Map[String, Any]): Option[Map[String, Any]] = {
     logger.info(s"Resolving dependencies for: $file")
@@ -47,22 +93,46 @@ object DependencyResolver {
     * @param input       The input stream to read the data
     * @param fileName    The name of the file being copied
     * @param outputPath  The local path where data is to be copied
+    * @param hash     An optional md5 hash to compare with the copied file to ensure the copy was succesful
     * @param attempt     The attempt number
     * @return true if the Jar file could be copied
     */
-  def copyJarWithRetry(fileManager: FileManager, input: InputStream, fileName: String, outputPath: String, attempt: Int = 1): Boolean = {
+  @tailrec
+  def copyJarWithRetry(fileManager: FileManager,
+                       input: () => InputStream,
+                       fileName: String,
+                       outputPath: String,
+                       hash: Option[DependencyHash],
+                       attempt: Int = 1): Boolean = {
     val output = fileManager.getOutputStream(outputPath, append = false)
-    fileManager.copy(input, output, FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)
-    try {
-      new JarFile(new File(outputPath))
+    val outputFile = new File(outputPath)
+    fileManager.copy(input(), output, FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)
+    val result = try {
+      if (hash.isDefined) {
+        val hashString = generateHash(new FileInputStream(new File(outputPath)), hash.get.hashType)
+        if (hashString != hash.get.hash) {
+          logger.warn(s"File ($outputPath) ${HashType.getAlgorithm(hash.get.hashType)} Hash mismatch local ($hashString) versus provided (${hash.get.hash})")
+          throw new IllegalStateException(s"File ($outputPath) ${HashType.getAlgorithm(hash.get.hashType)} hash did not match")
+        }
+      }
+      new JarFile(outputFile)
       true
     } catch {
       case t: Throwable if attempt > 5 =>
         logger.error(s"Failed to copy jar file $fileName after 5 attempts", t)
+        // Delete the output file in case any bytes were written
+        outputFile.delete()
         false
       case _: Throwable =>
         logger.warn(s"Failed to copy jar file $fileName. Retrying.")
-        copyJarWithRetry(fileManager, input, fileName, outputPath, attempt + 1)
+        // Delete the output file in case any bytes were written
+        outputFile.delete()
+        false
+    }
+    if (!result && attempt <= 5) {
+      copyJarWithRetry(fileManager, input, fileName, outputPath, hash, attempt + 1)
+    } else {
+      result
     }
   }
 }
@@ -72,3 +142,24 @@ trait DependencyResolver {
 }
 
 case class Dependency(name: String, version: String, localFile: File)
+
+object HashType extends Enumeration {
+  type HashType = Value
+  val MD5, SHA1 = Value
+
+  def getExtension(hashType: HashType): String = {
+    hashType match {
+      case HashType.SHA1 => ".sha1"
+      case _ => ".md5"
+    }
+  }
+
+  def getAlgorithm(hashType: HashType): String = {
+    hashType match {
+      case HashType.SHA1 => "SHA-1"
+      case _ => "MD5"
+    }
+  }
+}
+
+case class DependencyHash(hash: String, hashType: HashType)

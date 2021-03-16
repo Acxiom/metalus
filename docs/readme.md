@@ -11,6 +11,7 @@
         * [Step Groups](step-groups.md)
         * [Flow Control](flow-control.md)
             * [Fork/Join](fork-join.md)
+            * [Split/Merge](split-merge.md)
         * [Parameter Mapping](parameter-mapping.md)
             * [Reserved Globals](parameter-mapping.md#reserved-globals)
         * [Execution and Data Flow](pipeline-flow.md)

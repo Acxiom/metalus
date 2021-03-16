@@ -1,0 +1,2 @@
+use admin
+db.shutdownServer()

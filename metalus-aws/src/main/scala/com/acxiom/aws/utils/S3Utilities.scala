@@ -1,10 +1,12 @@
 package com.acxiom.aws.utils
 
+import com.acxiom.pipeline.PipelineContext
+import org.apache.log4j.Logger
+
 import java.net.URI
 
-import com.acxiom.pipeline.PipelineContext
-
 object S3Utilities {
+  private val logger = Logger.getLogger(getClass)
   val MULTIPART_UPLOAD_SIZE = 52428800
   val MULTIPART_COPY_SIZE = 5368709120L
 
@@ -35,10 +37,15 @@ object S3Utilities {
                          secretAccessKey: Option[String],
                          pipelineContext: PipelineContext): Unit = {
     if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+      logger.debug(s"Setting up S3 authorization for $path")
       val protocol = S3Utilities.deriveProtocol(path)
       val sc = pipelineContext.sparkSession.get.sparkContext
       sc.hadoopConfiguration.set(s"fs.$protocol.awsAccessKeyId", accessKeyId.get)
+      sc.hadoopConfiguration.set(s"fs.$protocol.access.key", accessKeyId.get)
       sc.hadoopConfiguration.set(s"fs.$protocol.awsSecretAccessKey", secretAccessKey.get)
+      sc.hadoopConfiguration.set(s"fs.$protocol.secret.key", secretAccessKey.get)
+      sc.hadoopConfiguration.set(s"fs.$protocol.acl.default", "BucketOwnerFullControl")
+      sc.hadoopConfiguration.set(s"fs.$protocol.canned.acl", "BucketOwnerFullControl")
     }
   }
 

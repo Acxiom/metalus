@@ -1,8 +1,8 @@
 package com.acxiom.pipeline
 
-import java.util.Date
-
 import com.acxiom.pipeline.PipelineStepMessageType.PipelineStepMessageType
+
+import java.util.Date
 
 /**
   * Metadata about the next step in the pipeline process.
@@ -182,4 +182,14 @@ case class DefaultPipelineStepResponse(primaryReturn: Option[Any], namedReturns:
 object PipelineStepResponse {
   def apply(primaryReturn: Option[Any], namedReturns: Option[Map[String, Any]]): PipelineStepResponse =
     DefaultPipelineStepResponse(primaryReturn, namedReturns)
+}
+
+object PipelineStepType {
+  val BRANCH: String = "branch"
+  val FORK: String = "fork"
+  val JOIN: String = "join"
+  val MERGE: String = "merge"
+  val PIPELINE: String = "pipeline"
+  val SPLIT: String = "split"
+  val STEPGROUP: String = "step-group"
 }

@@ -1,11 +1,13 @@
 [Documentation Home](readme.md)
 
 # Execution Audits
-Metalus provides a mechanism for capturing audits and metrics during execution. Three levels are available:
+Metalus provides a mechanism for capturing audits and metrics during execution.Three levels are available:
 
 * *execution* - Audits the execution of a single execution. This includes all executed pipelines.
 * *pipeline* - Audits a single pipeline being executed.
 * *step* - Audits a single step within a pipeline.
+
+The global parameter _logAudits_ will write each execution audits to the log file once execution is completed successfully.
 
 ## Metrics
 Each audit contains a metrics object where metrics can be set with the **setMetric** and **setMetrics** methods. 

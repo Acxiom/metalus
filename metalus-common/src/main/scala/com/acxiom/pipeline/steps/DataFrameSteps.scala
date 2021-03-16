@@ -105,7 +105,7 @@ object DataFrameSteps {
     "RepartitionDataFrame",
     "Repartition a DataFrame",
     "Pipeline",
-    "Transformation")
+    "Transforms")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to repartition")),
     "partitions" -> StepParameter(None, Some(true), None, None, None, None, Some("The number of partitions to use")),
     "rangePartition" -> StepParameter(None, Some(false), None, None, None, None,

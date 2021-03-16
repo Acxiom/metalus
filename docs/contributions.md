@@ -24,20 +24,28 @@ get familiar with the coding style and learn if the functionality already exists
 ## Building
 The project is built using [Apache Maven](http://maven.apache.org/).
 
-To build the project using Scala 2.11 and Spark 2.3 run:
+To build the project using Scala 2.11 and Spark 2.4 run:
 
 	mvn
 
-To build the project using Scala 2.11 and Spark 2.4 run:
+To build the project using Scala 2.12 and Spark 3.0 run:
 
-	mvn -P spark_2.4
-
-To build the project using Scala 2.12 and Spark 2.4 run:
-
-	mvn -P spark_2.4,scala_2.12
+	mvn -P spark_3.0
 
 
 (This will clean, build, test and package the jars and generate documentation)
 
 ## Running tests
-Tests are part of the main build.
+In addition to the unit tests that are part of the main build, a set of manual tests are available
+that will build the project for each version, verify the Metadata Extractor and run the example 
+application against the appropriate Spark version. Mongo will need to be installed and on the path.
+
+Command to execute manual test:
+```shell
+manual_tests/manual-tests.sh
+```
+
+Command to execute manual test and keep the generated metadata:
+```shell
+manual_tests/manual-tests.sh true
+```

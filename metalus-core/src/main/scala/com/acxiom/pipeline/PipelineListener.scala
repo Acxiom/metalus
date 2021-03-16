@@ -1,6 +1,11 @@
 package com.acxiom.pipeline
 
+import com.acxiom.pipeline.flow.SplitStepException
 import org.apache.log4j.Logger
+import org.json4s.native.Serialization
+import org.json4s.{DefaultFormats, Formats}
+
+import java.util.Date
 
 object PipelineListener {
   def apply(): PipelineListener = DefaultPipelineListener()
@@ -47,5 +52,146 @@ trait PipelineListener {
 
   def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
     // Base implementation does nothing
+  }
+}
+
+trait EventBasedPipelineListener extends PipelineListener {
+  implicit val formats: Formats = DefaultFormats
+  def key: String
+  def credentialName: String
+  def credentialProvider: CredentialProvider
+
+  def generateExecutionMessage(event: String, pipelines: List[Pipeline]): String = {
+    Serialization.write(Map[String, Any](
+      "key" -> key,
+      "event" -> event,
+      "eventTime" -> new Date().getTime,
+      "pipelines" -> pipelines.map(pipeline => EventPipelineRecord(pipeline.id.getOrElse(""), pipeline.name.getOrElse("")))
+    ))
+  }
+
+  def generatePipelineMessage(event: String, pipeline: Pipeline): String = {
+    Serialization.write(Map[String, Any](
+      "key" -> key,
+      "event" -> event,
+      "eventTime" -> new Date().getTime,
+      "pipeline" -> EventPipelineRecord(pipeline.id.getOrElse(""), pipeline.name.getOrElse(""))
+    ))
+  }
+
+  def generatePipelineStepMessage(event: String, pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): String = {
+    pipelineContext.getPipelineExecutionInfo.groupId
+    Serialization.write(Map[String, Any](
+      "key" -> key,
+      "event" -> event,
+      "eventTime" -> new Date().getTime,
+      "pipeline" -> EventPipelineRecord(pipeline.id.getOrElse(""), pipeline.name.getOrElse("")),
+      "step" -> EventPipelineStepRecord(step.id.getOrElse(""), step.stepId.getOrElse(""),
+        pipelineContext.getPipelineExecutionInfo.groupId.getOrElse(""))
+    ))
+  }
+
+  def generateExceptionMessage(event: String, exception: PipelineStepException, pipelineContext: PipelineContext): String = {
+    val executionInfo = pipelineContext.getPipelineExecutionInfo
+    val messageList: MessageLists = exception match {
+      case fe: ForkedPipelineStepException => fe.exceptions
+        .foldLeft(MessageLists(List[String](), List[Array[StackTraceElement]]()))((t, e) =>
+          MessageLists(t.messages :+ e._2.getMessage, t.stacks :+ e._2.getStackTrace))
+      case se: SplitStepException => se.exceptions
+        .foldLeft(MessageLists(List[String](), List[Array[StackTraceElement]]()))((t, e) =>
+          MessageLists(t.messages :+ e._2.getMessage, t.stacks :+ e._2.getStackTrace))
+      case p: PauseException => MessageLists(List(s"Paused: ${p.getMessage}"), List())
+      case _ => MessageLists(List(exception.getMessage), List(exception.getStackTrace))
+    }
+    Serialization.write(Map[String, Any](
+      "key" -> key,
+      "event" -> event,
+      "eventTime" -> new Date().getTime,
+      "executionId" -> executionInfo.executionId.getOrElse(""),
+      "pipelineId" -> executionInfo.pipelineId.getOrElse(""),
+      "stepId" -> executionInfo.stepId.getOrElse(""),
+      "groupId" -> executionInfo.groupId.getOrElse(""),
+      "messages" -> messageList.messages,
+      "stacks" -> messageList.stacks
+    ))
+  }
+}
+
+case class EventPipelineRecord(id: String, name: String)
+case class EventPipelineStepRecord(id: String, stepId: String, group: String)
+case class MessageLists(messages: List[String], stacks: List[Array[StackTraceElement]])
+case class CombinedPipelineListener(listeners: List[PipelineListener]) extends PipelineListener {
+  override def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+    Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
+      val updatedCtx = listener.executionStarted(pipelines, ctx)
+      if (updatedCtx.isDefined) {
+        updatedCtx.get
+      } else {
+        ctx
+      }
+    }))
+  }
+
+  override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+    Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
+      val updatedCtx = listener.executionFinished(pipelines, ctx)
+      if (updatedCtx.isDefined) {
+        updatedCtx.get
+      } else {
+        ctx
+      }
+    }))
+  }
+
+  override def executionStopped(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
+    listeners.foreach(_.executionStopped(pipelines, pipelineContext))
+  }
+
+  override def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+    Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
+      val updatedCtx = listener.pipelineStarted(pipeline, ctx)
+      if (updatedCtx.isDefined) {
+        updatedCtx.get
+      } else {
+        ctx
+      }
+    }))
+  }
+
+  override def pipelineFinished(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+    Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
+      val updatedCtx = listener.pipelineFinished(pipeline, ctx)
+      if (updatedCtx.isDefined) {
+        updatedCtx.get
+      } else {
+        ctx
+      }
+    }))
+  }
+
+  override def pipelineStepStarted(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
+    Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
+      val updatedCtx = listener.pipelineStepStarted(pipeline, step, ctx)
+      if (updatedCtx.isDefined) {
+        updatedCtx.get
+      } else {
+        ctx
+      }
+    }))
+  }
+
+  override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
+    Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
+      val updatedCtx = listener.pipelineStepFinished(pipeline, step, ctx)
+      if (updatedCtx.isDefined) {
+        updatedCtx.get
+      } else {
+        ctx
+      }
+    }))
+  }
+
+  override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+    listeners.foreach(_.registerStepException(exception, pipelineContext))
   }
 }

@@ -22,12 +22,12 @@ Here is a working example:
       {
         "groupId": "org.mongodb.spark",
         "artifactId": "mongo-spark-connector_2.11",
-        "version": "2.3.2"
+        "version": "2.4.2"
       },
       {
         "groupId": "org.mongodb",
         "artifactId": "mongo-java-driver",
-        "version": "3.11.2",
+        "version": "3.12.2",
         "scope": "extraction"
       }
     ]
@@ -81,7 +81,7 @@ bin/dependency-resolver.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --ou
 Example Output with a _path-prefix_ of _hdfs://acxiom/jars/udl_:
 
 ```shell script
-hdfs://acxiom/jars/udl/metalus-mongo_2.11-spark_2.3-1.6.0-SNAPSHOT.jar:hdfs://acxiom/jars/udl/mongo-spark-connector_2.11-2.3.2.jar:hdfs://acxiom/jars/udl/mongo-java-driver-3.11.2.jar
+hdfs://acxiom/jars/udl/metalus-mongo_2.11-spark_2.4-1.6.0-SNAPSHOT.jar:hdfs://acxiom/jars/udl/mongo-spark-connector_2.11-2.4.2.jar:hdfs://acxiom/jars/udl/mongo-java-driver-3.12.7.jar
 ```
 
 ## Maven Dependency Resolver
@@ -96,12 +96,12 @@ Developers may choose to override the repo within the _dependencies.json_ file b
       {
         "groupId": "org.mongodb.spark",
         "artifactId": "mongo-spark-connector_2.11",
-        "version": "2.3.2"
+        "version": "2.4.2"
       },
       {
         "groupId": "org.mongodb",
         "artifactId": "mongo-java-driver",
-        "version": "3.11.2",
+        "version": "3.12.7",
         "scope": "extraction"
       }
     ]

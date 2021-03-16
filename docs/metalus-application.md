@@ -10,9 +10,8 @@ run a basic application.
 Open a terminal window and change to the local Spark directory. **Note**: the version of Spark dictates the version of the
 jars that need to be used.
 
-**Scala 2.11 Spark 2.3**: metalus-application_2.11-spark_2.3-<VERSION>.jar
 **Scala 2.11 Spark 2.4**: metalus-application_2.11-spark_2.4-<VERSION>.jar
-**Scala 2.12 Spark 2.4**: metalus-application_2.12-spark_2.4-<VERSION>.jar
+**Scala 2.12 Spark 3.0**: metalus-application_2.12-spark_3.0-<VERSION>.jar
 
 Once the master and worker has been started, the UI may be accessed using these URLs:
 
@@ -44,19 +43,6 @@ sbin/stop-slave.sh
 sbin/stop-master.sh
 ```
 
-### Run the spark-submit command for Spark 2.3:
-
-```bash
-spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
---master spark://localhost:7077 \
---deploy-mode client \
---jars <extra step jars> \
-<jar_path>/metalus-application_2.11-spark_2.3-<VERSION>.jar \
---driverSetupClass com.acxiom.pipeline.applications.DefaultApplicationDriverSetup \
---applicationConfigPath <location of application-example.json> \
---logLevel DEBUG
-```
-
 ### Run the spark-submit command for Spark 2.4:
 
 ```bash
@@ -65,6 +51,19 @@ spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 --deploy-mode client \
 --jars <extra step jars> \
 <jar_path>/metalus-application_2.11-spark_2.4-<VERSION>.jar \
+--driverSetupClass com.acxiom.pipeline.applications.DefaultApplicationDriverSetup \
+--applicationConfigPath <location of application-example.json> \
+--logLevel DEBUG
+`
+
+### Run the spark-submit command for Spark 2.4:
+
+```bash
+spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
+--master spark://localhost:7077 \
+--deploy-mode client \
+--jars <extra step jars> \
+<jar_path>/metalus-application_2.12-spark_3.0-<VERSION>.jar \
 --driverSetupClass com.acxiom.pipeline.applications.DefaultApplicationDriverSetup \
 --applicationConfigPath <location of application-example.json> \
 --logLevel DEBUG
