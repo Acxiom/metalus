@@ -3,6 +3,8 @@ name: Build
 on:
   push:
     branches: [ develop, master ]
+  pull_request_target:
+    branches: [ develop, master ]
 
 jobs:
   build:
@@ -72,6 +74,8 @@ jobs:
       - name: Build with Maven
         run: mvn -B -DskipTests=true clean install
       - name: Coverage Report
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: mvn -B -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }} -Dsonar.login=${{ secrets.SONAR_TOKEN }} -Dsonar.projectKey=Acxiom_spark-pipeline-driver-develop -Dsonar.host.url=https://sonarcloud.io scoverage:report scalastyle:check org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar
   release:
     if: ${{ github.repository == 'Acxiom/metalus' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}

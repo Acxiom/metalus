@@ -1,5 +1,6 @@
 package com.acxiom.gcp.utils
 
+import com.acxiom.gcp.pipeline.GCPCredential
 import com.acxiom.pipeline.{Constants, CredentialProvider, PipelineContext}
 import com.google.api.gax.core.FixedCredentialsProvider
 import com.google.api.gax.retrying.RetrySettings
@@ -36,8 +37,7 @@ object GCPUtilities {
     val gcpCredential = credentialProvider
       .getNamedCredential(credentialName).asInstanceOf[Option[GCPCredential]]
     if (gcpCredential.isDefined) {
-      Some(GoogleCredentials.fromStream(new ByteArrayInputStream(gcpCredential.get.authKey))
-        .createScoped("https://www.googleapis.com/auth/cloud-platform"))
+      generateCredentials(Some(gcpCredential.get.authKey))
     } else {
       None
     }
@@ -68,6 +68,19 @@ object GCPUtilities {
       Some(GoogleCredentials.fromStream(
         new ByteArrayInputStream(Serialization.write(credentials)(DefaultFormats).getBytes))
         .createScoped("https://www.googleapis.com/auth/cloud-platform"))
+    } else {
+      None
+    }
+  }
+
+  /**
+    * Given a credentials map, return a byte array
+    * @param credentials The credentials map
+    * @return A byte array or none
+    */
+  def generateCredentialsByteArray(credentials: Option[Map[String, String]]): Option[Array[Byte]] = {
+    if (credentials.isDefined) {
+      Some(Serialization.write(credentials)(DefaultFormats).getBytes)
     } else {
       None
     }

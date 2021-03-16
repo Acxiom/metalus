@@ -89,10 +89,15 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
     )
 
     val subPipeline = Pipeline(Some("mypipeline"), Some("My Pipeline"))
+    val credentialProvider = new DefaultCredentialProvider(
+      Map[String, Any]("credential-classes" -> "com.acxiom.pipeline.DefaultCredential",
+      "credentialName" -> "testCredential",
+      "credentialValue" -> "secretCredential"))
 
     val pipelineContext = PipelineContext(
       None, None, Some(globalParameters), PipelineSecurityManager(), pipelineParameters, None, PipelineStepMapper(), None, None,
-      ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()), PipelineManager(List(subPipeline)))
+      ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
+      PipelineManager(List(subPipeline)), Some(credentialProvider))
 
     it("should pull the appropriate value for given parameters") {
       val tests = List(
@@ -181,7 +186,9 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("Casting bigInt global to String", Parameter(value = Some("!bigIntGlobal"), `type` = Some("String")), "1"),
         ("Casting String global to boolean", Parameter(value = Some("!booleanString"), `type` = Some("boolean")), true),
         ("Global String with runtime character", Parameter(value = Some("!runtimeGlobal"), `type` = Some("text")), "$rawKey1"),
-        ("Use default value", Parameter(name = Some("defaultparam"), defaultValue = Some("default chosen"), `type` = Some("text")), "default chosen")
+        ("Use default value", Parameter(name = Some("defaultparam"), defaultValue = Some("default chosen"), `type` = Some("text")), "default chosen"),
+        ("Pull Credential Name", Parameter(value = Some("%testCredential.name"), `type` = Some("text")), "testCredential"),
+        ("Pull Credential Value", Parameter(value = Some("%testCredential.value"), `type` = Some("text")), "secretCredential")
       )
       tests.foreach(test => {
         Then(s"test ${test._1}")

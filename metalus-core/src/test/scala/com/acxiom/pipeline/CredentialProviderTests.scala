@@ -19,7 +19,7 @@ class CredentialProviderTests extends FunSpec {
 
     it("Should load AuthorizationCredential from credential-classes") {
       val parameters = Map[String, Any](
-        "credential-classes" -> "com.acxiom.pipeline.AuthorizationCredential",
+        "credential-classes" -> ",com.acxiom.pipeline.AuthorizationCredential",
         "authorization.username" -> "redonthehead",
         "authorization.password" -> "fred")
       val provider = new DefaultCredentialProvider(parameters)
@@ -29,7 +29,7 @@ class CredentialProviderTests extends FunSpec {
     }
 
     it("Should not load any credentials") {
-      val provider = new DefaultCredentialProvider(Map[String, Any]())
+      val provider = new DefaultCredentialProvider(Map[String, Any]("credential-classes" -> ",,,"))
       assert(provider.getNamedCredential("DefaultAuthorization").isEmpty)
     }
   }

@@ -42,6 +42,7 @@
         * Extensions
             * [S3FileManager](../metalus-aws/docs/s3filemanager.md)
             * [Kinesis Pipeline Driver](../metalus-aws/docs/kinesispipelinedriver.md)
+            * [AWS Secrets Manager Credential Provider](../metalus-aws/docs/awssecretsmanager-credentialprovider.md)
     * [Metalus GCP](../metalus-gcp/readme.md)
         * Steps
             * [GCSSteps](../metalus-gcp/docs/gcssteps.md)
@@ -49,6 +50,7 @@
         * Extensions
             * [GCSFileManager](../metalus-gcp/docs/gcsfilemanager.md)
             * [PubSub Pipeline Driver](../metalus-gcp/docs/pubsubpipelinedriver.md)
+            * [GCP Secrets Manager Credential Provider](../metalus-gcp/docs/gcpsecretsmanager-credentialprovider.md)
     * [Metalus Kafka](../metalus-kafka/readme.md)
         * Steps
             * [KafkaSteps](../metalus-kafka/docs/kafkasteps.md)
