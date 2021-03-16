@@ -23,13 +23,17 @@ A trait named _AWSCredential_ is provided with the basic requirements for a cred
 should extend this trait and override the _awsAccessKey_ and _awsAccessSecret_ functions. 
 
 Implementations provided:
+* **com.acxiom.aws.utils.DefaultAWSCredential** - Reads the values for the name from _credentialName_ and splits the
+_credentialValue_ on the _:_ character to populate the key and secret.
 * **com.acxiom.aws.utils.AWSBasicCredential** - Reads the _accessKeyId_ and _secretAccessKey_ parameters to populate 
 the functions. The name used to access this credential is _AWSCredential_.
 * **com.acxiom.aws.utils.AWSCloudWatchCredential** - Reads the _cloudWatchAccessKeyId_ and _cloudWatchSecretAccessKey_ 
 parameters to populate the functions. The name used to access this credential is _AWSCloudWatchCredential_.
 * **com.acxiom.aws.utils.AWSDynamoDBCredential** - Reads the _dynamoDBAccessKeyId_ and _dynamoDBSecretAccessKey_ 
 parameters to populate the functions. The name used to access this credential is _AWSDynamoDBCredential_.
-
+* **[com.acxiom.aws.pipeline.AWSecretsManagerCredentialProvider](../metalus-aws/docs/awssecretsmanager-credentialprovider.md)** -An extension of
+  DefaultCredentialProvider which will use the AWS secrets manager to attempt to find Credentials.
+  
 # Metalus GCP
 A trait named _GCPCredential_ is provided with the basic requirements for a credential: A map of Strings. Implementations
 should extend this trait and override the _authKey_ function. The _PubSubPipelineDriver_ will attempt to access this 

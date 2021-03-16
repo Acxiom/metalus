@@ -9,28 +9,26 @@
       {
         "groupId": "org.apache.spark",
         "artifactId": "spark-streaming-kinesis-asl_${scala.compat.version}",
-        "version": "${spark.version}"
+        "version": "${spark.version}",
+        "scope": "extraction"
       },
       {
         "groupId": "com.amazonaws",
         "artifactId": "amazon-kinesis-client",
-        "version": "${kinesis.client.version}"
+        "version": "${kinesis.client.version}",
+        "scope": "extraction"
       },
       {
         "groupId": "com.amazonaws",
         "artifactId": "aws-java-sdk-secretsmanager",
-        "version": "1.11.821"
+        "version": "1.11.821",
+        "scope": "extraction"
       },
       {
         "groupId": "com.amazonaws",
         "artifactId": "aws-java-sdk-s3",
         "version": "1.11.271",
         "scope": "extraction"
-      },
-      {
-        "groupId": "com.amazonaws",
-        "artifactId": "aws-java-sdk-core",
-        "version": "1.11.76"
       }
     ]
   }
