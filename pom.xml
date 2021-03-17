@@ -221,6 +221,7 @@
                 <version>2.18.1</version>
                 <configuration>
                     <skipTests>true</skipTests>
+                    <argLine>--illegal-access=permit</argLine>
                 </configuration>
             </plugin>
             <plugin>
