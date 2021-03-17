@@ -142,7 +142,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "TransformationSteps.addUniqueIdToDataFrame",
+        "spark": "DataSteps.addUniqueIdToDataFrame",
         "pkg": "com.acxiom.pipeline.steps"
       },
       "creationDate": "2019-06-04T19:45:30.021Z",
@@ -177,7 +177,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "TransformationSteps.addStaticColumnToDataFrame",
+        "spark": "DataSteps.addStaticColumnToDataFrame",
         "pkg": "com.acxiom.pipeline.steps"
       },
       "creationDate": "2019-06-04T19:45:30.013Z",
