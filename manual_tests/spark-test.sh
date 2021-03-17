@@ -54,6 +54,7 @@ cd ..
 mkdir -p $tmpDir/data
 mkdir -p $tmpDir/mongodb
 mongod --fork --logpath $tmpDir/mongodb/mongod.log --dbpath $tmpDir/data
+mongo < $dir/manual_tests/testData/drop_database.js
 # Start Spark
 export SPARK_LOCAL_IP=127.0.0.1
 $sparkDir/sbin/start-master.sh -h localhost -p 7077
