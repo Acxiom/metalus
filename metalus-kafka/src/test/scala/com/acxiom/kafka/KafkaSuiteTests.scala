@@ -89,8 +89,10 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
     server.awaitShutdown()
     testingServer.stop()
 
-    SparkTestHelper.sparkSession.sparkContext.cancelAllJobs()
-    SparkTestHelper.sparkSession.sparkContext.stop()
+    if (!SparkTestHelper.sparkSession.sparkContext.isStopped) {
+      SparkTestHelper.sparkSession.sparkContext.cancelAllJobs()
+      SparkTestHelper.sparkSession.sparkContext.stop()
+    }
     SparkTestHelper.sparkSession.stop()
     Logger.getRootLogger.setLevel(Level.INFO)
 
