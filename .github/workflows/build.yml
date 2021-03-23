@@ -80,7 +80,7 @@ jobs:
         run: mvn -B -DskipTests=true -P spark_${{ matrix.spark }} clean install
       - name: Set Scala Version
         run: |
-          if [${{ matrix.spark }} == '2.4']
+          if [${{ matrix.spark }} == 2.4]
           then
               echo "SCALA_VERSION=2.11" >> $GITHUB_ENV
           else
