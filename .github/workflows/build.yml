@@ -15,14 +15,12 @@ jobs:
         spark: [ '2.4', '3.0' ]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Set Scala Version
-        run: |
-          if [ echo "${{ matrix.spark }}" == "2.4" ]
-          then
-              echo "SCALA_VERSION=2.11" >> $GITHUB_ENV
-          else
-              echo "SCALA_VERSION=2.12" >> $GITHUB_ENV
-          fi
+      - name: Set Scala Version 2.11
+        run: echo "SCALA_VERSION=2.11" >> $GITHUB_ENV
+        if: ${{ matrix.spark }} == '2.4'
+      - name: Set Scala Version 2.12
+        run: echo "SCALA_VERSION=2.12" >> $GITHUB_ENV
+        if: ${{ matrix.spark }} == '3.0'
       - name: Source Checkout
         uses: actions/checkout@v2
       - name: Set up JDK 1.8
@@ -88,7 +86,7 @@ jobs:
         run: mvn -B -DskipTests=true -P spark_${{ matrix.spark }} clean install
       - name: Set Scala Version
         run: |
-          if [ echo "${{ matrix.spark }}" == "2.4" ]
+          if [ "${{ matrix.spark }}" == "2.4" ]
           then
               echo "SCALA_VERSION=2.11" >> $GITHUB_ENV
           else
