@@ -17,10 +17,10 @@ jobs:
     steps:
       - name: Set Scala Version 2.11
         run: echo "SCALA_VERSION=2.11" >> $GITHUB_ENV
-        if: ${{ matrix.spark }} == '2.4'
+        if: matrix.spark == '2.4'
       - name: Set Scala Version 2.12
         run: echo "SCALA_VERSION=2.12" >> $GITHUB_ENV
-        if: ${{ matrix.spark }} == '3.0'
+        if: matrix.spark == '3.0'
       - name: Source Checkout
         uses: actions/checkout@v2
       - name: Set up JDK 1.8
