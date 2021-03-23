@@ -74,8 +74,10 @@ jobs:
         with:
           path: ~/.m2
           key: metalus-build-${{ env.cache-name }}
-      - name: Build with Maven
-        run: mvn -B -P spark_${{ matrix.spark }} clean install
+      - name: Remove SNAPSHOT
+        run: mvn -B -P spark_${{ matrix.spark }} versions:set -DremoveSnapshot
+      - name: Build Artifacts
+        run: mvn -B -DskipTests=true -P spark_${{ matrix.spark }} clean install
       - name: Set Scala Version
         run: |
           if [$matrix.spark == '2.4']
