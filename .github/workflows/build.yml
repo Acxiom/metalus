@@ -97,7 +97,7 @@ jobs:
       - name: Upload Application Utils
         uses: actions/upload-artifact@v2
         with:
-          name: metalus-utils_${{ env.SCALA_VERSION }}-spark_${{ matrix.spark }-${{ env.METALUS_VERSION }}.tar.gz
+          name: metalus-utils_${{ env.SCALA_VERSION }}-spark_${{ matrix.spark }}-${{ env.METALUS_VERSION }}.tar.gz
           path: target/metalus-application_${{ env.SCALA_VERSION }}-spark_${{ matrix.spark }}-${{ env.METALUS_VERSION }}.jar
   release_test:
     name: Github Release Test
