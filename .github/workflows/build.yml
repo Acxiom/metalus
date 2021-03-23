@@ -52,6 +52,89 @@ jobs:
         run: mvn -B -DskipTests=true clean install
       - name: Coverage Report
         run: mvn -B -DrepoToken=${{ secrets.COVERALLS_REPO_TOKEN }} scoverage:report coveralls:report
+  pre_release_build:
+    name: Pre Release Test
+    needs: build
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        spark: [ '2.4', '3.0' ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Source Checkout
+        uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Cache Maven Jars
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-maven-jars
+        with:
+          path: ~/.m2
+          key: metalus-build-${{ env.cache-name }}
+      - name: Build with Maven
+        run: mvn -B -P spark_${{ matrix.spark }} clean install
+      - name: Set Scala Version
+        run: |
+          if [$matrix.spark == '2.4']
+          then
+              echo "SCALA_VERSION=2.11" >> $GITHUB_ENV
+          else
+              echo "SCALA_VERSION=2.12" >> $GITHUB_ENV
+          fi
+      - name: Set Metalus Version
+        run: |
+          echo 'METALUS_VERSION<<EOF' >> $GITHUB_ENV
+          mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+      - name: Upload Application Jar
+        uses: actions/upload-artifact@v2
+        with:
+          name: metalus-application_${{ env.SCALA_VERSION }}-spark_${{ matrix.spark }}-${{ env.METALUS_VERSION }}.jar
+          path: target/metalus-application_${{ env.SCALA_VERSION }}-spark_${{ matrix.spark }}-${{ env.METALUS_VERSION }}.jar
+      - name: Upload Application Utils
+        uses: actions/upload-artifact@v2
+        with:
+          name: metalus-utils_${{ env.SCALA_VERSION }}-spark_${{ matrix.spark }-${{ env.METALUS_VERSION }}.tar.gz
+          path: target/metalus-application_${{ env.SCALA_VERSION }}-spark_${{ matrix.spark }}-${{ env.METALUS_VERSION }}.jar
+  release_test:
+    name: Github Release Test
+    needs: pre_release_build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Metalus Version
+        run: |
+          echo 'METALUS_VERSION<<EOF' >> $GITHUB_ENV
+          mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+      - name: Download Application Jar Spark 2.4
+        uses: actions/download-artifact@v2
+        with:
+          name: metalus-application_2.11-spark_2.4-${{ env.METALUS_VERSION }}.jar
+      - name: Download Utils Spark 2.4
+        uses: actions/download-artifact@v2
+        with:
+          name: metalus-utils_2.11-spark_2.4-${{ env.METALUS_VERSION }}.tar.gz
+      - name: Download Application Jar Spark 3.0
+        uses: actions/download-artifact@v2
+        with:
+          name: metalus-application_2.12-spark_3.0-${{ env.METALUS_VERSION }}.jar
+      - name: Download Utils Spark 3.0
+        uses: actions/download-artifact@v2
+        with:
+          name: metalus-utils_2.12-spark_3.0-${{ env.METALUS_VERSION }}.tar.gz
+      - name: Create Github Release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "${{ env.METALUS_VERSION }}"
+          prerelease: true
+          title: "Metalus Pipeline Library ${{ env.METALUS_VERSION }}"
+          files: |
+            *.tar.gz
+            *.jar
   release:
     if: ${{ github.repository == 'Acxiom/metalus' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
     name: Release
