@@ -2,6 +2,7 @@ package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset}
 
 @StepObject
@@ -50,5 +51,59 @@ object HiveSteps {
     val cascadeString = cascade.collect { case true if cascadable.contains(objectName.toUpperCase) => "CASCADE" }.getOrElse("")
     val sql = s"DROP $objectName $ifString $name $cascadeString"
     pipelineContext.sparkSession.get.sql(sql)
+  }
+
+  @StepFunction("17be71f9-1492-4404-a355-1cc973694cad",
+    "Database Exists",
+    "Check spark catalog for a database with the given name.",
+    "Decision",
+    "InputOutput")
+  @StepParameters(Map("name" -> StepParameter(None, Some(true), description = Some("Name of the database"))))
+  def databaseExists(name: String, pipelineContext: PipelineContext): Boolean = {
+    pipelineContext.sparkSession.get.catalog.databaseExists(name)
+  }
+
+  @StepFunction("95181811-d83e-4136-bedb-2cba1de90301",
+    "Table Exists",
+    "Check spark catalog for a table with the given name.",
+    "Decision",
+    "InputOutput")
+  @StepParameters(Map(
+    "name" -> StepParameter(None, Some(true), description = Some("Name of the table")),
+    "database" -> StepParameter(None, Some(false), description = Some("Name of the database"))))
+  def tableExists(name: String, database: Option[String] = None, pipelineContext: PipelineContext): Boolean = {
+    if (database.isDefined) {
+      pipelineContext.sparkSession.get.catalog.tableExists(database.get, name)
+    } else {
+      pipelineContext.sparkSession.get.catalog.tableExists(name)
+    }
+  }
+
+  @StepFunction("f4adfe70-2ae3-4b8d-85d1-f53e91c8dfad",
+    "Set Current Database",
+    "Set the current default database for the spark session.",
+    "Pipeline",
+    "InputOutput")
+  @StepParameters(Map("name" -> StepParameter(None, Some(true), description = Some("Name of the database"))))
+  def setCurrentDatabase(name: String, pipelineContext: PipelineContext): Unit = {
+    pipelineContext.sparkSession.get.catalog.setCurrentDatabase(name)
+  }
+
+  @StepFunction("663f8c93-0a42-4c43-8263-33f89c498760",
+    "Create Table",
+    "Create Hive Table.",
+    "Pipeline",
+    "InputOutput")
+  @StepParameters(Map(
+    "name" -> StepParameter(None, Some(true), description = Some("Name of the table")),
+    "externalPath" -> StepParameter(None, Some(false), description = Some("Path of the external table")),
+    "options" -> StepParameter(None, Some(false), description = Some("Options containing the format, schema, and settings"))))
+  def createTable(name: String, externalPath: Option[String] = None,
+                  options: Option[DataFrameReaderOptions] = None,
+                  pipelineContext: PipelineContext): DataFrame = {
+    val dfOptions = options.getOrElse(DataFrameReaderOptions("hive"))
+    val finalOptions = dfOptions.options.getOrElse(Map[String, String]()) ++ externalPath.map(p => "path" -> p)
+    val schema = dfOptions.schema.map(_.toStructType()).getOrElse(new StructType)
+    pipelineContext.sparkSession.get.catalog.createTable(name, dfOptions.format, schema, finalOptions)
   }
 }

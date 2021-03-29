@@ -147,14 +147,13 @@ case class SplitStepFlow(pipeline: Pipeline,
         val ctx = combinedResult.result.get
         val mergeAuditCtx = ctx.copy(rootAudit = ctx.rootAudit.merge(resultCtx.rootAudit))
         stepLookup.foldLeft(combinedResult.copy(result = Some(mergeAuditCtx)))((cresult, flowStep) => {
-          if (resultCtx.parameters.getParametersByPipelineId(pipelineId).get.parameters.contains(flowStep._2.id.get)) {
-            val ctx = cresult.result.get
-            cresult.copy(result =
-              Some(ctx.copy(parameters = ctx.parameters.setParameterByPipelineId(pipelineId, flowStep._2.id.get,
-                resultCtx.parameters.getParametersByPipelineId(pipelineId).get.parameters(flowStep._2.id.get)))))
-          } else {
-            cresult
-          }
+          resultCtx.getParameterByPipelineId(pipelineId, flowStep._2.id.get)
+            .map{ p =>
+              val ctx = cresult.result.get
+              cresult.copy(result =
+                Some(ctx.copy(parameters = ctx.parameters.setParameterByPipelineId(pipelineId, flowStep._2.id.get, p))))
+            }
+            .getOrElse(cresult)
         })
       }
     })
