@@ -37,6 +37,12 @@ be loaded and reconciled to a list. This list will be written to the *executions
 API end point. **This extractor does not run automatically**. Enable by using the _--extractors_ flag and provide the 
 _com.acxiom.metalus.executions.ExecutionsMetadataExtractor_ as one of the values.
 
+### Application Metadata Extractor
+This extractor will scan jar files looking for JSON files stored under the *metadata/applications* path. Each application will
+be loaded and reconciled to a list. This list will be written to the *applications.json* file or posted to the */api/v1/applications*
+API end point. **This extractor does not run automatically**. Enable by using the _--extractors_ flag and provide the
+_com.acxiom.metalus.applications.ApplicationsMetadataExtractor_ as one of the values.
+
 ## Creating a Custom Extractor
 Custom extractors may be created and used with or in place of the existing extractors. Three things are required in order
 to use a custom extractor:
