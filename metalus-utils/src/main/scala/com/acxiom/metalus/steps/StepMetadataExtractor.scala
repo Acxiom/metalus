@@ -83,7 +83,7 @@ class StepMetadataExtractor extends Extractor {
         val id = name.substring(name.indexOf(path) + path.length + 1, name.indexOf(".json"))
         val headers =
           Some(Map[String, String]("User-Agent" -> s"Metalus / ${System.getProperty("user.name")} / $jarList"))
-        http.putJsonContent(s"executions/$id/template", Serialization.write(map), headers)
+        http.putJsonContent(s"steps/$id/template", Serialization.write(map), headers)
       })
     } else {
       super.writeOutput(metadata, output)
