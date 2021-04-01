@@ -1,5 +1,6 @@
 package com.acxiom.pipeline
 
+import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import com.acxiom.pipeline.flow.SplitStepException
 import com.acxiom.pipeline.utils.DriverUtils
 import org.apache.commons.io.FileUtils
@@ -139,6 +140,30 @@ class PipelineListenerTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(forkExceptionMap("stepId") == "step3")
       assert(forkExceptionMap("groupId") == "")
       assert(forkExceptionMap("messages").asInstanceOf[List[String]].head == "Fork  Message")
+
+      val step1Audit = ExecutionAudit("step1", AuditType.STEP, Map[String, Any](), Constants.THREE, Some(Constants.FIVE), None, None)
+      val step2Audit = ExecutionAudit("step2", AuditType.STEP, Map[String, Any](), Constants.SIX, Some(Constants.EIGHT), None, None)
+      val pipelineAudit = ExecutionAudit("pipeline", AuditType.PIPELINE, Map[String, Any](), Constants.TWO,
+        Some(Constants.NINE), None, Some(List(step1Audit, step2Audit)))
+      val rootAudit = ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), Constants.ONE, Some(Constants.TEN), None, Some(List(pipelineAudit)))
+      val auditMessage = test.generateAuditMessage("audit-message", rootAudit)
+      val auditMap = parse(auditMessage).extract[Map[String, Any]]
+      assert(auditMap("key") == "event-test")
+      assert(auditMap("event") == "audit-message")
+      assert(auditMap("duration") == Constants.NINE)
+      assert(auditMap.contains("audit"))
+      assert(auditMap("audit").isInstanceOf[Map[String, Any]])
+      val rootAuditMap = auditMap("audit").asInstanceOf[Map[String, Any]]
+      assert(rootAuditMap.contains("children"))
+      val pipelineAuditMap = rootAuditMap("children").asInstanceOf[List[Map[String, Any]]].head
+      val step1Map = pipelineAuditMap("children").asInstanceOf[List[Map[String, Any]]].head
+      assert(step1Map("id") == "step1")
+      assert(step1Map("start").asInstanceOf[BigInt] == Constants.THREE)
+      assert(step1Map("end").asInstanceOf[BigInt] == Constants.FIVE)
+      val step2Map = pipelineAuditMap("children").asInstanceOf[List[Map[String, Any]]](1)
+      assert(step2Map("id") == "step2")
+      assert(step2Map("start").asInstanceOf[BigInt] == Constants.SIX)
+      assert(step2Map("end").asInstanceOf[BigInt] == Constants.EIGHT)
     }
   }
 }

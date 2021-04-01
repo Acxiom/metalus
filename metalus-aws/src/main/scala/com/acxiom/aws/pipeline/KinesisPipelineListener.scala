@@ -17,8 +17,9 @@ class KinesisPipelineListener(val key: String,
   }
 
   override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-    // TODO Look into posting final audits
     KinesisUtilities.postMessage(generateExecutionMessage("executionFinished", pipelines),
+      region, streamName, partitionKey, accessKey, secretKey)
+    KinesisUtilities.postMessage(generateAuditMessage("executionFinishedAudit", pipelineContext.rootAudit),
       region, streamName, partitionKey, accessKey, secretKey)
     Some(pipelineContext)
   }
