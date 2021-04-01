@@ -1,27 +1,34 @@
 package com.acxiom.kafka
 
-import java.nio.file.{Files, Path}
-import java.util.Properties
-
 import com.acxiom.kafka.drivers.KafkaPipelineDriver
+import com.acxiom.kafka.pipeline.KafkaPipelineListener
 import com.acxiom.kafka.steps.KafkaSteps
 import com.acxiom.pipeline._
 import com.acxiom.pipeline.drivers.{DriverSetup, StreamingDataParser}
 import kafka.server.{KafkaConfig, KafkaServerStartable}
 import org.apache.commons.io.FileUtils
 import org.apache.curator.test.TestingServer
-import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+import org.json4s.native.JsonMethods
+import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 
+import java.nio.file.{Files, Path}
+import java.time.Duration
+import java.util.Properties
+import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 
 class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
-
+  implicit val formats: Formats = DefaultFormats
+  val expectedEvents = List(("executionStarted", 1), ("executionFinished", 1), ("pipelineStarted", 1),
+    ("pipelineFinished", 1), ("pipelineStepStarted", 1), ("pipelineStepFinished", 1),
+    ("registerStepException", 1), ("executionStopped", 1))
   val kafkaLogs: Path = Files.createTempDirectory("kafkaLogs")
   val sparkLocalDir: Path = Files.createTempDirectory("sparkLocal")
   val testingServer = new TestingServer
@@ -50,6 +57,13 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
   kafkaProducerProperties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
   kafkaProducerProperties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
 
+  private val kafkaConsumerProperties = new Properties()
+  kafkaConsumerProperties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_NODES)
+  kafkaConsumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, "test-client-id")
+  kafkaConsumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
+  kafkaConsumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer")
+  kafkaConsumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+
   override def beforeAll(): Unit = {
     testingServer.start()
     server.startup()
@@ -75,8 +89,10 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
     server.awaitShutdown()
     testingServer.stop()
 
-    SparkTestHelper.sparkSession.sparkContext.cancelAllJobs()
-    SparkTestHelper.sparkSession.sparkContext.stop()
+    if (!SparkTestHelper.sparkSession.sparkContext.isStopped) {
+      SparkTestHelper.sparkSession.sparkContext.cancelAllJobs()
+      SparkTestHelper.sparkSession.sparkContext.stop()
+    }
     SparkTestHelper.sparkSession.stop()
     Logger.getRootLogger.setLevel(Level.INFO)
 
@@ -91,7 +107,7 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       When("5 kafka messages are posted")
       val topic = sendKafkaMessages("|", Some("col1"))
       var executionComplete = false
-      SparkTestHelper.pipelineListener = new PipelineListener {
+      val testListener = new PipelineListener {
         override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
           assert(pipelines.lengthCompare(1) == 0)
           val params = pipelineContext.parameters.getParametersByPipelineId("1")
@@ -109,6 +125,9 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
           }
         }
       }
+      val kafkaListener = new KafkaPipelineListener("test-pipeline-messages", "", None.orNull,
+        "status", KAFKA_NODES, "test-client-id")
+      SparkTestHelper.pipelineListener = CombinedPipelineListener(List[PipelineListener](testListener, kafkaListener))
 
       And("the kafka spark listener is running")
       val args = List("--driverSetupClass", "com.acxiom.kafka.SparkTestDriverSetup", "--pipeline", "basic",
@@ -118,6 +137,12 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       KafkaPipelineDriver.main(args.toArray)
       Then("5 records should be processed")
       assert(executionComplete)
+      // Verify that Kafka received the messages
+      val consumer = new KafkaConsumer[String, String](kafkaConsumerProperties)
+      // Subscribe to the topic.
+      consumer.subscribe(List("status").asJavaCollection)
+      pollConsumer(consumer, Constants.SIX)
+      consumer.close(Duration.ofMillis(500))
     }
 
     it("Should process records using alternate data parsers") {
@@ -227,7 +252,7 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       val topic = sendKafkaMessages("|", Some("col1"))
       var executionComplete = false
       var testIteration = 0
-      SparkTestHelper.pipelineListener = new PipelineListener {
+      val testListener = new PipelineListener {
         override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
           assert(pipelines.lengthCompare(1) == 0)
           val params = pipelineContext.parameters.getParametersByPipelineId("1")
@@ -257,6 +282,10 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
         }
       }
 
+      val kafkaListener = new KafkaPipelineListener("test-pipeline-messages", "", None.orNull,
+        "statusFails", KAFKA_NODES, "test-client-id")
+      SparkTestHelper.pipelineListener = CombinedPipelineListener(List[PipelineListener](testListener, kafkaListener))
+
       And("the kafka spark listener is running")
       val args = List("--driverSetupClass", "com.acxiom.kafka.SparkTestDriverSetup", "--pipeline", "errorTest",
         "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", KAFKA_NODES,
@@ -265,6 +294,12 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       KafkaPipelineDriver.main(args.toArray)
       Then("5 records should be processed")
       assert(executionComplete)
+      // Verify that Kafka received the messages
+      val consumer = new KafkaConsumer[String, String](kafkaConsumerProperties)
+      // Subscribe to the topic.
+      consumer.subscribe(List("statusFails").asJavaCollection)
+      pollConsumer(consumer, Constants.FIFTEEN)
+      consumer.close(Duration.ofMillis(500))
     }
 
     it ("Should fail and not retry") {
@@ -272,7 +307,7 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       SparkTestHelper.pipelineListener = new PipelineListener {}
       val args = List("--driverSetupClass", "com.acxiom.kafka.SparkTestDriverSetup", "--pipeline", "errorTest",
         "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", KAFKA_NODES,
-        "--terminationPeriod", "3000", "--fieldDelimiter", "|", "--duration-type", "seconds",
+        "--terminationPeriod", "500", "--fieldDelimiter", "|", "--duration-type", "seconds",
         "--duration", "1", "--expectedCount", "5", "--expectedAttrCount", "5", "--terminateAfterFailures", "true")
       val thrown = intercept[RuntimeException] {
         KafkaPipelineDriver.main(args.toArray)
@@ -300,6 +335,20 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       }
     }
     topic
+  }
+
+  @tailrec
+  private def pollConsumer(consumer: KafkaConsumer[String, String], expectedCount: Int): Unit = {
+    val records = consumer.poll(Duration.ofMillis(2000))
+    if (records.asScala.toList.nonEmpty) {
+      val eventList = records.asScala.toList.foldLeft(List[String]())((events, record) => {
+        val map = JsonMethods.parse(record.value()).extract[Map[String, Any]]
+        events :+ map("event").asInstanceOf[String]
+      })
+      assert(eventList.map(expectedEvents.toMap.getOrElse(_, 0)).sum == expectedCount)
+    } else {
+      pollConsumer(consumer, expectedCount)
+    }
   }
 }
 

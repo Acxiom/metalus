@@ -124,22 +124,14 @@ case class CombinedPipelineListener(listeners: List[PipelineListener]) extends P
   override def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
       val updatedCtx = listener.executionStarted(pipelines, ctx)
-      if (updatedCtx.isDefined) {
-        updatedCtx.get
-      } else {
-        ctx
-      }
+      handleContext(updatedCtx, pipelineContext)
     }))
   }
 
   override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
       val updatedCtx = listener.executionFinished(pipelines, ctx)
-      if (updatedCtx.isDefined) {
-        updatedCtx.get
-      } else {
-        ctx
-      }
+      handleContext(updatedCtx, pipelineContext)
     }))
   }
 
@@ -150,48 +142,40 @@ case class CombinedPipelineListener(listeners: List[PipelineListener]) extends P
   override def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
       val updatedCtx = listener.pipelineStarted(pipeline, ctx)
-      if (updatedCtx.isDefined) {
-        updatedCtx.get
-      } else {
-        ctx
-      }
+      handleContext(updatedCtx, pipelineContext)
     }))
   }
 
   override def pipelineFinished(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
       val updatedCtx = listener.pipelineFinished(pipeline, ctx)
-      if (updatedCtx.isDefined) {
-        updatedCtx.get
-      } else {
-        ctx
-      }
+      handleContext(updatedCtx, pipelineContext)
     }))
   }
 
   override def pipelineStepStarted(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
       val updatedCtx = listener.pipelineStepStarted(pipeline, step, ctx)
-      if (updatedCtx.isDefined) {
-        updatedCtx.get
-      } else {
-        ctx
-      }
+      handleContext(updatedCtx, pipelineContext)
     }))
   }
 
   override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
       val updatedCtx = listener.pipelineStepFinished(pipeline, step, ctx)
-      if (updatedCtx.isDefined) {
-        updatedCtx.get
-      } else {
-        ctx
-      }
+      handleContext(updatedCtx, pipelineContext)
     }))
   }
 
   override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
     listeners.foreach(_.registerStepException(exception, pipelineContext))
+  }
+
+  private def handleContext(updatedCtx: Option[PipelineContext], pipelineContext: PipelineContext): PipelineContext = {
+    if (updatedCtx.isDefined) {
+      updatedCtx.get
+    } else {
+      pipelineContext
+    }
   }
 }
