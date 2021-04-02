@@ -56,8 +56,8 @@ object HiveSteps {
   @StepFunction("17be71f9-1492-4404-a355-1cc973694cad",
     "Database Exists",
     "Check spark catalog for a database with the given name.",
-    "Decision",
-    "InputOutput")
+    "branch",
+    "Decision")
   @StepParameters(Map("name" -> StepParameter(None, Some(true), description = Some("Name of the database"))))
   def databaseExists(name: String, pipelineContext: PipelineContext): Boolean = {
     pipelineContext.sparkSession.get.catalog.databaseExists(name)
@@ -66,8 +66,8 @@ object HiveSteps {
   @StepFunction("95181811-d83e-4136-bedb-2cba1de90301",
     "Table Exists",
     "Check spark catalog for a table with the given name.",
-    "Decision",
-    "InputOutput")
+    "branch",
+    "Decision")
   @StepParameters(Map(
     "name" -> StepParameter(None, Some(true), description = Some("Name of the table")),
     "database" -> StepParameter(None, Some(false), description = Some("Name of the database"))))
