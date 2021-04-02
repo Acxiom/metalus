@@ -137,9 +137,9 @@ class StepMetadataExtractor extends Extractor {
       val jsonSchemaGenerator = new JsonSchemaGenerator(objectMapper, debug = true, config)
       val jsonSchema: JsonNode = jsonSchemaGenerator.generateJsonSchema(xClass)
       val schema = objectMapper.writeValueAsString(jsonSchema).replaceFirst("draft-04", "draft-07")
-      val form = forms.find(_.contains(x.replaceAll("\\.", "_")))
+      val form = forms.find(f => f.contains("path") && f("path").asInstanceOf[String].contains(x.replaceAll("\\.", "_")))
       val template = if (form.isDefined) {
-        val map = form.get(x.replaceAll("\\.", "_")).asInstanceOf[Map[String, Any]]
+        val map = form.asInstanceOf[Option[Map[String, Any]]].get - "path" - "fileName"
         Some(Serialization.write(map))
       } else {
         None

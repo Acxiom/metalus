@@ -1,0 +1,67 @@
+{
+  "form": [
+    {
+      "type": "select",
+      "key": "format",
+      "templateOptions": {
+        "label": "Format",
+        "options": [
+          {
+            "value": "csv",
+            "name": "CSV"
+          },
+          {
+            "value": "json",
+            "name": "JSON"
+          },
+          {
+            "value": "parquet",
+            "name": "Parquet"
+          }
+        ],
+        "valueProp": "value",
+        "labelProp": "name",
+        "placeholder": "",
+        "focus": false,
+        "disabled": false,
+        "_flatOptions": true
+      }
+    },
+    {
+      "key": "saveMode",
+      "type": "select",
+      "defaultValue": false,
+      "templateOptions": {
+        "label": "Save Mode",
+        "options": [
+          {
+            "value": "OVERWRITE",
+            "name": "Overwrite"
+          },
+          {
+            "value": "append",
+            "name": "Append"
+          },
+          {
+            "value": "ignore",
+            "name": "Ignore"
+          },
+          {
+            "value": "error",
+            "name": "Error"
+          },
+          {
+            "value": "errorifexists",
+            "name": "Error If Exists"
+          }
+        ],
+        "valueProp": "value",
+        "labelProp": "name",
+        "placeholder": "",
+        "focus": false,
+        "disabled": false,
+        "_flatOptions": true
+      }
+    }
+  ]
+}

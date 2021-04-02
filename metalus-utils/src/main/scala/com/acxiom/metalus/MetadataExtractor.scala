@@ -70,9 +70,9 @@ trait Extractor {
         .foldLeft(maps)((mapList, json) => {
           val map = parse(Source.fromInputStream(file.getInputStream(json)).mkString).extract[Map[String, Any]]
           if (addFileName) {
-            mapList :+ (map + ("fileName" -> file.getName))
+            mapList :+ (map + ("fileName" -> file.getName, "path" -> json.getName))
           } else {
-            mapList :+ map
+            mapList :+ (map + ("path" -> json))
           }
         })
     })

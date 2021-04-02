@@ -1,0 +1,103 @@
+{
+  "form": [
+    {
+      "type": "select",
+      "key": "format",
+      "templateOptions": {
+        "label": "Format",
+        "options": [
+          {
+            "value": "csv",
+            "name": "CSV"
+          },
+          {
+            "value": "json",
+            "name": "JSON"
+          },
+          {
+            "value": "parquet",
+            "name": "Parquet"
+          }
+        ],
+        "valueProp": "value",
+        "labelProp": "name",
+        "placeholder": "",
+        "focus": false,
+        "disabled": false,
+        "_flatOptions": true
+      }
+    },
+    {
+      "key": "options.header",
+      "type": "checkbox",
+      "defaultValue": false,
+      "templateOptions": {
+        "label": "Skip Header?",
+        "placeholder": "",
+        "focus": false,
+        "disabled": true,
+        "hideFieldUnderline": true,
+        "indeterminate": true,
+        "floatLabel": "always",
+        "hideLabel": true,
+        "align": "start",
+        "color": "accent"
+      },
+      "expressionProperties": {
+        "templateOptions.disabled": "model.format === 'csv' ? false : true"
+      }
+    },
+    {
+      "key": "options.sep",
+      "type": "input",
+      "templateOptions": {
+        "label": "Field Separator",
+        "placeholder": "",
+        "focus": false,
+        "disabled": true
+      },
+      "expressionProperties": {
+        "templateOptions.disabled": "model.format === 'csv' ? false : true"
+      }
+    },
+    {
+      "key": "options.quote",
+      "type": "input",
+      "templateOptions": {
+        "label": "Field Quote",
+        "placeholder": "",
+        "focus": false,
+        "disabled": true
+      },
+      "expressionProperties": {
+        "templateOptions.disabled": "model.format === 'csv' ? false : true"
+      }
+    },
+    {
+      "key": "options.escape",
+      "type": "input",
+      "templateOptions": {
+        "label": "Field Escape Character",
+        "placeholder": "",
+        "focus": false,
+        "disabled": true
+      },
+      "expressionProperties": {
+        "templateOptions.disabled": "model.format === 'csv' ? false : true"
+      }
+    },
+    {
+      "key": "options.charSet",
+      "type": "input",
+      "templateOptions": {
+        "label": "Character Set",
+        "placeholder": "",
+        "focus": false,
+        "disabled": true
+      },
+      "expressionProperties": {
+        "templateOptions.disabled": "!model.format"
+      }
+    }
+  ]
+}
