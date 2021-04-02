@@ -25,3 +25,23 @@ Toggles are available to control casecade and "If exists" behavior.
 * **ifExists** - Boolean flag that, when true, will prevent an error from being raised if the object name is not found.
 Default value is *false*.
 * **cascade** - Boolean flag to toggle cascading deletion behavior. Default value is *false*.
+
+## Create Table
+This function will create a table, managed or external, based on the provided options.
+By default, the format will be "hive".
+* **name** - The table name.
+* **externalPath** - Optional path of the external table. If not provided, the table will be manged by the meta store.
+* **options** - Optional DataFrameReaderOptions providing the format, schema, and other options for the table.
+
+## Database Exists
+This function will check if a given database exists
+* **name** - The database name.
+
+## Table Exists
+This function will check if a given database exists
+* **name** - The table name.
+* **database** - Optional database name
+
+## Set Current Database
+This function will set the default database for the current spark session to the provided database name.
+* **name** - The database name.

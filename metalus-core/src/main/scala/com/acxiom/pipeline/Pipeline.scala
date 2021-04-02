@@ -116,6 +116,17 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
   }
 
   /**
+   * This method provides a shortcut for getting values from the pipeline parameters object.
+   *
+   * @param pipelineId The id of the pipeline.
+   * @param name The name of the parameter to set.
+   * @return The pipeline parameter value, if it exists.
+   */
+  def getParameterByPipelineId(pipelineId: String, name: String): Option[Any] = {
+    parameters.getParametersByPipelineId(pipelineId).flatMap(_.parameters.get(name))
+  }
+
+  /**
     * This function will add or update a single entry on the globals map.
     *
     * @param globalName  The name of the global property to set.
