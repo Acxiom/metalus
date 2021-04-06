@@ -46,6 +46,7 @@ jobs:
         uses: actions/cache@v2
         env:
           cache-name: cache-maven-jars
+          SPARK_LOCAL_IP: 127.0.0.1
         with:
           path: ~/.m2
           key: metalus-build-${{ env.cache-name }}
