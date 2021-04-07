@@ -29,6 +29,8 @@ jobs:
           path: ~/.m2
           key: metalus-build-${{ env.cache-name }}
       - name: Build with Maven
+        env:
+          SPARK_LOCAL_IP: 127.0.0.1
         run: mvn -B -P spark_${{ matrix.spark }} clean install
   code_quality:
     name: Code Quality
@@ -51,6 +53,8 @@ jobs:
       - name: Build with Maven
         run: mvn -B -DskipTests=true clean install
       - name: Coverage Report
+        env:
+          SPARK_LOCAL_IP: 127.0.0.1
         run: mvn -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 -B -DrepoToken=${{ secrets.COVERALLS_REPO_TOKEN }} scoverage:report coveralls:report
   release:
     if: ${{ github.repository == 'Acxiom/metalus' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}

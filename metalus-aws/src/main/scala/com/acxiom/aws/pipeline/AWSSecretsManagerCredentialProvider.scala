@@ -30,7 +30,6 @@ class AWSSecretsManagerCredentialProvider(override val parameters: Map[String, A
           Option(getSecretValueResult.get.getSecretString).isDefined) {
           new DefaultAWSCredential(Map("credentialName" -> name, "credentialValue" -> getSecretValueResult.get.getSecretString))
         } else {
-          logger.info(s"Retrieved binary secret: ${getSecretValueResult.get.getSecretBinary.toString}")
           new DefaultAWSCredential(Map("credentialName" -> name, "credentialValue" -> getSecretValueResult.get.getSecretBinary.toString))
         })
       }

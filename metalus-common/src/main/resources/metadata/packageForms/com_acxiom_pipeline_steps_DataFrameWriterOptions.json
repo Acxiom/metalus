@@ -1,0 +1,188 @@
+{
+  "form": [
+    {
+      "type": "select",
+      "key": "format",
+      "templateOptions": {
+        "label": "Format",
+        "options": [
+          {
+            "value": "csv",
+            "name": "CSV"
+          },
+          {
+            "value": "json",
+            "name": "JSON"
+          },
+          {
+            "value": "parquet",
+            "name": "Parquet"
+          },
+          {
+            "value": "orc",
+            "name": "Orc"
+          },
+          {
+            "value": "text",
+            "name": "Text"
+          }
+        ],
+        "valueProp": "value",
+        "labelProp": "name",
+        "placeholder": "",
+        "focus": false,
+        "disabled": false,
+        "_flatOptions": true
+      }
+    },
+    {
+      "key": "options.encoding",
+      "type": "input",
+      "templateOptions": {
+        "label": "Encoding",
+        "placeholder": "",
+        "focus": false
+      },
+      "expressionProperties": {
+        "templateOptions.disabled": "!model.format"
+      }
+    },
+    {
+      "key": "saveMode",
+      "type": "select",
+      "defaultValue": false,
+      "templateOptions": {
+        "label": "Save Mode",
+        "options": [
+          {
+            "value": "OVERWRITE",
+            "name": "Overwrite"
+          },
+          {
+            "value": "append",
+            "name": "Append"
+          },
+          {
+            "value": "ignore",
+            "name": "Ignore"
+          },
+          {
+            "value": "error",
+            "name": "Error"
+          },
+          {
+            "value": "errorifexists",
+            "name": "Error If Exists"
+          }
+        ],
+        "valueProp": "value",
+        "labelProp": "name",
+        "placeholder": "",
+        "focus": false,
+        "disabled": false,
+        "_flatOptions": true
+      }
+    },
+    {
+      "key": "partitionBy",
+      "type": "stringArray",
+      "templateOptions": {
+        "label": "Partition By Columns",
+        "placeholder": "Add column names to use during partitioning"
+      }
+    },
+    {
+      "key": "sortBy",
+      "type": "stringArray",
+      "templateOptions": {
+        "label": "Sort By Columns",
+        "placeholder": "Add column names to use during sorting"
+      }
+    },
+    {
+      "key": "bucketingOptions",
+      "wrappers": [
+        "panel"
+      ],
+      "templateOptions": {
+        "label": "Bucketing Options"
+      },
+      "fieldGroup": [
+        {
+          "key": "numBuckets",
+          "type": "input",
+          "templateOptions": {
+            "label": "Number of Buckets",
+            "type": "number"
+          }
+        },
+        {
+          "key": "columns",
+          "type": "stringArray",
+          "templateOptions": {
+            "label": "Bucket Columns",
+            "placeholder": "Add column names to use during bucketing"
+          }
+        }
+      ]
+    },
+    {
+      "key": "options.sep",
+      "type": "input",
+      "templateOptions": {
+        "label": "Field Separator",
+        "placeholder": "",
+        "focus": false
+      },
+      "hideExpression": "model.format === 'csv' ? false : true"
+    },
+    {
+      "key": "options.lineSep",
+      "type": "input",
+      "templateOptions": {
+        "label": "Line Separator",
+        "placeholder": "",
+        "focus": false
+      },
+      "hideExpression": "model.format === 'text' || model.format === 'json' ? false : true"
+    },
+    {
+      "key": "options.escapeQuotes",
+      "type": "checkbox",
+      "defaultValue": false,
+      "templateOptions": {
+        "label": "Escape Quotes?",
+        "placeholder": "",
+        "focus": false,
+        "disabled": false,
+        "hideFieldUnderline": true,
+        "indeterminate": true,
+        "floatLabel": "always",
+        "hideLabel": true,
+        "align": "start",
+        "color": "accent"
+      },
+      "hideExpression": "model.format === 'csv' ? false : true"
+    },
+    {
+      "key": "options.quote",
+      "type": "input",
+      "templateOptions": {
+        "label": "Field Quote",
+        "placeholder": "",
+        "focus": false
+      },
+      "hideExpression": "model.format === 'csv' ? false : true"
+    },
+    {
+      "key": "options.escape",
+      "type": "input",
+      "templateOptions": {
+        "label": "Field Escape Character",
+        "placeholder": "",
+        "focus": false
+      },
+      "hideExpression": "model.format === 'csv' ? false : true"
+    }
+  ]
+}

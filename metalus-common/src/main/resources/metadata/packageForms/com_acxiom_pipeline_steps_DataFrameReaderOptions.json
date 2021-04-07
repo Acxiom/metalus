@@ -1,0 +1,175 @@
+{
+  "form": [
+    {
+      "type": "select",
+      "key": "format",
+      "templateOptions": {
+        "label": "Format",
+        "options": [
+          {
+            "value": "csv",
+            "name": "CSV"
+          },
+          {
+            "value": "json",
+            "name": "JSON"
+          },
+          {
+            "value": "parquet",
+            "name": "Parquet"
+          },
+          {
+            "value": "orc",
+            "name": "Orc"
+          },
+          {
+            "value": "text",
+            "name": "Text"
+          }
+        ],
+        "valueProp": "value",
+        "labelProp": "name",
+        "placeholder": "",
+        "focus": false,
+        "disabled": false,
+        "_flatOptions": true
+      }
+    },
+    {
+      "key": "options.encoding",
+      "type": "input",
+      "templateOptions": {
+        "label": "Encoding",
+        "placeholder": "",
+        "focus": false
+      },
+      "expressionProperties": {
+        "templateOptions.disabled": "!model.format"
+      }
+    },
+    {
+      "key": "options.multiLine",
+      "type": "checkbox",
+      "defaultValue": false,
+      "templateOptions": {
+        "label": "Multiline?",
+        "placeholder": "",
+        "focus": false,
+        "disabled": false,
+        "hideFieldUnderline": true,
+        "indeterminate": true,
+        "floatLabel": "always",
+        "hideLabel": true,
+        "align": "start",
+        "color": "accent"
+      },
+      "hideExpression": "model.format === 'csv' || model.format === 'json' ? false : true"
+    },
+    {
+      "key": "options.header",
+      "type": "checkbox",
+      "defaultValue": false,
+      "templateOptions": {
+        "label": "Skip Header?",
+        "placeholder": "",
+        "focus": false,
+        "disabled": false,
+        "hideFieldUnderline": true,
+        "indeterminate": true,
+        "floatLabel": "always",
+        "hideLabel": true,
+        "align": "start",
+        "color": "accent"
+      },
+      "hideExpression": "model.format === 'csv' ? false : true"
+    },
+    {
+      "key": "options.sep",
+      "type": "input",
+      "templateOptions": {
+        "label": "Field Separator",
+        "placeholder": "",
+        "focus": false
+      },
+      "hideExpression": "model.format === 'csv' ? false : true"
+    },
+    {
+      "key": "options.lineSep",
+      "type": "input",
+      "templateOptions": {
+        "label": "Line Separator",
+        "placeholder": "",
+        "focus": false
+      },
+      "hideExpression": "model.format === 'text' || model.format === 'json' ? false : true"
+    },
+    {
+      "key": "options.quote",
+      "type": "input",
+      "templateOptions": {
+        "label": "Field Quote",
+        "placeholder": "",
+        "focus": false
+      },
+      "hideExpression": "model.format === 'csv' ? false : true"
+    },
+    {
+      "key": "options.escape",
+      "type": "input",
+      "templateOptions": {
+        "label": "Field Escape Character",
+        "placeholder": "",
+        "focus": false
+      },
+      "hideExpression": "model.format === 'csv' ? false : true"
+    },
+    {
+      "key": "options.primitivesAsString",
+      "type": "checkbox",
+      "defaultValue": false,
+      "templateOptions": {
+        "label": "Primitive As String?",
+        "placeholder": "",
+        "focus": false,
+        "disabled": false,
+        "hideFieldUnderline": true,
+        "indeterminate": true,
+        "floatLabel": "always",
+        "hideLabel": true,
+        "align": "start",
+        "color": "accent"
+      },
+      "hideExpression": "model.format === 'json' ? false : true"
+    },
+    {
+      "key": "options.inferSchema",
+      "type": "checkbox",
+      "defaultValue": false,
+      "templateOptions": {
+        "label": "Infer Schema?",
+        "placeholder": "",
+        "focus": false,
+        "disabled": false,
+        "hideFieldUnderline": true,
+        "indeterminate": true,
+        "floatLabel": "always",
+        "hideLabel": true,
+        "align": "start",
+        "color": "accent"
+      },
+      "hideExpression": "model.format === 'csv' ? false : true"
+    },
+    {
+      "key": "options.samplingRatio",
+      "type": "input",
+      "templateOptions": {
+        "label": "Sampling Ration",
+        "type": "number"
+      },
+      "hideExpression": "model.format === 'csv' || model.format === 'json' ? false : true",
+      "expressionProperties": {
+        "templateOptions.disabled": "model.options.inferSchema || model.format === 'json' ? false : true"
+      }
+    }
+  ]
+}

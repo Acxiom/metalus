@@ -16,8 +16,8 @@ class PubSubPipelineListener(val key: String,
   }
 
   override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-    // TODO Review sending audit information as a separate message? pipelineContext.rootAudit
     GCPUtilities.postMessage(topicName, credential, generateExecutionMessage("executionFinished", pipelines))
+    GCPUtilities.postMessage(topicName, credential, generateAuditMessage("executionFinishedAudit", pipelineContext.rootAudit))
     Some(pipelineContext)
   }
 

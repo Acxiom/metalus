@@ -1,8 +1,9 @@
 package com.acxiom.pipeline
 
+import com.acxiom.pipeline.audits.ExecutionAudit
 import com.acxiom.pipeline.flow.SplitStepException
 import org.apache.log4j.Logger
-import org.json4s.native.Serialization
+import org.json4s.native.{JsonParser, Serialization}
 import org.json4s.{DefaultFormats, Formats}
 
 import java.util.Date
@@ -14,6 +15,7 @@ object PipelineListener {
 case class DefaultPipelineListener() extends PipelineListener {}
 
 trait PipelineListener {
+  implicit val formats: Formats = DefaultFormats
   private val logger = Logger.getLogger(getClass)
 
   def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
@@ -23,6 +25,7 @@ trait PipelineListener {
 
   def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
     logger.info(s"Finished execution of pipelines ${pipelines.map(p => p.name.getOrElse(p.id.getOrElse("")))}")
+    logger.info(s"Execution Audit ${Serialization.write(pipelineContext.rootAudit)}")
     None
   }
 
@@ -56,7 +59,7 @@ trait PipelineListener {
 }
 
 trait EventBasedPipelineListener extends PipelineListener {
-  implicit val formats: Formats = DefaultFormats
+  override implicit val formats: Formats = DefaultFormats
   def key: String
   def credentialName: String
   def credentialProvider: CredentialProvider
@@ -68,6 +71,19 @@ trait EventBasedPipelineListener extends PipelineListener {
       "eventTime" -> new Date().getTime,
       "pipelines" -> pipelines.map(pipeline => EventPipelineRecord(pipeline.id.getOrElse(""), pipeline.name.getOrElse("")))
     ))
+  }
+
+  def generateAuditMessage(event: String, audit: ExecutionAudit): String = {
+    // Must cast to Long or it won't compile
+    val duration = audit.end.getOrElse(Constants.ZERO).asInstanceOf[Long] - audit.start
+    val auditString = Serialization.write(audit)
+    val auditMap = JsonParser.parse(auditString).extract[Map[String, Any]]
+    Serialization.write(Map[String, Any](
+      "key" -> key,
+      "event" -> event,
+      "eventTime" -> new Date().getTime,
+      "duration" -> duration,
+      "audit" -> auditMap))
   }
 
   def generatePipelineMessage(event: String, pipeline: Pipeline): String = {
