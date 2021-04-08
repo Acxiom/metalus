@@ -10,19 +10,15 @@ import org.apache.spark.sql.DataFrame
 
 @StepObject
 object S3Steps {
-  private val optionsDescription: Some[String] = Some("The optional DataFrame Options")
-  private val apiKeyDescription: Some[String] = Some("The optional API key to use for S3 access")
-  private val secretKeyDescription: Some[String] = Some("The optional API secret to use for S3 access")
-
   @StepFunction("bd4a944f-39ad-4b9c-8bf7-6d3c1f356510",
     "Load DataFrame from S3 path",
     "This step will read a DataFrame from the given S3 path",
     "Pipeline",
     "AWS")
   @StepParameters(Map("path" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 path to load data")),
-    "options" -> StepParameter(None, Some(true), None, None, None, None, optionsDescription),
-    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, apiKeyDescription),
-    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, secretKeyDescription)))
+    "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional DataFrame Options")),
+    "accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API secret to use for S3 access"))))
   def readFromPath(path: String,
                    accessKeyId: Option[String] = None,
                    secretAccessKey: Option[String] = None,
@@ -40,9 +36,9 @@ object S3Steps {
     "Pipeline",
     "AWS")
   @StepParameters(Map("paths" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 paths to load data")),
-    "options" -> StepParameter(None, Some(true), None, None, None, None, optionsDescription),
-    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, apiKeyDescription),
-    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, secretKeyDescription)))
+    "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional DataFrame Options")),
+    "accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API secret to use for S3 access"))))
   def readFromPaths(paths: List[String],
                     accessKeyId: Option[String] = None,
                     secretAccessKey: Option[String] = None,
@@ -61,9 +57,9 @@ object S3Steps {
     "AWS")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to post to the Kinesis stream")),
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 path to write data")),
-    "options" -> StepParameter(None, Some(true), None, None, None, None, optionsDescription),
-    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, apiKeyDescription),
-    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, secretKeyDescription)))
+    "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional DataFrame Options")),
+    "accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API secret to use for S3 access"))))
   def writeToPath(dataFrame: DataFrame,
                   path: String,
                   accessKeyId: Option[String] = None,
@@ -93,8 +89,8 @@ object S3Steps {
   )
   @StepParameters(Map("bucket" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 bucket")),
     "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the S3 bucket")),
-    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, apiKeyDescription),
-    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, secretKeyDescription)))
+    "accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API secret to use for S3 access"))))
   def createFileManager(region: String,
                         bucket: String,
                         accessKeyId: Option[String] = None,

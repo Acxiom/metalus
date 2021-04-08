@@ -1,17 +1,11 @@
 package com.acxiom.pipeline.steps
 
-import java.util.regex.Pattern
-
 import com.acxiom.pipeline.annotations._
+
+import java.util.regex.Pattern
 
 @StepObject
 object StringSteps {
-
-  private val stringToParameter = Map("string" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to modify")),
-    "matchString" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to match")),
-    "replacement" -> StepParameter(None, Some(false), None, None, None, None, Some("The replacement string")),
-    "literal" -> StepParameter(None, Some(false), None, None, None, None, Some("Perform 'literal' match replacement")))
-
   @StepFunction("b5485d97-d4e8-41a6-8af7-9ce79a435140",
     "To String",
     "Returns the result of the toString method, can unwrap options",
@@ -130,7 +124,10 @@ object StringSteps {
     "String Replace All",
     "Perform a literal or regex replacement on a string",
     "pipeline", "String")
-  @StepParameters(stringToParameter)
+  @StepParameters(Map("string" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to modify")),
+    "matchString" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to match")),
+    "replacement" -> StepParameter(None, Some(false), None, None, None, None, Some("The replacement string")),
+    "literal" -> StepParameter(None, Some(false), None, None, None, None, Some("Perform 'literal' match replacement"))))
   def stringReplaceAll(string: String, matchString: String, replacement: String, literal: Option[Boolean] = None): String = {
     if (literal.getOrElse(false)) {
       string.replaceAllLiterally(matchString, replacement)
@@ -143,7 +140,10 @@ object StringSteps {
     "String Replace First",
     "Perform a literal or regex replacement on the first occurrence in a string",
     "pipeline", "String")
-  @StepParameters(stringToParameter)
+  @StepParameters(Map("string" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to modify")),
+    "matchString" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to match")),
+    "replacement" -> StepParameter(None, Some(false), None, None, None, None, Some("The replacement string")),
+    "literal" -> StepParameter(None, Some(false), None, None, None, None, Some("Perform 'literal' match replacement"))))
   def stringReplaceFirst(string: String, matchString: String, replacement: String, literal: Option[Boolean] = None): String = {
     if (literal.getOrElse(false)) {
       string.replaceFirst(Pattern.quote(matchString), replacement)

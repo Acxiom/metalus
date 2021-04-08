@@ -1,14 +1,13 @@
 package com.acxiom.aws.fs
 
-import java.io.{FileNotFoundException, OutputStreamWriter}
-import java.nio.file.Files
-
 import com.acxiom.aws.steps.S3Steps
 import com.acxiom.pipeline.Constants
 import com.amazonaws.client.builder.S3ClientBuilder
 import io.findify.s3mock.S3Mock
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
+import java.io.{FileNotFoundException, OutputStreamWriter}
+import java.nio.file.Files
 import scala.io.Source
 import scala.reflect.io.Directory
 
@@ -18,7 +17,7 @@ class S3FileManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
   private val api = S3Mock(port.toInt, s3Directory.toFile.getAbsolutePath)
   private val region = "us-west-2"
   private val bucketName = "s3testbucket"
-  private val endpointUrl = s"http://0.0.0.0:$port"
+  private val endpointUrl = s"http://127.0.0.1:$port"
   private val s3Client = S3ClientBuilder.getS3TestClient(region)
 
   override protected def beforeAll(): Unit = {

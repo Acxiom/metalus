@@ -119,7 +119,9 @@ class StepMetadataExtractor extends Extractor {
         false
       }
     } catch {
-      case _: Throwable => false
+      case t: Throwable =>
+        println(t.getMessage)
+        false
     }
   }
 
@@ -408,7 +410,7 @@ class StepMetadataExtractor extends Extractor {
     if (stringValue) {
       annotationValue.substring(annotationValue.indexOf("(\"") + 2, annotationValue.lastIndexOf("\")"))
     } else {
-      annotationValue.substring(annotationValue.indexOf("(") + 2, annotationValue.lastIndexOf(")")) == "true"
+      annotationValue.substring(annotationValue.indexOf("(") + 1, annotationValue.lastIndexOf(")")) == "true"
     }
   }
 

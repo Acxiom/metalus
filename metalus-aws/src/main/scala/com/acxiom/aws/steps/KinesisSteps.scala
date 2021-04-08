@@ -7,22 +7,18 @@ import org.apache.spark.sql.DataFrame
 
 @StepObject
 object KinesisSteps {
-  private val regionDescription: Some[String] = Some("The region of the Kinesis stream")
-  private val streamNameDescription: Some[String] = Some("The name of the Kinesis stream")
-  private val partitionKeyDescription: Some[String] = Some("The key to use when partitioning the message")
-
   @StepFunction("207aa871-4f83-4e24-bab3-4e47bb3b667a",
     "Write DataFrame to a Kinesis Stream",
     "This step will write a DataFrame to a Kinesis Stream",
     "Pipeline",
     "AWS")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to post to the Kinesis stream")),
-    "region" -> StepParameter(None, Some(true), None, None, None, None, regionDescription),
-    "streamName" -> StepParameter(None, Some(true), None, None, None, None, streamNameDescription),
-    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, partitionKeyDescription),
-    "separator" -> StepParameter(None, Some(true), None, None, None, None, Some("The separator character to use when combining the column data")),
-    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API key to use for the Kinesis stream")),
-    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API secret to use for the Kinesis stream"))))
+    "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the Kinesis stream")),
+    "streamName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the Kinesis stream")),
+    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The key to use when partitioning the message")),
+    "separator" -> StepParameter(None, Some(false), None, None, None, None, Some("The separator character to use when combining the column data")),
+    "accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API key to use for the Kinesis stream")),
+    "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API secret to use for the Kinesis stream"))))
   def writeToStream(dataFrame: DataFrame,
                     region: String,
                     streamName: String,
@@ -43,10 +39,10 @@ object KinesisSteps {
     "Pipeline",
     "AWS")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to post to the Kinesis stream")),
-    "region" -> StepParameter(None, Some(true), None, None, None, None, regionDescription),
-    "streamName" -> StepParameter(None, Some(true), None, None, None, None, streamNameDescription),
-    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, partitionKeyDescription),
-    "separator" -> StepParameter(None, Some(true), None, None, None, None, Some("The separator character to use when combining the column data"))))
+    "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the Kinesis stream")),
+    "streamName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the Kinesis stream")),
+    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The key to use when partitioning the message")),
+    "separator" -> StepParameter(None, Some(false), None, None, None, None, Some("The separator character to use when combining the column data"))))
   def writeStream(dataFrame: DataFrame,
                   region: String,
                   streamName: String,
@@ -68,9 +64,9 @@ object KinesisSteps {
     "Pipeline",
     "AWS")
   @StepParameters(Map("message" -> StepParameter(None, Some(true), None, None, None, None, Some("The message to post to the Kinesis stream")),
-    "region" -> StepParameter(None, Some(true), None, None, None, None, regionDescription),
-    "streamName" -> StepParameter(None, Some(true), None, None, None, None, streamNameDescription),
-    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, partitionKeyDescription)))
+    "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the Kinesis stream")),
+    "streamName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the Kinesis stream")),
+    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The key to use when partitioning the message"))))
   def postMessage(message: String,
                   region: String,
                   streamName: String,
@@ -86,11 +82,11 @@ object KinesisSteps {
     "Pipeline",
     "AWS")
   @StepParameters(Map("message" -> StepParameter(None, Some(true), None, None, None, None, Some("The message to post to the Kinesis stream")),
-    "region" -> StepParameter(None, Some(true), None, None, None, None, regionDescription),
-    "streamName" -> StepParameter(None, Some(true), None, None, None, None, streamNameDescription),
-    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, partitionKeyDescription),
-    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API key to use for the Kinesis stream")),
-    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API secret to use for the Kinesis stream"))))
+    "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the Kinesis stream")),
+    "streamName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the Kinesis stream")),
+    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The key to use when partitioning the message")),
+    "accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API key to use for the Kinesis stream")),
+    "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API secret to use for the Kinesis stream"))))
   def postMessage(message: String,
                   region: String,
                   streamName: String,

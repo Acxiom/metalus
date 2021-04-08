@@ -8,17 +8,15 @@ import org.apache.spark.sql.DataFrame
 
 @StepObject
 object PubSubSteps {
-  private val topicDescription: Some[String] = Some("The topic within the Pub/Sub")
-
   @StepFunction("451d4dc8-9bce-4cb4-a91d-1a09e0efd9b8",
     "Write DataFrame to a PubSub Topic",
     "This step will write a DataFrame to a PubSub Topic",
     "Pipeline",
     "GCP")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to post to the Pub/Sub topic")),
-    "topicName" -> StepParameter(None, Some(true), None, None, None, None, topicDescription),
-    "separator" -> StepParameter(None, Some(true), None, None, None, None, Some("The separator character to use when combining the column data")),
-    "credentials" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional credentials to use for Pub/Sub access"))))
+    "topicName" -> StepParameter(None, Some(true), None, None, None, None, Some("The topic within the Pub/Sub")),
+    "separator" -> StepParameter(None, Some(false), None, None, None, None, Some("The separator character to use when combining the column data")),
+    "credentials" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional credentials to use for Pub/Sub access"))))
   def writeToStreamWithCredentials(dataFrame: DataFrame,
                     topicName: String,
                     separator: String = ",",
@@ -33,8 +31,8 @@ object PubSubSteps {
     "Pipeline",
     "GCP")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to post to the Pub/Sub topic")),
-    "topicName" -> StepParameter(None, Some(true), None, None, None, None, topicDescription),
-    "separator" -> StepParameter(None, Some(true), None, None, None, None, Some("The separator character to use when combining the column data"))))
+    "topicName" -> StepParameter(None, Some(true), None, None, None, None, Some("The topic within the Pub/Sub")),
+    "separator" -> StepParameter(None, Some(false), None, None, None, None, Some("The separator character to use when combining the column data"))))
   def writeToStream(dataFrame: DataFrame,
                     topicName: String,
                     separator: String = ",",
@@ -49,8 +47,8 @@ object PubSubSteps {
     "Pipeline",
     "GCP")
   @StepParameters(Map("message" -> StepParameter(None, Some(true), None, None, None, None, Some("The message to post to the Pub/Sub topic")),
-    "topicName" -> StepParameter(None, Some(true), None, None, None, None, topicDescription),
-    "credentials" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional credentials to use when posting"))))
+    "topicName" -> StepParameter(None, Some(true), None, None, None, None, Some("The topic within the Pub/Sub")),
+    "credentials" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional credentials to use when posting"))))
   def postMessage(message: String, topicName: String, credentials: Option[Map[String, String]] = None): Unit = {
     val creds: Option[GoogleCredentials] = GCPUtilities.generateCredentials(credentials)
     GCPUtilities.postMessage(topicName, creds, message)
@@ -62,7 +60,7 @@ object PubSubSteps {
     "Pipeline",
     "GCP")
   @StepParameters(Map("message" -> StepParameter(None, Some(true), None, None, None, None, Some("The message to post to the Pub/Sub topic")),
-    "topicName" -> StepParameter(None, Some(true), None, None, None, None, topicDescription)))
+    "topicName" -> StepParameter(None, Some(true), None, None, None, None, Some("The topic within the Pub/Sub"))))
   def postMessage(message: String, topicName: String, pipelineContext: PipelineContext): Unit = {
     GCPUtilities.postMessage(topicName, GCPUtilities.getCredentialsFromPipelineContext(pipelineContext), message)
   }
