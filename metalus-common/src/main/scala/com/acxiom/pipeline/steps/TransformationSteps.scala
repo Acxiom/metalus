@@ -10,8 +10,6 @@ import org.apache.spark.sql.{Column, DataFrame, Dataset}
 @StepObject
 object TransformationSteps {
   private val logger = Logger.getLogger(getClass)
-  private val transformsDescription: Some[String] = Some("The object with transform, alias, and filter logic details")
-  private val addNewColumnsDescription: Some[String] = Some("Flag to determine whether new attributes are to be added to the output")
 
   /**
     * maps a DataFrame to a destination DataFrame
@@ -28,11 +26,11 @@ object TransformationSteps {
     "This step maps a new DataFrame to an existing DataFrame to make them compatible",
     "Pipeline",
     "Transforms")
-  @StepParameters(Map("inputDataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame that needs to be modified")),
-    "destinationDataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame that the new data needs to map to")),
-    "transforms" -> StepParameter(None, Some(true), description = transformsDescription),
+  @StepParameters(Map("inputDataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame that needs to be modified")),
+    "destinationDataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame that the new data needs to map to")),
+    "transforms" -> StepParameter(None, Some(true), None, None, None, None, Some("The object with transform, alias, and filter logic details")),
     "addNewColumns" -> StepParameter(None, Some(false), Some("true"),
-      description = addNewColumnsDescription)))
+      description = Some("Flag to determine whether new attributes are to be added to the output"))))
   def mapToDestinationDataFrame(inputDataFrame: Dataset[_], destinationDataFrame: Dataset[_], transforms: Transformations = Transformations(List()),
                              addNewColumns: Option[Boolean] = None): DataFrame = {
     mapDataFrameToSchema(inputDataFrame, Schema.fromStructType(destinationDataFrame.schema), transforms, addNewColumns)
@@ -52,11 +50,11 @@ object TransformationSteps {
     "This step maps a new DataFrame to a pre-defined spark schema",
     "Pipeline",
     "Transforms")
-  @StepParameters(Map("inputDataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame that needs to be modified")),
-    "destinationSchema" -> StepParameter(None, Some(true), description = Some("The schema that the new data should map to")),
-    "transforms" -> StepParameter(None, Some(true), description = transformsDescription),
+  @StepParameters(Map("inputDataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame that needs to be modified")),
+    "destinationSchema" -> StepParameter(None, Some(true), None, None, None, None, Some("The schema that the new data should map to")),
+    "transforms" -> StepParameter(None, Some(true), None, None, None, None, Some("The object with transform, alias, and filter logic details")),
     "addNewColumns" -> StepParameter(None, Some(false), Some("true"),
-      description = addNewColumnsDescription)))
+      description = Some("Flag to determine whether new attributes are to be added to the output"))))
   def mapDataFrameToSchema(inputDataFrame: Dataset[_], destinationSchema: Schema, transforms: Transformations = Transformations(List()),
                            addNewColumns: Option[Boolean] = None): DataFrame = {
     // create a struct type with cleaned names to pass to methods that need structtype
@@ -85,12 +83,12 @@ object TransformationSteps {
     "This step merges two DataFrames to create a single DataFrame",
     "Pipeline",
     "Transforms")
-  @StepParameters(Map("inputDataFrame" -> StepParameter(None, Some(true), description = Some("The first DataFrame")),
-    "destinationDataFrame" -> StepParameter(None, Some(true), description = Some("The second DataFrame used as the driver")),
-    "transforms" -> StepParameter(None, Some(true), description = transformsDescription),
+  @StepParameters(Map("inputDataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The first DataFrame")),
+    "destinationDataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The second DataFrame used as the driver")),
+    "transforms" -> StepParameter(None, Some(true), None, None, None, None, Some("The object with transform, alias, and filter logic details")),
     "addNewColumns" -> StepParameter(None, Some(false), Some("true"),
-      description = addNewColumnsDescription),
-    "distinct" -> StepParameter(None, Some(false), Some("true"), description = Some("Flag to determine whether a distinct union should be performed"))))
+      description = Some("Flag to determine whether new attributes are to be added to the output")),
+    "distinct" -> StepParameter(None, Some(false), Some("true"), None, None, None, Some("Flag to determine whether a distinct union should be performed"))))
   def mergeDataFrames(inputDataFrame: Dataset[_], destinationDataFrame: Dataset[_], transforms: Transformations = Transformations(List()),
                       addNewColumns: Option[Boolean] = None, distinct: Option[Boolean] = None): DataFrame = {
     // map to destination dataframe
@@ -113,9 +111,9 @@ object TransformationSteps {
     "This step transforms existing columns and/or adds new columns to an existing dataframe using expressions provided",
     "Pipeline",
     "Transforms")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The input DataFrame")),
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The input DataFrame")),
     "transforms" -> StepParameter(None, Some(true),
-      description = transformsDescription)))
+      description = Some("The object with transform, alias, and filter logic details"))))
   def applyTransforms(dataFrame: Dataset[_], transforms: Transformations): DataFrame = {
     // pull out mappings that contain a transform
     val mappingsWithTransforms = transforms.columnDetails.filter(_.expression.nonEmpty).map(x => {
@@ -158,8 +156,8 @@ object TransformationSteps {
     "Select each provided expresion from a DataFrame",
     "Pipeline",
     "Transforms")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to select from")),
-    "expressions" -> StepParameter(None, Some(true), description = Some("List of expressions to select"))))
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to select from")),
+    "expressions" -> StepParameter(None, Some(true), None, None, None, None, Some("List of expressions to select"))))
   def selectExpressions(dataFrame: Dataset[_], expressions: List[String]): DataFrame = {
     dataFrame.selectExpr(expressions: _*)
   }
@@ -177,9 +175,9 @@ object TransformationSteps {
     "Add a new column to a DataFrame",
     "Pipeline",
     "Transforms")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to add to")),
-    "columnName" -> StepParameter(None, Some(true), description = Some("The name of the new column")),
-    "expression" -> StepParameter(None, Some(true), description = Some("The expression used for the column")),
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to add to")),
+    "columnName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the new column")),
+    "expression" -> StepParameter(None, Some(true), None, None, None, None, Some("The expression used for the column")),
     "standardizeColumnName" -> StepParameter(None, Some(false), Some("true"),
       description = Some("Flag to control whether the column names should be cleansed"))))
   def addColumn(dataFrame: Dataset[_], columnName: String, expression: String, standardizeColumnName: Option[Boolean] = None): DataFrame = {
@@ -197,8 +195,8 @@ object TransformationSteps {
     "Add multiple new columns to a DataFrame",
     "Pipeline",
     "Transforms")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to add to")),
-    "columns" -> StepParameter(None, Some(true), description = Some("A map of column names and expressions")),
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to add to")),
+    "columns" -> StepParameter(None, Some(true), None, None, None, None, Some("A map of column names and expressions")),
     "standardizeColumnNames" -> StepParameter(None, Some(false), Some("true"),
       description = Some("Flag to control whether the column names should be cleansed"))))
   def addColumns(dataFrame: Dataset[_], columns: Map[String, String], standardizeColumnNames: Option[Boolean] = None): DataFrame = {
@@ -220,8 +218,8 @@ object TransformationSteps {
     "Add multiple new columns to a DataFrame",
     "Pipeline",
     "Transforms")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to drop columns from")),
-    "columnNames" -> StepParameter(None, Some(true), description = Some("Columns to drop off the DataFrame"))))
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to drop columns from")),
+    "columnNames" -> StepParameter(None, Some(true), None, None, None, None, Some("Columns to drop off the DataFrame"))))
   def dropColumns(dataFrame: Dataset[_], columnNames: List[String]): DataFrame = {
     dataFrame.drop(columnNames: _*)
   }
@@ -232,10 +230,10 @@ object TransformationSteps {
     "This step will flatten all nested fields contained in a DataFrame",
     "Pipeline",
     "Transforms")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to flatten")),
-    "separator" -> StepParameter(None, Some(false), Some("_"), description = Some("Separator to place between nested field names")),
-    "fieldList" -> StepParameter(None, Some(false), description = Some("List of fields to flatten. Will flatten all fields if left empty")),
-    "depth" -> StepParameter(None, Some(false), description = Some("How deep should we traverse when flattening."))))
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to flatten")),
+    "separator" -> StepParameter(None, Some(false), Some("_"), None, None, None, Some("Separator to place between nested field names")),
+    "fieldList" -> StepParameter(None, Some(false), None, None, None, None, Some("List of fields to flatten. Will flatten all fields if left empty")),
+    "depth" -> StepParameter(None, Some(false), None, None, None, None, Some("How deep should we traverse when flattening."))))
   def flattenDataFrame(dataFrame: Dataset[_],
                        separator: Option[String] = None,
                        fieldList: Option[List[String]] = None,

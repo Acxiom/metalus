@@ -8,14 +8,13 @@ import org.apache.log4j.Logger
 @StepObject
 object ScalaSteps {
   private val logger = Logger.getLogger(getClass)
-  private val scriptDescription: Some[String] = Some("A scala script to execute")
 
   @StepFunction("a7e17c9d-6956-4be0-a602-5b5db4d1c08b",
     "Scala script Step",
     "Executes a script and returns the result",
     "Pipeline",
     "Scripting")
-  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("scala"), description = scriptDescription)))
+  @StepParameters(Map("script" -> StepParameter(Some("script"), Some(true), None, Some("scala"), None, None, Some("A scala script to execute"))))
   def processScript(script: String,
                     pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
@@ -28,9 +27,9 @@ object ScalaSteps {
     "Executes a script with the provided object and returns the result",
     "Pipeline",
     "Scripting")
-  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("scala"), description = scriptDescription),
-    "value" -> StepParameter(None, Some(true), description = Some("Aa value to pass to the script")),
-    "type" -> StepParameter(None, Some(false), description = Some("The type of the value to pass to the script"))))
+  @StepParameters(Map("script" -> StepParameter(Some("script"), Some(true), None, Some("scala"), None, None, Some("A scala script to execute")),
+    "value" -> StepParameter(None, Some(true), None, None, None, None, Some("Aa value to pass to the script")),
+    "type" -> StepParameter(None, Some(false), None, None, None, None, Some("The type of the value to pass to the script"))))
   def processScriptWithValue(script: String,
                              value: Any, `type`: Option[String] = None,
                              pipelineContext: PipelineContext): PipelineStepResponse = {
@@ -46,10 +45,10 @@ object ScalaSteps {
     "Executes a script with the provided object and returns the result",
     "Pipeline",
     "Scripting")
-  @StepParameters(Map("script" -> StepParameter(None, Some(true), None, Some("scala"), description = scriptDescription),
-    "values" -> StepParameter(None, Some(true), description = Some("Map of name/value pairs that will be bound to the script")),
-    "type" -> StepParameter(None, Some(false), description = Some("Map of type overrides for the values provided")),
-    "unwrapOptions" -> StepParameter(None, Some(false), description = Some("Flag to toggle option unwrapping behavior"))))
+  @StepParameters(Map("script" -> StepParameter(Some("script"), Some(true), None, Some("scala"), None, None, Some("A scala script to execute")),
+    "values" -> StepParameter(None, Some(true), None, None, None, None, Some("Map of name/value pairs that will be bound to the script")),
+    "types" -> StepParameter(Some("object"), Some(false), None, None, None, Some("Map[String,String]"), Some("Map of type overrides for the values provided")),
+    "unwrapOptions" -> StepParameter(Some("boolean"), Some(false), None, None, None, None, Some("Flag to toggle option unwrapping behavior"))))
   def processScriptWithValues(script: String,
                               values: Map[String, Any],
                               types: Option[Map[String, String]] = None,

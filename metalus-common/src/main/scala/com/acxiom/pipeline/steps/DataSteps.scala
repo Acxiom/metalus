@@ -25,12 +25,12 @@ object DataSteps {
     "Join two dataFrames together.",
     "Pipeline",
     "Data")
-  @StepParameters(Map("left" -> StepParameter(None, Some(true), description = Some("Left side of the join")),
-    "right" -> StepParameter(None, Some(true), description = Some("Right side of the join")),
-    "expression" -> StepParameter(None, Some(false), description = Some("Join expression. Optional for cross joins")),
-    "leftAlias" -> StepParameter(None, Some(false), Some("left"), description = Some("Left side alias")),
-    "rightAlias" -> StepParameter(None, Some(false), Some("right"), description = Some("Right side alias")),
-    "joinType" -> StepParameter(None, Some(false), Some("inner"), description = Some("Type of join to perform"))))
+  @StepParameters(Map("left" -> StepParameter(None, Some(true), None, None, None, None, Some("Left side of the join")),
+    "right" -> StepParameter(None, Some(true), None, None, None, None, Some("Right side of the join")),
+    "expression" -> StepParameter(None, Some(false), None, None, None, None, Some("Join expression. Optional for cross joins")),
+    "leftAlias" -> StepParameter(None, Some(false), Some("left"), None, None, None, Some("Left side alias")),
+    "rightAlias" -> StepParameter(None, Some(false), Some("right"), None, None, None, Some("Right side alias")),
+    "joinType" -> StepParameter(None, Some(false), Some("inner"), None, None, None, Some("Type of join to perform"))))
   def join(left: Dataset[_], right: Dataset[_],
            expression: Option[String] = None,
            leftAlias: Option[String] = None,
@@ -61,9 +61,9 @@ object DataSteps {
     "Group by a list of grouping expressions and a list of aggregates.",
     "Pipeline",
     "Data")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to group")),
-    "groupings" -> StepParameter(None, Some(true), description = Some("List of expressions to group by")),
-    "aggregations" -> StepParameter(None, Some(true), description = Some("List of aggregations to apply"))))
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to group")),
+    "groupings" -> StepParameter(None, Some(true), None, None, None, None, Some("List of expressions to group by")),
+    "aggregations" -> StepParameter(None, Some(true), None, None, None, None, Some("List of aggregations to apply"))))
   def groupBy(dataFrame: Dataset[_], groupings: List[String], aggregations: List[String]): DataFrame = {
     val aggregates = aggregations.map(expr)
     val group = dataFrame.groupBy(groupings.map(expr): _*)
@@ -86,9 +86,9 @@ object DataSteps {
     "Union two DataFrames together.",
     "Pipeline",
     "Data")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The initial DataFrame")),
-    "append" -> StepParameter(None, Some(true), description = Some("The dataFrame to append")),
-    "distinct" -> StepParameter(None, Some(false), Some("true"), description = Some("Flag to control distinct behavior"))))
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The initial DataFrame")),
+    "append" -> StepParameter(None, Some(true), None, None, None, None, Some("The dataFrame to append")),
+    "distinct" -> StepParameter(None, Some(false), Some("true"), None, None, None, Some("Flag to control distinct behavior"))))
   def union[T](dataFrame: Dataset[T], append: Dataset[T], distinct: Option[Boolean] = None): Dataset[T] = {
     val res = dataFrame.unionByName(append)
     if(distinct.getOrElse(true)) res.distinct() else res
@@ -126,8 +126,8 @@ object DataSteps {
     "Adds a Unique Identifier to a DataFrame (metalus-common)",
     "This step will add a new unique identifier to an existing data frame using the monotonically_increasing_id method",
     "Pipeline", "Data")
-  @StepParameters(Map("idColumnName" -> StepParameter(None, Some(true), description = Some("The name to provide the id column")),
-    "dataFrame" -> StepParameter(None, Some(true), description = Some("The data frame to add the column"))))
+  @StepParameters(Map("idColumnName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name to provide the id column")),
+    "dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The data frame to add the column"))))
   def addUniqueIdToDataFrame(idColumnName: String, dataFrame: Dataset[_]): DataFrame = {
     logger.info(s"adding unique id,name=$idColumnName")
     dataFrame.withColumn(cleanColumnName(idColumnName), monotonically_increasing_id)
@@ -145,8 +145,8 @@ object DataSteps {
     "This step will filter a DataFrame based on the where expression provided",
     "Pipeline",
     "Data")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to filter")),
-    "expression" -> StepParameter(None, Some(true), description = Some("The expression to apply to the DataFrame to filter rows"))))
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to filter")),
+    "expression" -> StepParameter(None, Some(true), None, None, None, None, Some("The expression to apply to the DataFrame to filter rows"))))
   def applyFilter[T](dataFrame: Dataset[T], expression: String): Dataset[T] = {
     dataFrame.where(expression)
   }

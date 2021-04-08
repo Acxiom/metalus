@@ -13,8 +13,8 @@ object HiveSteps {
     "This step will read a dataFrame in a given format from Hive",
     "Pipeline",
     "InputOutput")
-  @StepParameters(Map("table" -> StepParameter(None, Some(true), description = Some("The name of the table to read")),
-    "options" -> StepParameter(None, Some(false), description = Some("The DataFrameReaderOptions to use"))))
+  @StepParameters(Map("table" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the table to read")),
+    "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The DataFrameReaderOptions to use"))))
   def readDataFrame(table: String, options: Option[DataFrameReaderOptions] = None, pipelineContext: PipelineContext): DataFrame ={
     DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext).table(table)
   }
@@ -24,9 +24,9 @@ object HiveSteps {
     "This step will write a dataFrame in a given format to Hive",
     "Pipeline",
     "InputOutput")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to write")),
-    "table" -> StepParameter(None, Some(true), description = Some("The name of the table to write to")),
-    "options" -> StepParameter(None, Some(false), description = Some("The DataFrameWriterOptions to use"))))
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to write")),
+    "table" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the table to write to")),
+    "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The DataFrameWriterOptions to use"))))
   def writeDataFrame(dataFrame: Dataset[_], table: String, options: Option[DataFrameWriterOptions] = None): Unit = {
     DataFrameSteps.getDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions())).saveAsTable(table)
   }
@@ -36,10 +36,10 @@ object HiveSteps {
     "This step will drop an object from the hive meta store",
     "Pipeline",
     "InputOutput")
-  @StepParameters(Map("name" -> StepParameter(None, Some(true), description = Some("Name of the object to drop")),
-    "objectType" -> StepParameter(None, Some(false), Some("TABLE"), description = Some("Type of object to drop")),
-    "ifExists" -> StepParameter(None, Some(false), Some("false"), description = Some("Flag to control whether existence is checked")),
-    "cascade" -> StepParameter(None, Some(false), Some("false"), description = Some("Flag to control whether this deletion should cascade"))))
+  @StepParameters(Map("name" -> StepParameter(None, Some(true), None, None, None, None, Some("Name of the object to drop")),
+    "objectType" -> StepParameter(None, Some(false), Some("TABLE"), None, None, None, Some("Type of object to drop")),
+    "ifExists" -> StepParameter(None, Some(false), Some("false"), None, None, None, Some("Flag to control whether existence is checked")),
+    "cascade" -> StepParameter(None, Some(false), Some("false"), None, None, None, Some("Flag to control whether this deletion should cascade"))))
   def drop(name: String,
            objectType: Option[String] = None,
            ifExists: Option[Boolean] = None,
@@ -58,7 +58,7 @@ object HiveSteps {
     "Check spark catalog for a database with the given name.",
     "branch",
     "Decision")
-  @StepParameters(Map("name" -> StepParameter(None, Some(true), description = Some("Name of the database"))))
+  @StepParameters(Map("name" -> StepParameter(None, Some(true), None, None, None, None, Some("Name of the database"))))
   def databaseExists(name: String, pipelineContext: PipelineContext): Boolean = {
     pipelineContext.sparkSession.get.catalog.databaseExists(name)
   }
@@ -69,8 +69,8 @@ object HiveSteps {
     "branch",
     "Decision")
   @StepParameters(Map(
-    "name" -> StepParameter(None, Some(true), description = Some("Name of the table")),
-    "database" -> StepParameter(None, Some(false), description = Some("Name of the database"))))
+    "name" -> StepParameter(None, Some(true), None, None, None, None, Some("Name of the table")),
+    "database" -> StepParameter(None, Some(false), None, None, None, None, Some("Name of the database"))))
   def tableExists(name: String, database: Option[String] = None, pipelineContext: PipelineContext): Boolean = {
     if (database.isDefined) {
       pipelineContext.sparkSession.get.catalog.tableExists(database.get, name)
@@ -84,7 +84,7 @@ object HiveSteps {
     "Set the current default database for the spark session.",
     "Pipeline",
     "InputOutput")
-  @StepParameters(Map("name" -> StepParameter(None, Some(true), description = Some("Name of the database"))))
+  @StepParameters(Map("name" -> StepParameter(None, Some(true), None, None, None, None, Some("Name of the database"))))
   def setCurrentDatabase(name: String, pipelineContext: PipelineContext): Unit = {
     pipelineContext.sparkSession.get.catalog.setCurrentDatabase(name)
   }
@@ -95,9 +95,9 @@ object HiveSteps {
     "Pipeline",
     "InputOutput")
   @StepParameters(Map(
-    "name" -> StepParameter(None, Some(true), description = Some("Name of the table")),
-    "externalPath" -> StepParameter(None, Some(false), description = Some("Path of the external table")),
-    "options" -> StepParameter(None, Some(false), description = Some("Options containing the format, schema, and settings"))))
+    "name" -> StepParameter(None, Some(true), None, None, None, None, Some("Name of the table")),
+    "externalPath" -> StepParameter(None, Some(false), None, None, None, None, Some("Path of the external table")),
+    "options" -> StepParameter(None, Some(false), None, None, None, None, Some("Options containing the format, schema, and settings"))))
   def createTable(name: String, externalPath: Option[String] = None,
                   options: Option[DataFrameReaderOptions] = None,
                   pipelineContext: PipelineContext): DataFrame = {
