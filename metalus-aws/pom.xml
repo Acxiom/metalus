@@ -33,7 +33,8 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-secretsmanager</artifactId>
-            <version>1.11.821</version>
+            <version>${aws-sdk-version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Kinesis -->
@@ -41,6 +42,7 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming-kinesis-asl_${scala.compat.version}</artifactId>
             <version>${spark.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Spark -->
@@ -61,74 +63,8 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk</artifactId>
-            <version>1.11.821</version>
+            <version>${aws-sdk-version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.4</version>
-                <configuration>
-                    <artifactSet>
-                        <excludes>
-                            <exclude>classworlds:classworlds</exclude>
-                            <exclude>junit:junit</exclude>
-                            <exclude>jmock:*</exclude>
-                            <exclude>*:xml-apis</exclude>
-                            <exclude>com.thoughtworks.paranamer:*:jar:</exclude>
-                            <exclude>com.fasterxml:*:jar:</exclude>
-                            <exclude>org.apache.maven:lib:tests</exclude>
-                            <exclude>org.apache.kafka:*:jar:</exclude>
-                            <exclude>org.joda:*:jar:</exclude>
-                            <exclude>joda-time:*:jar:</exclude>
-                            <exclude>log4j:log4j:jar:</exclude>
-                            <exclude>org.slf4j:*:jar:</exclude>
-                            <exclude>org.scala-lang:*:jar:</exclude>
-                            <exclude>org.scala-lang.modules:*:jar:</exclude>
-                            <exclude>org.apache.spark:jar:</exclude>
-                            <exclude>org.scalamock:jar:</exclude>
-                            <exclude>org.scalatest:jar:</exclude>
-                            <exclude>com.acxiom.pipeline:*:jar:</exclude>
-                            <exclude>org.json4s:*:jar:</exclude>
-                            <exclude>com.jcraft:*:jar:</exclude>
-                        </excludes>
-                    </artifactSet>
-                    <filters>
-                        <filter>
-                            <artifact>*.*</artifact>
-                            <excludes>
-                                <exclude>META-INF/*.SF</exclude>
-                                <exclude>META-INF/*.DSA</exclude>
-                                <exclude>META-INF/*.RSA</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <relocations>
-                                <relocation>
-                                    <pattern>com.amazonaws</pattern>
-                                    <shadedPattern>metalus.com.amazonaws</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.apache.commons.lang3</pattern>
-                                    <shadedPattern>metalus.org.apache.commons.lang3</shadedPattern>
-                                </relocation>
-                            </relocations>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 </project>
