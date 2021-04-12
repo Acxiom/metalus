@@ -88,5 +88,6 @@ object S3Utilities {
     */
   def configureSparkSession(pipelineContext: PipelineContext): Unit = {
     pipelineContext.sparkSession.get.sparkContext.hadoopConfiguration.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+    pipelineContext.sparkSession.get.sparkContext.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
   }
 }
