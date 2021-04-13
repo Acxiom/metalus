@@ -28,7 +28,7 @@ object ScalaSteps {
     "Pipeline",
     "Scripting")
   @StepParameters(Map("script" -> StepParameter(Some("script"), Some(true), None, Some("scala"), None, None, Some("A scala script to execute")),
-    "value" -> StepParameter(None, Some(true), None, None, None, None, Some("Aa value to pass to the script")),
+    "value" -> StepParameter(None, Some(true), None, None, None, None, Some("A value to pass to the script")),
     "type" -> StepParameter(None, Some(false), None, None, None, None, Some("The type of the value to pass to the script"))))
   def processScriptWithValue(script: String,
                              value: Any, `type`: Option[String] = None,
@@ -46,7 +46,7 @@ object ScalaSteps {
     "Pipeline",
     "Scripting")
   @StepParameters(Map("script" -> StepParameter(Some("script"), Some(true), None, Some("scala"), None, None, Some("A scala script to execute")),
-    "values" -> StepParameter(None, Some(true), None, None, None, None, Some("Map of name/value pairs that will be bound to the script")),
+    "values" -> StepParameter(Some("object"), Some(true), None, None, None, Some("Map[String,Any]"), Some("Map of name/value pairs that will be bound to the script")),
     "types" -> StepParameter(Some("object"), Some(false), None, None, None, Some("Map[String,String]"), Some("Map of type overrides for the values provided")),
     "unwrapOptions" -> StepParameter(Some("boolean"), Some(false), None, None, None, None, Some("Flag to toggle option unwrapping behavior"))))
   def processScriptWithValues(script: String,

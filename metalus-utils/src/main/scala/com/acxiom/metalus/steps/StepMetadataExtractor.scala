@@ -367,13 +367,15 @@ class StepMetadataExtractor extends Extractor {
       },
       if (isValueSet(stepParameter.className)) {
         Some(getAnnotationValue(stepParameter.className, stringValue = true).asInstanceOf[String])
-      } else {
+      } else if (parameterInfo.caseClass) {
         Some(parameterInfo.className)
+      } else {
+        None
       },
       if (isValueSet(stepParameter.parameterType)) {
         Some(getAnnotationValue(stepParameter.parameterType, stringValue = true).asInstanceOf[String])
       } else {
-        None
+        Some(parameterInfo.className)
       },
       if (isValueSet(stepParameter.description)) {
         Some(getAnnotationValue(stepParameter.description, stringValue = true).asInstanceOf[String])
