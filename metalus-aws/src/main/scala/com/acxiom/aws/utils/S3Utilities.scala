@@ -41,8 +41,8 @@ object S3Utilities {
       val protocol = S3Utilities.deriveProtocol(path)
       val sc = pipelineContext.sparkSession.get.sparkContext
       sc.hadoopConfiguration.set(s"fs.$protocol.awsAccessKeyId", accessKeyId.get)
-      sc.hadoopConfiguration.set(s"fs.$protocol.access.key", accessKeyId.get)
       sc.hadoopConfiguration.set(s"fs.$protocol.awsSecretAccessKey", secretAccessKey.get)
+      sc.hadoopConfiguration.set(s"fs.$protocol.access.key", accessKeyId.get)
       sc.hadoopConfiguration.set(s"fs.$protocol.secret.key", secretAccessKey.get)
       sc.hadoopConfiguration.set(s"fs.$protocol.acl.default", "BucketOwnerFullControl")
       sc.hadoopConfiguration.set(s"fs.$protocol.canned.acl", "BucketOwnerFullControl")

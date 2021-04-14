@@ -4,11 +4,18 @@
 S3Steps provides steps that allow a reading a DataFrame and writing a DataFrame to an S3 bucket.
 
 ## Register S3 FS Provider
-This step will register the file system providers for the s3n and s3a protocols. The proper classes will need to
+This step will register the file system providers for the S3A and S3N protocols. The proper classes will need to
 be on the classpath.
 
+## Setup S3 Authentication
+This step will apply the provided AWS key and secret to the Spark Context to allow DataFrames the ability to read/write
+from S3. Authentication will be set for S3A and S3N protocols.
+
+* **accessKeyId** - The API key to use when connecting.
+* **secretAccessKey** - The API secret to use when connecting.
+
 ## Write to Path
-This function will write a given DataFrame to the provided path. Full parameter descriptions are listed below:
+This step will write a given DataFrame to the provided path. Full parameter descriptions are listed below:
 
 * **dataFrame** - A dataFrame to be written to S3.
 * **path** - A S3 path where the data will be written. The bucket should be part of the path.

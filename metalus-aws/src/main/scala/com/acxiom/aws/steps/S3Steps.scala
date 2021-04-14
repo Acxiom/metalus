@@ -19,6 +19,25 @@ object S3Steps {
     S3Utilities.registerS3FileSystems(pipelineContext)
   }
 
+  @StepFunction("18290ec4-93e1-427c-8f46-2eb48dd7d1fd",
+    "Setup S3 Authentication",
+    "This step will setup authentication read for DataFrames using the provided key and secret",
+    "Pipeline",
+    "AWS")
+  @StepParameters(Map("accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The API secret to use for S3 access"))))
+  def setupS3Authentication(accessKeyId: String,
+                            secretAccessKey: String,
+                            pipelineContext: PipelineContext): Unit = {
+    val sc = pipelineContext.sparkSession.get.sparkContext
+    sc.hadoopConfiguration.set("fs.s3n.awsAccessKeyId", accessKeyId)
+    sc.hadoopConfiguration.set("fs.s3n.awsSecretAccessKey", secretAccessKey)
+    sc.hadoopConfiguration.set(s"fs.s3a.access.key", accessKeyId)
+    sc.hadoopConfiguration.set(s"fs.s3a.secret.key", secretAccessKey)
+    sc.hadoopConfiguration.set(s"fs.s3a.acl.default", "BucketOwnerFullControl")
+    sc.hadoopConfiguration.set(s"fs.s3a.canned.acl", "BucketOwnerFullControl")
+  }
+
   @StepFunction("bd4a944f-39ad-4b9c-8bf7-6d3c1f356510",
     "Load DataFrame from S3 path",
     "This step will read a DataFrame from the given S3 path",
