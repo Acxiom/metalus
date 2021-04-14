@@ -41,8 +41,8 @@ object S3Utilities {
       val protocol = S3Utilities.deriveProtocol(path)
       val sc = pipelineContext.sparkSession.get.sparkContext
       sc.hadoopConfiguration.set(s"fs.$protocol.awsAccessKeyId", accessKeyId.get)
-      sc.hadoopConfiguration.set(s"fs.$protocol.access.key", accessKeyId.get)
       sc.hadoopConfiguration.set(s"fs.$protocol.awsSecretAccessKey", secretAccessKey.get)
+      sc.hadoopConfiguration.set(s"fs.$protocol.access.key", accessKeyId.get)
       sc.hadoopConfiguration.set(s"fs.$protocol.secret.key", secretAccessKey.get)
       sc.hadoopConfiguration.set(s"fs.$protocol.acl.default", "BucketOwnerFullControl")
       sc.hadoopConfiguration.set(s"fs.$protocol.canned.acl", "BucketOwnerFullControl")
@@ -86,7 +86,7 @@ object S3Utilities {
     * Prepares Spark for reading/writing of DataFrames
     * @param pipelineContext The PipelineContext containing the SparkSession
     */
-  def configureSparkSession(pipelineContext: PipelineContext): Unit = {
+  def registerS3FileSystems(pipelineContext: PipelineContext): Unit = {
     pipelineContext.sparkSession.get.sparkContext.hadoopConfiguration.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
     pipelineContext.sparkSession.get.sparkContext.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
   }
