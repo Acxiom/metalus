@@ -10,6 +10,15 @@ import org.apache.spark.sql.DataFrame
 
 @StepObject
 object S3Steps {
+  @StepFunction("75dca4ff-d4c1-4171-8cea-a303c17d461d",
+    "Register S3 FS Providers",
+    "Registers the S3N and S3A File System providers",
+    "Pipeline",
+    "AWS")
+  def registerS3FileSystems(pipelineContext: PipelineContext): Unit = {
+    S3Utilities.registerS3FileSystems(pipelineContext)
+  }
+
   @StepFunction("bd4a944f-39ad-4b9c-8bf7-6d3c1f356510",
     "Load DataFrame from S3 path",
     "This step will read a DataFrame from the given S3 path",
@@ -25,7 +34,6 @@ object S3Steps {
                    options: Option[DataFrameReaderOptions] = None,
                    pipelineContext: PipelineContext): DataFrame = {
     S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, pipelineContext)
-    S3Utilities.configureSparkSession(pipelineContext)
     DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext)
       .load(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
@@ -45,7 +53,6 @@ object S3Steps {
                     options: Option[DataFrameReaderOptions] = None,
                     pipelineContext: PipelineContext): DataFrame = {
     S3Utilities.setS3Authorization(paths.head, accessKeyId, secretAccessKey, pipelineContext)
-    S3Utilities.configureSparkSession(pipelineContext)
     DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext)
       .load(paths.map(p => S3Utilities.replaceProtocol(p, S3Utilities.deriveProtocol(p))): _*)
   }
@@ -67,7 +74,6 @@ object S3Steps {
                   options: Option[DataFrameWriterOptions] = None,
                   pipelineContext: PipelineContext): Unit = {
     S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, pipelineContext)
-    S3Utilities.configureSparkSession(pipelineContext)
     DataFrameSteps.getDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions()))
       .save(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }

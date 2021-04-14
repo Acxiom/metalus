@@ -86,7 +86,7 @@ object S3Utilities {
     * Prepares Spark for reading/writing of DataFrames
     * @param pipelineContext The PipelineContext containing the SparkSession
     */
-  def configureSparkSession(pipelineContext: PipelineContext): Unit = {
+  def registerS3FileSystems(pipelineContext: PipelineContext): Unit = {
     pipelineContext.sparkSession.get.sparkContext.hadoopConfiguration.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
     pipelineContext.sparkSession.get.sparkContext.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
   }

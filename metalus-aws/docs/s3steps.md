@@ -3,6 +3,10 @@
 # S3Steps
 S3Steps provides steps that allow a reading a DataFrame and writing a DataFrame to an S3 bucket.
 
+## Register S3 FS Provider
+This step will register the file system providers for the s3n and s3a protocols. The proper classes will need to
+be on the classpath.
+
 ## Write to Path
 This function will write a given DataFrame to the provided path. Full parameter descriptions are listed below:
 
