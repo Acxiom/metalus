@@ -1,8 +1,9 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.audits.ExecutionAudit
+import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import com.acxiom.pipeline.flow.SplitStepException
 import org.apache.log4j.Logger
+import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.{JsonParser, Serialization}
 import org.json4s.{DefaultFormats, Formats}
 
@@ -15,7 +16,8 @@ object PipelineListener {
 case class DefaultPipelineListener() extends PipelineListener {}
 
 trait PipelineListener {
-  implicit val formats: Formats = DefaultFormats
+  implicit val formats: Formats = DefaultFormats +
+    new EnumNameSerializer(AuditType)
   private val logger = Logger.getLogger(getClass)
 
   def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
@@ -59,7 +61,6 @@ trait PipelineListener {
 }
 
 trait EventBasedPipelineListener extends PipelineListener {
-  override implicit val formats: Formats = DefaultFormats
   def key: String
   def credentialName: String
   def credentialProvider: CredentialProvider

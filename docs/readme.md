@@ -20,6 +20,7 @@
     * [Metalus Common](../metalus-common/readme.md)
         * Steps
             * [ApiSteps](../metalus-common/docs/apisteps.md)
+            * [CredentialSteps](../metalus-common/docs/credentialsteps.md)
             * [DataFrameSteps](../metalus-common/docs/dataframesteps.md)
             * [FileManagerSteps](../metalus-common/docs/filemanagersteps.md)
             * [HDFSSteps](../metalus-common/docs/hdfssteps.md)
