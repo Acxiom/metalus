@@ -5,14 +5,77 @@ import com.acxiom.pipeline.flow.SplitStepException
 import org.apache.log4j.Logger
 import org.json4s.native.{JsonParser, Serialization}
 import org.json4s.{DefaultFormats, Formats}
-
 import java.util.Date
+
+import org.apache.spark.scheduler._
+
+import scala.collection.mutable
 
 object PipelineListener {
   def apply(): PipelineListener = DefaultPipelineListener()
 }
 
-case class DefaultPipelineListener() extends PipelineListener {}
+case class DefaultPipelineListener() extends SparkListener with PipelineListener {
+  private var currentExecutionInfo: Option[PipelineExecutionInfo] = None
+  private val applicationStats: ApplicationStats = ApplicationStats(mutable.ListBuffer())
+
+  override def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+    None
+  }
+
+  override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+    pipelineContext.setRootAuditMetric("sparkMetrics", "jobs", this.applicationStats.getSummary())
+    super.executionFinished(pipelines, pipelineContext)
+    applicationStats.reset()
+    None
+  }
+
+  override def executionStopped(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
+    pipelineContext.setRootAuditMetric("sparkMetrics", "jobs", this.applicationStats.getSummary())
+    super.executionStopped(pipelines, pipelineContext)
+    applicationStats.reset()
+  }
+
+  override def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+    this.currentExecutionInfo = Some(pipelineContext.getPipelineExecutionInfo)
+    None
+  }
+
+  override def pipelineFinished(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+    pipelineContext.setPipelineAuditMetric("sparkMetrics", "jobs", this.applicationStats.getSummary())
+    super.pipelineFinished(pipeline, pipelineContext)
+    None
+  }
+
+  override def pipelineStepStarted(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
+    this.currentExecutionInfo = Some(pipelineContext.getPipelineExecutionInfo)
+    super.pipelineStepStarted(pipeline, step, pipelineContext)
+    None
+  }
+
+  override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
+    val execInfo = pipelineContext.getPipelineExecutionInfo
+    pipelineContext.setStepMetric(
+      execInfo.pipelineId.getOrElse(""), execInfo.stepId.getOrElse(""), execInfo.groupId, "jobs", this.applicationStats.getSummary()
+    )
+    super.pipelineStepFinished(pipeline, step, pipelineContext)
+    None
+  }
+
+  override def onJobStart(jobStart: SparkListenerJobStart): scala.Unit = {
+    if (this.currentExecutionInfo.isDefined) {
+      this.applicationStats.startJob(jobStart, this.currentExecutionInfo.get)
+    }
+  }
+
+  override def onJobEnd(jobEnd: SparkListenerJobEnd): scala.Unit = {
+    this.applicationStats.endJob(jobEnd)
+  }
+
+  override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit = {
+    this.applicationStats.endStage(stageCompleted)
+  }
+}
 
 trait PipelineListener {
   implicit val formats: Formats = DefaultFormats
@@ -31,6 +94,7 @@ trait PipelineListener {
 
   def executionStopped(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
     logger.info(s"Stopping execution of pipelines. Completed: ${pipelines.map(p => p.name.getOrElse(p.id.getOrElse(""))).mkString(",")}")
+    logger.info(s"Execution Audit ${Serialization.write(pipelineContext.rootAudit)}")
   }
 
   def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
@@ -57,6 +121,7 @@ trait PipelineListener {
     // Base implementation does nothing
   }
 }
+
 
 trait EventBasedPipelineListener extends PipelineListener {
   override implicit val formats: Formats = DefaultFormats
@@ -133,6 +198,8 @@ trait EventBasedPipelineListener extends PipelineListener {
   }
 }
 
+
+case class SessionVariables(executionComplete: Boolean = false, currentPipeline: Option[Pipeline] = None, currentStep: Option[PipelineStep] = None)
 case class EventPipelineRecord(id: String, name: String)
 case class EventPipelineStepRecord(id: String, stepId: String, group: String)
 case class MessageLists(messages: List[String], stacks: List[Array[StackTraceElement]])

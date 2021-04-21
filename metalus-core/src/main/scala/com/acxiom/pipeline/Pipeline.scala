@@ -211,6 +211,19 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
   }
 
   /**
+    * Add or replace a metric value on the root audit
+    *
+    * @param id The id of the pipeline
+    * @param name The name of the metric to add or replace
+    * @param value The value of the metric entry
+    * @return An updated pipeline context with the metric
+    */
+  def setRootAuditMetric(id: String, name: String, value: Any): PipelineContext = {
+    val audit = this.rootAudit.setMetric(name, value)
+    this.copy(rootAudit = audit)
+  }
+
+  /**
     * Retrieves the audit for the specified pipeline id
     *
     * @param id The pipeline id to retrieve
@@ -239,7 +252,9 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     * @return An updated pipeline context with the metric
     */
   def setPipelineAuditMetric(id: String, name: String, value: Any): PipelineContext = {
-    val audit = this.rootAudit.getChildAudit(id, None).get.setMetric(name, value)
+    val audit = this.rootAudit.getChildAudit(id, None)
+      .getOrElse(ExecutionAudit(id, AuditType.STEP, Map[String, Any](), System.currentTimeMillis()))
+      .setMetric(name, value)
     this.copy(rootAudit = this.rootAudit.setChildAudit(audit))
   }
 
@@ -277,7 +292,9 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     * @return An updated pipeline context with the metric
     */
   def setStepMetric(pipelineId: String, stepId: String, groupId: Option[String], name: String, value: Any): PipelineContext = {
-    val audit = getStepAudit(pipelineId, stepId, groupId).get.setMetric(name, value)
+    val audit = getStepAudit(pipelineId, stepId, groupId)
+      .getOrElse(ExecutionAudit(stepId, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), groupId=groupId))
+      .setMetric(name, value)
     this.setStepAudit(pipelineId, audit)
   }
 
