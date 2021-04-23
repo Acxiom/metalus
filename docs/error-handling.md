@@ -1,3 +1,5 @@
+[Documentation Home](readme.md)
+
 # Error Handling
 Metalus provides several mechanisms for handling errors. Each method provides different behaviors and should be used 
 together to provide a comprehensive solution.

@@ -29,7 +29,7 @@ then
     curl -L https://downloads.apache.org/spark/spark-2.4.7/spark-2.4.7-bin-hadoop2.7.tgz > $serversDir/spark-2.4.7-bin-hadoop2.7.tgz
     curl -L https://repo1.maven.org/maven2/org/mongodb/spark/mongo-spark-connector_2.11/2.4.2/mongo-spark-connector_2.11-2.4.2.jar > $serversDir/mongo-spark-connector_2.11-2.4.2.jar
     curl -L https://repo1.maven.org/maven2/org/mongodb/mongo-java-driver/3.12.7/mongo-java-driver-3.12.7.jar > $serversDir/mongo-java-driver-3.12.7.jar
-    tar xf $serversDir/spark-2.4.7-bin-hadoop2.7.tgz
+    tar xf $serversDir/spark-2.4.7-bin-hadoop2.7.tgz --directory $serversDir
   fi
   sparkDir="${serversDir}/spark-2.4.7-bin-hadoop2.7"
   SPARK_HOME=$sparkDir
@@ -45,7 +45,7 @@ then
     curl -L https://repo1.maven.org/maven2/org/mongodb/mongodb-driver-core/4.0.5/mongodb-driver-core-4.0.5.jar > $serversDir/mongodb-driver-core-4.0.5.jar
     curl -L https://repo1.maven.org/maven2/org/mongodb/mongodb-driver-sync/4.0.5/mongodb-driver-sync-4.0.5.jar > $serversDir/mongodb-driver-sync-4.0.5.jar
     curl -L https://repo1.maven.org/maven2/org/mongodb/bson/4.0.5/bson-4.0.5.jar > $serversDir/bson-4.0.5.jar
-    tar xf $serversDir/spark-3.0.2-bin-hadoop2.7.tgz
+    tar xf $serversDir/spark-3.0.2-bin-hadoop2.7.tgz --directory $serversDir
   fi
   sparkDir="${serversDir}/spark-3.0.2-bin-hadoop2.7"
   SPARK_HOME=$sparkDir
