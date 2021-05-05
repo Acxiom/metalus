@@ -16,7 +16,9 @@ object PipelineListener {
   def apply(): PipelineListener = DefaultPipelineListener()
 }
 
-case class DefaultPipelineListener() extends SparkListener with PipelineListener {
+case class DefaultPipelineListener() extends SparkPipelineListener
+
+trait SparkPipelineListener extends SparkListener with PipelineListener {
   private var currentExecutionInfo: Option[PipelineExecutionInfo] = None
   private val applicationStats: ApplicationStats = ApplicationStats(mutable.ListBuffer())
 
@@ -125,7 +127,7 @@ trait PipelineListener {
 }
 
 
-trait EventBasedPipelineListener extends PipelineListener {
+trait EventBasedPipelineListener extends SparkPipelineListener {
   def key: String
   def credentialName: String
   def credentialProvider: CredentialProvider
