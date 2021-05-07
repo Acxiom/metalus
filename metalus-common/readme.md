@@ -10,7 +10,7 @@ using Spark.
 * [DataFrameSteps](docs/dataframesteps.md)
 * [FileManagerSteps](docs/filemanagersteps.md)
 * [HDFSSteps](docs/hdfssteps.md)
-* [HiveSteps](docs/hivesteps.md)
+* [HiveSteps](docs/catalogsteps.md)
 * [JavascriptSteps](docs/javascriptsteps.md)
 * [JDBCSteps](docs/jdbcsteps.md)
 * [JSONSteps](docs/jsonsteps.md)
