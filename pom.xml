@@ -67,6 +67,7 @@
         <module>metalus-kafka</module>
         <module>metalus-mongo</module>
         <module>metalus-utils</module>
+        <module>metalus-delta</module>
     </modules>
 
     <dependencies>
