@@ -49,37 +49,43 @@
     },
     {
       "key": "options.multiLine",
-      "type": "checkbox",
-      "defaultValue": false,
+      "type": "select",
+      "defaultValue": "false",
       "templateOptions": {
         "label": "Multiline?",
-        "placeholder": "",
-        "focus": false,
-        "disabled": false,
-        "hideFieldUnderline": true,
-        "indeterminate": true,
-        "floatLabel": "always",
-        "hideLabel": true,
-        "align": "start",
-        "color": "accent"
+        "options": [
+          {
+            "value": "true",
+            "name": "True"
+          },
+          {
+            "value": "false",
+            "name": "False"
+          }
+        ],
+        "valueProp": "value",
+        "labelProp": "name"
       },
       "hideExpression": "model.format === 'csv' || model.format === 'json' ? false : true"
     },
     {
       "key": "options.header",
-      "type": "checkbox",
-      "defaultValue": false,
+      "type": "select",
+      "defaultValue": "false",
       "templateOptions": {
         "label": "Skip Header?",
-        "placeholder": "",
-        "focus": false,
-        "disabled": false,
-        "hideFieldUnderline": true,
-        "indeterminate": true,
-        "floatLabel": "always",
-        "hideLabel": true,
-        "align": "start",
-        "color": "accent"
+        "options": [
+          {
+            "value": "true",
+            "name": "True"
+          },
+          {
+            "value": "false",
+            "name": "False"
+          }
+        ],
+        "valueProp": "value",
+        "labelProp": "name"
       },
       "hideExpression": "model.format === 'csv' ? false : true"
     },
@@ -125,37 +131,43 @@
     },
     {
       "key": "options.primitivesAsString",
-      "type": "checkbox",
-      "defaultValue": false,
+      "type": "select",
+      "defaultValue": "false",
       "templateOptions": {
         "label": "Primitive As String?",
-        "placeholder": "",
-        "focus": false,
-        "disabled": false,
-        "hideFieldUnderline": true,
-        "indeterminate": true,
-        "floatLabel": "always",
-        "hideLabel": true,
-        "align": "start",
-        "color": "accent"
+        "options": [
+          {
+            "value": "true",
+            "name": "True"
+          },
+          {
+            "value": "false",
+            "name": "False"
+          }
+        ],
+        "valueProp": "value",
+        "labelProp": "name"
       },
       "hideExpression": "model.format === 'json' ? false : true"
     },
     {
       "key": "options.inferSchema",
-      "type": "checkbox",
-      "defaultValue": false,
+      "type": "select",
+      "defaultValue": "false",
       "templateOptions": {
         "label": "Infer Schema?",
-        "placeholder": "",
-        "focus": false,
-        "disabled": false,
-        "hideFieldUnderline": true,
-        "indeterminate": true,
-        "floatLabel": "always",
-        "hideLabel": true,
-        "align": "start",
-        "color": "accent"
+        "options": [
+          {
+            "value": "true",
+            "name": "True"
+          },
+          {
+            "value": "false",
+            "name": "False"
+          }
+        ],
+        "valueProp": "value",
+        "labelProp": "name"
       },
       "hideExpression": "model.format === 'csv' ? false : true"
     },

@@ -148,19 +148,22 @@
     },
     {
       "key": "options.escapeQuotes",
-      "type": "checkbox",
-      "defaultValue": false,
+      "type": "select",
+      "defaultValue": "false",
       "templateOptions": {
         "label": "Escape Quotes?",
-        "placeholder": "",
-        "focus": false,
-        "disabled": false,
-        "hideFieldUnderline": true,
-        "indeterminate": true,
-        "floatLabel": "always",
-        "hideLabel": true,
-        "align": "start",
-        "color": "accent"
+        "options": [
+          {
+            "value": "true",
+            "name": "True"
+          },
+          {
+            "value": "false",
+            "name": "False"
+          }
+        ],
+        "valueProp": "value",
+        "labelProp": "name"
       },
       "hideExpression": "model.format === 'csv' ? false : true"
     },
