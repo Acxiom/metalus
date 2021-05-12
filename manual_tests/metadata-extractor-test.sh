@@ -38,6 +38,8 @@ jarFiles+=","
 jarFiles+=`ls $dir/metalus-kafka/target/metalus-kafka*.jar | grep -v javadoc`
 jarFiles+=","
 jarFiles+=`ls $dir/metalus-mongo/target/metalus-mongo*.jar | grep -v javadoc`
+jarFiles+=","
+jarFiles+=`ls $dir/metalus-delta/target/metalus-delta*.jar | grep -v javadoc`
 
 # Run the command to get the data
 mkdir $tmpDir/staging
@@ -72,6 +74,8 @@ checkResults "metalus-kafka" "pipelines"
 checkResults "metalus-kafka" "steps"
 checkResults "metalus-mongo" "pipelines"
 checkResults "metalus-mongo" "steps"
+checkResults "metalus-delta" "pipelines"
+checkResults "metalus-delta" "steps"
 
 # Copy the templates to another directory if required
 if [[ -n ${1} && ${1} = true ]]

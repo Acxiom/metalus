@@ -12,19 +12,19 @@
       "type": "Pipeline",
       "params": [
         {
-          "type": "string",
+          "type": "text",
           "name": "inputDataFrame",
           "required": true,
           "value": "!dataFrame"
         },
         {
-          "type": "string",
+          "type": "text",
           "name": "destinationSchema",
           "required": true,
           "value": "!destinationSchema"
         },
         {
-          "type": "string",
+          "type": "text",
           "name": "transforms",
           "required": false,
           "value": "!destinationTransforms"

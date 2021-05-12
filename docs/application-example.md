@@ -293,7 +293,7 @@ Create the step json:
 		"value": "!input_separator"
 	  },
 	  {
-		"type": "string",
+		"type": "text",
 		"name": "schema",
 		"required": true,
 		"value": "@CREATESCHEMASTEP"

@@ -61,7 +61,7 @@
     * [Metalus Mongo](../metalus-mongo/readme.md)
         * Steps
             * [Mongo Steps](../metalus-mongo/docs/mongosteps.md)
-    * [Metalus Delta](../metalus-delta/docs/readme.md)
+    * [Metalus Delta Lake](../metalus-delta/docs/readme.md)
         * Steps
             * [Delta Lake Steps](../metalus-delta/docs/deltalakesteps.md)
     * [Creating your own step library (Step Templates)](step-templates.md)

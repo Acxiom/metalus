@@ -12,6 +12,8 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 
+import scala.util.Random
+
 class DeltaLakeStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
   val MASTER = "local[2]"
@@ -51,6 +53,8 @@ class DeltaLakeStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenT
       .set("spark.local.dir", sparkLocalDir.toFile.getAbsolutePath)
       // Force Spark to use the HDFS cluster
       .set("spark.hadoop.fs.defaultFS", miniCluster.getFileSystem().getUri.toString)
+      .set("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
+      .set("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
     // Create the session
     sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
 
@@ -220,7 +224,9 @@ class DeltaLakeStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenT
   }
 
   private def initTable(): String = {
-    val path = s"${miniCluster.getURI}/data/chickens.delta"
+    val characters = 9
+    val rand = Random.alphanumeric.take(characters).mkString
+    val path = s"${miniCluster.getURI}/data/$rand/chickens.delta"
     val spark = sparkSession
     import spark.implicits._
     data.toDF("id", "name", "breed").write

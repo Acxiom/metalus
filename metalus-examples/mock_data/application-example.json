@@ -144,7 +144,7 @@
           "type": "Pipeline",
           "params": [
             {
-              "type": "string",
+              "type": "text",
               "name": "dataFrame",
               "required": true,
               "value": "@FORKSTEP._2"
