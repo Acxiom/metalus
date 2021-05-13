@@ -133,7 +133,7 @@ object ReflectionUtils {
       val value = getField(entity, fieldName, applyMethod.getOrElse(false))
       if (extractFromOption) {
         value match {
-          case option: Option[_] if option.isDefined => option.get
+          case Some(v) => v
           case _ => value
         }
       } else {
@@ -145,13 +145,9 @@ object ReflectionUtils {
   @tailrec
   private def getField(entity: Any, fieldName: String, applyMethod: Boolean): Any = {
     val obj = entity match {
-      case option: Option[_] if option.isDefined =>
-        option.get
-      case _ => if (!entity.isInstanceOf[Option[_]]) {
-        entity
-      } else {
-        ""
-      }
+      case Some(v) => v
+      case None => ""
+      case _ => entity
     }
     val embedded = fieldName.contains(".")
     val name = if (embedded) {
@@ -165,10 +161,34 @@ object ReflectionUtils {
       case _ => getMemberValue(obj, name, applyMethod)
     }
 
-    if (value != None && embedded) {
-      getField(value, fieldName.substring(fieldName.indexOf(".") + 1), applyMethod)
+    val finalValue = if (value == None && name.contains("[") && name.endsWith("]")) {
+      extractArray(obj, name, applyMethod)
     } else {
       value
+    }
+
+    if (finalValue != None && embedded) {
+      getField(finalValue, fieldName.substring(fieldName.indexOf(".") + 1), applyMethod)
+    } else {
+      finalValue
+    }
+  }
+
+  private def extractArray(obj: Any, name: String, applyMethod: Boolean): Any = {
+    val start = name.lastIndexOf('[')
+    val arrayName = name.substring(0, start)
+    val index = name.substring(start + 1, name.length - 1)
+    if (index.forall(Character.isDigit)) {
+      val i = index.toInt
+      val array = extractField(obj, arrayName, extractFromOption = true, Some(applyMethod))
+      array match {
+        case s: String if i < s.length => s(i)
+        case s: Seq[_] if i < s.length => s(i)
+        case a: Array[_] if i < a.length => a(i)
+        case _ => None
+      }
+    } else {
+      None
     }
   }
 

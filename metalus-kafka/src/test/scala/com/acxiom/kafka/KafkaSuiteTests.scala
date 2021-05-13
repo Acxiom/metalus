@@ -361,10 +361,10 @@ object SparkTestHelper {
   var pipelineListener: PipelineListener = _
 
   val MESSAGE_PROCESSING_STEP: PipelineStep = PipelineStep(Some("PROCESS_KAFKA_DATA"), Some("Parses Kafka data"), None, Some("Pipeline"),
-    Some(List(Parameter(Some("string"), Some("dataFrame"), Some(true), None, Some("!initialDataFrame")))),
+    Some(List(Parameter(Some("text"), Some("dataFrame"), Some(true), None, Some("!initialDataFrame")))),
     Some(EngineMeta(Some("MockTestSteps.processIncomingData"))), None)
   val COMPLEX_MESSAGE_PROCESSING_STEP: PipelineStep = PipelineStep(Some("PROCESS_KAFKA_DATA"), Some("Parses Kafka data"), None, Some("Pipeline"),
-    Some(List(Parameter(Some("string"), Some("dataFrame"), Some(true), None, Some("!initialDataFrame")))),
+    Some(List(Parameter(Some("text"), Some("dataFrame"), Some(true), None, Some("!initialDataFrame")))),
     Some(EngineMeta(Some("MockTestSteps.processIncomingMessage"))), None)
   val ERROR_STEP: PipelineStep = PipelineStep(Some("THROW_ERROR"), Some("Throws an error"), None, Some("Pipeline"),
     Some(List()), Some(EngineMeta(Some("MockTestSteps.throwError"))), None)

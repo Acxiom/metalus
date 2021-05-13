@@ -299,6 +299,20 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
        Some(MockParent(MockObject("string", FIVE, Some("string")))),
         "mock.opt", extractFromOption = false).asInstanceOf[Option[String]].getOrElse("bad") == "string")
     }
+
+    it("Should access array elements") {
+      val list = List(1,2,3)
+      val array = List(MockObject("moo", 1), MockObject("moo2", 2)).toArray
+      val obj = Map("list" -> list, "array" -> array, "string" -> "moo")
+      val listRes = ReflectionUtils.extractField(obj, "list[1]")
+      assert(listRes == 2)
+      val arrayRes = ReflectionUtils.extractField(obj, "array[0].string")
+      assert(arrayRes == "moo")
+      val stringRes = ReflectionUtils.extractField(obj, "string[1]")
+      assert(stringRes == 'o')
+      val badRes = ReflectionUtils.extractField(obj, "array[3].string")
+      assert(badRes == None)
+    }
   }
 }
 

@@ -6,7 +6,7 @@ import org.json4s.Formats
 import org.json4s.native.Serialization
 
 import scala.annotation.tailrec
-import scala.math.ScalaNumericConversions
+import scala.math.{ScalaNumericAnyConversions, ScalaNumericConversions}
 
 object PipelineStepMapper {
   def apply(): PipelineStepMapper = new DefaultPipelineStepMapper
@@ -109,13 +109,33 @@ trait PipelineStepMapper {
   def castToType(value: Any, parameter: Parameter): Any = {
     (value, parameter.`type`.getOrElse("").toLowerCase) match {
       case (_, "text") => value
-      case (r: ScalaNumericConversions, t) => castNumeric(r, t)
+      case (v, "string") => v.toString
+      case (bi: BigInt, "bigint") => bi
+      case (bd: BigDecimal, "bigdecimal") => bd
+      case (r: ScalaNumericAnyConversions, t) => castNumeric(r, t)
+      case (n: Number, t) => castNumeric(n, t)
+      case (c: Char, t) => castNumeric(new scala.runtime.RichChar(c), t)
       case (s: String, t) => castString(s, t)
       case _ => value
     }
   }
 
-  private def castNumeric(number: ScalaNumericConversions, targetType: String): Any = targetType match {
+  private def castNumeric(number: Number, targetType: String): Any = targetType match {
+    case "integer" | "int" => number.intValue()
+    case "long" => number.longValue()
+    case "float" => number.floatValue()
+    case "double" => number.doubleValue()
+    case "byte" => number.byteValue()
+    case "short" => number.shortValue()
+    case "character" | "char" => number.byteValue().toChar
+    case "boolean" => number.longValue() != 0L
+    case "bigint" => BigInt(number.longValue())
+    case "bigdecimal" => BigDecimal(number.doubleValue())
+    case "string" => number.toString
+    case _ => number
+  }
+
+  private def castNumeric(number: ScalaNumericAnyConversions, targetType: String): Any = targetType match {
     case "integer" | "int" => number.toInt
     case "long" => number.toLong
     case "float" => number.toFloat

@@ -67,6 +67,7 @@
         <module>metalus-kafka</module>
         <module>metalus-mongo</module>
         <module>metalus-utils</module>
+        <module>metalus-delta</module>
     </modules>
 
     <dependencies>
@@ -355,6 +356,7 @@
                 <jackson.core.version>2.9.7</jackson.core.version>
                 <aws-sdk-version>1.11.595</aws-sdk-version>
                 <hadoop-aws-version>2.7.7</hadoop-aws-version>
+                <delta-lake-version>0.6.1</delta-lake-version>
             </properties>
         </profile>
         <profile>
@@ -370,6 +372,7 @@
                 <kinesis.client.version>1.12.0</kinesis.client.version>
                 <aws-sdk-version>1.11.655</aws-sdk-version>
                 <hadoop-aws-version>2.7.7</hadoop-aws-version>
+                <delta-lake-version>0.8.0</delta-lake-version>
             </properties>
         </profile>
     </profiles>
