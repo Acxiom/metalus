@@ -20,23 +20,32 @@ case class DefaultPipelineListener() extends SparkPipelineListener
 
 trait SparkPipelineListener extends SparkListener with PipelineListener {
   private var currentExecutionInfo: Option[PipelineExecutionInfo] = None
-  private val applicationStats: ApplicationStats = ApplicationStats(mutable.ListBuffer())
+  private val applicationStats: ApplicationStats = ApplicationStats(mutable.Map())
+
+  private val logger = Logger.getLogger(getClass)
 
   override def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+    applicationStats.reset()
     None
   }
 
   override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-    pipelineContext.setRootAuditMetric("sparkMetrics", "jobs", this.applicationStats.getSummary())
-    super.executionFinished(pipelines, pipelineContext)
-    applicationStats.reset()
-    None
+    val newContext = if (this.applicationStats.isActive) {
+      pipelineContext.setRootAuditMetric(Constants.SPARK_METRICS, this.applicationStats.getSummary)
+    } else {
+      pipelineContext
+    }
+    super.executionFinished(pipelines, newContext)
+    Some(newContext)
   }
 
   override def executionStopped(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
-    pipelineContext.setRootAuditMetric("sparkMetrics", "jobs", this.applicationStats.getSummary())
-    super.executionStopped(pipelines, pipelineContext)
-    applicationStats.reset()
+    val newContext = if (this.applicationStats.isActive) {
+      pipelineContext.setRootAuditMetric(Constants.SPARK_METRICS, this.applicationStats.getSummary)
+    } else {
+      pipelineContext
+    }
+    super.executionStopped(pipelines, newContext)
   }
 
   override def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
@@ -45,7 +54,6 @@ trait SparkPipelineListener extends SparkListener with PipelineListener {
   }
 
   override def pipelineFinished(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
-    pipelineContext.setPipelineAuditMetric("sparkMetrics", "jobs", this.applicationStats.getSummary())
     super.pipelineFinished(pipeline, pipelineContext)
     None
   }
@@ -58,9 +66,6 @@ trait SparkPipelineListener extends SparkListener with PipelineListener {
 
   override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
     val execInfo = pipelineContext.getPipelineExecutionInfo
-    pipelineContext.setStepMetric(
-      execInfo.pipelineId.getOrElse(""), execInfo.stepId.getOrElse(""), execInfo.groupId, "jobs", this.applicationStats.getSummary()
-    )
     super.pipelineStepFinished(pipeline, step, pipelineContext)
     None
   }

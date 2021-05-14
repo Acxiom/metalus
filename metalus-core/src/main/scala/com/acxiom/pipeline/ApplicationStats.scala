@@ -1,43 +1,56 @@
 package com.acxiom.pipeline
 
-import scala.collection.mutable.ListBuffer
 import org.apache.spark.scheduler._
 import org.apache.log4j.Logger
 
-case class ApplicationStats(jobs: ListBuffer[JobDetails]) {
+import scala.collection.mutable
+
+case class ApplicationStats(jobs: mutable.Map[Int, JobDetails]) {
   private val logger = Logger.getLogger(getClass)
-  private var currentJob:Option[JobDetails] = None
 
   def startJob(jobStart: SparkListenerJobStart, executionInfo: PipelineExecutionInfo): Unit = {
-    currentJob = Some(JobDetails(jobStart.jobId, jobStart.time, None, None, executionInfo.pipelineId, executionInfo.stepId, ListBuffer()))
+    val stageInfoMap = mutable.Map[Int, StageInfo]()
+    jobStart.stageInfos.foreach(i => stageInfoMap(i.stageId) = i)
+    this.jobs(jobStart.jobId) = JobDetails(
+      jobStart.jobId, jobStart.time, None, None, executionInfo.pipelineId, executionInfo.stepId, stageInfoMap
+    )
   }
 
   def endJob(jobEnd: SparkListenerJobEnd): Unit = {
+    val currentJob = this.jobs.get(jobEnd.jobId)
     if(currentJob.isDefined) {
-      this.jobs += currentJob.get.copy(end = Some(jobEnd.time), status = Some(jobEnd.jobResult.toString))
+      this.jobs(jobEnd.jobId) = currentJob.get.copy(end = Some(jobEnd.time), status = Some(jobEnd.jobResult.toString))
     } else {
-      logger.warn(s"jobEnd signal received but current job stat was empty")
+      logger.warn(s"jobEnd signal received with no tracked jobs")
     }
-    currentJob = None
   }
 
   def endStage(stageEnd: SparkListenerStageCompleted): Unit = {
-    currentJob.get.stages += stageEnd.stageInfo
+    this.jobs.foreach(j => {
+      j._2.stages.foreach(s => {
+        if(s._1 == stageEnd.stageInfo.stageId) {
+          j._2.stages(stageEnd.stageInfo.stageId) = stageEnd.stageInfo
+        }
+      })
+    })
   }
 
   def reset(): Unit = {
     jobs.clear()
   }
 
-  def getSummary(): List[Map[String, Any]] = {
-    this.jobs.map(j => {
-      val stageStats = j.stages.map(s => {
-        this.stageStatsToMap(s)
+  def isActive: Boolean = jobs.nonEmpty
+
+  def getSummary: List[Map[String, Any]] = {
+    val results = this.jobs.map(j => {
+      val stageStats = j._2.stages.map(s => {
+        this.stageStatsToMap(s._2)
       })
 
-      Map("jobId" -> j.jobId, "pipelineId" -> j.pipelineId, "stepId" -> j.stepId, "status" -> j.status,
-        "startTime" -> j.start, "endTime" -> j.end, "stages" -> stageStats.toList)
+      Map("jobId" -> j._1, "pipelineId" -> j._2.pipelineId, "stepId" -> j._2.stepId, "status" -> j._2.status,
+        "startTime" -> j._2.start, "endTime" -> j._2.end, "stages" -> stageStats.toList)
     }).toList
+    results
   }
 
   private def stageStatsToMap(stage: StageInfo): Map[String, Any] = {
@@ -64,6 +77,6 @@ case class ExecutorDetails(executorId: String, active: Boolean, start: Long, hos
                            end: Option[Long], removedReason: Option[String], updates: Option[Map[Long, Any]])
 
 case class JobDetails(jobId: Int, start: Long, end: Option[Long], status: Option[String], pipelineId: Option[String],
-                      stepId: Option[String], stages: ListBuffer[StageInfo])
+                      stepId: Option[String], stages: mutable.Map[Int, StageInfo])
 
 

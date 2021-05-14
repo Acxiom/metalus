@@ -213,12 +213,11 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
   /**
     * Add or replace a metric value on the root audit
     *
-    * @param id The id of the pipeline
     * @param name The name of the metric to add or replace
     * @param value The value of the metric entry
     * @return An updated pipeline context with the metric
     */
-  def setRootAuditMetric(id: String, name: String, value: Any): PipelineContext = {
+  def setRootAuditMetric(name: String, value: Any): PipelineContext = {
     val audit = this.rootAudit.setMetric(name, value)
     this.copy(rootAudit = audit)
   }
