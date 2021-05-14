@@ -309,6 +309,12 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       assert(!res.columns.contains("drop_me"))
     }
 
+    it("should rename a column") {
+      val res = TransformationSteps.renameColumn(sparkSession.sql("select 1 as id, 2 as old_name"), "old_name", "new_name")
+      assert(!res.columns.contains("old_name"))
+      assert(res.columns.contains("new_name"))
+    }
+
     it("should perform a join") {
       val spark = sparkSession
       import spark.implicits._
@@ -438,6 +444,39 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       And("expect the filter to be applied to the output dataframe")
       assert(newDF.count == 2)
       assert(newDF.where("id <= 0").count == 0)
+    }
+
+    it("should count the records in a dataframe") {
+      Given("a dataframe")
+      val df = sparkSession.createDataFrame(Seq(
+        (1, "buster", "dawg", 29483),
+        (2, "rascal", "dawg", 29483),
+        (0, "sophie", "dawg", 29483)
+      )).toDF(
+        "id", "first_name", "1ast_name", "zip"
+      )
+      assert(df.count == 3)
+      val count = DataSteps.getDataFrameCount(df)
+      And("expect the count to match")
+      assert(count == 3)
+    }
+
+    it("should drop duplicate records in a dataframe") {
+      Given("a dataframe with duplicate records")
+      val df = sparkSession.createDataFrame(Seq(
+        (1, "buster", "dawg", 29483),
+        (2, "rascal", "dawg", 29483),
+        (2, "rascal-1", "dawg", 12345),
+        (2, "rascal-2", "dawg", 89099),
+        (0, "sophie", "dawg", 29483)
+      )).toDF(
+        "id", "first_name", "1ast_name", "zip"
+      )
+      assert(df.count == 5)
+      val dedupedDf = DataSteps.dropDuplicateRecords(df, List("id"))
+      And("expect the results to be deduped")
+      assert(dedupedDf.count == 3)
+      assert(dedupedDf.filter("id = 2").count == 1)
     }
 
     it("should add unique ids to each row of a dataframe") {

@@ -150,4 +150,25 @@ object DataSteps {
   def applyFilter[T](dataFrame: Dataset[T], expression: String): Dataset[T] = {
     dataFrame.where(expression)
   }
+
+  @StepFunction("5d0d7c5c-c287-4565-80b2-2b1a847b18c6",
+    "Get DataFrame Count",
+    "Get a count of records in a DataFrame.",
+    "Pipeline",
+    "InputOutput")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to count"))))
+  def getDataFrameCount(dataFrame: Dataset[_]): Long = {
+    dataFrame.count()
+  }
+
+  @StepFunction("252b6086-da45-4042-a9a8-31ebf57948af",
+    "Drop Duplicate Records",
+    "Drop duplicate records from a DataFrame",
+    "Pipeline",
+    "Transforms")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to drop columns from")),
+    "columnNames" -> StepParameter(None, Some(true), None, None, None, None, Some("Columns to use for determining distinct values to drop"))))
+  def dropDuplicateRecords[T](dataFrame: Dataset[T], columnNames: List[String]): Dataset[T] = {
+    dataFrame.dropDuplicates(columnNames)
+  }
 }
