@@ -143,8 +143,7 @@ object DataSteps {
     "fa0fcabb-d000-4a5e-9144-692bca618ddb",
     "Filter a DataFrame",
     "This step will filter a DataFrame based on the where expression provided",
-    "Pipeline",
-    "Data")
+    "Pipeline","Data")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to filter")),
     "expression" -> StepParameter(None, Some(true), None, None, None, None, Some("The expression to apply to the DataFrame to filter rows"))))
   def applyFilter[T](dataFrame: Dataset[T], expression: String): Dataset[T] = {
@@ -154,8 +153,7 @@ object DataSteps {
   @StepFunction("5d0d7c5c-c287-4565-80b2-2b1a847b18c6",
     "Get DataFrame Count",
     "Get a count of records in a DataFrame.",
-    "Pipeline",
-    "InputOutput")
+    "Pipeline", "InputOutput")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to count"))))
   def getDataFrameCount(dataFrame: Dataset[_]): Long = {
     dataFrame.count()
@@ -164,11 +162,21 @@ object DataSteps {
   @StepFunction("252b6086-da45-4042-a9a8-31ebf57948af",
     "Drop Duplicate Records",
     "Drop duplicate records from a DataFrame",
-    "Pipeline",
-    "Transforms")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to drop columns from")),
+    "Pipeline", "Data")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to drop duplicate records from")),
     "columnNames" -> StepParameter(None, Some(true), None, None, None, None, Some("Columns to use for determining distinct values to drop"))))
   def dropDuplicateRecords[T](dataFrame: Dataset[T], columnNames: List[String]): Dataset[T] = {
     dataFrame.dropDuplicates(columnNames)
+  }
+
+  @StepFunction("d5ac88a2-caa2-473c-a9f7-ffb0269880b2",
+    "Rename Column",
+    "Rename a column on a DataFrame",
+    "Pipeline", "Transforms")
+  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to change")),
+    "oldColumnName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the column you want to change")),
+    "newColumnName" -> StepParameter(None, Some(true), None, None, None, None, Some("The new name to give the column"))))
+  def renameColumn(dataFrame: Dataset[_], oldColumnName: String, newColumnName: String): DataFrame = {
+    dataFrame.withColumnRenamed(oldColumnName, newColumnName)
   }
 }

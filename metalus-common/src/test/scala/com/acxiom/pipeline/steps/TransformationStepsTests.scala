@@ -309,12 +309,6 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       assert(!res.columns.contains("drop_me"))
     }
 
-    it("should rename a column") {
-      val res = TransformationSteps.renameColumn(sparkSession.sql("select 1 as id, 2 as old_name"), "old_name", "new_name")
-      assert(!res.columns.contains("old_name"))
-      assert(res.columns.contains("new_name"))
-    }
-
     it("should perform a join") {
       val spark = sparkSession
       import spark.implicits._
@@ -477,6 +471,12 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       And("expect the results to be deduped")
       assert(dedupedDf.count == 3)
       assert(dedupedDf.filter("id = 2").count == 1)
+    }
+
+    it("should rename a column") {
+      val res = DataSteps.renameColumn(sparkSession.sql("select 1 as id, 2 as old_name"), "old_name", "new_name")
+      assert(!res.columns.contains("old_name"))
+      assert(res.columns.contains("new_name"))
     }
 
     it("should add unique ids to each row of a dataframe") {

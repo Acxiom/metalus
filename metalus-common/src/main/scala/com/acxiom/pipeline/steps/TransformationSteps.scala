@@ -224,18 +224,6 @@ object TransformationSteps {
     dataFrame.drop(columnNames: _*)
   }
 
-  @StepFunction("d5ac88a2-caa2-473c-a9f7-ffb0269880b2",
-    "Rename Column",
-    "Rename a column on a DataFrame",
-    "Pipeline",
-    "Transforms")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to rename a column on")),
-    "oldColumnName" -> StepParameter(None, Some(true), None, None, None, None, Some("Column to rename")),
-    "newColumnName" -> StepParameter(None, Some(true), None, None, None, None, Some("New name to assign to the column"))))
-  def renameColumn(dataFrame: Dataset[_], oldColumnName: String, newColumnName: String): DataFrame = {
-    dataFrame.withColumnRenamed(oldColumnName, newColumnName)
-  }
-
   @StepFunction(
     "42c328ac-a6bd-49ca-b597-b706956d294c",
     "Flatten a DataFrame",

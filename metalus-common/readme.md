@@ -8,6 +8,7 @@ using Spark.
 * [ApiSteps](docs/apisteps.md)
 * [CSVSteps](docs/csvsteps.md)
 * [DataFrameSteps](docs/dataframesteps.md)
+* [DataSteps](docs/datasteps.md)
 * [FileManagerSteps](docs/filemanagersteps.md)
 * [HDFSSteps](docs/hdfssteps.md)
 * [HiveSteps](docs/catalogsteps.md)

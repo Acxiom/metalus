@@ -71,3 +71,30 @@ This step will add a static value to every row of an existing DataFrame
 |columnName|String|the name for the new attribute| n/a |
 |columnValue|Any|the string value to set for the new attribute on each row| n/a |
 |standardizeColumnName|Boolean|flag to control whether the column name should be standardized|true|
+
+## getDataFrameCount()
+This step will get a count of the records in a DataFrame
+
+### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|Dataset[_]|the DataFrame to count| n/a |
+
+## dropDuplicateRecords()
+This step will get a count of the records in a DataFrame
+
+### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|Dataset[_]|the DataFrame to drop duplicate records from| n/a |
+|columnNames|String|column names to use for determining distinct values to drop| n/a |
+
+## renameColumn()
+This step will rename a column in a DataFrame
+
+### Input Parameters
+| Name | Type | Description | Default |
+| --- |:---|:--- |:---:|
+|dataFrame|Dataset[_]|the DataFrame to change| n/a |
+|oldColumnName|String|the name of the column you want to change| n/a |
+|newColumnName|String|the new name to give the column| n/a |
