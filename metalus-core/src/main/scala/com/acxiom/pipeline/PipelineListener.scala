@@ -64,8 +64,9 @@ trait SparkPipelineListener extends SparkListener with PipelineListener {
 
   override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
     val newContext = if (pipeline.id.isDefined && step.id.isDefined) {
+      val groupId = pipelineContext.getPipelineExecutionInfo.groupId
       pipelineContext.setStepMetric(
-        pipeline.id.get, step.id.get, None, Constants.SPARK_METRICS, this.applicationStats.getSummary(pipeline.id, step.id)
+        pipeline.id.get, step.id.get, groupId, Constants.SPARK_METRICS, this.applicationStats.getSummary(pipeline.id, step.id, groupId)
       )
     } else {
       pipelineContext
