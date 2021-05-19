@@ -45,7 +45,7 @@ case class StepGroupFlow(pipeline: Pipeline,
     val stepAudit = ExecutionAudit(firstStep.id.getOrElse(""), AuditType.STEP, Map[String, Any](),
       System.currentTimeMillis(), groupId = Some(s"$pipelineId::$stepId"))
     val pipelineAudit = ExecutionAudit(subPipeline.id.getOrElse(""), AuditType.PIPELINE, Map[String, Any](),
-      System.currentTimeMillis(), None, None, Some(List(stepAudit)))
+      System.currentTimeMillis(), None, None, None, Some(List(stepAudit)))
     // Inject the mappings into the globals object of the PipelineContext
     val ctx = (if (parameterValues.getOrElse("useParentGlobals", false).asInstanceOf[Boolean]) {
       pipelineContext.copy(globals =

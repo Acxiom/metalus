@@ -6,14 +6,99 @@ import org.apache.log4j.Logger
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.{JsonParser, Serialization}
 import org.json4s.{DefaultFormats, Formats}
-
 import java.util.Date
+
+import org.apache.spark.scheduler._
+
+import scala.collection.mutable
 
 object PipelineListener {
   def apply(): PipelineListener = DefaultPipelineListener()
 }
 
-case class DefaultPipelineListener() extends PipelineListener {}
+case class DefaultPipelineListener() extends SparkPipelineListener
+
+trait SparkPipelineListener extends SparkListener with PipelineListener {
+  private var currentExecutionInfo: Option[PipelineExecutionInfo] = None
+  private val applicationStats: ApplicationStats = ApplicationStats(mutable.Map())
+  private val sparkSettingToReport: List[String] = List(
+    "spark.kryoserializer.buffer.max", "spark.driver.memory", "spark.executor.memory", "spark.sql.shuffle.partitions",
+    "spark.driver.cores", "spark.executor.cores", "spark.default.parallelism", "spark.driver.memoryOverhead",
+    "spark.executor.memoryOverhead"
+  )
+
+
+  override def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+    val defaultContext = pipelineContext.setRootAuditMetric(Constants.SPARK_SETTINGS, this.getSparkSettingsForAudit(pipelineContext))
+    val finalContext = if (pipelineContext.getGlobalAs[Boolean]("includeAllSparkSettingsInAudit").contains(true)) {
+      defaultContext.setRootAuditMetric("test-sparkContext", pipelineContext.sparkSession.get.sparkContext.getConf.getAll)
+    } else { defaultContext }
+
+    applicationStats.reset()
+    Some(finalContext)
+  }
+
+  override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+    super.executionFinished(pipelines, pipelineContext)
+  }
+
+  override def executionStopped(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
+    super.executionStopped(pipelines, pipelineContext)
+  }
+
+  override def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+    this.currentExecutionInfo = Some(pipelineContext.getPipelineExecutionInfo)
+    None
+  }
+
+  override def pipelineFinished(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+    super.pipelineFinished(pipeline, pipelineContext)
+    None
+  }
+
+  override def pipelineStepStarted(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
+    this.currentExecutionInfo = Some(pipelineContext.getPipelineExecutionInfo)
+    super.pipelineStepStarted(pipeline, step, pipelineContext)
+    None
+  }
+
+  override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
+    val newContext = if (pipeline.id.isDefined && step.id.isDefined) {
+      pipelineContext.setStepMetric(
+        pipeline.id.get, step.id.get, None, Constants.SPARK_METRICS, this.applicationStats.getSummary(pipeline.id, step.id)
+      )
+    } else {
+      pipelineContext
+    }
+    super.pipelineStepFinished(pipeline, step, newContext)
+    Some(newContext)
+  }
+
+  override def onJobStart(jobStart: SparkListenerJobStart): scala.Unit = {
+    if (this.currentExecutionInfo.isDefined) {
+      this.applicationStats.startJob(jobStart, this.currentExecutionInfo.get)
+    }
+  }
+
+  override def onJobEnd(jobEnd: SparkListenerJobEnd): scala.Unit = {
+    this.applicationStats.endJob(jobEnd)
+  }
+
+  override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit = {
+    this.applicationStats.endStage(stageCompleted)
+  }
+
+  def getSparkSettingsForAudit(pipelineContext: PipelineContext): Map[String, Any] = {
+    if (pipelineContext.sparkSession.isEmpty) {
+      Map()
+    } else {
+      this.sparkSettingToReport.map(s => {
+        val setting = pipelineContext.sparkSession.get.sparkContext.getConf.getOption(s)
+        s -> setting.getOrElse("")
+      }).toMap
+    }
+  }
+}
 
 trait PipelineListener {
   implicit val formats: Formats = DefaultFormats +
@@ -33,6 +118,7 @@ trait PipelineListener {
 
   def executionStopped(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
     logger.info(s"Stopping execution of pipelines. Completed: ${pipelines.map(p => p.name.getOrElse(p.id.getOrElse(""))).mkString(",")}")
+    logger.info(s"Execution Audit ${Serialization.write(pipelineContext.rootAudit)}")
   }
 
   def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
@@ -60,7 +146,8 @@ trait PipelineListener {
   }
 }
 
-trait EventBasedPipelineListener extends PipelineListener {
+
+trait EventBasedPipelineListener extends SparkPipelineListener {
   def key: String
   def credentialName: String
   def credentialProvider: CredentialProvider
@@ -134,6 +221,8 @@ trait EventBasedPipelineListener extends PipelineListener {
   }
 }
 
+
+case class SessionVariables(executionComplete: Boolean = false, currentPipeline: Option[Pipeline] = None, currentStep: Option[PipelineStep] = None)
 case class EventPipelineRecord(id: String, name: String)
 case class EventPipelineStepRecord(id: String, stepId: String, group: String)
 case class MessageLists(messages: List[String], stacks: List[Array[StackTraceElement]])

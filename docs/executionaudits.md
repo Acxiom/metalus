@@ -46,3 +46,6 @@ functions have been provided to make accessing pipeline and step audits easier.
 ### PipelineListener
 Implementations of the PipelineListener interface will have access to the audits through the *PipelineContext*. The *metrics*
 functions provided allow any data to be stored/retrieved related to an audit.
+
+## Settings
+The entire list of SparkSettings from the SparkContext can be added to the Root Audit by setting the value *includeAllSparkSettingsInAudit* to true at runtime
