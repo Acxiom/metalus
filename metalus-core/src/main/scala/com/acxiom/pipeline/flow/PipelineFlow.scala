@@ -81,7 +81,7 @@ object PipelineFlow {
       .setGlobal("groupId", groupId)
       .setGlobal("stepId", firstStep.id)
       .setStepAudit(pipelineContext.getGlobalString("pipelineId").get,
-        ExecutionAudit(firstStep.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), None, groupId))
+        ExecutionAudit(firstStep.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis(), None, None, groupId))
   }
 }
 
@@ -95,8 +95,12 @@ trait PipelineFlow {
 
   protected val stepLookup: Map[String, PipelineStep] = PipelineExecutorValidations.validateAndCreateStepLookup(pipeline)
   protected val context: PipelineContext = initialContext.setPipelineAudit(
-    ExecutionAudit(pipeline.id.get, AuditType.PIPELINE, Map[String, Any](), System.currentTimeMillis(), None, None, Some(List[ExecutionAudit](
-      ExecutionAudit(pipeline.steps.get.head.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis())))))
+    ExecutionAudit(pipeline.id.get, AuditType.PIPELINE, Map[String, Any](), System.currentTimeMillis(), None, None, None,
+      Some(List[ExecutionAudit](
+        ExecutionAudit(pipeline.steps.get.head.id.get, AuditType.STEP, Map[String, Any](), System.currentTimeMillis()))
+      )
+    )
+  )
 
   def execute(): FlowResult = {
     val updatedCtx = PipelineFlow.handleEvent(context, "pipelineStarted", List(pipeline, context))
@@ -246,7 +250,7 @@ trait PipelineFlow {
         Map[String, Any]()
       }
       pipelineContext.setStepAudit(pipelineId,
-        ExecutionAudit(nextStepId.get, AuditType.STEP, metrics, System.currentTimeMillis(), None, groupId))
+        ExecutionAudit(nextStepId.get, AuditType.STEP, metrics, System.currentTimeMillis(), None, None, groupId))
     } else {
       pipelineContext
     }

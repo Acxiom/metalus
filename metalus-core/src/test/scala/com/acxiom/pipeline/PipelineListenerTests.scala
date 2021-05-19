@@ -144,8 +144,8 @@ class PipelineListenerTests extends FunSpec with BeforeAndAfterAll with Suite {
       val step1Audit = ExecutionAudit("step1", AuditType.STEP, Map[String, Any](), Constants.THREE, Some(Constants.FIVE), None, None)
       val step2Audit = ExecutionAudit("step2", AuditType.STEP, Map[String, Any](), Constants.SIX, Some(Constants.EIGHT), None, None)
       val pipelineAudit = ExecutionAudit("pipeline", AuditType.PIPELINE, Map[String, Any](), Constants.TWO,
-        Some(Constants.NINE), None, Some(List(step1Audit, step2Audit)))
-      val rootAudit = ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), Constants.ONE, Some(Constants.TEN), None, Some(List(pipelineAudit)))
+        Some(Constants.NINE), None, None, Some(List(step1Audit, step2Audit)))
+      val rootAudit = ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), Constants.ONE, Some(Constants.TEN), None, None, Some(List(pipelineAudit)))
       val auditMessage = test.generateAuditMessage("audit-message", rootAudit)
       val auditMap = parse(auditMessage).extract[Map[String, Any]]
       assert(auditMap("key") == "event-test")

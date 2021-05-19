@@ -41,15 +41,27 @@ case class ApplicationStats(jobs: mutable.Map[Int, JobDetails]) {
 
   def isActive: Boolean = jobs.nonEmpty
 
-  def getSummary: List[Map[String, Any]] = {
-    val results = this.jobs.map(j => {
-      val stageStats = j._2.stages.map(s => {
-        this.stageStatsToMap(s._2)
-      })
+  def getSummary(pipelineId: Option[String] = None, stepId: Option[String] = None): List[Map[String, Any]] = {
+    val results = this.jobs.filter(x => {
+      x._2.pipelineId.isDefined && x._2.stepId.isDefined && pipelineId.isDefined && stepId.isDefined &&
+        x._2.pipelineId.get == pipelineId.get && x._2.stepId.get == stepId.get
+    })
+      .map(j => {
+        val stageStats = j._2.stages.map(s => {
+          this.stageStatsToMap(s._2)
+        })
 
-      Map("jobId" -> j._1, "pipelineId" -> j._2.pipelineId, "stepId" -> j._2.stepId, "status" -> j._2.status,
-        "startTime" -> j._2.start, "endTime" -> j._2.end, "stages" -> stageStats.toList)
-    }).toList
+        val duration = if(j._2.end.isDefined) {
+          j._2.end.get - j._2.start
+        } else {
+          ""
+        }
+
+        Map(
+          "jobId" -> j._1, "pipelineId" -> j._2.pipelineId, "stepId" -> j._2.stepId, "status" -> j._2.status,
+          "start" -> j._2.start, "end" -> j._2.end, "durationMs" -> duration, "stages" -> stageStats.toList
+        )
+      }).toList
     results
   }
 
@@ -60,6 +72,9 @@ case class ApplicationStats(jobs: mutable.Map[Int, JobDetails]) {
     val clockTime = if (stage.completionTime.isDefined && stage.submissionTime.isDefined) {
       stage.completionTime.get - stage.submissionTime.get
     } else { -1 }
+    val duration = if(stage.submissionTime.isDefined && stage.completionTime.isDefined) {
+      stage.completionTime.get - stage.submissionTime.get
+    } else { "" }
     Map(
       "stageId" -> stage.stageId, "stageName" -> stage.name, "attemptId" -> stage.attemptId,
       "startTime" -> stage.submissionTime, "endTime" -> stage.completionTime, "clockTime" -> clockTime,
@@ -68,7 +83,8 @@ case class ApplicationStats(jobs: mutable.Map[Int, JobDetails]) {
       "cpuTime" -> task.executorCpuTime, "gcTime" -> task.jvmGCTime,
       "executorRunTime" -> task.executorRunTime, "executorCpuTime" -> task.executorCpuTime,
       "peakExecutorMemory" -> task.peakExecutionMemory, "failureReason" -> stage.failureReason,
-      "tasks" -> stage.numTasks, "parentIds" -> stage.parentIds
+      "tasks" -> stage.numTasks, "parentIds" -> stage.parentIds, "start" -> stage.submissionTime,
+      "end" -> stage.completionTime, "durationMs" -> duration
     )
   }
 }
