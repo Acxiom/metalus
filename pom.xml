@@ -363,7 +363,7 @@
             <id>spark_3.0</id>
             <properties>
                 <spark.compat.version>3.0</spark.compat.version>
-                <spark.version>3.0.1</spark.version>
+                <spark.version>3.0.2</spark.version>
                 <json4s.version>3.6.6</json4s.version>
                 <mongo.version>3.0.0</mongo.version>
                 <scala.compat.version>2.12</scala.compat.version>

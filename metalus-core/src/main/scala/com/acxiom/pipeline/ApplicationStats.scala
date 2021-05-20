@@ -12,7 +12,7 @@ case class ApplicationStats(jobs: mutable.Map[Int, JobDetails]) {
     val stageInfoMap = mutable.Map[Int, StageInfo]()
     jobStart.stageInfos.foreach(i => stageInfoMap(i.stageId) = i)
     this.jobs(jobStart.jobId) = JobDetails(
-      jobStart.jobId, jobStart.time, None, None, executionInfo.pipelineId, executionInfo.stepId, stageInfoMap
+      jobStart.jobId, jobStart.time, None, None, executionInfo.pipelineId, executionInfo.stepId, executionInfo.groupId, stageInfoMap
     )
   }
 
@@ -41,10 +41,10 @@ case class ApplicationStats(jobs: mutable.Map[Int, JobDetails]) {
 
   def isActive: Boolean = jobs.nonEmpty
 
-  def getSummary(pipelineId: Option[String] = None, stepId: Option[String] = None): List[Map[String, Any]] = {
+  def getSummary(pipelineId: Option[String] = None, stepId: Option[String] = None, groupId: Option[String] = None): List[Map[String, Any]] = {
     val results = this.jobs.filter(x => {
       x._2.pipelineId.isDefined && x._2.stepId.isDefined && pipelineId.isDefined && stepId.isDefined &&
-        x._2.pipelineId.get == pipelineId.get && x._2.stepId.get == stepId.get
+        x._2.pipelineId.get == pipelineId.get && x._2.stepId.get == stepId.get && x._2.groupId.getOrElse("") == groupId.getOrElse("")
     })
       .map(j => {
         val stageStats = j._2.stages.map(s => {
@@ -58,7 +58,7 @@ case class ApplicationStats(jobs: mutable.Map[Int, JobDetails]) {
         }
 
         Map(
-          "jobId" -> j._1, "pipelineId" -> j._2.pipelineId, "stepId" -> j._2.stepId, "status" -> j._2.status,
+          "jobId" -> j._1, "pipelineId" -> j._2.pipelineId, "stepId" -> j._2.stepId, "groupId" -> j._2.groupId, "status" -> j._2.status,
           "start" -> j._2.start, "end" -> j._2.end, "durationMs" -> duration, "stages" -> stageStats.toList
         )
       }).toList
@@ -76,7 +76,7 @@ case class ApplicationStats(jobs: mutable.Map[Int, JobDetails]) {
       stage.completionTime.get - stage.submissionTime.get
     } else { "" }
     Map(
-      "stageId" -> stage.stageId, "stageName" -> stage.name, "attemptId" -> stage.attemptId,
+      "stageId" -> stage.stageId, "stageName" -> stage.name, "attemptNumber" -> stage.attemptNumber,
       "startTime" -> stage.submissionTime, "endTime" -> stage.completionTime, "clockTime" -> clockTime,
       "bytesRead" -> in.bytesRead, "recordsRead" -> in.recordsRead,
       "bytesWritten" -> out.bytesWritten, "recordsWritten" -> out.recordsWritten,
@@ -93,6 +93,6 @@ case class ExecutorDetails(executorId: String, active: Boolean, start: Long, hos
                            end: Option[Long], removedReason: Option[String], updates: Option[Map[Long, Any]])
 
 case class JobDetails(jobId: Int, start: Long, end: Option[Long], status: Option[String], pipelineId: Option[String],
-                      stepId: Option[String], stages: mutable.Map[Int, StageInfo])
+                      stepId: Option[String], groupId: Option[String], stages: mutable.Map[Int, StageInfo])
 
 
