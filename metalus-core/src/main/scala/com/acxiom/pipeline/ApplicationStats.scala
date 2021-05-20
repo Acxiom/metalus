@@ -76,7 +76,7 @@ case class ApplicationStats(jobs: mutable.Map[Int, JobDetails]) {
       stage.completionTime.get - stage.submissionTime.get
     } else { "" }
     Map(
-      "stageId" -> stage.stageId, "stageName" -> stage.name, "attemptId" -> stage.attemptId,
+      "stageId" -> stage.stageId, "stageName" -> stage.name, "attemptNumber" -> stage.attemptNumber,
       "startTime" -> stage.submissionTime, "endTime" -> stage.completionTime, "clockTime" -> clockTime,
       "bytesRead" -> in.bytesRead, "recordsRead" -> in.recordsRead,
       "bytesWritten" -> out.bytesWritten, "recordsWritten" -> out.recordsWritten,
