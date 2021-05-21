@@ -1,38 +1,23 @@
 package com.acxiom.kafka.steps
 
-import java.util.Properties
-
+import com.acxiom.kafka.utils.KafkaUtilities
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Column, DataFrame}
 
 @StepObject
 object KafkaSteps {
-  private val kafkaProducerProperties = new Properties()
-  kafkaProducerProperties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-  kafkaProducerProperties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-  kafkaProducerProperties.put("acks", "all")
-  kafkaProducerProperties.put("retries", "0")
-  kafkaProducerProperties.put("batch.size", "16384")
-  kafkaProducerProperties.put("linger.ms", "1")
-  kafkaProducerProperties.put("buffer.memory", "33554432")
-
-  private val topicDescription: Some[String] = Some("The Kafka topic")
-  private val nodesDescription: Some[String] = Some("The comma separated Kafka nodes")
-  private val clientIdDescription: Some[String] = Some("The optional Kafka clientId")
-
   @StepFunction("abd6cf0f-f328-41a2-a84b-044e76928017",
     "Write DataFrame to a Kafka Topic Using Key Field",
     "This step will write a DataFrame to a Kafka Topic using the value in the keyField for each row as the key",
     "Pipeline",
     "Kafka")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to post to the Kakfa topic")),
-    "topic" -> StepParameter(None, Some(true), None, None, None, None, topicDescription),
-    "kafkaNodes" -> StepParameter(None, Some(true), None, None, None, None, nodesDescription),
+    "topic" -> StepParameter(None, Some(true), None, None, None, None, Some("The Kafka topic")),
+    "kafkaNodes" -> StepParameter(None, Some(true), None, None, None, None, Some("The comma separated Kafka nodes")),
     "keyField" -> StepParameter(None, Some(true), None, None, None, None, Some("The column name to use to get the key value")),
-    "separator" -> StepParameter(None, Some(true), None, None, None, None, Some("The separator character to use when combining the column data")),
-    "clientId" -> StepParameter(None, Some(true), None, None, None, None, clientIdDescription)))
+    "separator" -> StepParameter(None, Some(false), None, None, None, None, Some("The separator character to use when combining the column data")),
+    "clientId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional Kafka clientId"))))
   def writeToStreamByKeyField(dataFrame: DataFrame,
                               topic: String,
                               kafkaNodes: String,
@@ -53,11 +38,11 @@ object KafkaSteps {
     "Pipeline",
     "Kafka")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to post to the Kakfa topic")),
-    "topic" -> StepParameter(None, Some(true), None, None, None, None, topicDescription),
-    "kafkaNodes" -> StepParameter(None, Some(true), None, None, None, None, nodesDescription),
+    "topic" -> StepParameter(None, Some(true), None, None, None, None, Some("The Kafka topic")),
+    "kafkaNodes" -> StepParameter(None, Some(true), None, None, None, None, Some("The comma separated Kafka nodes")),
     "key" -> StepParameter(None, Some(true), None, None, None, None, Some("The key value")),
-    "separator" -> StepParameter(None, Some(true), None, None, None, None, Some("The separator character to use when combining the column data")),
-    "clientId" -> StepParameter(None, Some(true), None, None, None, None, clientIdDescription)))
+    "separator" -> StepParameter(None, Some(false), None, None, None, None, Some("The separator character to use when combining the column data")),
+    "clientId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional Kafka clientId"))))
   def writeToStreamByKey(dataFrame: DataFrame,
                          topic: String,
                          kafkaNodes: String,
@@ -73,25 +58,15 @@ object KafkaSteps {
     "Pipeline",
     "Kafka")
   @StepParameters(Map("message" -> StepParameter(None, Some(true), None, None, None, None, Some("The message to post to the Kakfa topic")),
-    "topic" -> StepParameter(None, Some(true), None, None, None, None, topicDescription),
-    "kafkaNodes" -> StepParameter(None, Some(true), None, None, None, None, nodesDescription),
+    "topic" -> StepParameter(None, Some(true), None, None, None, None, Some("The Kafka topic")),
+    "kafkaNodes" -> StepParameter(None, Some(true), None, None, None, None, Some("The comma separated Kafka nodes")),
     "key" -> StepParameter(None, Some(true), None, None, None, None, Some("The key value")),
-    "clientId" -> StepParameter(None, Some(true), None, None, None, None, clientIdDescription)))
+    "clientId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional Kafka clientId"))))
   def postMessage(message: String,
                   topic: String,
                   kafkaNodes: String,
                   key: String,
-                  clientId: String = "metalus_default_kafka_producer_client"): Unit = {
-
-    kafkaProducerProperties.put("bootstrap.servers", kafkaNodes)
-    kafkaProducerProperties.put("client.id", clientId)
-
-    val record = new ProducerRecord[String, String](topic, key, message)
-    val producer = new KafkaProducer[String, String](kafkaProducerProperties)
-    producer.send(record)
-    producer.flush()
-    producer.close()
-  }
+                  clientId: String = "metalus_default_kafka_producer_client"): Unit = KafkaUtilities.postMessage(message, topic, kafkaNodes, key, clientId)
 
   /**
     * Publish DataFrame data to a Kafka topic.

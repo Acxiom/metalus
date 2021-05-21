@@ -102,7 +102,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 
     it("Should execute a simple dependency graph of two pipeline chains") {
       val results = new ListenerValidations
-      val listener = new PipelineListener {
+      val listener = new SparkPipelineListener {
         override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
           val pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
           pipelineId match {
@@ -122,7 +122,8 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
         }
       }
       val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/parent-child.json")).mkString)
-      PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
+      val execResults = PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
+      val rootAudit = execResults.get.head._2.result.get.pipelineContext.rootAudit
       results.validate()
     }
 

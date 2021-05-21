@@ -293,7 +293,7 @@ Create the step json:
 		"value": "!input_separator"
 	  },
 	  {
-		"type": "string",
+		"type": "text",
 		"name": "schema",
 		"required": true,
 		"value": "@CREATESCHEMASTEP"
@@ -1062,21 +1062,6 @@ The application commands below provide the proper templates to run the example:
 * _<jar_path>_ - The fully qualified path to the built jars
 * _<data_location>_ - The fully qualified path to the example data
 
-### Spark 2.3/Scala 2.11
-```bash
-spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
---master spark://localhost:7077 \
---deploy-mode client \
---jars metalus-common_2.11-spark_2.3-<VERSION>.jar,metalus-examples_2.11-spark_2.3-<VERSION>.jar,metalus-mongo_2.11-spark_2.3-<VERSION>.jar,mongo-spark-connector_2.11-2.3.2.jar,mongo-java-driver-3.11.2.jar  \
-<jar_path>/metalus-application_2.11-spark_2.3-<VERSION>.jar \
---driverSetupClass com.acxiom.pipeline.applications.DefaultApplicationDriverSetup \
---applicationConfigPath <data_location>/application-example.json \
---input_url <data_location>/orders.csv \
---input_format csv \
---input_separator , \
---mongoURI mongodb://localhost:27017/application_examples \
---logLevel DEBUG
-```
 ### Spark 2.4/Scala 2.11
 ```bash
 spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
@@ -1092,27 +1077,12 @@ spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 --mongoURI mongodb://localhost:27017/application_examples \
 --logLevel DEBUG
 ```
-### Spark 2.4/Scala 2.12
-```bash
-spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
---master spark://localhost:7077 \
---deploy-mode client \
---jars metalus-common_2.12-spark_2.4-<VERSION>.jar,metalus-examples_2.12-spark_2.4-<VERSION>.jar,metalus-mongo_2.12-spark_2.4-<VERSION>.jar,mongo-spark-connector_2.12-2.4.1.jar,mongo-java-driver-3.11.2.jar  \
-<jar_path>/metalus-application_2.12-spark_2.4-<VERSION>.jar \
---driverSetupClass com.acxiom.pipeline.applications.DefaultApplicationDriverSetup \
---applicationConfigPath <data_location>/application-example.json \
---input_url <data_location>/orders.csv \
---input_format csv \
---input_separator , \
---mongoURI mongodb://localhost:27017/application_examples \
---logLevel DEBUG
-```
 ### Spark 3.0/Scala 2.12
 ```bash
 spark-submit --class com.acxiom.pipeline.drivers.DefaultPipelineDriver \
 --master spark://localhost:7077 \
 --deploy-mode client \
---jars metalus-common_2.12-spark_3.0-<VERSION>.jar,metalus-examples_2.12-spark_3.0-<VERSION>.jar,metalus-mongo_2.12-spark_3.0-<VERSION>.jar,mongo-spark-connector_2.12-2.4.1.jar,mongo-java-driver-3.11.2.jar  \
+--jars metalus-common_2.12-spark_3.0-<VERSION>.jar,metalus-examples_2.12-spark_3.0-<VERSION>.jar,metalus-mongo_2.12-spark_3.0-<VERSION>.jar,mongo-spark-connector_2.12-3.0.0.jar,mongodb-driver-sync-4.0.5.jar,mongodb-driver-core-4.0.5.jar,bson-4.0.5.jar  \
 <jar_path>/metalus-application_2.12-spark_3.0-<VERSION>.jar \
 --driverSetupClass com.acxiom.pipeline.applications.DefaultApplicationDriverSetup \
 --applicationConfigPath <data_location>/application-example.json \

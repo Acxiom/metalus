@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.drivers
 
-import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline._
+import com.acxiom.pipeline.utils.DriverUtils
 import org.apache.log4j.{Level, Logger}
 
 trait DriverSetup {
@@ -57,10 +57,12 @@ trait DriverSetup {
     * applications such as streaming where artifacts build up over time.
     *
     * @param executionPlan The execution plan to refresh
+    * @param results Optional results of a previous run
     * @since 1.1.0
     * @return An execution plan
     */
-  def refreshExecutionPlan(executionPlan: List[PipelineExecution]): List[PipelineExecution] = {
+  def refreshExecutionPlan(executionPlan: List[PipelineExecution],
+                           results: Option[Map[String, DependencyResult]] = None): List[PipelineExecution] = {
     executionPlan
   }
 

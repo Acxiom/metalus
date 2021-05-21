@@ -1,0 +1,183 @@
+{
+  "id": "complex_split_flow",
+  "name": "Complex Split Flow Test",
+  "steps": [
+    {
+      "id": "GENERATE_DATA",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "integer",
+          "name": "listSize",
+          "required": false,
+          "value": 2,
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockIntListStepFunction"
+      },
+      "nextStepId": "SPLIT"
+    },
+    {
+      "id": "SPLIT",
+      "type": "split",
+      "params": [
+        {
+          "type": "result",
+          "name": "someparam",
+          "required": true,
+          "value": "SUM_VALUES",
+          "description": ""
+        },
+        {
+          "type": "result",
+          "name": "someparam1",
+          "required": true,
+          "value": "STRING_VALUES",
+          "description": ""
+        },
+        {
+          "type": "result",
+          "name": "someparam2",
+          "required": true,
+          "value": "BRANCH",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "id": "BRANCH",
+      "type": "branch",
+      "params": [
+        {
+          "type": "text",
+          "name": "string",
+          "required": false,
+          "value": "true",
+          "description": ""
+        },
+        {
+          "type": "boolean",
+          "name": "boolean",
+          "required": false,
+          "value": true,
+          "description": ""
+        },
+        {
+          "type": "result",
+          "name": "true",
+          "required": true,
+          "value": "SUM_VALUES_NOT_MERGED",
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockStepFunction"
+      }
+    },
+    {
+      "id": "SUM_VALUES",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "ints",
+          "required": false,
+          "value": "@GENERATE_DATA",
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockSumSimpleListOfInts"
+      },
+      "nextStepId": "MERGE"
+    },
+    {
+      "id": "SUM_VALUES_NOT_MERGED",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "ints",
+          "required": false,
+          "value": "@GENERATE_DATA",
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockSumSimpleListOfInts"
+      },
+      "nextStepId": "FORMAT_STRING_PART_2"
+    },
+    {
+      "id": "STRING_VALUES",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "ints",
+          "required": false,
+          "value": "@GENERATE_DATA",
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockListOfIntsToString"
+      },
+      "nextStepId": "MERGE"
+    },
+    {
+      "id": "MERGE",
+      "type": "merge",
+      "params": [],
+      "nextStepId": "FORMAT_STRING"
+    },
+    {
+      "id": "FORMAT_STRING",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "string",
+          "required": false,
+          "value": "List with values @{STRING_VALUES} has a sum of @{SUM_VALUES}",
+          "description": ""
+        },
+        {
+          "type": "boolean",
+          "name": "boolean",
+          "required": false,
+          "value": true,
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockStepFunction"
+      }
+    },
+    {
+      "id": "FORMAT_STRING_PART_2",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "string",
+          "required": false,
+          "value": "List has a sum of @{SUM_VALUES_NOT_MERGED}",
+          "description": ""
+        },
+        {
+          "type": "boolean",
+          "name": "boolean",
+          "required": false,
+          "value": true,
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockStepFunction"
+      }
+    }
+  ]
+}

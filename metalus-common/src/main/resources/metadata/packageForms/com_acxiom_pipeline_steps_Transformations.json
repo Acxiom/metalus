@@ -1,0 +1,63 @@
+{
+  "form": [
+    {
+      "key": "filter",
+      "type": "input",
+      "templateOptions": {
+        "label": "Filter"
+      }
+    },
+    {
+      "key": "standardizeColumnNames",
+      "type": "checkbox",
+      "defaultValue": false,
+      "templateOptions": {
+        "label": "Standardize Column Names?",
+        "placeholder": "",
+        "focus": false,
+        "disabled": false,
+        "hideFieldUnderline": true,
+        "indeterminate": true,
+        "floatLabel": "always",
+        "hideLabel": true,
+        "align": "start",
+        "color": "accent"
+      }
+    },
+    {
+      "key": "columnDetails",
+      "type": "repeat",
+      "wrappers": [
+        "panel"
+      ],
+      "templateOptions": {
+        "label": "Column Details"
+      },
+      "fieldArray": {
+        "fieldGroup": [
+          {
+            "key": "outputField",
+            "type": "input",
+            "templateOptions": {
+              "label": "Output Field"
+            }
+          },
+          {
+            "key": "inputAliases",
+            "type": "stringArray",
+            "templateOptions": {
+              "label": "Input Alias"
+            }
+          },
+          {
+            "key": "expression",
+            "type": "input",
+            "templateOptions": {
+              "label": "Expression (Optional)"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

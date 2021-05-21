@@ -31,7 +31,6 @@ A pipeline step begins with a step template, but makes several crucial changes. 
 		"pkg": "com.acxiom.pipeline.steps"
 	},
 	"tags": [
-	  "metalus-common_2.11-spark_2.3-1.5.0-SNAPSHOT.jar",
 	  "metalus-common_2.11-spark_2.4-1.5.0-SNAPSHOT.jar"
 	]
 }
@@ -66,8 +65,9 @@ when the value is a string.
 * **Step Response** - The value will begin with the *@* symbol.
 * **Secondary Step Response** - The value will begin with the *#* symbol. This type will most often contain a *.* to drill into the response by name.
 * **Global** - The value will begin with a *!* symbol.
-* **Pipeline Parameter** - The value will begin with a *$* symbol.
+* **Pipeline Parameter** - The value will begin with a *$* or *?* symbol.
 * **Pipeline** - The value will begin with a *&* symbol.
+* **Credential** - The value will begin with a *%* symbol.
 
 #### object
 Objects will be expanded in the case of embedded mapped values. The final value will still be a Map unless the **className**

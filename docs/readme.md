@@ -11,14 +11,17 @@
         * [Step Groups](step-groups.md)
         * [Flow Control](flow-control.md)
             * [Fork/Join](fork-join.md)
+            * [Split/Merge](split-merge.md)
         * [Parameter Mapping](parameter-mapping.md)
             * [Reserved Globals](parameter-mapping.md#reserved-globals)
         * [Execution and Data Flow](pipeline-flow.md)
     * [Error Handling](error-handling.md)
+    * [Logging](logging.md)
 * [Step Libraries](step-libraries.md)
     * [Metalus Common](../metalus-common/readme.md)
         * Steps
             * [ApiSteps](../metalus-common/docs/apisteps.md)
+            * [CredentialSteps](../metalus-common/docs/credentialsteps.md)
             * [DataFrameSteps](../metalus-common/docs/dataframesteps.md)
             * [FileManagerSteps](../metalus-common/docs/filemanagersteps.md)
             * [HDFSSteps](../metalus-common/docs/hdfssteps.md)
@@ -41,6 +44,7 @@
         * Extensions
             * [S3FileManager](../metalus-aws/docs/s3filemanager.md)
             * [Kinesis Pipeline Driver](../metalus-aws/docs/kinesispipelinedriver.md)
+            * [AWS Secrets Manager Credential Provider](../metalus-aws/docs/awssecretsmanager-credentialprovider.md)
     * [Metalus GCP](../metalus-gcp/readme.md)
         * Steps
             * [GCSSteps](../metalus-gcp/docs/gcssteps.md)
@@ -48,6 +52,7 @@
         * Extensions
             * [GCSFileManager](../metalus-gcp/docs/gcsfilemanager.md)
             * [PubSub Pipeline Driver](../metalus-gcp/docs/pubsubpipelinedriver.md)
+            * [GCP Secrets Manager Credential Provider](../metalus-gcp/docs/gcpsecretsmanager-credentialprovider.md)
     * [Metalus Kafka](../metalus-kafka/readme.md)
         * Steps
             * [KafkaSteps](../metalus-kafka/docs/kafkasteps.md)
@@ -56,6 +61,9 @@
     * [Metalus Mongo](../metalus-mongo/readme.md)
         * Steps
             * [Mongo Steps](../metalus-mongo/docs/mongosteps.md)
+    * [Metalus Delta Lake](../metalus-delta/docs/readme.md)
+        * Steps
+            * [Delta Lake Steps](../metalus-delta/docs/deltalakesteps.md)
     * [Creating your own step library (Step Templates)](step-templates.md)
         * [Step Annotations](step-annotations.md)
 * Advanced

@@ -23,6 +23,30 @@ object MockStepObject {
     s.flatten.mkString(",")
   }
 
+  def mockFlattenListOfOptions(s: List[Option[List[Option[String]]]]): List[String] ={
+    s.flatten.flatMap(_.flatten)
+  }
+
+  def mockIntStepFunction(int: Int, boolean: Boolean): PipelineStepResponse = {
+    PipelineStepResponse(Some(int), Some(Map[String, Any]("boolean" -> boolean, "string" -> int)))
+  }
+
+  def mockIntListStepFunction(listSize: Int): PipelineStepResponse = {
+    PipelineStepResponse(Some(List.tabulate(listSize)(_ + 1)), None)
+  }
+
+  def mockSumListOfInts(ints: List[Option[List[Option[Int]]]]): Int ={
+    ints.flatten.flatMap(_.flatten).sum
+  }
+
+  def mockSumSimpleListOfInts(ints: List[Int]): Int ={
+    ints.sum
+  }
+
+  def mockListOfIntsToString(ints: List[Int]): String ={
+    ints.mkString(",")
+  }
+
   def mockStepFunctionWithListParams(list: List[String], seq: Seq[Int], arrayList: java.util.ArrayList[String]): String ={
     s"${list.headOption},${seq.headOption},${if(arrayList.isEmpty) None else Some(arrayList.get(0))}"
   }

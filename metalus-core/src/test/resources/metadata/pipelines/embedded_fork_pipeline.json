@@ -1,0 +1,150 @@
+{
+  "id": "embedded_fork_pipeline",
+  "name": "Embedded Fork Test",
+  "steps": [
+    {
+      "id": "GENERATE_DATA",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "integer",
+          "name": "listSize",
+          "required": false,
+          "value": 3,
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockIntListStepFunction"
+      },
+      "nextStepId": "ROOT_FORK"
+    },
+    {
+      "id": "ROOT_FORK",
+      "type": "fork",
+      "params": [
+        {
+          "type": "text",
+          "name": "forkByValues",
+          "required": false,
+          "value": "@GENERATE_DATA",
+          "description": ""
+        },
+        {
+          "type": "text",
+          "name": "forkMethod",
+          "required": false,
+          "value": "parallel",
+          "description": ""
+        }
+      ],
+      "nextStepId": "GENERATE_INNER_DATA"
+    },
+    {
+      "id": "GENERATE_INNER_DATA",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "listSize",
+          "required": false,
+          "value": "@ROOT_FORK",
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockIntListStepFunction"
+      },
+      "nextStepId": "FORK_DATA"
+    },
+    {
+      "id": "FORK_DATA",
+      "type": "fork",
+      "params": [
+        {
+          "type": "text",
+          "name": "forkByValues",
+          "required": false,
+          "value": "@GENERATE_INNER_DATA",
+          "description": ""
+        },
+        {
+          "type": "text",
+          "name": "forkMethod",
+          "required": false,
+          "value": "parallel",
+          "description": ""
+        }
+      ],
+      "nextStepId": "PROCESS_VALUE"
+    },
+    {
+      "id": "PROCESS_VALUE",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "int",
+          "required": false,
+          "value": "@FORK_DATA",
+          "description": ""
+        },
+        {
+          "type": "boolean",
+          "name": "boolean",
+          "required": false,
+          "value": true,
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockIntStepFunction"
+      },
+      "nextStepId": "JOIN"
+    },
+    {
+      "id": "JOIN",
+      "type": "join",
+      "nextStepId": "SUM_VALUES"
+    },
+    {
+      "id": "SUM_VALUES",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "ints",
+          "required": false,
+          "value": "@PROCESS_VALUE",
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockSumListOfInts"
+      },
+      "nextStepId": "ROOT_JOIN"
+    },
+    {
+      "id": "ROOT_JOIN",
+      "type": "join",
+      "nextStepId": "FLATTEN_LIST"
+    },
+    {
+      "id": "FLATTEN_LIST",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "s",
+          "required": false,
+          "value": "@SUM_VALUES",
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockSumListOfInts"
+      }
+    }
+  ],
+  "category": "pipeline"
+}

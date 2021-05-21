@@ -1,11 +1,13 @@
 [Documentation Home](readme.md)
 
 # Execution Audits
-Metalus provides a mechanism for capturing audits and metrics during execution. Three levels are available:
+Metalus provides a mechanism for capturing audits and metrics during execution.Three levels are available:
 
 * *execution* - Audits the execution of a single execution. This includes all executed pipelines.
 * *pipeline* - Audits a single pipeline being executed.
 * *step* - Audits a single step within a pipeline.
+
+The global parameter _logAudits_ will write each execution audits to the log file once execution is completed successfully.
 
 ## Metrics
 Each audit contains a metrics object where metrics can be set with the **setMetric** and **setMetrics** methods. 
@@ -44,3 +46,9 @@ functions have been provided to make accessing pipeline and step audits easier.
 ### PipelineListener
 Implementations of the PipelineListener interface will have access to the audits through the *PipelineContext*. The *metrics*
 functions provided allow any data to be stored/retrieved related to an audit.
+
+## Spark Config/Settings
+By default, the Execution Audits will include a small list of spark configuration settings and spark stats by pipeline step.
+A more detailed list of SparkSettings from the SparkContext can be added to the Root Audit by setting the value *includeAllSparkSettingsInAudit* to true at runtime.
+
+_**Note:** the current version may misreport executors, split steps, and fork steps running in parallel_

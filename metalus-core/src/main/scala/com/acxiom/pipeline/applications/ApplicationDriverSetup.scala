@@ -2,7 +2,7 @@ package com.acxiom.pipeline.applications
 
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.DriverUtils
-import com.acxiom.pipeline.{CredentialProvider, PipelineContext, PipelineExecution}
+import com.acxiom.pipeline.{CredentialProvider, DependencyResult, PipelineContext, PipelineExecution}
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
@@ -100,7 +100,8 @@ trait ApplicationDriverSetup extends DriverSetup {
     * @since 1.1.0
     * @return An execution plan
     */
-  override def refreshExecutionPlan(executionPlan: List[PipelineExecution]): List[PipelineExecution] = {
+  override def refreshExecutionPlan(executionPlan: List[PipelineExecution],
+                                    results: Option[Map[String, DependencyResult]] = None): List[PipelineExecution] = {
     executionPlan.map(plan => {
       val execution = application.executions.get.find(_.id.getOrElse("") == plan.id).get
       ApplicationUtils.refreshPipelineExecution(application, Some(params), execution, plan)

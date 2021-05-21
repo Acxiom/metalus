@@ -1,7 +1,5 @@
 package com.acxiom.pipeline
 
-import java.io.File
-
 import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import com.acxiom.pipeline.utils.DriverUtils
 import org.apache.commons.io.FileUtils
@@ -10,6 +8,8 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen, Suite}
+
+import java.io.File
 
 class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen with Suite {
   private val FIVE = 5
@@ -85,14 +85,27 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       "optionsList" -> List(Some("1"), Some("2"), None, Some("3")),
       "numericString" -> "1", "bigIntGlobal" -> BigInt(1),
       "booleanString" -> "true",
-      "runtimeGlobal" -> "$rawKey1"
+      "runtimeGlobal" -> "$rawKey1",
+      "int" -> 1,
+      "long" -> 1L,
+      "float" -> 1.0F,
+      "double" -> 1.0D,
+      "byte" -> 1.toByte,
+      "short" -> 1.toShort,
+      "char" -> 1.toChar,
+      "bigdecimal" -> BigDecimal(1)
     )
 
     val subPipeline = Pipeline(Some("mypipeline"), Some("My Pipeline"))
+    val credentialProvider = new DefaultCredentialProvider(
+      Map[String, Any]("credential-classes" -> "com.acxiom.pipeline.DefaultCredential",
+      "credentialName" -> "testCredential",
+      "credentialValue" -> "secretCredential"))
 
     val pipelineContext = PipelineContext(
       None, None, Some(globalParameters), PipelineSecurityManager(), pipelineParameters, None, PipelineStepMapper(), None, None,
-      ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()), PipelineManager(List(subPipeline)))
+      ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
+      PipelineManager(List(subPipeline)), Some(credentialProvider))
 
     it("should pull the appropriate value for given parameters") {
       val tests = List(
@@ -113,14 +126,12 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("big int", Parameter(value = Some(BigInt("5")), `type` = Some("integer")), BigInt("5")),
         ("decimal", Parameter(value = Some(BigInt("5")), `type` = Some("integer")), BigInt("5")),
         ("list", Parameter(value = Some(List("5")), `type` = Some("integer")), List("5")),
-        ("string list", Parameter(value = Some("[\"a\", \"b\", \"c\" \"d\"]"), `type` = Some("list")), List("a", "b", "c", "d")),
-        ("int list", Parameter(value = Some("[1, 2, 3]"), `type` = Some("list")), List(1, 2, 3)),
         ("default value", Parameter(name = Some("fred"), defaultValue = Some("default value"), `type` = Some("string")), "default value"),
         ("string from global", Parameter(value = Some("!globalString"), `type` = Some("string")), "globalValue1"),
         ("GlobalLink overrides root global", Parameter(value = Some("!link9"), `type` = Some("string")), "link_override"),
         ("boolean from global", Parameter(value = Some("!globalBoolean"), `type` = Some("boolean")), true),
         ("integer from global", Parameter(value = Some("!globalInteger"), `type` = Some("integer")), FIVE),
-        ("test object from global", Parameter(value = Some("!globalTestObject"), `type` = Some("string")), globalTestObject),
+        ("test object from global", Parameter(value = Some("!globalTestObject"), `type` = Some("text")), globalTestObject),
         ("child object from global", Parameter(value = Some("!globalTestObject.intField"), `type` = Some("integer")), globalTestObject.intField),
         ("non-step value from pipeline", Parameter(value = Some("$pipeline-id-1.rawKey1"), `type` = Some("string")), "rawValue1"),
         ("integer from current pipeline", Parameter(value = Some("$rawInteger"), `type` = Some("integer")), 3),
@@ -129,10 +140,10 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("None runtime parameter", Parameter(name = Some("red test"), value = Some("$pipeline-id-1.red"), `type` = Some("string")), None),
         ("integer from specific pipeline", Parameter(value = Some("$pipeline-id-2.rawInteger"), `type` = Some("integer")), 2),
         ("decimal from specific pipeline", Parameter(value = Some("$pipeline-id-2.rawDecimal"), `type` = Some("decimal")), 15.65),
-        ("primary from current pipeline using @", Parameter(value = Some("@step1"), `type` = Some("string")), List(1, 2, 3)),
-        ("primary from current pipeline using @ in GlobalLink", Parameter(value = Some("!link2"), `type` = Some("string")), List(1, 2, 3)),
-        ("primary from current pipeline using $", Parameter(value = Some("$step1.primaryReturn"), `type` = Some("string")), List(1, 2, 3)),
-        ("primary from current pipeline using $ in GlobalLink", Parameter(value = Some("!link3"), `type` = Some("string")), List(1, 2, 3)),
+        ("primary from current pipeline using @", Parameter(value = Some("@step1"), `type` = Some("text")), List(1, 2, 3)),
+        ("primary from current pipeline using @ in GlobalLink", Parameter(value = Some("!link2"), `type` = Some("text")), List(1, 2, 3)),
+        ("primary from current pipeline using $", Parameter(value = Some("$step1.primaryReturn"), `type` = Some("text")), List(1, 2, 3)),
+        ("primary from current pipeline using $ in GlobalLink", Parameter(value = Some("!link3"), `type` = Some("text")), List(1, 2, 3)),
         ("primary from specific pipeline using @", Parameter(value = Some("@pipeline-id-1.step1.primaryKey1String"), `type` = Some("string")),
           "primaryKey1Value"),
         ("primary from specific pipeline using @ in GlobalLink", Parameter(value = Some("!link4"), `type` = Some("string")), "primaryKey1Value"),
@@ -156,8 +167,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("fail to detect null", Parameter(value = Some("$nullValue || default string")), "default string"),
         ("recursive test", Parameter(value = Some("?pipeline-id-1.recursiveTest")), "rawValue1"),
         ("recursive test", Parameter(value = Some("$pipeline-id-1.recursiveTest")), "$pipeline-id-1.rawKey1"),
-        ("lastStepId test", Parameter(value = Some("@LastStepId"), `type` = Some("string")), List(1, 2, 3)),
-        ("lastStepId with or", Parameter(value = Some("!not_here || @LastStepId"), `type` = Some("string")), List(1, 2, 3)),
+        ("lastStepId test", Parameter(value = Some("@LastStepId"), `type` = Some("text")), List(1, 2, 3)),
+        ("lastStepId with or", Parameter(value = Some("!not_here || @LastStepId"), `type` = Some("text")), List(1, 2, 3)),
         ("lastStepId with method extraction", Parameter(value = Some("@LastStepId.nonEmpty"), `type` = Some("boolean")), true),
         ("inline list in inline map",
           Parameter(value = Some(Map[String, Any]("list" -> List("!globalString"))), `type` = Some("text")), Map("list" -> List("globalValue1"))),
@@ -183,7 +194,9 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("Casting bigInt global to String", Parameter(value = Some("!bigIntGlobal"), `type` = Some("String")), "1"),
         ("Casting String global to boolean", Parameter(value = Some("!booleanString"), `type` = Some("boolean")), true),
         ("Global String with runtime character", Parameter(value = Some("!runtimeGlobal"), `type` = Some("text")), "$rawKey1"),
-        ("Use default value", Parameter(name = Some("defaultparam"), defaultValue = Some("default chosen"), `type` = Some("text")), "default chosen")
+        ("Use default value", Parameter(name = Some("defaultparam"), defaultValue = Some("default chosen"), `type` = Some("text")), "default chosen"),
+        ("Pull Credential Name", Parameter(value = Some("%testCredential.name"), `type` = Some("text")), "testCredential"),
+        ("Pull Credential Value", Parameter(value = Some("%testCredential.value"), `type` = Some("text")), "secretCredential")
       )
       tests.foreach(test => {
         Then(s"test ${test._1}")
@@ -221,24 +234,27 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       }
     }
 
-    it("should cast numeric values to different numeric and string types") {
-      Map(
-        "int" -> 1,
-        "integer" -> 1,
-        "long" -> 1L,
-        "float" -> 1.0F,
-        "double" -> 1.0D,
-        "byte" -> 1.toByte,
-        "short" -> 1.toShort,
-        "character" -> 1.toChar,
-        "char" -> 1.toChar,
-        "boolean" -> true,
-        "bigint" -> BigInt(1),
-        "bigdecimal" -> BigDecimal(1),
-        "string" -> "1"
-      ).foreach{ case (typeName, expected) =>
-        val ret = pipelineContext.parameterMapper.mapParameter(Parameter(value = Some("!bigIntGlobal"), `type` = Some(typeName)), pipelineContext)
-        assert(ret == expected)
+    it("should cast bigInt values to different numeric and string types") {
+      val globals = List("!int", "!long", "!float", "!double", "!byte", "!short", "!char", "!bigdecimal", "!bigIntGlobal")
+      val casts = Map[String, Any => Boolean](
+        "int" -> (a => a.isInstanceOf[Int]),
+        "integer" -> (a => a.isInstanceOf[Int]),
+        "long" -> (a => a.isInstanceOf[Long]),
+        "float" -> (a => a.isInstanceOf[Float]),
+        "double" -> (a => a.isInstanceOf[Double]),
+        "byte" -> (a => a.isInstanceOf[Byte]),
+        "short" -> (a => a.isInstanceOf[Short]),
+        "character" -> (a => a.isInstanceOf[Char]),
+        "char" -> (a => a.isInstanceOf[Char]),
+        "boolean" -> (a => a.isInstanceOf[Boolean]),
+        "bigint" -> (a => a.isInstanceOf[BigInt]),
+        "bigdecimal" -> (a => a.isInstanceOf[BigDecimal]),
+        "string" -> (a => a.isInstanceOf[String])
+      )
+      globals.flatMap(g => casts.map(p => (g, p._1, p._2)))
+        .foreach{ case (global, typeName, expected) =>
+        val ret = pipelineContext.parameterMapper.mapParameter(Parameter(value = Some(global), `type` = Some(typeName)), pipelineContext)
+        assert(expected(ret), s"Reason: $global did not cast to $typeName")
       }
     }
 

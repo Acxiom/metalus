@@ -28,6 +28,8 @@ pass the namedReturns value to the step function. Embedded object mapping may be
 named value.
 * **&** - When the value begins with this character, the system will search the [pipelineManager](pipeline-manager.md) for the named parameter 
 and pass the pipeline or None to the step function. This is usually used in a step-group.
+* **%** - When the value begins with this character, the system will search the [CredentialProvider](credentialprovider.md)
+on the [PipelineContext](pipeline-context.md) for the named credential.
 
 The **@** and **#** symbols are shortcuts that assume the value in parameters is a PipelineStepResponse.
  A special named parameter, *LastStepId* can be used with these to retrieve the PipelineStepResponse of the last step executed. 
@@ -40,7 +42,7 @@ The type attribute on the pipeline step parameter is used for parsing the value/
 determined or to provide additional information to the mapper. 
 
 * **text** - The most common type when using mappings. The value will be parsed for special characters.
-* **string** - The same as text. The value will be evaluated as a string.
+* **string** - The value will be parsed for special characters like the "Text" type, but the toString method of the result will be called.
 * **boolean** - The value will be parsed as a boolean.
 * **integer** - The value will be parsed as an int.
 * **script** - This indicates that the value contains a script and should not be parsed. The value will be returned unaltered.
@@ -83,6 +85,22 @@ Here is the object descried as JSON:
 	}
 } 
 ```
+
+**Arrays and Lists**
+Specific elements from Array and List objects can be extracted using square brackets wrapping an index.
+Given an object:
+```json
+{
+   "obj": {
+      "myList": [1, 2, 3]
+   }
+}
+```
+The middle element could be accessed using this syntax:
+```
+$obj.myList[1]
+```
+Zero-based indexing is used. An out of bounds index will return None as the result.
 
 **Embedded Values and String Concatenation**
 

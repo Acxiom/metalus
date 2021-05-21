@@ -1,31 +1,24 @@
 package com.acxiom.aws.steps
 
-import java.nio.ByteBuffer
-
-import com.acxiom.aws.utils.{AWSCredential, KinesisUtilities}
+import com.acxiom.aws.utils.{AWSUtilities, KinesisUtilities}
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
-import com.amazonaws.services.kinesis.model.PutRecordRequest
 import org.apache.spark.sql.DataFrame
 
 @StepObject
 object KinesisSteps {
-  private val regionDescription: Some[String] = Some("The region of the Kinesis stream")
-  private val streamNameDescription: Some[String] = Some("The name of the Kinesis stream")
-  private val partitionKeyDescription: Some[String] = Some("The key to use when partitioning the message")
-
   @StepFunction("207aa871-4f83-4e24-bab3-4e47bb3b667a",
     "Write DataFrame to a Kinesis Stream",
     "This step will write a DataFrame to a Kinesis Stream",
     "Pipeline",
     "AWS")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to post to the Kinesis stream")),
-    "region" -> StepParameter(None, Some(true), None, None, None, None, regionDescription),
-    "streamName" -> StepParameter(None, Some(true), None, None, None, None, streamNameDescription),
-    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, partitionKeyDescription),
-    "separator" -> StepParameter(None, Some(true), None, None, None, None, Some("The separator character to use when combining the column data")),
-    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API key to use for the Kinesis stream")),
-    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API secret to use for the Kinesis stream"))))
+    "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the Kinesis stream")),
+    "streamName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the Kinesis stream")),
+    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The key to use when partitioning the message")),
+    "separator" -> StepParameter(None, Some(false), None, None, None, None, Some("The separator character to use when combining the column data")),
+    "accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API key to use for the Kinesis stream")),
+    "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API secret to use for the Kinesis stream"))))
   def writeToStream(dataFrame: DataFrame,
                     region: String,
                     streamName: String,
@@ -46,10 +39,10 @@ object KinesisSteps {
     "Pipeline",
     "AWS")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to post to the Kinesis stream")),
-    "region" -> StepParameter(None, Some(true), None, None, None, None, regionDescription),
-    "streamName" -> StepParameter(None, Some(true), None, None, None, None, streamNameDescription),
-    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, partitionKeyDescription),
-    "separator" -> StepParameter(None, Some(true), None, None, None, None, Some("The separator character to use when combining the column data"))))
+    "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the Kinesis stream")),
+    "streamName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the Kinesis stream")),
+    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The key to use when partitioning the message")),
+    "separator" -> StepParameter(None, Some(false), None, None, None, None, Some("The separator character to use when combining the column data"))))
   def writeStream(dataFrame: DataFrame,
                   region: String,
                   streamName: String,
@@ -57,7 +50,7 @@ object KinesisSteps {
                   separator: String = ",",
                   pipelineContext: PipelineContext): Unit = {
     val index = determinPartitionKey(dataFrame, partitionKey)
-    val creds = getKinesisCreds(pipelineContext)
+    val creds = AWSUtilities.getAWSCredentials(pipelineContext.credentialProvider)
     dataFrame.rdd.foreach(row => {
       val rowData = row.mkString(separator)
       val key = row.getAs[Any](index).toString
@@ -71,15 +64,15 @@ object KinesisSteps {
     "Pipeline",
     "AWS")
   @StepParameters(Map("message" -> StepParameter(None, Some(true), None, None, None, None, Some("The message to post to the Kinesis stream")),
-    "region" -> StepParameter(None, Some(true), None, None, None, None, regionDescription),
-    "streamName" -> StepParameter(None, Some(true), None, None, None, None, streamNameDescription),
-    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, partitionKeyDescription)))
+    "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the Kinesis stream")),
+    "streamName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the Kinesis stream")),
+    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The key to use when partitioning the message"))))
   def postMessage(message: String,
                   region: String,
                   streamName: String,
                   partitionKey: String,
                   pipelineContext: PipelineContext): Unit = {
-    val creds = getKinesisCreds(pipelineContext)
+    val creds = AWSUtilities.getAWSCredentials(pipelineContext.credentialProvider)
     postMessage(message, region, streamName, partitionKey, creds._1, creds._2)
   }
 
@@ -89,44 +82,18 @@ object KinesisSteps {
     "Pipeline",
     "AWS")
   @StepParameters(Map("message" -> StepParameter(None, Some(true), None, None, None, None, Some("The message to post to the Kinesis stream")),
-    "region" -> StepParameter(None, Some(true), None, None, None, None, regionDescription),
-    "streamName" -> StepParameter(None, Some(true), None, None, None, None, streamNameDescription),
-    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, partitionKeyDescription),
-    "accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API key to use for the Kinesis stream")),
-    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The optional API secret to use for the Kinesis stream"))))
+    "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the Kinesis stream")),
+    "streamName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the Kinesis stream")),
+    "partitionKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The key to use when partitioning the message")),
+    "accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API key to use for the Kinesis stream")),
+    "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API secret to use for the Kinesis stream"))))
   def postMessage(message: String,
                   region: String,
                   streamName: String,
                   partitionKey: String,
                   accessKeyId: Option[String] = None,
                   secretAccessKey: Option[String] = None): Unit = {
-    val putRecordRequest = new PutRecordRequest()
-    putRecordRequest.setStreamName(streamName)
-    putRecordRequest.setPartitionKey(partitionKey)
-    putRecordRequest.setData(ByteBuffer.wrap(message.getBytes()))
-    val kinesisClient = KinesisUtilities.buildKinesisClientByKeys(region, accessKeyId, secretAccessKey)
-    kinesisClient.putRecord(putRecordRequest)
-    kinesisClient.shutdown()
-  }
-
-  /**
-    * Return the Api Key and Secret if credentials are provided.
-    * @param pipelineContext The PipelineContext containing the CredentialProvider
-    * @return A tuple with the Api Key and Secret options
-    */
-  private def getKinesisCreds(pipelineContext: PipelineContext): (Option[String], Option[String]) = {
-    val creds = if (pipelineContext.credentialProvider.isDefined) {
-      val awsCredential = pipelineContext.credentialProvider.get
-        .getNamedCredential("AWSCredential").asInstanceOf[Option[AWSCredential]]
-      if (awsCredential.isDefined) {
-        (awsCredential.get.awsAccessKey, awsCredential.get.awsAccessSecret)
-      } else {
-        (None, None)
-      }
-    } else {
-      (None, None)
-    }
-    creds
+    KinesisUtilities.postMessage(message, region, streamName, partitionKey, accessKeyId, secretAccessKey)
   }
 
   /**

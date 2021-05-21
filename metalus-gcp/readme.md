@@ -10,3 +10,4 @@ The Metalus GCP is a step library with specific steps and utilities for working 
 ## Extensions
 * [GCSFileManager](docs/gcsfilemanager.md)
 * [PubSub Pipeline Driver](docs/pubsubpipelinedriver.md)
+* [GCP Secrets Manager Credential Provider](docs/gcpsecretsmanager-credentialprovider.md)

@@ -1,7 +1,6 @@
-package com.acxiom.pipeline
+package com.acxiom.pipeline.flow
 
-import java.io.File
-
+import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
@@ -10,6 +9,8 @@ import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
+
+import java.io.File
 
 class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
   override def beforeAll() {

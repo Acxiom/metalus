@@ -18,6 +18,7 @@ case class ExecutionAudit(id: String,
                           metrics: Map[String, Any] = Map[String, Any](),
                           start: Long,
                           end: Option[Long] = None,
+                          durationMs: Option[Long] = None,
                           groupId: Option[String] = None,
                           children: Option[List[ExecutionAudit]] = None) {
   /**
@@ -54,7 +55,7 @@ case class ExecutionAudit(id: String,
     * @param endTime A long representing the time.
     * @return A new Audit with the end time set.
     */
-  def setEnd(endTime: Long): ExecutionAudit = this.copy(end = Some(endTime))
+  def setEnd(endTime: Long): ExecutionAudit = this.copy(end = Some(endTime), durationMs = Some(endTime - this.start))
 
   /**
     * Retrieves a named metric

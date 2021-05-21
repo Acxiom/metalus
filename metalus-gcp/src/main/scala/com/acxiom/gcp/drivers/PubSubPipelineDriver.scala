@@ -1,11 +1,11 @@
 package com.acxiom.gcp.drivers
 
-import com.acxiom.gcp.utils.GCPCredential
+import com.acxiom.gcp.pipeline.GCPCredential
+import com.acxiom.gcp.utils.GCPUtilities
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, StreamingUtils}
 import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Row
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.pubsub.{PubsubUtils, SparkGCPCredentials, SparkPubsubMessage}
 
@@ -35,7 +35,8 @@ object PubSubPipelineDriver {
     val credentialProvider = driverSetup.credentialProvider
     val gcpCredential = credentialProvider.getNamedCredential("GCPCredential")
     val sparkGCPCredentials = if (gcpCredential.isDefined) {
-      SparkGCPCredentials.builder.jsonServiceAccount(gcpCredential.get.asInstanceOf[GCPCredential].authKey).build()
+      SparkGCPCredentials.builder.jsonServiceAccount(
+        GCPUtilities.generateCredentialsByteArray(Some(gcpCredential.get.asInstanceOf[GCPCredential].authKey)).get).build()
     } else {
       SparkGCPCredentials.builder.build()
     }

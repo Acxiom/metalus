@@ -11,4 +11,6 @@ class ListenerValidations {
   }
 
   def validate(): Unit = results.foreach(result => assert(result._2, result._1))
+
+  def count: Int = results.length
 }

@@ -1,16 +1,17 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import org.apache.spark.sql.{DataFrame, Dataset}
 
+@StepObject
 object CSVSteps {
 
   @StepFunction("a2f3e151-cb81-4c69-8475-c1a287bbb4cb",
     "Convert CSV String Dataset to DataFrame",
     "This step will convert the provided CSV string Dataset into a DataFrame that can be passed to other steps",
     "Pipeline",
-    "JSON")
+    "CSV")
   @StepParameters(Map(
     "dataset" -> StepParameter(None, Some(true), None, None, None, None, Some("The dataset containing CSV strings")),
     "dataFrameReaderOptions" -> StepParameter(None, Some(false), None, None, None, None, Some("The CSV parsing options"))))
@@ -25,7 +26,7 @@ object CSVSteps {
     "Convert CSV String to DataFrame",
     "This step will convert the provided CSV string into a DataFrame that can be passed to other steps",
     "Pipeline",
-    "JSON")
+    "CSV")
   @StepParameters(Map(
     "csvString" -> StepParameter(None, Some(true), None, None, None, None, Some("The csv string to convert to a DataFrame")),
     "delimiter" -> StepParameter(None, Some(false), Some(","), None, None, None, Some("The field delimiter")),
@@ -42,5 +43,4 @@ object CSVSteps {
     val ds = csvString.split(recordDelimiter.getOrElse("\n")).toList.toDS()
     csvDatasetToDataFrame(ds, Some(DataFrameReaderOptions("csv", options)), pipelineContext)
   }
-
 }

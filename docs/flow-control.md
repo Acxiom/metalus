@@ -31,6 +31,11 @@ may be found [here](step-groups.md).
 The fork and join step types are simple constructs that allow processing a list of data in a loop like construct and then 
 joining the results back for further processing. More information may be found [here](fork-join.md).
 
+## [Split/Merge](split-merge.md)
+The split and merge step types allow pipeline designers the ability to run different step sequences in parallel. The 
+merge step is used to indicate where the executions should stop and normal processing resume. More information may be
+found [here](split-merge.md).
+
 ## Stop Execution
 There are two ways to stop pipelines:
 

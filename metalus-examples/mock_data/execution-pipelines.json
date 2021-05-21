@@ -79,7 +79,7 @@
             "value": "!input_separator"
           },
           {
-            "type": "string",
+            "type": "text",
             "name": "schema",
             "required": true,
             "value": "@CREATESCHEMASTEP"
@@ -104,7 +104,7 @@
         "nextStepId": "GROUPDATASTEP",
         "params": [
           {
-            "type": "string",
+            "type": "text",
             "name": "dataFrame",
             "required": true,
             "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
@@ -132,7 +132,7 @@
         "type": "Pipeline",
         "params": [
           {
-            "type": "string",
+            "type": "text",
             "name": "dataFrame",
             "required": true,
             "value": "@MAPFIELDSSTEP"
@@ -163,7 +163,7 @@
         "nextStepId": "GROUPDATASTEP",
         "params": [
           {
-            "type": "string",
+            "type": "text",
             "name": "dataFrame",
             "required": true,
             "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
@@ -195,7 +195,7 @@
         "type": "Pipeline",
         "params": [
           {
-            "type": "string",
+            "type": "text",
             "name": "dataFrame",
             "required": true,
             "value": "@MAPFIELDSSTEP"
@@ -226,7 +226,7 @@
         "nextStepId": "GROUPDATASTEP",
         "params": [
           {
-            "type": "string",
+            "type": "text",
             "name": "dataFrame",
             "required": true,
             "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
@@ -254,7 +254,7 @@
         "type": "Pipeline",
         "params": [
           {
-            "type": "string",
+            "type": "text",
             "name": "dataFrame",
             "required": true,
             "value": "@MAPFIELDSSTEP"
@@ -285,7 +285,7 @@
         "nextStepId": "GROUPDATASTEP",
         "params": [
           {
-            "type": "string",
+            "type": "text",
             "name": "dataFrame",
             "required": true,
             "value": "!ROOT.pipelineParameters.LOAD_DATA_PIPELINE.LOADFILESTEP.primaryReturn"
@@ -314,7 +314,7 @@
         "type": "Pipeline",
         "params": [
           {
-            "type": "string",
+            "type": "text",
             "name": "dataFrame",
             "required": true,
             "value": "@MAPFIELDSSTEP"
@@ -345,7 +345,7 @@
         "nextStepId": "CUSTWRITESTEP",
         "params": [
           {
-            "type": "string",
+            "type": "text",
             "name": "dataFrame",
             "required": true,
             "value": "!PROD.pipelineParameters.EXTRACT_PRODUCT_DATA_PIPELINE.GROUPDATASTEP.primaryReturn"
@@ -376,7 +376,7 @@
         "nextStepId": "CCWRITESTEP",
         "params": [
           {
-            "type": "string",
+            "type": "text",
             "name": "dataFrame",
             "required": true,
             "value": "!CUST.pipelineParameters.EXTRACT_CUSTOMER_DATA_PIPELINE.GROUPDATASTEP.primaryReturn"
@@ -407,7 +407,7 @@
         "nextStepId": "ORDWRITESTEP",
         "params": [
           {
-            "type": "string",
+            "type": "text",
             "name": "dataFrame",
             "required": true,
             "value": "!CC.pipelineParameters.EXTRACT_CREDIT_CARD_DATA_PIPELINE.GROUPDATASTEP.primaryReturn"
@@ -437,7 +437,7 @@
         "type": "Pipeline",
         "params": [
           {
-            "type": "string",
+            "type": "text",
             "name": "dataFrame",
             "required": true,
             "value": "!ORD.pipelineParameters.EXTRACT_ORDER_DATA_PIPELINE.GROUPDATASTEP.primaryReturn"

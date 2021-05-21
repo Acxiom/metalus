@@ -1,45 +1,42 @@
 package com.acxiom.metalus
 
-import java.io.File
-import java.nio.file.Files
-import java.util.jar.JarFile
-
+import com.acxiom.metalus.resolvers.DependencyResolver.copyFileToLocal
 import com.acxiom.metalus.resolvers.{Dependency, DependencyResolver}
 import com.acxiom.pipeline.fs.LocalFileManager
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
 import org.apache.log4j.Logger
 
+import java.io.File
+import java.nio.file.Files
+
 object DependencyManager {
 
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("jar-files", "output-path")))
-    val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).toString.toLowerCase == "true"
-    val localFileManager = new LocalFileManager
     // Get the output directory
     val output = new File(parameters.getOrElse("output-path", "jars").asInstanceOf[String])
     if (!output.exists()) {
       output.mkdirs()
     }
     // Initialize the Jar files
-    val noAuthDownload = parameters.getOrElse("no-auth-download", "false") == "true"
     val fileList = parameters("jar-files").asInstanceOf[String].split(",").toList
-    val credentialProvider = DriverUtils.getCredentialProvider(parameters)
     val initialClassPath = fileList.foldLeft(ResolvedClasspath(List()))((cp, file) => {
       val fileName = file.substring(file.lastIndexOf("/") + 1)
       val artifactName = fileName.substring(0, fileName.lastIndexOf("."))
       val destFile = new File(output, fileName)
       val srcFile = if (file.startsWith("http")) {
-        val http = DriverUtils.getHttpRestClient(file, credentialProvider, Some(noAuthDownload), allowSelfSignedCerts)
-        val input = http.getInputStream("")
+        val http = DependencyResolver.getHttpClientForPath(file, parameters)
+        val input = () => http.getInputStream("")
         val dir = Files.createTempDirectory("metalusJarDownloads").toFile
         val localFile = new File(dir, fileName)
+        val md5Hash = DependencyResolver.getRemoteHash(file, parameters)
         localFile.deleteOnExit()
         dir.deleteOnExit()
         val remoteDate = http.getLastModifiedDate("")
         if (destFile.exists() && remoteDate.getTime > destFile.lastModified()) {
           destFile.delete()
         }
-        if (DependencyResolver.copyJarWithRetry(new LocalFileManager(), input, file, localFile.getAbsolutePath)) {
+        if (DependencyResolver.copyJarWithRetry(new LocalFileManager(), input, file, localFile.getAbsolutePath, md5Hash)) {
           localFile
         } else {
           throw new IllegalStateException(s"Unable to copy jar $file")
@@ -47,7 +44,7 @@ object DependencyManager {
       } else {
         new File(file)
       }
-      copyStepJarToLocal(localFileManager, new JarFile(srcFile), destFile)
+      copyFileToLocal(srcFile, destFile)
       cp.addDependency(Dependency(artifactName, artifactName.split("-")(1), destFile))
     })
     // Get the dependencies
@@ -57,15 +54,6 @@ object DependencyManager {
     val pathPrefix = parameters.getOrElse("path-prefix", "").asInstanceOf[String]
     // Print the classpath to the console
     print(classpath.generateClassPath(pathPrefix, parameters.getOrElse("jar-separator", ",").asInstanceOf[String]))
-  }
-
-  private def copyStepJarToLocal(localFileManager: LocalFileManager, jar: JarFile, outputFile: File) = {
-    if (!outputFile.exists() || outputFile.length() == 0) {
-      DependencyResolver.copyJarWithRetry(localFileManager,
-        localFileManager.getInputStream(jar.getName),
-        jar.getName,
-        outputFile.getAbsolutePath)
-    }
   }
 
   private def resolveDependencies(dependencies: List[Dependency],

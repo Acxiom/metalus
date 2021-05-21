@@ -24,6 +24,7 @@
     <dependencySets>
         <dependencySet>
             <useProjectArtifact>true</useProjectArtifact>
+            <useTransitiveDependencies>false</useTransitiveDependencies>
             <outputDirectory>metalus-utils/libraries</outputDirectory>
         </dependencySet>
     </dependencySets>

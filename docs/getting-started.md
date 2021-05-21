@@ -13,9 +13,7 @@ Below are the basic build commands required to build the Metalus libraries:
 
 |Spark Version|Scala Version|Command|
 |-------------|-------------|-------|
-|2.3          |2.11         |mvn -P spark_2.3 clean install|
 |2.4          |2.11         |mvn clean install|
-|2.4          |2.12         |mvn -P spark_2.4,scala_2.12 clean install|
 |3.0          |2.12         |mvn -P spark_3.0 clean install|
 
 
@@ -25,7 +23,7 @@ This example requires a local Mongo instance to be running. A free version can b
 
 ## Spark Setup
 Download the desired version of [Spark](http://spark.apache.org/downloads.html) and unpack. Metalus supports versions 
-2.3, 2.4 or 3.0.
+2.4 or 3.0.
 
 Start the spark server from the unpacked directory with the following commands:
 

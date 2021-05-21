@@ -3,11 +3,10 @@ package com.acxiom.pipeline
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, ScalaScriptEngine}
 import org.apache.log4j.Logger
 import org.json4s.Formats
-import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
 
 import scala.annotation.tailrec
-import scala.math.ScalaNumericConversions
+import scala.math.{ScalaNumericAnyConversions, ScalaNumericConversions}
 
 object PipelineStepMapper {
   def apply(): PipelineStepMapper = new DefaultPipelineStepMapper
@@ -110,13 +109,33 @@ trait PipelineStepMapper {
   def castToType(value: Any, parameter: Parameter): Any = {
     (value, parameter.`type`.getOrElse("").toLowerCase) match {
       case (_, "text") => value
-      case (r: ScalaNumericConversions, t) => castNumeric(r, t)
+      case (v, "string") => v.toString
+      case (bi: BigInt, "bigint") => bi
+      case (bd: BigDecimal, "bigdecimal") => bd
+      case (r: ScalaNumericAnyConversions, t) => castNumeric(r, t)
+      case (n: Number, t) => castNumeric(n, t)
+      case (c: Char, t) => castNumeric(new scala.runtime.RichChar(c), t)
       case (s: String, t) => castString(s, t)
       case _ => value
     }
   }
 
-  private def castNumeric(number: ScalaNumericConversions, targetType: String): Any = targetType match {
+  private def castNumeric(number: Number, targetType: String): Any = targetType match {
+    case "integer" | "int" => number.intValue()
+    case "long" => number.longValue()
+    case "float" => number.floatValue()
+    case "double" => number.doubleValue()
+    case "byte" => number.byteValue()
+    case "short" => number.shortValue()
+    case "character" | "char" => number.byteValue().toChar
+    case "boolean" => number.longValue() != 0L
+    case "bigint" => BigInt(number.longValue())
+    case "bigdecimal" => BigDecimal(number.doubleValue())
+    case "string" => number.toString
+    case _ => number
+  }
+
+  private def castNumeric(number: ScalaNumericAnyConversions, targetType: String): Any = targetType match {
     case "integer" | "int" => number.toInt
     case "long" => number.toLong
     case "float" => number.toFloat
@@ -326,7 +345,7 @@ trait PipelineStepMapper {
   }
 
   private def containsSpecialCharacters(value: String): Boolean = {
-    "([!@$#&?])".r.findAllIn(value).nonEmpty
+    "([!@$%#&?])".r.findAllIn(value).nonEmpty
   }
 
   @tailrec
@@ -349,7 +368,7 @@ trait PipelineStepMapper {
   private def returnBestValue(value: String,
                               parameter: Parameter,
                               pipelineContext: PipelineContext): Option[Any] = {
-    val embeddedVariables = "([!@$#&?]\\{.*?\\})".r.findAllIn(value).toList
+    val embeddedVariables = "([!@$%#&?]\\{.*?\\})".r.findAllIn(value).toList
 
     if (embeddedVariables.nonEmpty) {
       embeddedVariables.foldLeft(Option[Any](value))((finalValue, embeddedValue) => {
@@ -380,14 +399,30 @@ trait PipelineStepMapper {
   private def processValue(parameter: Parameter, pipelineContext: PipelineContext, pipelinePath: PipelinePath) = {
     pipelinePath.mainValue match {
       case p if List('@', '#').contains(p.headOption.getOrElse("")) => getPipelineParameterValue(pipelinePath, pipelineContext)
-      case r if r.startsWith("$") => mapRuntimeParameter(pipelinePath, parameter, recursive = false, pipelineContext)
-      case r if r.startsWith("?") => mapRuntimeParameter(pipelinePath, parameter, recursive = true, pipelineContext)
+      case r if List('$', '?').contains(r.headOption.getOrElse("")) =>
+        mapRuntimeParameter(pipelinePath, parameter, recursive = r.startsWith("?"), pipelineContext)
       case g if g.startsWith("!") => getGlobalParameterValue(g, pipelinePath.extraPath.getOrElse(""), pipelineContext)
       case g if g.startsWith("&") =>
         logger.debug(s"Fetching pipeline value for ${pipelinePath.mainValue.substring(1)}")
         pipelineContext.pipelineManager.getPipeline(pipelinePath.mainValue.substring(1))
+      case g if g.startsWith("%") => getCredential(pipelineContext, pipelinePath)
       case o if o.nonEmpty => Some(mapByType(Some(o), parameter, pipelineContext))
       case _ => None
+    }
+  }
+
+  private def getCredential(pipelineContext: PipelineContext, pipelinePath: PipelinePath) = {
+    val credentialName = pipelinePath.mainValue.substring(1)
+    logger.debug(s"Fetching credential: $credentialName")
+    if (pipelineContext.credentialProvider.isDefined) {
+      val credential = pipelineContext.credentialProvider.get.getNamedCredential(credentialName)
+      if (credential.isDefined) {
+        getSpecificValue(credential.get, pipelinePath, Some(true))
+      } else {
+        None
+      }
+    } else {
+      None
     }
   }
 
@@ -467,7 +502,10 @@ trait PipelineStepMapper {
   }
 
   private def getSpecialCharacter(value: String): String = {
-    if (value.startsWith("@") || value.startsWith("$") || value.startsWith("!") || value.startsWith("#") || value.startsWith("&") || value.startsWith("?")) {
+    if (value.startsWith("@") || value.startsWith("$") ||
+      value.startsWith("!") || value.startsWith("#") ||
+      value.startsWith("&") || value.startsWith("?") ||
+      value.startsWith("%")) {
       value.substring(0, 1)
     } else {
       ""
@@ -515,9 +553,7 @@ trait PipelineStepMapper {
 
   private def mapByValue(value: Option[String], parameter: Parameter, pipelineContext: PipelineContext): Any = {
     implicit val formats: Formats = pipelineContext.getJson4sFormats
-    if (value.getOrElse("").startsWith("[") || value.getOrElse("").startsWith("{")) {
-      parse(value.get).values // option 1: using the first byte of the string
-    } else if (value.isDefined) {
+    if (value.isDefined) {
       value.get
     } else if (parameter.defaultValue.isDefined) {
       logger.debug(s"Parameter ${parameter.name.get} has a defaultValue of ${parameter.defaultValue.getOrElse("")}")

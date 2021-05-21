@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>metalus-delta_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
+    <name>${project.artifactId}</name>
+    <description>Metalus Deltalake Step Library</description>
+    <inceptionYear>2021</inceptionYear>
+
+    <parent>
+        <groupId>com.acxiom</groupId>
+        <artifactId>metalus</artifactId>
+        <version>1.8.0-SNAPSHOT</version>
+    </parent>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.acxiom</groupId>
+            <artifactId>metalus-core_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
+            <version>${parent.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.delta</groupId>
+            <artifactId>delta-core_${scala.compat.version}</artifactId>
+            <version>${delta-lake-version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+</project>

@@ -4,7 +4,7 @@ import com.acxiom.pipeline.drivers.StreamingDataParser
 import org.apache.log4j.Logger
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.streaming.{Duration, Milliseconds, Minutes, Seconds, StreamingContext}
+import org.apache.spark.streaming._
 
 object StreamingUtils {
   private val logger = Logger.getLogger(getClass)
@@ -48,16 +48,24 @@ object StreamingUtils {
     }
   }
 
-  def setTerminationState(streamingContext: StreamingContext, parameters: Map[String, Any]):Unit = {
-    if (parameters.contains("terminationPeriod")) { // This is really just used for testing
-      logger.info(s"Streaming Pipeline Driver will terminate after ${parameters("terminationPeriod").asInstanceOf[String]} ms")
-      val terminated = streamingContext.awaitTerminationOrTimeout(parameters("terminationPeriod").asInstanceOf[String].toLong)
-      if (!terminated) {
-        streamingContext.stop(stopSparkContext = false, stopGracefully = true)
+  def setTerminationState(streamingContext: StreamingContext, parameters: Map[String, Any]): Unit = {
+    val commonParameters = DriverUtils.parseCommonParameters(parameters)
+    try {
+      if (parameters.contains("terminationPeriod")) { // This is really just used for testing
+        logger.info(s"Streaming Pipeline Driver will terminate after ${parameters("terminationPeriod").asInstanceOf[String]} ms")
+        val terminated = streamingContext.awaitTerminationOrTimeout(parameters("terminationPeriod").asInstanceOf[String].toLong)
+        if (!terminated) {
+          streamingContext.stop(stopSparkContext = false, stopGracefully = true)
+        }
+      } else {
+        logger.info("Streaming Pipeline Driver will wait until process is killed")
+        streamingContext.awaitTermination()
       }
-    } else {
-      logger.info("Streaming Pipeline Driver will wait until process is killed")
-      streamingContext.awaitTermination()
+    } catch {
+      case t: Throwable if commonParameters.terminateAfterFailures =>
+        streamingContext.stop(stopSparkContext = true, stopGracefully = true)
+        throw t
+      case t: Throwable => throw t
     }
   }
 

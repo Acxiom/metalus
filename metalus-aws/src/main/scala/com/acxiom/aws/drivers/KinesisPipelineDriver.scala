@@ -1,7 +1,5 @@
 package com.acxiom.aws.drivers
 
-import java.util.Date
-
 import com.acxiom.aws.utils.{AWSCredential, KinesisUtilities}
 import com.acxiom.pipeline.CredentialProvider
 import com.acxiom.pipeline.drivers.DriverSetup
@@ -10,10 +8,11 @@ import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionIn
 import com.amazonaws.services.kinesis.model.Record
 import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Row
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.kinesis.{KinesisInitialPositions, KinesisInputDStream, SparkAWSCredentials}
 import org.apache.spark.streaming.{Duration, StreamingContext, Time}
+
+import java.util.Date
 
 /**
   * Provides a driver that listens to a kafka cluster and one or more topics.
@@ -63,7 +62,7 @@ object KinesisPipelineDriver {
     // Handle multiple shards
     val numShards = kinesisClient.describeStream(parameters("streamName").asInstanceOf[String]).getStreamDescription.getShards.size
     logger.info("Number of Kinesis shards is : " + numShards)
-    val numStreams = parameters.getOrElse("consumerStreams", numShards).asInstanceOf[Int]
+    val numStreams = parameters.getOrElse("consumerStreams", numShards).asInstanceOf[String].toInt
     // Create the Kinesis DStreams
     val kinesisStreams = createKinesisDStreams(credentialProvider, appName, duration, streamingContext, numStreams, region, streamName)
     logger.info("Created " + kinesisStreams.size + " Kinesis DStreams")

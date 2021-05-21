@@ -1,0 +1,12 @@
+{
+  "maven": {
+    "libraries": [
+      {
+        "groupId": "io.delta",
+        "artifactId": "delta-core_${scala.compat.version}",
+        "version": "${delta-lake-version}",
+        "scope": "extraction,deltalake"
+      }
+    ]
+  }
+}

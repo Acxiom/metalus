@@ -1,13 +1,13 @@
 package com.acxiom.pipeline.steps
 
-import java.nio.file.{Files, Path}
-
 import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
+
+import java.nio.file.{Files, Path}
 
 class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
   val MASTER = "local[2]"
@@ -314,7 +314,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       import spark.implicits._
       val chickens = Seq((1, 1, "chicken 1"), (2, 3, "chicken 2"), (3, 3, "chicken 3")).toDF("id", "breed_id", "name")
       val breeds = Seq((1, "silkie", 5), (2, "polish", 4), (3, "sultan", 4)).toDF("id", "name", "toes")
-      val res = TransformationSteps.join(chickens, breeds, Some("left.breed_id = right.id"), pipelineContext = pipelineContext)
+      val res = DataSteps.join(chickens, breeds, Some("left.breed_id = right.id"), pipelineContext = pipelineContext)
       res.selectExpr("left.id", "left.name", "right.name as breed", "toes")
         .collect()
         .map(r => r.getInt(0) -> (r.getString(1), r.getString(2), r.getInt(3))).toMap
@@ -346,7 +346,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
         (0, 1),
         (0, 0)
       )
-      val res = TransformationSteps.join(df, df, None, Some("df1"), Some("df2"), Some("cross"), pipelineContext)
+      val res = DataSteps.join(df, df, None, Some("df1"), Some("df2"), Some("cross"), pipelineContext)
         .selectExpr("df1.p0", "df2.p0 as p1")
         .collect()
         .map(r => (r.getInt(0), r.getInt(1)))
@@ -364,7 +364,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
         ("sex-link", 2L),
         ("silkie", 1L)
       )
-      val res = TransformationSteps.groupBy(df, List("breed"), List("count(breed) as chickens"))
+      val res = DataSteps.groupBy(df, List("breed"), List("count(breed) as chickens"))
         .sort("breed")
         .collect()
         .map(r => (r.getString(0), r.getLong(1)))
@@ -376,9 +376,9 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       val df1 = sparkSession.sql("select 1 as id, 'silkie' as name")
       val df2 = sparkSession.sql("select 'polish' as name, 2 as id")
       val expected = List((1, "silkie"), (2,"polish"))
-      val res = TransformationSteps.union(df1, df2, Some(false))
+      val res = DataSteps.union(df1, df2, Some(false))
       assert(res.collect().map(r => (r.getInt(0), r.getString(1))).toList == expected)
-      assert(TransformationSteps.union(res, df1)
+      assert(DataSteps.union(res, df1)
         .asInstanceOf[DataFrame]
         .collect()
         .map(r => (r.getInt(0), r.getString(1))).toList == expected)
@@ -434,10 +434,49 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       assert(df.count == 3)
       assert(df.where("id <= 0").count == 1)
       Then("run dataframe through apply filter logic")
-      val newDF = TransformationSteps.applyFilter(df, "id > 0")
+      val newDF = DataSteps.applyFilter(df, "id > 0")
       And("expect the filter to be applied to the output dataframe")
       assert(newDF.count == 2)
       assert(newDF.where("id <= 0").count == 0)
+    }
+
+    it("should count the records in a dataframe") {
+      Given("a dataframe")
+      val df = sparkSession.createDataFrame(Seq(
+        (1, "buster", "dawg", 29483),
+        (2, "rascal", "dawg", 29483),
+        (0, "sophie", "dawg", 29483)
+      )).toDF(
+        "id", "first_name", "1ast_name", "zip"
+      )
+      assert(df.count == 3)
+      val count = DataSteps.getDataFrameCount(df)
+      And("expect the count to match")
+      assert(count == 3)
+    }
+
+    it("should drop duplicate records in a dataframe") {
+      Given("a dataframe with duplicate records")
+      val df = sparkSession.createDataFrame(Seq(
+        (1, "buster", "dawg", 29483),
+        (2, "rascal", "dawg", 29483),
+        (2, "rascal-1", "dawg", 12345),
+        (2, "rascal-2", "dawg", 89099),
+        (0, "sophie", "dawg", 29483)
+      )).toDF(
+        "id", "first_name", "1ast_name", "zip"
+      )
+      assert(df.count == 5)
+      val dedupedDf = DataSteps.dropDuplicateRecords(df, List("id"))
+      And("expect the results to be deduped")
+      assert(dedupedDf.count == 3)
+      assert(dedupedDf.filter("id = 2").count == 1)
+    }
+
+    it("should rename a column") {
+      val res = DataSteps.renameColumn(sparkSession.sql("select 1 as id, 2 as old_name"), "old_name", "new_name")
+      assert(!res.columns.contains("old_name"))
+      assert(res.columns.contains("new_name"))
     }
 
     it("should add unique ids to each row of a dataframe") {
@@ -450,7 +489,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
         "first_name", "1ast_name", "zip"
       )
       Then("add a unique id to the dataframe")
-      val idDf = TransformationSteps.addUniqueIdToDataFrame("id", df)
+      val idDf = DataSteps.addUniqueIdToDataFrame("id", df)
       assert(idDf.count == df.count)
       assert(idDf.columns.contains("ID"))
       val results = idDf.collect
@@ -469,7 +508,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
         "first_name", "1ast_name", "zip"
       )
       Then("add a unique id to the dataframe")
-      val newDf = TransformationSteps.addStaticColumnToDataFrame(df, "file-id", "file-id-0001")
+      val newDf = DataSteps.addStaticColumnToDataFrame(df, "file-id", "file-id-0001")
       assert(newDf.count == df.count)
       assert(newDf.columns.contains("FILE_ID"))
       assert(newDf.where("FILE_ID == 'file-id-0001'").count == df.count)
@@ -480,7 +519,7 @@ class TransformationStepsTests extends FunSpec with BeforeAndAfterAll with Given
       import spark.implicits._
       val df = Seq(1, 0).toDF("p0")
       val thrown = intercept[PipelineException] {
-        TransformationSteps.join(df, df, None, None, None, Some("bad"), pipelineContext)
+        DataSteps.join(df, df, None, None, None, Some("bad"), pipelineContext)
       }
       assert(thrown.getMessage.startsWith("Expression must be provided for all non-cross joins."))
     }

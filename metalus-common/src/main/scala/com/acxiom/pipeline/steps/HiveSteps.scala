@@ -1,54 +1,49 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import org.apache.spark.sql.{DataFrame, Dataset}
 
-@StepObject
+@deprecated("Use CatalogSteps")
 object HiveSteps {
 
-  @StepFunction("3806f23b-478c-4054-b6c1-37f11db58d38",
-    "Read a DataFrame from Hive",
-    "This step will read a dataFrame in a given format from Hive",
-    "Pipeline",
-    "InputOutput")
-  @StepParameters(Map("table" -> StepParameter(None, Some(true), description = Some("The name of the table to read")),
-    "options" -> StepParameter(None, Some(false), description = Some("The DataFrameReaderOptions to use"))))
+  @deprecated("Use CatalogSteps.readDataFrame")
   def readDataFrame(table: String, options: Option[DataFrameReaderOptions] = None, pipelineContext: PipelineContext): DataFrame ={
-    DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext).table(table)
+    CatalogSteps.readDataFrame(table, options, pipelineContext)
   }
 
-  @StepFunction("e2b4c011-e71b-46f9-a8be-cf937abc2ec4",
-    "Write DataFrame to Hive",
-    "This step will write a dataFrame in a given format to Hive",
-    "Pipeline",
-    "InputOutput")
-  @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), description = Some("The DataFrame to write")),
-    "table" -> StepParameter(None, Some(true), description = Some("The name of the table to write to")),
-    "options" -> StepParameter(None, Some(false), description = Some("The DataFrameWriterOptions to use"))))
+  @deprecated("Use CatalogSteps.writeDataFrame")
   def writeDataFrame(dataFrame: Dataset[_], table: String, options: Option[DataFrameWriterOptions] = None): Unit = {
-    DataFrameSteps.getDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions())).saveAsTable(table)
+    CatalogSteps.writeDataFrame(dataFrame, table, options)
   }
 
-  @StepFunction("5874ab64-13c7-404c-8a4f-67ff3b0bc7cf",
-    "Drop Hive Object",
-    "This step will drop an object from the hive meta store",
-    "Pipeline",
-    "InputOutput")
-  @StepParameters(Map("name" -> StepParameter(None, Some(true), description = Some("Name of the object to drop")),
-    "objectType" -> StepParameter(None, Some(false), Some("TABLE"), description = Some("Type of object to drop")),
-    "ifExists" -> StepParameter(None, Some(false), Some("false"), description = Some("Flag to control whether existence is checked")),
-    "cascade" -> StepParameter(None, Some(false), Some("false"), description = Some("Flag to control whether this deletion should cascade"))))
+  @deprecated("Use CatalogSteps.drop")
   def drop(name: String,
            objectType: Option[String] = None,
            ifExists: Option[Boolean] = None,
            cascade: Option[Boolean] = None,
            pipelineContext: PipelineContext): DataFrame = {
-    val cascadable = List("SCHEMA", "DATABASE")
-    val objectName = objectType.getOrElse("TABLE")
-    val ifString = ifExists.collect { case true => "IF EXISTS" }.getOrElse("")
-    val cascadeString = cascade.collect { case true if cascadable.contains(objectName.toUpperCase) => "CASCADE" }.getOrElse("")
-    val sql = s"DROP $objectName $ifString $name $cascadeString"
-    pipelineContext.sparkSession.get.sql(sql)
+    CatalogSteps.drop(name, objectType, ifExists, cascade, pipelineContext)
+  }
+
+  @deprecated("Use CatalogSteps.databaseExists")
+  def databaseExists(name: String, pipelineContext: PipelineContext): Boolean = {
+    CatalogSteps.databaseExists(name, pipelineContext)
+  }
+
+  @deprecated("Use CatalogSteps.tableExists")
+  def tableExists(name: String, database: Option[String] = None, pipelineContext: PipelineContext): Boolean = {
+    CatalogSteps.tableExists(name, database, pipelineContext)
+  }
+
+  @deprecated("Use CatalogSteps.setCurrentDatabase")
+  def setCurrentDatabase(name: String, pipelineContext: PipelineContext): Unit = {
+    CatalogSteps.setCurrentDatabase(name, pipelineContext)
+  }
+
+  @deprecated("Use CatalogSteps.createTable")
+  def createTable(name: String, externalPath: Option[String] = None,
+                  options: Option[DataFrameReaderOptions] = None,
+                  pipelineContext: PipelineContext): DataFrame = {
+    CatalogSteps.createTable(name, externalPath, options, pipelineContext)
   }
 }
