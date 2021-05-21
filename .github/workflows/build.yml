@@ -84,8 +84,9 @@ jobs:
         run: mvn -B -DskipTests=true -P spark_${{ matrix.spark }} clean install
       - name: Setup Singing Key
         run: |
+          export GPG_TTY=$(tty)
           openssl aes-256-cbc -K ${{ secrets.SIGNING_ASC_KEY }} -iv ${{ secrets.SIGNING_ASC_IV }} -in deployment/acxsigningkey.asc.enc -out deployment/acxsigningkey.asc -d
-          gpg --keyring=deployment/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
+          gpg --batch --keyring=deployment/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
           gpg --secret-keyring=deployment/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
       - name: Deploy Maven Central
         env:
