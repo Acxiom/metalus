@@ -84,7 +84,7 @@ jobs:
         run: mvn -B -DskipTests=true -P spark_${{ matrix.spark }} clean install
       - name: Setup Singing Key
         run: |
-          apt install gpg1
+          sudo apt-get -y install gnupg1
           openssl aes-256-cbc -K ${{ secrets.SIGNING_ASC_KEY }} -iv ${{ secrets.SIGNING_ASC_IV }} -in deployment/acxsigningkey.asc.enc -out deployment/acxsigningkey.asc -d
           gpg1 --keyring=deployment/pubring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
           gpg1 --secret-keyring=deployment/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
