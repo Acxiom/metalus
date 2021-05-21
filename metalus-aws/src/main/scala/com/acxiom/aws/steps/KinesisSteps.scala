@@ -26,7 +26,7 @@ object KinesisSteps {
                     separator: String = ",",
                     accessKeyId: Option[String] = None,
                     secretAccessKey: Option[String] = None): Unit = {
-    val index = determinPartitionKey(dataFrame, partitionKey)
+    val index = determinePartitionKey(dataFrame, partitionKey)
     dataFrame.rdd.foreach(row => {
       val rowData = row.mkString(separator)
       val key = row.getAs[Any](index).toString
@@ -49,12 +49,12 @@ object KinesisSteps {
                   partitionKey: String,
                   separator: String = ",",
                   pipelineContext: PipelineContext): Unit = {
-    val index = determinPartitionKey(dataFrame, partitionKey)
-    val creds = AWSUtilities.getAWSCredentials(pipelineContext.credentialProvider)
+    val index = determinePartitionKey(dataFrame, partitionKey)
+    val creds = AWSUtilities.getAWSCredential(pipelineContext.credentialProvider)
     dataFrame.rdd.foreach(row => {
       val rowData = row.mkString(separator)
       val key = row.getAs[Any](index).toString
-      postMessage(rowData, region, streamName, key,  creds._1, creds._2)
+      KinesisUtilities.postMessageWithCredentials(rowData, region, streamName, key, creds)
     })
   }
 
@@ -72,8 +72,8 @@ object KinesisSteps {
                   streamName: String,
                   partitionKey: String,
                   pipelineContext: PipelineContext): Unit = {
-    val creds = AWSUtilities.getAWSCredentials(pipelineContext.credentialProvider)
-    postMessage(message, region, streamName, partitionKey, creds._1, creds._2)
+    val creds = AWSUtilities.getAWSCredential(pipelineContext.credentialProvider)
+    KinesisUtilities.postMessageWithCredentials(message, region, streamName, partitionKey, creds)
   }
 
   @StepFunction("3079d815-9105-4194-a8f1-6546531b3373",
@@ -102,7 +102,7 @@ object KinesisSteps {
     * @param partitionKey The field name of the column to use for the key value.
     * @return The column index or zero id the column name is not found.
     */
-  private def determinPartitionKey(dataFrame: DataFrame, partitionKey: String): Int = {
+  private def determinePartitionKey(dataFrame: DataFrame, partitionKey: String): Int = {
     if (dataFrame.schema.isEmpty) {
       0
     } else {
