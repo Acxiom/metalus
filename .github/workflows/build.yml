@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest ]
-        spark: [ '2.4', '3.0' ]
+        spark: [ '2.4_2.11', '2.4_2.12', '3.0_2.12' ]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Source Checkout
@@ -28,10 +28,16 @@ jobs:
         with:
           path: ~/.m2
           key: metalus-build-${{ env.cache-name }}
+      - id: get-versions
+        run: |
+          spark=$(echo ${{matrix.spark}} | cut -d_ -f1)
+          scala=$(echo ${{matrix.spark}} | cut -d_ -f2)
+          echo "::set-output name=spark::$spark"
+          echo "::set-output name=scala::$scala"
       - name: Build with Maven
         env:
           SPARK_LOCAL_IP: 127.0.0.1
-        run: mvn -B -P spark_${{ matrix.spark }} clean install
+        run: mvn -B -P spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }} clean install
   code_quality:
     name: Code Quality
     needs: build
@@ -62,7 +68,7 @@ jobs:
     needs: [code_quality]
     strategy:
       matrix:
-        spark: [ '2.4', '3.0' ]
+        spark: [ '2.4_2.11', '2.4_2.12', '3.0_2.12' ]
     runs-on: ubuntu-latest
     steps:
       - name: Source Checkout
@@ -78,10 +84,16 @@ jobs:
         with:
           path: ~/.m2
           key: metalus-build-${{ env.cache-name }}
+      - id: get-versions
+        run: |
+          spark=$(echo ${{matrix.spark}} | cut -d_ -f1)
+          scala=$(echo ${{matrix.spark}} | cut -d_ -f2)
+          echo "::set-output name=spark::$spark"
+          echo "::set-output name=scala::$scala"
       - name: Remove SNAPSHOT
-        run: mvn -B -P spark_${{ matrix.spark }} versions:set -DremoveSnapshot
+        run: mvn -B -P spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }} versions:set -DremoveSnapshot
       - name: Build with Release
-        run: mvn -B -DskipTests=true -P spark_${{ matrix.spark }} clean install
+        run: mvn -B -DskipTests=true -P spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }}} clean install
       - name: Setup Singing Key
         run: |
           sudo apt-get -y install gnupg1
@@ -92,13 +104,7 @@ jobs:
         env:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-        run: mvn --settings deployment/release-settings.xml -pl metalus-core,metalus-aws,metalus-common,metalus-gcp,metalus-kafka,metalus-mongo,metalus-delta,metalus-utils -B -P release,spark_${{ matrix.spark }} -DskipTests=true -Dgpg.executable=gpg1 -Dgpg.keyname=E08709FDFF083D6D -Dgpg.passphrase=${{ secrets.SIGNING_KEY_PASSPHRASE }} -Dgpg.publicKeyring=deployment/pubring.gpg -Dgpg.secretKeyring=deployment/secring.gpg deploy
-      - name: Set Scala Version 2.11
-        run: echo "SCALA_VERSION=2.11" >> $GITHUB_ENV
-        if: matrix.spark == '2.4'
-      - name: Set Scala Version 2.12
-        run: echo "SCALA_VERSION=2.12" >> $GITHUB_ENV
-        if: matrix.spark == '3.0'
+        run: mvn --settings deployment/release-settings.xml -pl metalus-core,metalus-aws,metalus-common,metalus-gcp,metalus-kafka,metalus-mongo,metalus-delta,metalus-utils -B -P release,spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }} -DskipTests=true -Dgpg.executable=gpg1 -Dgpg.keyname=E08709FDFF083D6D -Dgpg.passphrase=${{ secrets.SIGNING_KEY_PASSPHRASE }} -Dgpg.publicKeyring=deployment/pubring.gpg -Dgpg.secretKeyring=deployment/secring.gpg deploy
       - name: Set Metalus Version
         run: |
           echo 'METALUS_VERSION<<EOF' >> $GITHUB_ENV
@@ -107,13 +113,13 @@ jobs:
       - name: Upload Application Jar
         uses: actions/upload-artifact@v2
         with:
-          name: metalus-application_${{ env.SCALA_VERSION }}-spark_${{ matrix.spark }}-${{ env.METALUS_VERSION }}.jar
-          path: metalus-application/target/metalus-application_${{ env.SCALA_VERSION }}-spark_${{ matrix.spark }}-${{ env.METALUS_VERSION }}.jar
+          name: metalus-application_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.jar
+          path: metalus-application/target/metalus-application_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.jar
       - name: Upload Application Utils
         uses: actions/upload-artifact@v2
         with:
-          name: metalus-utils_${{ env.SCALA_VERSION }}-spark_${{ matrix.spark }}-${{ env.METALUS_VERSION }}.tar.gz
-          path: metalus-utils/target/metalus-utils_${{ env.SCALA_VERSION }}-spark_${{ matrix.spark }}-${{ env.METALUS_VERSION }}.tar.gz
+          name: metalus-utils_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.tar.gz
+          path: metalus-utils/target/metalus-utils_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.tar.gz
   release_github:
     name: Github Release
     needs: release
@@ -147,6 +153,14 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: metalus-utils_2.11-spark_2.4-${{ env.METALUS_VERSION }}.tar.gz
+      - name: Download Application Jar Spark 2.4 Scala 2.12
+        uses: actions/download-artifact@v2
+        with:
+          name: metalus-application_2.12-spark_2.4-${{ env.METALUS_VERSION }}.jar
+      - name: Download Utils Spark 2.4 Scala 2.12
+        uses: actions/download-artifact@v2
+        with:
+          name: metalus-utils_2.12-spark_2.4-${{ env.METALUS_VERSION }}.tar.gz
       - name: Download Application Jar Spark 3.0
         uses: actions/download-artifact@v2
         with:
@@ -155,6 +169,14 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: metalus-utils_2.12-spark_3.0-${{ env.METALUS_VERSION }}.tar.gz
+#      - name: Download Application Jar Spark 3.1
+#        uses: actions/download-artifact@v2
+#        with:
+#          name: metalus-application_2.12-spark_3.1-${{ env.METALUS_VERSION }}.jar
+#      - name: Download Utils Spark 3.1
+#        uses: actions/download-artifact@v2
+#        with:
+#          name: metalus-utils_2.12-spark_3.1-${{ env.METALUS_VERSION }}.tar.gz
       - name: Create Github Release
         uses: "marvinpinto/action-automatic-releases@latest"
         with:

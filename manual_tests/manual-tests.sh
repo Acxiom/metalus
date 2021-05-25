@@ -35,6 +35,15 @@ validateResult ${?} "Failed Spark Test"
 manual_tests/metadata-extractor-test.sh $1
 validateResult ${?} "Failed Metadata Extractor Test"
 
+# 3.1
+#echo "Testing Spark 3.1"
+#mvn -P spark_3.1 clean install
+#validateResult ${?} "Failed to build project"
+#manual_tests/spark-test.sh
+#validateResult ${?} "Failed Spark Test"
+#manual_tests/metadata-extractor-test.sh $1
+#validateResult ${?} "Failed Metadata Extractor Test"
+
 # Set the version back to the original
 version=`mvn -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec`
 mvn versions:set -DnewVersion="${version}-SNAPSHOT"
