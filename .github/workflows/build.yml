@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest ]
-        spark: [ '2.4_2.11', '2.4_2.12', '3.0_2.12' ]
+        spark: [ '2.4_2.11', '2.4_2.12', '3.0_2.12', '3.1_2.12' ]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Source Checkout
@@ -68,7 +68,7 @@ jobs:
     needs: [code_quality]
     strategy:
       matrix:
-        spark: [ '2.4_2.11', '2.4_2.12', '3.0_2.12' ]
+        spark: [ '2.4_2.11', '2.4_2.12', '3.0_2.12', '3.1_2.12' ]
     runs-on: ubuntu-latest
     steps:
       - name: Source Checkout
@@ -169,14 +169,14 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: metalus-utils_2.12-spark_3.0-${{ env.METALUS_VERSION }}.tar.gz
-#      - name: Download Application Jar Spark 3.1
-#        uses: actions/download-artifact@v2
-#        with:
-#          name: metalus-application_2.12-spark_3.1-${{ env.METALUS_VERSION }}.jar
-#      - name: Download Utils Spark 3.1
-#        uses: actions/download-artifact@v2
-#        with:
-#          name: metalus-utils_2.12-spark_3.1-${{ env.METALUS_VERSION }}.tar.gz
+      - name: Download Application Jar Spark 3.1
+        uses: actions/download-artifact@v2
+        with:
+          name: metalus-application_2.12-spark_3.1-${{ env.METALUS_VERSION }}.jar
+      - name: Download Utils Spark 3.1
+        uses: actions/download-artifact@v2
+        with:
+          name: metalus-utils_2.12-spark_3.1-${{ env.METALUS_VERSION }}.tar.gz
       - name: Create Github Release
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
