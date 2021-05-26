@@ -35,17 +35,46 @@ To build the project using Scala 2.12 and Spark 3.0 run:
 
 (This will clean, build, test and package the jars and generate documentation)
 
-## Running tests
-In addition to the unit tests that are part of the main build, a set of manual tests are available
-that will build the project for each version, verify the Metadata Extractor and run the example 
-application against the appropriate Spark version. Mongo will need to be installed and on the path.
+## Integration Tests
+The integration test harness will build the code against each specific version combination. Four versions of Metalus
+are tested:
 
-Command to execute manual test:
+* 2.4
+* 2.4_2.12 (does not run manual tests)
+* 3.0
+* 3.1
+* all (default)
+
+The command to execute these tests is **manual-tests.sh** and has two optional parameters:
+* --save-metadata: Save the generated metadata to the _metadata_templates_ directory.
+* --version: Specify one of the versions to execute. Default is 'all'.
+
+The tests consist of 3 stages:
+
+### Compile and Unit test
+The code will be built against a specific version and then unit tests will be executed.
+### Spark Server test
+This test will run the code built in the previous step against a Spark and Mongo server. Mongo must be 
+installed and on the path. The test will look to see if the proper version of the Spark server is available
+before downloading and extracting. Once the server and forked Mongo process are running, the test will run
+a basic application to load data from a provided file, do some processing and then write the output to Mongo
+where it will be validated.
+### Metadata Extractor test
+The [Metadata Extractor](metadata-extractor.md) will run against each of the [step libraries](step-libraries.md) and compare
+the output against a known good set. Any changes/additions to the step library will require the known set to be updated.
+
+### Example Commands
+#### Base:
 ```shell
-manual_tests/manual-tests.sh
+./manual-tests.sh
 ```
-
-Command to execute manual test and keep the generated metadata:
+#### Save Metadata
+This command will run all versions and save the metadata generated in the [Metadata Extarctor test](#metadata-extractor-test)
+to the _metadata_templates_ directory.
 ```shell
-manual_tests/manual-tests.sh true
+./manual-tests.sh --save-metadata true
+```
+#### Run a single verson
+```shell
+./manual-tests.sh --version 3.1
 ```
