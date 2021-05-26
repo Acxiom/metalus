@@ -61,7 +61,7 @@ fi
 if [[ "${buildVersion}" == "2.4_2.12" || "${buildVersion}" == "all" ]]
 then
   echo "Testing Spark 2.4 Scala 2.12"
-  mvn clean install
+  mvn -P spark_2.4,scala_2.12 clean install
   validateResult ${?} "Failed to build project"
   manual_tests/metadata-extractor-test.sh $storeMetadata
   validateResult ${?} "Failed Metadata Extractor Test"
