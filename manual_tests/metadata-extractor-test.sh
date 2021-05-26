@@ -45,6 +45,7 @@ jarFiles+=`ls $dir/metalus-delta/target/metalus-delta*.jar | grep -v javadoc`
 mkdir $tmpDir/staging
 $tmpDir/metalus-utils/bin/metadata-extractor.sh \
 --output-path $tmpDir/staging \
+--extractors com.acxiom.metalus.executions.ExecutionsMetadataExtractor,com.acxiom.metalus.applications.ApplicationsMetadataExtractor \
 --jar-files $jarFiles \
 --no-auth-download true \
 --repo ~/.m2 \

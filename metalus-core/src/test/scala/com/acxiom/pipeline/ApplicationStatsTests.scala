@@ -1,8 +1,10 @@
 package com.acxiom.pipeline
 
+import com.acxiom.pipeline.utils.ReflectionUtils
 import org.apache.spark.scheduler._
 import org.joda.time.DateTime
 import org.scalatest.FunSpec
+
 import scala.collection.mutable
 
 
@@ -19,8 +21,7 @@ class ApplicationStatsTests extends FunSpec {
 
       // create stages for job 0
       val initStagesJob0 = (0 to 4).map(x => {
-        new StageInfo(x, 1, s"test-stage-$x", 1, Seq(), Seq(), s"init-details"
-        )
+        createStageInfo(x, 1, "init-details")
       })
       val jobStart = SparkListenerJobStart(0, currTime.getMillis, initStagesJob0)
 
@@ -35,8 +36,7 @@ class ApplicationStatsTests extends FunSpec {
 
       // create stages for job 1
       val initStagesJob1 = (5 to 7).map(x => {
-        new StageInfo(x, 2, s"test-stage-$x", 1, Seq(), Seq(), s"init-details"
-        )
+        createStageInfo(x, 2, "init-details")
       })
 
       stats.startJob(jobStart.copy(jobId = 1, stageInfos = initStagesJob1), execInfo.copy(stepId=Some("step-2")))
@@ -46,8 +46,7 @@ class ApplicationStatsTests extends FunSpec {
 
       // create stages for job 2 (for step-1)
       val initStagesJob2 = (8 to 9).map(x => {
-        new StageInfo(x, 2, s"test-stage-$x", 1, Seq(), Seq(), s"init-details"
-        )
+        createStageInfo(x, 2, "init-details")
       })
 
       stats.startJob(jobStart.copy(jobId = 2, stageInfos = initStagesJob2), execInfo.copy(stepId=Some("step-2")))
@@ -57,7 +56,7 @@ class ApplicationStatsTests extends FunSpec {
 
       // update the stages
       (0 to 6).foreach(x => {
-        val updatedStageInfo = new StageInfo(x, 1, s"test-stage-$x", 1, Seq(), Seq(), s"updated-details")
+        val updatedStageInfo = createStageInfo(x, 1, "updated-details")
         stats.endStage(SparkListenerStageCompleted(updatedStageInfo))
       })
 
@@ -142,5 +141,18 @@ class ApplicationStatsTests extends FunSpec {
       stats.reset()
       assert(!stats.isActive)
     }
+  }
+
+  def createStageInfo(stageId: Int, attemptId: Int, details: String): StageInfo = {
+    ReflectionUtils.loadClass("org.apache.spark.scheduler.StageInfo", Some(Map[String, Any](
+      "stageId" -> stageId,
+      "attemptId" -> attemptId,
+      "name" -> s"test-stage-$stageId",
+      "numTasks" -> 1,
+      "rddInfos" -> Seq.empty,
+      "parentIds" -> Seq.empty,
+      "details" -> details,
+      "resourceProfileId" -> 0
+    ))).asInstanceOf[StageInfo]
   }
 }
