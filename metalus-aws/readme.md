@@ -25,6 +25,10 @@ Only one of the scopes is needed.
 * [S3Steps](docs/s3steps.md)
 * [KinesisSteps](docs/kinesissteps.md)
 
+## Pipelines/Step Groups
+* [LoadS3Data](docs/loads3data.md)
+* [WriteDataFrameToS3](docs/writedataframetos3.md)
+
 ## Extensions
 * [S3FileManager](docs/s3filemanager.md)
 * [Kinesis Pipeline Driver](docs/kinesispipelinedriver.md)

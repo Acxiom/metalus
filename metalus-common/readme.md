@@ -24,3 +24,6 @@ using Spark.
 ## Pipelines/Step Groups
 * [SFTP to HDFS](docs/sftp2hdfs.md)
 * [Download to Bronze HDFS](docs/downloadToBronzeHdfs.md)
+* [LoadToParquet](docs/loadtoparquet.md)
+* [DownloadSFTPToHDFSWithDataFrame](docs/downloadsftptohdfswithdataframe.md)
+* [WriteDataFrameToHDFS](docs/writedataframetohdfs.md)

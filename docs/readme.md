@@ -37,10 +37,15 @@
         * Pipelines/Step Groups
             * [SFTP to HDFS](../metalus-common/docs/sftp2hdfs.md)
             * [Download To Bronze HDFS](../metalus-common/docs/downloadToBronzeHdfs.md)
+            * [DownloadSFTPToHDFSWithDataFrame](../metalus-common/docs/downloadsftptohdfswithdataframe.md)
+            * [WriteDataFrameToHDFS](../metalus-common/docs/writedataframetohdfs.md)
     * [Metalus AWS](../metalus-aws/readme.md)
         * Steps
             * [S3Steps](../metalus-aws/docs/s3steps.md)
             * [KinesisSteps](../metalus-aws/docs/kinesissteps.md)
+        * Pipelines/Step Groups
+            * [LoadS3Data](../metalus-aws/docs/loads3data.md)
+            * [WriteDataFrameToS3](../metalus-aws/docs/writedataframetos3.md)
         * Extensions
             * [S3FileManager](../metalus-aws/docs/s3filemanager.md)
             * [Kinesis Pipeline Driver](../metalus-aws/docs/kinesispipelinedriver.md)

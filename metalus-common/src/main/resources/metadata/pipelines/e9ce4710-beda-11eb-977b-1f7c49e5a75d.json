@@ -1,0 +1,200 @@
+{
+  "id": "e9ce4710-beda-11eb-977b-1f7c49e5a75d",
+  "name": "DownloadSFTPToHDFSWithDataFrame",
+  "category": "step-group",
+  "stepGroupResult": "@LandingFileToDataFrame",
+  "layout": {
+    "CreateSFTPFileManager": {
+      "x": 466.5,
+      "y": 64
+    },
+    "CreateHDFSFileManager": {
+      "x": 466.5,
+      "y": 178
+    },
+    "DownloadFile": {
+      "x": 466.5,
+      "y": 292
+    },
+    "DisconnectSFTPFileManager": {
+      "x": 466.5,
+      "y": 406
+    },
+    "LandingFileToDataFrame": {
+      "x": 466.5,
+      "y": 520
+    }
+  },
+  "steps": [
+    {
+      "id": "CreateSFTPFileManager",
+      "displayName": "Create SFTP FileManager",
+      "description": "Simple function to generate the SFTPFileManager for the remote SFTP file system",
+      "type": "Pipeline",
+      "category": "InputOutput",
+      "params": [
+        {
+          "type": "text",
+          "name": "hostName",
+          "required": false,
+          "value": "!sftp_host"
+        },
+        {
+          "type": "text",
+          "name": "username",
+          "required": false,
+          "value": "!sftp_username"
+        },
+        {
+          "type": "text",
+          "name": "password",
+          "required": false,
+          "value": "!sftp_password"
+        },
+        {
+          "type": "integer",
+          "name": "port",
+          "required": false,
+          "value": "!sftp_port || 22"
+        },
+        {
+          "type": "text",
+          "name": "strictHostChecking",
+          "required": false,
+          "value": false
+        }
+      ],
+      "engineMeta": {
+        "spark": "SFTPSteps.createFileManager",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "stepId": "9d467cb0-8b3d-40a0-9ccd-9cf8c5b6cb38",
+      "nextStepId": "CreateHDFSFileManager"
+    },
+    {
+      "id": "CreateHDFSFileManager",
+      "displayName": "Create HDFS FileManager",
+      "description": "Simple function to generate the HDFSFileManager for the local HDFS file system",
+      "type": "Pipeline",
+      "category": "InputOutput",
+      "params": [],
+      "engineMeta": {
+        "spark": "HDFSSteps.createFileManager",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "stepId": "e4dad367-a506-5afd-86c0-82c2cf5cd15c",
+      "nextStepId": "DownloadFile"
+    },
+    {
+      "id": "DownloadFile",
+      "displayName": "Buffered file copy",
+      "description": "Copy the contents of the source path to the destination path using full buffer sizes. This function will call connect on both FileManagers.",
+      "type": "Pipeline",
+      "category": "InputOutput",
+      "params": [
+        {
+          "type": "text",
+          "name": "srcFS",
+          "required": false,
+          "value": "@CreateSFTPFileManager"
+        },
+        {
+          "type": "text",
+          "name": "srcPath",
+          "required": false,
+          "value": "!sftp_input_path"
+        },
+        {
+          "type": "text",
+          "name": "destFS",
+          "required": false,
+          "value": "@CreateHDFSFileManager"
+        },
+        {
+          "type": "text",
+          "name": "destPath",
+          "required": false,
+          "value": "!{landing_path}/!{fileId}"
+        },
+        {
+          "type": "text",
+          "name": "inputBufferSize",
+          "required": false,
+          "value": "!input_buffer_size || 65536"
+        },
+        {
+          "type": "text",
+          "name": "outputBufferSize",
+          "required": false,
+          "value": "!output_buffer_size || 65536"
+        },
+        {
+          "type": "text",
+          "name": "copyBufferSize",
+          "required": false,
+          "value": "!read_buffer_size || 32768"
+        }
+      ],
+      "engineMeta": {
+        "spark": "FileManagerSteps.copy",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "stepId": "f5a24db0-e91b-5c88-8e67-ab5cff09c883",
+      "nextStepId": "DisconnectSFTPFileManager"
+    },
+    {
+      "id": "DisconnectSFTPFileManager",
+      "displayName": "Disconnect a FileManager",
+      "description": "Disconnects a FileManager from the underlying file system",
+      "type": "Pipeline",
+      "category": "InputOutput",
+      "params": [
+        {
+          "type": "text",
+          "name": "fileManager",
+          "required": false,
+          "value": "@CreateSFTPFileManager"
+        }
+      ],
+      "engineMeta": {
+        "spark": "FileManagerSteps.disconnectFileManager",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "stepId": "3d1e8519-690c-55f0-bd05-1e7b97fb6633",
+      "nextStepId": "LandingFileToDataFrame"
+    },
+    {
+      "id": "LandingFileToDataFrame",
+      "category": "InputOutput",
+      "creationDate": "2021-04-12T15:25:36.180Z",
+      "description": "This step will read a dataFrame from the given HDFS path",
+      "displayName": "Load DataFrame from HDFS path",
+      "engineMeta": {
+        "spark": "HDFSSteps.readFromPath",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "org.apache.spark.sql.DataFrame"
+        }
+      },
+      "params": [
+        {
+          "type": "text",
+          "name": "path",
+          "required": true,
+          "description": "The HDFS path to load data into the DataFrame",
+          "value": "!{landingPath}/!{fileId}"
+        },
+        {
+          "type": "object",
+          "name": "options",
+          "required": false,
+          "className": "com.acxiom.pipeline.steps.DataFrameReaderOptions",
+          "description": "The options to use when loading the DataFrameReader",
+          "value": "!inputReaderOptions"
+        }
+      ],
+      "type": "Pipeline",
+      "stepId": "87db259d-606e-46eb-b723-82923349640f"
+    }
+  ]
+}

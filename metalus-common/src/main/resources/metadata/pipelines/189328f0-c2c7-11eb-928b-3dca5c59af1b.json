@@ -1,0 +1,59 @@
+{
+  "id": "189328f0-c2c7-11eb-928b-3dca5c59af1b",
+  "name": "WriteDataFrameToHDFS",
+  "category": "step-group",
+  "layout": {
+    "WriteToParquetHdfs": {
+      "x": 448.799987792969,
+      "y": 212.483337402344
+    }
+  },
+  "steps": [
+    {
+      "id": "WriteToParquetHdfs",
+      "category": "InputOutput",
+      "description": "This step will write a dataFrame in a given format to HDFS",
+      "displayName": "Write DataFrame to HDFS",
+      "engineMeta": {
+        "spark": "HDFSSteps.writeToPath",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "params": [
+        {
+          "type": "text",
+          "name": "dataFrame",
+          "required": true,
+          "description": "The DataFrame to write",
+          "value": "!inputDataFrame"
+        },
+        {
+          "type": "text",
+          "name": "path",
+          "required": true,
+          "description": "The GCS path to write data",
+          "value": "!{bronzeZonePath}/!{fileId}"
+        },
+        {
+          "type": "object",
+          "name": "options",
+          "required": false,
+          "className": "com.acxiom.pipeline.steps.DataFrameWriterOptions",
+          "description": "The optional DataFrame Options",
+          "value": {
+            "format": "parquet",
+            "saveMode": "Overwrite",
+            "options": {
+              "escapeQuotes": false
+            },
+            "schema": {
+              "attributes": []
+            },
+            "bucketingOptions": {}
+          }
+        }
+      ],
+      "type": "Pipeline",
+      "stepId": "0a296858-e8b7-43dd-9f55-88d00a7cd8fa"
+    }
+  ]
+}
