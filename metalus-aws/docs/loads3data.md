@@ -1,6 +1,6 @@
 [Documentation Home](../../docs/readme.md) | [AWS Home](../readme.md)
 
-# SFTP to HDFS Parquet
+# S3 to DataFrame
 This step group pipeline will load data from an S3 location into a DataFrame. This step 
 group is designed to work with the [LoadToParquet](../../metalus-common/docs/loadtoparquet.md) pipeline.
 

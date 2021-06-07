@@ -27,3 +27,6 @@ using Spark.
 * [LoadToParquet](docs/loadtoparquet.md)
 * [DownloadSFTPToHDFSWithDataFrame](docs/downloadsftptohdfswithdataframe.md)
 * [WriteDataFrameToHDFS](docs/writedataframetohdfs.md)
+
+## Execution Templates
+* [Load SFTP to Bronze HDFS](docs/sftploadtobronze.md)

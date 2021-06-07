@@ -84,7 +84,7 @@
           "type": "text",
           "name": "string",
           "required": true,
-          "value": "!executeColumnCleanup",
+          "value": "!executeColumnCleanup || true",
           "description": "The string to compare"
         },
         {
@@ -156,7 +156,7 @@
           "type": "text",
           "name": "string",
           "required": true,
-          "value": "!addRecordId",
+          "value": "!addRecordId || true",
           "description": "The string to compare"
         },
         {
@@ -235,7 +235,7 @@
           "type": "text",
           "name": "string",
           "required": true,
-          "value": "!addFileId",
+          "value": "!addFileId || true",
           "description": "The string to compare"
         },
         {
