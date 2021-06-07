@@ -6,7 +6,7 @@ import org.json4s.Formats
 import org.json4s.native.Serialization
 
 import scala.annotation.tailrec
-import scala.math.{ScalaNumericAnyConversions, ScalaNumericConversions}
+import scala.math.ScalaNumericAnyConversions
 
 object PipelineStepMapper {
   def apply(): PipelineStepMapper = new DefaultPipelineStepMapper
@@ -216,7 +216,7 @@ trait PipelineStepMapper {
     // Get the value/defaultValue for this parameter
     val value = getParamValue(parameter)
     val returnValue = if (value.isDefined) {
-      value.get match {
+      removeOptions(value) match {
         case s: String =>
           parameter.`type`.getOrElse("none").toLowerCase match {
             case "script" =>
@@ -368,20 +368,23 @@ trait PipelineStepMapper {
   private def returnBestValue(value: String,
                               parameter: Parameter,
                               pipelineContext: PipelineContext): Option[Any] = {
-    val embeddedVariables = "([!@$%#&?]\\{.*?\\})".r.findAllIn(value).toList
+    val embeddedVariables = "([!@$%#&?]\\{.*?})".r.findAllIn(value).toList
 
     if (embeddedVariables.nonEmpty) {
       embeddedVariables.foldLeft(Option[Any](value))((finalValue, embeddedValue) => {
-        finalValue.get match {
+        removeOptions(finalValue) match {
           case valueString: String =>
             val pipelinePath = getPathValues(
-              embeddedValue.replaceAll("\\{", "").replaceAll("\\}", ""), pipelineContext)
+              embeddedValue.replaceAll("\\{", "").replaceAll("}", ""), pipelineContext)
             val retVal = processValue(parameter, pipelineContext, pipelinePath)
             if (retVal.isEmpty && finalValue.get.isInstanceOf[String]) {
               Some(valueString.replace(embeddedValue, "None"))
             } else {
-              if (retVal.get.isInstanceOf[java.lang.Number] || retVal.get.isInstanceOf[String] || retVal.get.isInstanceOf[java.lang.Boolean]) {
-                Some(valueString.replace(embeddedValue, retVal.get.toString))
+              val optionlessVal = removeOptions(retVal)
+              if (optionlessVal.isInstanceOf[java.lang.Number] ||
+                optionlessVal.isInstanceOf[String] ||
+                optionlessVal.isInstanceOf[java.lang.Boolean]) {
+                Some(valueString.replace(embeddedValue, optionlessVal.toString))
               } else {
                 retVal
               }
@@ -393,6 +396,16 @@ trait PipelineStepMapper {
       })
     } else {
       processValue(parameter, pipelineContext, getPathValues(value, pipelineContext))
+    }
+  }
+
+  @tailrec
+  private def removeOptions(value: Any): Any = {
+    value match {
+      case Some(v) if v.isInstanceOf[Option[_]] => removeOptions(v)
+      case Some(v) => v
+      case None => value
+      case v => v
     }
   }
 

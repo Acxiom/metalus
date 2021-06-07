@@ -93,7 +93,9 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       "byte" -> 1.toByte,
       "short" -> 1.toShort,
       "char" -> 1.toChar,
-      "bigdecimal" -> BigDecimal(1)
+      "bigdecimal" -> BigDecimal(1),
+      "string" -> "stringWithinAnOption",
+      "tripleOption" -> Some(Some(Some("stringWithinAnOption")))
     )
 
     val subPipeline = Pipeline(Some("mypipeline"), Some("My Pipeline"))
@@ -110,6 +112,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
     it("should pull the appropriate value for given parameters") {
       val tests = List(
         ("basic string concatenation missing value", Parameter(value = Some("!{bad-value}::concat_value")), "None::concat_value"),
+        ("basic string concatenation with multiple options around value",
+          Parameter(value = Some(Some("!{tripleOption}::concat_value"))), "stringWithinAnOption::concat_value"),
         ("basic string concatenation", Parameter(value = Some("!{pipelineId}::concat_value")), "pipeline-id-3::concat_value"),
         ("embedded string concatenation", Parameter(value = Some("embedded!{pipelineId}::concat_value")), "embeddedpipeline-id-3::concat_value"),
         ("embedded string concatenation in GlobalLink", Parameter(value = Some("!link8")), "embeddedpipeline-id-3::concat_value"),
