@@ -22,14 +22,22 @@ This project contains the core library and is the minimum requirement for any ap
 
 [Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-core_2.11-spark_2.4)
 
+[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-core_2.12-spark_2.4)
+
 [Maven 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-core_2.12-spark_3.0)
+
+[Maven 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-core_2.12-spark_3.1)
 
 ### [Metalus Common Step Library](metalus-common/readme.md)
 This step library contains steps that are considered generic enough to be used in any project.
 
 [Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-common_2.11-spark_2.4)
 
+[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-common_2.12-spark_2.4)
+
 [Maven 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-common_2.12-spark_3.0)
+
+[Maven 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-common_2.12-spark_3.1)
 
 ### [Metalus AWS Step Library](metalus-aws/readme.md)
 This step library contains AWS specific components. The [Kinesis](https://aws.amazon.com/kinesis/) driver provides a 
@@ -37,7 +45,11 @@ basic implementation that gathers data and then initiates the Metalus Pipeline C
 
 [Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-aws_2.11-spark_2.4)
 
+[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_2.4)
+
 [Maven 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_3.0)
+
+[Maven 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_3.1)
 
 ### [Metalus GCP Step Library](metalus-gcp/readme.md)
 This step library contains GCP specific components. The [Pub/Sub](https://cloud.google.com/pubsub/docs/overview) driver provides a 
@@ -45,7 +57,11 @@ basic implementation that gathers data and then initiates the Metalus Pipeline C
 
 [Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-gcp_2.11-spark_2.4)
 
+[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-gcp_2.12-spark_2.4)
+
 [Maven 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-gcp_2.12-spark_3.0)
+
+[Maven 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-gcp_2.12-spark_3.1)
 
 ### [Metalus Kafka Step Library](metalus-kafka/readme.md)
 This step library contains GCP specific components. The [Kafka](https://kafka.apache.org/) driver provides a 
@@ -53,14 +69,22 @@ basic implementation that gathers data and then initiates the Metalus Pipeline C
 
 [Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-kafka_2.11-spark_2.4)
 
+[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-kafka_2.12-spark_2.4)
+
 [Maven 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-kafka_2.12-spark_3.0)
+
+[Maven 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-kafka_2.12-spark_3.1)
 
 ### [Metalus Mongo Step Library](metalus-mongo/readme.md)
 This step library adds support for working with Mongo.
 
 [Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-mongo_2.11-spark_2.4)
 
+[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-mongo_2.12-spark_2.4)
+
 [Maven 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-mongo_2.12-spark_3.0)
+
+[Maven 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-mongo_2.12-spark_3.1)
 
 ### [Metalus Pipeline Examples](metalus-examples/readme.md)
 This project provides several examples to help demonstrate how to use the library.
@@ -70,7 +94,11 @@ This project provides utilities that help work with the project.
 
 [Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-utils_2.11-spark_2.4)
 
+[Maven 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-utils_2.12-spark_2.4)
+
 [Maven 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-utils_2.12-spark_3.0)
+
+[Maven 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-utils_2.12-spark_3.1)
 
 ### [Metalus Application](metalus-application/readme.md)
 This project provides a single jar that can be used to run the application. Additional components provide jars that can be
