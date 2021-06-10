@@ -1,6 +1,6 @@
 [Documentation Home](../../docs/readme.md) | [GCP Home](../readme.md)
 
-# S3FileManager
+# GCSFileManager
 Provides a [FileManager](../../docs/filemanager.md) implementation that works with the GCS file system.  Full
 parameter descriptions are listed below:
 
