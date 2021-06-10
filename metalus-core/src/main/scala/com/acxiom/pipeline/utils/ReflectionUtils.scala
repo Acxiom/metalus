@@ -1,10 +1,9 @@
 package com.acxiom.pipeline.utils
 
-import java.lang.reflect.InvocationTargetException
-
 import com.acxiom.pipeline._
 import org.apache.log4j.Logger
 
+import java.lang.reflect.InvocationTargetException
 import scala.annotation.tailrec
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
@@ -237,17 +236,22 @@ object ReflectionUtils {
         getFinalValue(param.asTerm.typeSignature, value)
       }
 
-      val finalValueType = finalValue match {
-        case v: Option[_] =>
-          if (v.asInstanceOf[Option[_]].isEmpty) "None" else s"Some(${v.asInstanceOf[Option[_]].get.getClass.getSimpleName})"
-        case _ => finalValue.getClass.getSimpleName
-      }
+      val finalValueType = getValueType(finalValue)
       if (validateParameterTypes) {
         validateParamTypeAssignment(runtimeMirror, param, optionType, finalValue, finalValueType, funcName, Some(pipelineProgressInfo))
       }
       logger.debug(s"Mapping parameter to method $funcName,paramName=$name,paramType=${param.typeSignature}," +
         s"valueType=$finalValueType,value=$finalValue")
       finalValue
+    }
+  }
+
+  private def getValueType(finalValue: Any) = {
+    finalValue match {
+      case v: Option[_] =>
+        if (v.asInstanceOf[Option[_]].isEmpty) "None" else s"Some(${v.asInstanceOf[Option[_]].get.getClass.getSimpleName})"
+      case _ if Option(finalValue).isDefined => finalValue.getClass.getSimpleName
+      case _ => "null"
     }
   }
 

@@ -51,6 +51,22 @@ then
   SPARK_HOME=$sparkDir
   jarFiles="${serversDir}/mongo-spark-connector_2.12-3.0.1.jar,${serversDir}/mongodb-driver-sync-4.0.5.jar,${serversDir}/mongodb-driver-core-4.0.5.jar,${serversDir}/bson-4.0.5.jar,"
 fi
+if [[ "${sparkCompat}" == "3.1" ]]
+then
+  if [[ ! -f $serversDir/spark-3.1.1-bin-hadoop2.7.tgz ]]
+  then
+    echo "Downloading 3.0 Spark"
+    curl -L https://downloads.apache.org/spark/spark-3.1.1/spark-3.1.1-bin-hadoop2.7.tgz > $serversDir/spark-3.1.1-bin-hadoop2.7.tgz
+    curl -L https://repo1.maven.org/maven2/org/mongodb/spark/mongo-spark-connector_2.12/3.0.1/mongo-spark-connector_2.12-3.0.1.jar > $serversDir/mongo-spark-connector_2.12-3.0.1.jar
+    curl -L https://repo1.maven.org/maven2/org/mongodb/mongodb-driver-core/4.0.5/mongodb-driver-core-4.0.5.jar > $serversDir/mongodb-driver-core-4.0.5.jar
+    curl -L https://repo1.maven.org/maven2/org/mongodb/mongodb-driver-sync/4.0.5/mongodb-driver-sync-4.0.5.jar > $serversDir/mongodb-driver-sync-4.0.5.jar
+    curl -L https://repo1.maven.org/maven2/org/mongodb/bson/4.0.5/bson-4.0.5.jar > $serversDir/bson-4.0.5.jar
+    tar xf $serversDir/spark-3.1.1-bin-hadoop2.7.tgz --directory $serversDir
+  fi
+  sparkDir="${serversDir}/spark-3.1.1-bin-hadoop2.7"
+  SPARK_HOME=$sparkDir
+  jarFiles="${serversDir}/mongo-spark-connector_2.12-3.0.1.jar,${serversDir}/mongodb-driver-sync-4.0.5.jar,${serversDir}/mongodb-driver-core-4.0.5.jar,${serversDir}/bson-4.0.5.jar,"
+fi
 cd ..
 # Startup Mongo
 mkdir -p $tmpDir/data
