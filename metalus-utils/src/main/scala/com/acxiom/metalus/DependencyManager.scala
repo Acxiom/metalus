@@ -10,6 +10,7 @@ import java.io.File
 import java.nio.file.Files
 
 object DependencyManager {
+  private val logger = Logger.getLogger(getClass)
 
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("jar-files", "output-path")))
@@ -87,7 +88,12 @@ object DependencyManager {
         val artifactId = library("artifactId").asInstanceOf[String]
         val version = library("version").asInstanceOf[String]
         val artifactScopes = library.getOrElse("scope", "runtime").asInstanceOf[String].split(',').toList
-        !dependencies.exists(dep => dep.name == artifactId && dep.version == version) && scopes.exists(artifactScopes.contains)
+        val scopesExists = scopes.exists(artifactScopes.contains)
+        if (!scopesExists) {
+          logger.debug(s"Filtering library: [$artifactId-$version]." +
+            s" Reason: unable to match any artifact scopes: [$artifactScopes] with requested scopes: [$scopes].")
+        }
+        !dependencies.exists(dep => dep.name == artifactId && dep.version == version) && scopesExists
       })
       val updatedDependencyMap = dependencyMap.get(dependencyType).asInstanceOf[Map[String, Any]] + ("libraries" -> filteredLibraries)
       resolver.copyResources(output, updatedDependencyMap, parameters)

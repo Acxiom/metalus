@@ -4,7 +4,7 @@ import java.io.{FileNotFoundException, InputStream, OutputStream}
 
 import com.acxiom.aws.utils.S3Utilities
 import com.acxiom.pipeline.fs.{FileInfo, FileManager}
-import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
+import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials, BasicSessionCredentials}
 import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 
@@ -16,13 +16,24 @@ class S3FileManager(s3Client: AmazonS3, bucket: String) extends FileManager {
   def this(region: String,
            bucket: String,
            accessKeyId: Option[String] = None,
-           secretAccessKey: Option[String] = None) = {
-    this((if (accessKeyId.isDefined && secretAccessKey.isDefined) {
-      AmazonS3ClientBuilder.standard()
-        .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKeyId.get, secretAccessKey.get)))
-    } else {
-      AmazonS3ClientBuilder.standard()
-    }).withRegion(region).build(), bucket)
+           secretAccessKey: Option[String] = None,
+           accountId: Option[String] = None,
+           role: Option[String] = None,
+           partition: Option[String] = None) = {
+    this({
+      val builder = AmazonS3ClientBuilder.standard()
+      if (accountId.isDefined && accountId.get.trim.nonEmpty && role.isDefined && role.get.trim.nonEmpty) {
+        val sessionCredentials = S3Utilities.assumeRole(accountId.get, role.get, partition).getCredentials
+        builder.withCredentials(new AWSStaticCredentialsProvider(new BasicSessionCredentials(sessionCredentials.getAccessKeyId,
+          sessionCredentials.getSecretAccessKey,
+          sessionCredentials.getSessionToken)))
+      } else if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+        builder
+          .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKeyId.get, secretAccessKey.get)))
+      } else {
+        builder
+      }
+      }.withRegion(region).build(), bucket)
   }
 
   /**

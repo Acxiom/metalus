@@ -104,22 +104,19 @@ object KinesisPipelineDriver {
         .storageLevel(StorageLevel.MEMORY_AND_DISK_2)
 
       val cloudWatchBuilder = if (cloudWatchCredential.isDefined) {
-        builder.cloudWatchCredentials(SparkAWSCredentials.builder.basicCredentials(
-            cloudWatchCredential.get.awsAccessKey.get, cloudWatchCredential.get.awsAccessSecret.get).build())
+        builder.cloudWatchCredentials(cloudWatchCredential.get.buildSparkAWSCredentials)
       } else {
         builder
       }
 
       val dynamoDBBuilder = if (dynamoDBCredential.isDefined) {
-        cloudWatchBuilder.dynamoDBCredentials(SparkAWSCredentials.builder.basicCredentials(
-            cloudWatchCredential.get.awsAccessKey.get, cloudWatchCredential.get.awsAccessSecret.get).build())
+        cloudWatchBuilder.dynamoDBCredentials(dynamoDBCredential.get.buildSparkAWSCredentials)
       } else {
         cloudWatchBuilder
       }
 
       val kinesisBuilder = if (awsCredential.isDefined) {
-        dynamoDBBuilder.kinesisCredentials(SparkAWSCredentials.builder.basicCredentials(
-            awsCredential.get.awsAccessKey.get, awsCredential.get.awsAccessSecret.get).build())
+        dynamoDBBuilder.kinesisCredentials(awsCredential.get.buildSparkAWSCredentials)
       } else {
         dynamoDBBuilder
       }
