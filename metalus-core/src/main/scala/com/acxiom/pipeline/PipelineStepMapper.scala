@@ -174,7 +174,7 @@ trait PipelineStepMapper {
       val (params, s) = trimmedScript.splitAt(index)
       val paramString = params.drop(1).dropRight(1).trim
       val parameterMap = if (paramString.nonEmpty) {
-        paramString.split(",").map { p =>
+        paramString.split("[,]+(?![^\\[]*])").map { p =>
           val ret = p.split("""(?<!((?<!\\)\\)):""").map(_.replaceAllLiterally("""\:""", ":").replaceAllLiterally("""\\""", "\\"))
           if(ret.length < 2){
             throw PipelineException(message = Some(s"Unable to execute script: Illegal binding format: [$p]. Expected format: <name>:<value>:<type>"),
