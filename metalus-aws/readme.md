@@ -20,6 +20,12 @@ Only one of the scopes is needed.
 |3.0|aws-java-sdk-s3|1.11.655|extraction,s3
 |3.0|aws-java-sdk-core|1.11.655|extraction,sdk
 |3.0|hadoop-aws|2.7.7|extraction,s3a
+|3.1|spark-streaming-kinesis-asl_2.12|3.0.0|extraction,stream
+|3.1|amazon-kinesis-client|1.12.0|extraction,stream
+|3.1|aws-java-sdk-secretsmanager|1.11.655|extraction,secretsmanager
+|3.1|aws-java-sdk-s3|1.11.655|extraction,s3
+|3.1|aws-java-sdk-core|1.11.655|extraction,sdk
+|3.1|hadoop-aws|2.7.7|extraction,s3a
 
 ## Step Classes
 * [S3Steps](docs/s3steps.md)

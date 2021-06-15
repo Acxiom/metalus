@@ -95,7 +95,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       "char" -> 1.toChar,
       "bigdecimal" -> BigDecimal(1),
       "string" -> "stringWithinAnOption",
-      "tripleOption" -> Some(Some(Some("stringWithinAnOption")))
+      "tripleOption" -> Some(Some(Some("stringWithinAnOption"))),
+      "pipelinesMap" -> List(Map("pipelineId" -> "30273bbb-983b-43ad-a549-6d23f3c0d143"))
     )
 
     val subPipeline = Pipeline(Some("mypipeline"), Some("My Pipeline"))
@@ -190,6 +191,10 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("script with escaped binding",
           Parameter(value = Some(
             """(s:cChickens\:Rule\\:String)(s.toLowerCase.drop(1))"""), `type` = Some("scalascript")), "chickens:rule\\"),
+        ("script with comma in type",
+          Parameter(value = Some(
+            """(pipelines:!pipelinesMap:List[Map[String,Any]]) pipelines.exists(p => p("pipelineId").asInstanceOf[String] == "30273bbb-983b-43ad-a549-6d23f3c0d143")"""),
+            `type` = Some("scalascript")), true),
         ("Casting String global to int", Parameter(value = Some("!numericString"), `type` = Some("int")), 1),
         ("Casting String global to bigInt", Parameter(value = Some("!numericString"), `type` = Some("bigInt")), BigInt(1)),
         ("Casting String global to double", Parameter(value = Some("!numericString"), `type` = Some("double")), 1.0D),
