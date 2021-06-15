@@ -64,7 +64,7 @@ jobs:
         run: mvn -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 -B -DrepoToken=${{ secrets.COVERALLS_REPO_TOKEN }} scoverage:report coveralls:report
   release_pom:
     if: ${{ github.repository == 'Acxiom/metalus' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
-    name: Release
+    name: Release POM
     needs: [ code_quality ]
     runs-on: ubuntu-latest
     steps:
