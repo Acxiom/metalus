@@ -37,7 +37,6 @@ object KinesisUtilities {
     val builder = AmazonKinesisClient.builder()
     val kinesisClient = credentials.map(c => builder.withCredentials(new AWSStaticCredentialsProvider(c)))
       .getOrElse(builder)
-    kinesisClient.withRegion(Regions.fromName(region))
     kinesisClient.withEndpointConfiguration(
       new EndpointConfiguration(s"https://kinesis.$region.amazonaws.com", region))
     kinesisClient.build()

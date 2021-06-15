@@ -22,7 +22,7 @@ class S3FileManager(s3Client: AmazonS3, bucket: String) extends FileManager {
            partition: Option[String] = None) = {
     this({
       val builder = AmazonS3ClientBuilder.standard()
-      if (accountId.isDefined && role.isDefined) {
+      if (accountId.isDefined && accountId.get.trim.nonEmpty && role.isDefined && role.get.trim.nonEmpty) {
         val sessionCredentials = S3Utilities.assumeRole(accountId.get, role.get, partition).getCredentials
         builder.withCredentials(new AWSStaticCredentialsProvider(new BasicSessionCredentials(sessionCredentials.getAccessKeyId,
           sessionCredentials.getSecretAccessKey,

@@ -1,9 +1,7 @@
 package com.acxiom.aws.utils
 
 import com.acxiom.pipeline.Credential
-import com.amazonaws.auth.{AWSCredentials, BasicAWSCredentials, BasicSessionCredentials, DefaultAWSCredentialsProviderChain}
-import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder
-import com.amazonaws.services.securitytoken.model.AssumeRoleRequest
+import com.amazonaws.auth.{AWSCredentials, BasicAWSCredentials, BasicSessionCredentials}
 import org.apache.spark.streaming.kinesis.SparkAWSCredentials
 import org.json4s.native.JsonMethods.parse
 import org.json4s.{DefaultFormats, Formats}
@@ -21,7 +19,7 @@ trait AWSCredential extends Credential {
   def awsRoleARN: Option[String] = {
     val role = awsRole
     val accountId = awsAccountId
-    if (role.isDefined && accountId.isDefined) {
+    if (role.isDefined && role.get.trim.nonEmpty && accountId.isDefined && accountId.get.trim.nonEmpty) {
       Some(S3Utilities.buildARN(accountId.get, role.get, awsPartition))
     } else {
       None
@@ -32,14 +30,14 @@ trait AWSCredential extends Credential {
     val builder = SparkAWSCredentials.builder
     awsRoleARN.map{ arn =>
       val session = sessionName.getOrElse(s"${awsAccountId.get}_${awsRole.get}")
-      externalId.map(id => builder.stsCredentials(arn, session, id)).getOrElse(builder.stsCredentials(arn, session))
+      externalId.filter(_.trim.nonEmpty).map(id => builder.stsCredentials(arn, session, id)).getOrElse(builder.stsCredentials(arn, session))
     }.getOrElse(builder.basicCredentials(awsAccessKey.get, awsAccessSecret.get)).build()
   }
 
   def buildAWSCredentialProvider: AWSCredentials = {
     val role = awsRole
     val accountId = awsAccountId
-    if (role.isDefined && accountId.isDefined) {
+    if (role.isDefined && role.get.trim.nonEmpty && accountId.isDefined && accountId.get.trim.nonEmpty) {
       val sessionCredentials = S3Utilities.assumeRole(accountId.get, role.get, awsPartition, sessionName, externalId).getCredentials
       new BasicSessionCredentials(sessionCredentials.getAccessKeyId,
         sessionCredentials.getSecretAccessKey,

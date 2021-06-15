@@ -123,7 +123,7 @@ object S3Utilities {
     val roleRequest = new AssumeRoleRequest()
       .withRoleArn(arn)
       .withRoleSessionName(sessionName)
-    val withExternalId = externalId.map(roleRequest.withExternalId).getOrElse(roleRequest)
+    val withExternalId = externalId.filter(_.trim.nonEmpty).map(roleRequest.withExternalId).getOrElse(roleRequest)
     val withDuration = duration.map(withExternalId.withDurationSeconds).getOrElse(withExternalId)
     s3Client.assumeRole(withDuration)
   }
