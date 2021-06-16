@@ -23,4 +23,8 @@ object AWSUtilities {
       (None, None)
     }
   }
+
+  def getAWSCredential(credentialProvider: Option[CredentialProvider], credentialName: String = "AWSCredential"): Option[AWSCredential] = {
+    credentialProvider.flatMap(cp => cp.getNamedCredential(credentialName).map(_.asInstanceOf[AWSCredential]))
+  }
 }

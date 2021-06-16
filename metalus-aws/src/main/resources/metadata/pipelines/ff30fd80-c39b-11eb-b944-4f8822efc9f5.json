@@ -1,0 +1,88 @@
+{
+  "id": "ff30fd80-c39b-11eb-b944-4f8822efc9f5",
+  "name": "LoadS3Data",
+  "category": "step-group",
+  "stepGroupResult": "@LoadS3Data",
+  "layout": {
+    "Get_Credentials": {
+      "x": 466.5,
+      "y": 64
+    },
+    "LoadS3Data": {
+      "x": 466.5,
+      "y": 178
+    }
+  },
+  "steps": [
+    {
+      "id": "Get_Credentials",
+      "displayName": "Get Credential",
+      "description": "This step provides access to credentials through the CredentialProvider",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "credentialName",
+          "required": true,
+          "value": "!credentialName",
+          "parameterType": "String",
+          "description": "The dataset containing CSV strings"
+        }
+      ],
+      "engineMeta": {
+        "spark": "CredentialSteps.getCredential",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "com.acxiom.pipeline.Credential"
+        }
+      },
+      "nextStepId": "LoadS3Data",
+      "stepId": "86c84fa3-ad45-4a49-ac05-92385b8e9572"
+    },
+    {
+      "id": "LoadS3Data",
+      "displayName": "Load DataFrame from S3 path",
+      "description": "This step will read a DataFrame from the given S3 path",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "path",
+          "required": true,
+          "value": "!{landingPath}/!{fileId}",
+          "description": "The S3 path to load data"
+        },
+        {
+          "type": "text",
+          "name": "accessKeyId",
+          "required": false,
+          "value": "@Get_Credentials.awsAccessKey",
+          "description": "The optional API key to use for S3 access"
+        },
+        {
+          "type": "text",
+          "name": "secretAccessKey",
+          "required": false,
+          "value": "@Get_Credentials.awsAccessSecret",
+          "description": "The optional API secret to use for S3 access"
+        },
+        {
+          "type": "object",
+          "name": "options",
+          "required": false,
+          "value": "!readOptions",
+          "className": "com.acxiom.pipeline.steps.DataFrameReaderOptions",
+          "description": "The optional DataFrame Options"
+        }
+      ],
+      "engineMeta": {
+        "spark": "S3Steps.readFromPath",
+        "pkg": "com.acxiom.aws.steps",
+        "results": {
+          "primaryType": "org.apache.spark.sql.DataFrame"
+        }
+      },
+      "stepId": "bd4a944f-39ad-4b9c-8bf7-6d3c1f356510"
+    }
+  ]
+}

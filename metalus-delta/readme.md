@@ -9,7 +9,9 @@ Only one of the scopes is needed.
 |Spark|Library|Version|Scopes|
 |------|-------|-------|------|
 |2.4|delta-core_2.11|0.6.1|extraction,deltalake|
+|2.4|delta-core_2.12|0.6.1|extraction,deltalake|
 |3.0|delta-core_2.12|0.8.0|extraction,deltalake|
+|3.1|delta-core_2.12|1.0.0|extraction,deltalake|
 
 ## Step Classes
 * [DeltaLakeSteps](docs/deltalakesteps.md)

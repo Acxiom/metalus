@@ -1,7 +1,7 @@
 package com.acxiom.aws.steps
 
 import com.acxiom.aws.fs.S3FileManager
-import com.acxiom.aws.utils.S3Utilities
+import com.acxiom.aws.utils.{AWSUtilities, S3Utilities}
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameSteps, DataFrameWriterOptions}
@@ -24,16 +24,31 @@ object S3Steps {
     "This step will setup authentication read for DataFrames using the provided key and secret",
     "Pipeline",
     "AWS")
-  @StepParameters(Map("accessKeyId" -> StepParameter(None, Some(true), None, None, None, None, Some("The API key to use for S3 access")),
-    "secretAccessKey" -> StepParameter(None, Some(true), None, None, None, None, Some("The API secret to use for S3 access"))))
-  def setupS3Authentication(accessKeyId: String,
-                            secretAccessKey: String,
+  @StepParameters(Map("accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The API secret to use for S3 access")),
+    "accountId" -> StepParameter(None, Some(false), None, None, None, None, Some("The account id for the assume role request")),
+    "role" -> StepParameter(None, Some(false), None, None, None, None, Some("The role to assume")),
+    "partition" -> StepParameter(None, Some(false), Some("aws"), None, None, None, Some("The partition name"))
+  ))
+  def setupS3Authentication(accessKeyId: Option[String] = None,
+                            secretAccessKey: Option[String] = None,
+                            accountId: Option[String] = None,
+                            role: Option[String] = None,
+                            partition: Option[String] = None,
                             pipelineContext: PipelineContext): Unit = {
     val sc = pipelineContext.sparkSession.get.sparkContext
-    sc.hadoopConfiguration.set("fs.s3n.awsAccessKeyId", accessKeyId)
-    sc.hadoopConfiguration.set("fs.s3n.awsSecretAccessKey", secretAccessKey)
-    sc.hadoopConfiguration.set(s"fs.s3a.access.key", accessKeyId)
-    sc.hadoopConfiguration.set(s"fs.s3a.secret.key", secretAccessKey)
+    if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+      sc.hadoopConfiguration.set("fs.s3n.awsAccessKeyId", accessKeyId.get)
+      sc.hadoopConfiguration.set("fs.s3n.awsSecretAccessKey", secretAccessKey.get)
+      sc.hadoopConfiguration.set(s"fs.s3a.access.key", accessKeyId.get)
+      sc.hadoopConfiguration.set(s"fs.s3a.secret.key", secretAccessKey.get)
+    }
+    if(role.isDefined && accountId.isDefined) {
+      sc.hadoopConfiguration.set("fs.s3a.assumed.role.arn", S3Utilities.buildARN(accountId.get, role.get, partition))
+      sc.hadoopConfiguration.setStrings("spark.hadoop.fs.s3a.aws.credentials.provider",
+        "org.apache.hadoop.fs.s3a.AssumedRoleCredentialProvider",
+        "org.apache.hadoop.fs.s3a.auth.AssumedRoleCredentialProvider")
+    }
     sc.hadoopConfiguration.set(s"fs.s3a.acl.default", "BucketOwnerFullControl")
     sc.hadoopConfiguration.set(s"fs.s3a.canned.acl", "BucketOwnerFullControl")
   }
@@ -50,9 +65,12 @@ object S3Steps {
   def readFromPath(path: String,
                    accessKeyId: Option[String] = None,
                    secretAccessKey: Option[String] = None,
+                   accountId: Option[String] = None,
+                   role: Option[String] = None,
+                   partition: Option[String] = None,
                    options: Option[DataFrameReaderOptions] = None,
                    pipelineContext: PipelineContext): DataFrame = {
-    S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, pipelineContext)
+    S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, accountId, role, partition, pipelineContext)
     DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext)
       .load(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
@@ -69,9 +87,12 @@ object S3Steps {
   def readFromPaths(paths: List[String],
                     accessKeyId: Option[String] = None,
                     secretAccessKey: Option[String] = None,
+                    accountId: Option[String] = None,
+                    role: Option[String] = None,
+                    partition: Option[String] = None,
                     options: Option[DataFrameReaderOptions] = None,
                     pipelineContext: PipelineContext): DataFrame = {
-    S3Utilities.setS3Authorization(paths.head, accessKeyId, secretAccessKey, pipelineContext)
+    S3Utilities.setS3Authorization(paths.head, accessKeyId, secretAccessKey, accountId, role, partition, pipelineContext)
     DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext)
       .load(paths.map(p => S3Utilities.replaceProtocol(p, S3Utilities.deriveProtocol(p))): _*)
   }
@@ -90,9 +111,12 @@ object S3Steps {
                   path: String,
                   accessKeyId: Option[String] = None,
                   secretAccessKey: Option[String] = None,
+                  accountId: Option[String] = None,
+                  role: Option[String] = None,
+                  partition: Option[String] = None,
                   options: Option[DataFrameWriterOptions] = None,
                   pipelineContext: PipelineContext): Unit = {
-    S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, pipelineContext)
+    S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, accountId, role, partition, pipelineContext)
     DataFrameSteps.getDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions()))
       .save(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
@@ -119,8 +143,11 @@ object S3Steps {
   def createFileManager(region: String,
                         bucket: String,
                         accessKeyId: Option[String] = None,
-                        secretAccessKey: Option[String] = None): Option[S3FileManager] = {
-    Some(new S3FileManager(region, bucket, accessKeyId, secretAccessKey))
+                        secretAccessKey: Option[String] = None,
+                        accountId: Option[String] = None,
+                        role: Option[String] = None,
+                        partition: Option[String] = None): Option[S3FileManager] = {
+    Some(new S3FileManager(region, bucket, accessKeyId, secretAccessKey, accountId, role, partition))
   }
 
   /**

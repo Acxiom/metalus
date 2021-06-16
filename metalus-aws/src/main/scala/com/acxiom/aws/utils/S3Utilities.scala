@@ -2,8 +2,11 @@ package com.acxiom.aws.utils
 
 import com.acxiom.pipeline.PipelineContext
 import org.apache.log4j.Logger
-
 import java.net.URI
+
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
+import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder
+import com.amazonaws.services.securitytoken.model.{AssumeRoleRequest, AssumeRoleResult}
 
 object S3Utilities {
   private val logger = Logger.getLogger(getClass)
@@ -35,15 +38,26 @@ object S3Utilities {
   def setS3Authorization(path: String,
                          accessKeyId: Option[String],
                          secretAccessKey: Option[String],
+                         accountId: Option[String] = None,
+                         role: Option[String] = None,
+                         partition: Option[String] = None,
                          pipelineContext: PipelineContext): Unit = {
     if (accessKeyId.isDefined && secretAccessKey.isDefined) {
       logger.debug(s"Setting up S3 authorization for $path")
       val protocol = S3Utilities.deriveProtocol(path)
       val sc = pipelineContext.sparkSession.get.sparkContext
-      sc.hadoopConfiguration.set(s"fs.$protocol.awsAccessKeyId", accessKeyId.get)
-      sc.hadoopConfiguration.set(s"fs.$protocol.awsSecretAccessKey", secretAccessKey.get)
-      sc.hadoopConfiguration.set(s"fs.$protocol.access.key", accessKeyId.get)
-      sc.hadoopConfiguration.set(s"fs.$protocol.secret.key", secretAccessKey.get)
+      if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+        sc.hadoopConfiguration.set(s"fs.$protocol.awsAccessKeyId", accessKeyId.get)
+        sc.hadoopConfiguration.set(s"fs.$protocol.awsSecretAccessKey", secretAccessKey.get)
+        sc.hadoopConfiguration.set(s"fs.$protocol.access.key", accessKeyId.get)
+        sc.hadoopConfiguration.set(s"fs.$protocol.secret.key", secretAccessKey.get)
+      }
+      if(role.isDefined && accountId.isDefined && protocol == "s3a") {
+        sc.hadoopConfiguration.set("fs.s3a.assumed.role.arn", buildARN(accountId.get, role.get, partition))
+        sc.hadoopConfiguration.setStrings("spark.hadoop.fs.s3a.aws.credentials.provider",
+          s"org.apache.hadoop.fs.s3a.AssumedRoleCredentialProvider",
+          "org.apache.hadoop.fs.s3a.auth.AssumedRoleCredentialProvider")
+      }
       sc.hadoopConfiguration.set(s"fs.$protocol.acl.default", "BucketOwnerFullControl")
       sc.hadoopConfiguration.set(s"fs.$protocol.canned.acl", "BucketOwnerFullControl")
     }
@@ -89,5 +103,28 @@ object S3Utilities {
   def registerS3FileSystems(pipelineContext: PipelineContext): Unit = {
     pipelineContext.sparkSession.get.sparkContext.hadoopConfiguration.set("fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
     pipelineContext.sparkSession.get.sparkContext.hadoopConfiguration.set("fs.s3.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
+  }
+
+  def buildARN(accountId: String, role: String, partition: Option[String]): String = {
+    s"arn:${partition.getOrElse("aws")}:iam::$accountId:role/$role"
+  }
+
+  def assumeRole(accountId: String,
+                 role: String,
+                 partition: Option[String] = None,
+                 session: Option[String] = None,
+                 externalId: Option[String] = None,
+                 duration: Option[Integer] = None): AssumeRoleResult = {
+    val arn = buildARN(accountId, role, partition)
+    val sessionName = session.getOrElse(s"${accountId}_$role")
+    val s3Client = AWSSecurityTokenServiceClientBuilder.standard()
+      .withCredentials(new DefaultAWSCredentialsProviderChain())
+      .build()
+    val roleRequest = new AssumeRoleRequest()
+      .withRoleArn(arn)
+      .withRoleSessionName(sessionName)
+    val withExternalId = externalId.filter(_.trim.nonEmpty).map(roleRequest.withExternalId).getOrElse(roleRequest)
+    val withDuration = duration.map(withExternalId.withDurationSeconds).getOrElse(withExternalId)
+    s3Client.assumeRole(withDuration)
   }
 }
