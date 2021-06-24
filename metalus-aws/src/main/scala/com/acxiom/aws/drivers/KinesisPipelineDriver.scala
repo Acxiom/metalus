@@ -9,7 +9,7 @@ import com.amazonaws.services.kinesis.model.Record
 import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.streaming.kinesis.{KinesisInitialPositions, KinesisInputDStream, SparkAWSCredentials}
+import org.apache.spark.streaming.kinesis.{KinesisInitialPositions, KinesisInputDStream}
 import org.apache.spark.streaming.{Duration, StreamingContext, Time}
 
 import java.util.Date
@@ -62,7 +62,7 @@ object KinesisPipelineDriver {
     // Handle multiple shards
     val numShards = kinesisClient.describeStream(parameters("streamName").asInstanceOf[String]).getStreamDescription.getShards.size
     logger.info("Number of Kinesis shards is : " + numShards)
-    val numStreams = parameters.getOrElse("consumerStreams", numShards).asInstanceOf[String].toInt
+    val numStreams = parameters.getOrElse("consumerStreams", numShards).toString.toInt
     // Create the Kinesis DStreams
     val kinesisStreams = createKinesisDStreams(credentialProvider, appName, duration, streamingContext, numStreams, region, streamName)
     logger.info("Created " + kinesisStreams.size + " Kinesis DStreams")

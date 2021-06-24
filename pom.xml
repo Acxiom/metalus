@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.acxiom</groupId>
     <artifactId>metalus</artifactId>
-    <version>1.8.1-SNAPSHOT</version>
+    <version>1.8.2-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <packaging>pom</packaging>
     <description>Metalus Pipeline Library</description>
@@ -379,7 +379,7 @@
             <id>spark_3.1</id>
             <properties>
                 <spark.compat.version>3.1</spark.compat.version>
-                <spark.version>3.1.1</spark.version>
+                <spark.version>3.1.2</spark.version>
                 <json4s.version>3.6.6</json4s.version>
                 <mongo.version>3.0.0</mongo.version>
                 <scala.compat.version>2.12</scala.compat.version>
