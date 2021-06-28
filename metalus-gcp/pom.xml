@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.acxiom</groupId>
         <artifactId>metalus</artifactId>
-        <version>1.8.1-SNAPSHOT</version>
+        <version>1.8.2-SNAPSHOT</version>
     </parent>
 
     <dependencyManagement>
@@ -161,12 +161,8 @@
                         <configuration>
                             <relocations>
                                 <relocation>
-                                    <pattern>com.google.common</pattern>
-                                    <shadedPattern>metalus.com.google.common</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.google.protobuf</pattern>
-                                    <shadedPattern>metalus.com.google.protobuf</shadedPattern>
+                                    <pattern>com.google</pattern>
+                                    <shadedPattern>metalus.com.google</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
