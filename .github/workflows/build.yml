@@ -65,7 +65,7 @@ jobs:
   release_pom:
     if: ${{ github.repository == 'Acxiom/metalus' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
     name: Release POM
-    needs: [ code_quality ]
+    needs: code_quality
     runs-on: ubuntu-latest
     steps:
       - name: Source Checkout
@@ -97,7 +97,7 @@ jobs:
   release:
     if: ${{ github.repository == 'Acxiom/metalus' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
     name: Release
-    needs: [code_quality]
+    needs: code_quality
     strategy:
       matrix:
         spark: [ '2.4_2.11', '2.4_2.12', '3.0_2.12', '3.1_2.12' ]

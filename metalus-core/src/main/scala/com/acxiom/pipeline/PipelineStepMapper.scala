@@ -368,11 +368,12 @@ trait PipelineStepMapper {
   private def returnBestValue(value: String,
                               parameter: Parameter,
                               pipelineContext: PipelineContext): Option[Any] = {
-    val embeddedVariables = "([!@$%#&?]\\{.*?})".r.findAllIn(value).toList
+    val embeddedVariables = "([\\\\]{0,1}[!@$%#&?]\\{.*?})".r.findAllIn(value).toList.sortBy(s => if (s.startsWith("\\")) 1 else -1)
 
     if (embeddedVariables.nonEmpty) {
       embeddedVariables.foldLeft(Option[Any](value))((finalValue, embeddedValue) => {
         removeOptions(finalValue) match {
+          case v: String if embeddedValue.startsWith("\\") => Some(v.replace(embeddedValue, embeddedValue.substring(1)))
           case valueString: String =>
             val pipelinePath = getPathValues(
               embeddedValue.replaceAll("\\{", "").replaceAll("}", ""), pipelineContext)
@@ -384,7 +385,12 @@ trait PipelineStepMapper {
               if (optionlessVal.isInstanceOf[java.lang.Number] ||
                 optionlessVal.isInstanceOf[String] ||
                 optionlessVal.isInstanceOf[java.lang.Boolean]) {
-                Some(valueString.replace(embeddedValue, optionlessVal.toString))
+                val idx = findUnescapedStringIndex(valueString, embeddedValue)
+                if (idx > -1) {
+                  Some(s"${valueString.substring(0, idx)}${optionlessVal.toString}${valueString.substring(idx + embeddedValue.length)}")
+                } else {
+                  Some(valueString.replace(embeddedValue, optionlessVal.toString))
+                }
               } else {
                 retVal
               }
@@ -396,6 +402,20 @@ trait PipelineStepMapper {
       })
     } else {
       processValue(parameter, pipelineContext, getPathValues(value, pipelineContext))
+    }
+  }
+
+  @tailrec
+  private def findUnescapedStringIndex(value: String, pattern: String, startIndex: Int = -Constants.THREE): Int = {
+    val idx = value.indexOf(pattern, startIndex + Constants.TWO)
+    if (idx < Constants.ONE) {
+      idx
+    } else if (value(idx - Constants.ONE) == '\\') {
+      findUnescapedStringIndex(value, pattern, idx)
+    } else if (idx == startIndex) {
+      -Constants.ONE
+    } else {
+      idx
     }
   }
 
@@ -419,8 +439,15 @@ trait PipelineStepMapper {
         logger.debug(s"Fetching pipeline value for ${pipelinePath.mainValue.substring(1)}")
         pipelineContext.pipelineManager.getPipeline(pipelinePath.mainValue.substring(1))
       case g if g.startsWith("%") => getCredential(pipelineContext, pipelinePath)
-      case o if o.nonEmpty => Some(mapByType(Some(o), parameter, pipelineContext))
+      case o if o.nonEmpty => Some(mapByType(removeLeadingEscapeCharacter(Some(o)), parameter, pipelineContext))
       case _ => None
+    }
+  }
+
+  private def removeLeadingEscapeCharacter(value: Option[String]): Option[String] = {
+    value.map {
+      case v if "^\\\\[!@$%#&?].*".r.findAllIn(v).nonEmpty => v.substring(1)
+      case e => e
     }
   }
 

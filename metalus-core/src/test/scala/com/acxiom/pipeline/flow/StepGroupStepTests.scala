@@ -57,9 +57,9 @@ class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       Some(List(Parameter(Some("text"), Some("string"),
         value = Some("!globalOne || !realGlobalOne || ONE")), Parameter(Some("boolean"), Some("boolean"), value = Some(false)))),
       engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunction"))), nextStepId = Some("SUB_PIPELINE_STEP_TWO"))
-    val subPipelineStepTwo = PipelineStep(Some("SUB_PIPELINE_STEP_TWO"), None, None, Some("Pipeline"),
+    val subPipelineStepTwo = PipelineStep(Some("SUB_PIPELINE_STEP_TWO"), Some("Sub Pipeline Step Two"), None, Some("Pipeline"),
       Some(List(Parameter(Some("text"), Some("string"), value = Some("!globalTwo || TWO")), Parameter(Some("boolean"), Some("boolean"), value = Some(false)))),
-      engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunction"))), nextStepId = Some("SUB_PIPELINE_STEP_THREE"))
+      engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepGlobalsUpdateFunction"))), nextStepId = Some("SUB_PIPELINE_STEP_THREE"))
     val subPipelineStepThree = PipelineStep(Some("SUB_PIPELINE_STEP_THREE"), None, None, Some("Pipeline"),
       Some(List(Parameter(Some("text"), Some("string"), value = Some("!globalThree || THREE")),
         Parameter(Some("boolean"), Some("boolean"), value = Some(false)))),
@@ -220,9 +220,18 @@ class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
             value = Some(Map[String, Any]("globalOne" -> "globalOne", "globalTwo" -> "gtwo", "globalThree" -> "3"))))),
         engineMeta = None, nextStepId = Some("PIPELINE_STEP_THREE"))
 
-      val context = SparkTestHelper.generatePipelineContext()
-        .setGlobal("subPipeline", subPipeline.copy(stepGroupResult = Some("@SUB_PIPELINE_STEP_TWO")))
-      val executionResult = PipelineExecutor.executePipelines(List(DefaultPipeline(Some("pipelineId"), Some("Pipeline"), Some(List(
+      val stepGroup = DefaultPipeline(Some("subPipelineId"), Some("Sub Pipeline"), Some(List(
+        subPipelineStepOne,
+        subPipelineStepTwo.copy(params = Some(List(
+          Parameter(Some("text"), Some("string"), value = Some("!globalTwo || TWO")),
+          Parameter(Some("boolean"), Some("boolean"), value = Some(false)),
+          Parameter(Some("text"), Some("global"), value = Some("This global has been updated"))
+        ))),
+        subPipelineStepThree)), category = Some("step-group"),
+        stepGroupResult = Some("@SUB_PIPELINE_STEP_TWO"))
+      val context = SparkTestHelper.generatePipelineContext().setGlobal("subPipeline", stepGroup)
+      val executionResult = PipelineExecutor.executePipelines(List(DefaultPipeline(Some("pipelineId"),
+        Some("Pipeline"), Some(List(
         pipelineStepOne, mappingPipelineStepTwo, pipelineStepThree)))), None, context)
       assert(executionResult.success)
       val ctx = executionResult.pipelineContext
@@ -230,6 +239,8 @@ class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       val response = parameters.parameters("PIPELINE_STEP_TWO").asInstanceOf[PipelineStepResponse]
       assert(response.primaryReturn.contains("gtwo"))
       assert(response.namedReturns.isDefined)
+      assert(ctx.getGlobalString("updatedGlobal").getOrElse("") == "")
+      assert(ctx.getGlobalString("mockGlobal").getOrElse("") == "This global has been updated")
     }
 
     it ("Should detect result script") {

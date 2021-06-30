@@ -171,7 +171,8 @@ case class SplitStepFlow(pipeline: Pipeline,
 case class SplitStepException(errorType: Option[String] = Some("splitStepException"),
                               dateTime: Option[String] = Some(new Date().toString),
                               message: Option[String] = Some(""),
-                              exceptions: Map[String, Throwable] = Map())
+                              exceptions: Map[String, Throwable] = Map(),
+                              context: Option[PipelineContext] = None)
   extends Exception(message.getOrElse(""))
     with PipelineStepException {
   /**
