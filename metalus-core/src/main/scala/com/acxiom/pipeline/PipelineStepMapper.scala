@@ -169,6 +169,7 @@ trait PipelineStepMapper {
       val index = trimmedScript.indexOf(")") + 1
       if(index <= 0) {
         throw PipelineException(message = Some(s"Unable to execute script: Malformed bindings. Expected enclosing character: [)]."),
+          context = Some(pipelineContext),
           pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
       }
       val (params, s) = trimmedScript.splitAt(index)
@@ -178,6 +179,7 @@ trait PipelineStepMapper {
           val ret = p.split("""(?<!((?<!\\)\\)):""").map(_.replaceAllLiterally("""\:""", ":").replaceAllLiterally("""\\""", "\\"))
           if(ret.length < 2){
             throw PipelineException(message = Some(s"Unable to execute script: Illegal binding format: [$p]. Expected format: <name>:<value>:<type>"),
+              context = Some(pipelineContext),
               pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
           }
           ret(0).trim -> (ret(1).trim, if (ret.length == 3) Some(ret(2)) else None)
@@ -191,6 +193,7 @@ trait PipelineStepMapper {
     }
     if (script.trim.isEmpty) {
       throw PipelineException(message = Some(s"Unable to execute script: script is empty. Ensure bindings are properly enclosed."),
+        context = Some(pipelineContext),
         pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
     }
     val engine = new ScalaScriptEngine

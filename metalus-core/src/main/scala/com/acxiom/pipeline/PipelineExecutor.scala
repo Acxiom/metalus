@@ -30,17 +30,17 @@ object PipelineExecutor {
       case fe: ForkedPipelineStepException =>
         fe.exceptions.foreach(entry =>
           logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
-        PipelineExecutionResult(esContext, success = false, paused = false, Some(fe))
+        PipelineExecutionResult(fe.context.getOrElse(esContext), success = false, paused = false, Some(fe))
       case se: SplitStepException =>
         se.exceptions.foreach(entry =>
           logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
-        PipelineExecutionResult(esContext, success = false, paused = false, Some(se))
+        PipelineExecutionResult(se.context.getOrElse(esContext), success = false, paused = false, Some(se))
       case p: PauseException =>
         logger.info(s"Paused pipeline flow at ${p.pipelineProgress.getOrElse(PipelineExecutionInfo()).displayPipelineStepString}. ${p.message}")
-        PipelineExecutionResult(esContext, success = false, paused = true, Some(p))
+        PipelineExecutionResult(p.context.getOrElse(esContext), success = false, paused = true, Some(p))
       case pse: PipelineStepException =>
         logger.error(s"Stopping pipeline because of an exception", pse)
-        PipelineExecutionResult(esContext, success = false, paused = false, Some(pse))
+        PipelineExecutionResult(pse.context.getOrElse(esContext), success = false, paused = false, Some(pse))
       case t: Throwable => throw t
     }
   }

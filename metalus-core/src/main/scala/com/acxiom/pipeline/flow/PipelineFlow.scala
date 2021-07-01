@@ -36,7 +36,9 @@ object PipelineFlow {
                                     pipelines: Option[List[Pipeline]] = None): PipelineStepException = {
     val ex = t match {
       case se: PipelineStepException => se
-      case t: Throwable => PipelineException(message = Some("An unknown exception has occurred"), cause = t,
+      case t: Throwable => PipelineException(message = Some("An unknown exception has occurred"),
+        context = Some(pipelineContext),
+        cause = t,
         pipelineProgress = Some(PipelineExecutionInfo(Some("Unknown"), pipeline.id)))
     }
     if (pipelineContext.pipelineListener.isDefined) {
@@ -184,6 +186,7 @@ trait PipelineFlow {
         sfContext
       } else {
         throw PipelineException(message = Some(s"Step Id (${nextStepId.get}) does not exist in pipeline"),
+          context = Some(sfContext),
           pipelineProgress = Some(PipelineExecutionInfo(nextStepId, Some(sfContext.getGlobalString("pipelineId").getOrElse("")))))
       }
     } else {

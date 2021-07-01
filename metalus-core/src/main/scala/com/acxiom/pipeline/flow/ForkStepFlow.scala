@@ -57,6 +57,7 @@ case class ForkStepFlow(pipeline: Pipeline,
         } else {
           combinedResult.copy(error =
             Some(ForkedPipelineStepException(message = Some("One or more errors has occurred while processing fork step:\n"),
+              context = Some(pipelineContext),
               exceptions = Map(result.index -> result.error.get))))
         }
       } else { combinedResult }

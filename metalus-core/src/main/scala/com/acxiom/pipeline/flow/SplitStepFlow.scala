@@ -21,6 +21,7 @@ case class SplitStepFlow(pipeline: Pipeline,
   override def execute(): FlowResult = {
     if (flows.length < 2) {
       throw PipelineException(message = Some("At least two paths need to be defined to use a split step!"),
+        context = Some(initialContext),
         pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
     }
     val flowSteps = flows.foldLeft(List[PipelineStep]())((list, flow) => {
@@ -29,6 +30,7 @@ case class SplitStepFlow(pipeline: Pipeline,
     flowSteps.groupBy(_.id.get).foreach(step => {
       if (step._2.length > 1) {
         throw PipelineException(message = Some("Step Ids must be unique across split flows!"),
+          context = Some(initialContext),
           pipelineProgress = Some(PipelineExecutionInfo(Some(step._1), pipeline.id)))
       }
     })
@@ -50,6 +52,7 @@ case class SplitStepFlow(pipeline: Pipeline,
       (futures.map(_.value.get.get), None)
     } else {
       throw PipelineException(message = Some("Flows must either terminate at a single merge step or pipeline end!"),
+        context = Some(initialContext),
         pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
     }
     // Merge results once threads complete
@@ -140,6 +143,7 @@ case class SplitStepFlow(pipeline: Pipeline,
         } else {
           combinedResult.copy(error =
             Some(SplitStepException(message = Some("One or more errors has occurred while processing split step:\n"),
+              context = Some(pipelineContext),
               exceptions = Map(result.id -> result.error.get))))
         }
       } else {
