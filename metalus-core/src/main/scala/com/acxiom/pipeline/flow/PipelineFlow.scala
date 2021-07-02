@@ -36,7 +36,9 @@ object PipelineFlow {
                                     pipelines: Option[List[Pipeline]] = None): PipelineStepException = {
     val ex = t match {
       case se: PipelineStepException => se
-      case t: Throwable => PipelineException(message = Some("An unknown exception has occurred"), cause = t,
+      case t: Throwable => PipelineException(message = Some("An unknown exception has occurred"),
+        context = Some(pipelineContext),
+        cause = t,
         pipelineProgress = Some(PipelineExecutionInfo(Some("Unknown"), pipeline.id)))
     }
     if (pipelineContext.pipelineListener.isDefined) {
@@ -57,7 +59,7 @@ object PipelineFlow {
     * @param context The context to be updated
     * @param global The global value to use
     * @param keyName The name of the global value
-    * @return An jupdated PipelineContext
+    * @return An updated PipelineContext
     */
   def updateGlobals(stepName: String, pipelineId: String, context: PipelineContext, global: Any, keyName: String): PipelineContext = {
     if (context.globals.get.contains(keyName)) {
@@ -109,7 +111,7 @@ trait PipelineFlow {
     try {
       val resultPipelineContext = executeStep(pipeline.steps.get.head, pipeline, stepLookup, updatedCtx)
       val messages = resultPipelineContext.getStepMessages
-      processStepMessages(messages, pipelineLookup)
+      processStepMessages(messages, pipelineLookup, resultPipelineContext)
       val auditCtx = resultPipelineContext.setPipelineAudit(
         resultPipelineContext.getPipelineAudit(pipeline.id.get).get.setEnd(System.currentTimeMillis()))
       FlowResult(PipelineFlow.handleEvent(auditCtx, "pipelineFinished", List(pipeline, auditCtx)), None, None)
@@ -124,13 +126,19 @@ trait PipelineFlow {
     * @param messages A list of PipelineStepMessages that need to be processed.
     * @param pipelineLookup A map of Pipelines keyed by the id. This is used to quickly retrieve additional Pipeline data.
     */
-  private def processStepMessages(messages: Option[List[PipelineStepMessage]], pipelineLookup: Map[String, String]): Unit = {
+  private def processStepMessages(messages: Option[List[PipelineStepMessage]],
+                                  pipelineLookup: Map[String, String],
+                                  pipelineContext: PipelineContext): Unit = {
     if (messages.isDefined && messages.get.nonEmpty) {
       messages.get.foreach(m => m.messageType match {
         case PipelineStepMessageType.error =>
-          throw PipelineException(message = Some(m.message), pipelineProgress = Some(PipelineExecutionInfo(Some(m.stepId), Some(m.pipelineId))))
+          throw PipelineException(message = Some(m.message),
+            context = Some(pipelineContext),
+            pipelineProgress = Some(PipelineExecutionInfo(Some(m.stepId), Some(m.pipelineId))))
         case PipelineStepMessageType.pause =>
-          throw PauseException(message = Some(m.message), pipelineProgress = Some(PipelineExecutionInfo(Some(m.stepId), Some(m.pipelineId))))
+          throw PauseException(message = Some(m.message),
+            context = Some(pipelineContext),
+            pipelineProgress = Some(PipelineExecutionInfo(Some(m.stepId), Some(m.pipelineId))))
         case PipelineStepMessageType.warn =>
           logger.warn(s"Step ${m.stepId} in pipeline ${pipelineLookup(m.pipelineId)} issued a warning: ${m.message}")
         case _ =>
@@ -178,6 +186,7 @@ trait PipelineFlow {
         sfContext
       } else {
         throw PipelineException(message = Some(s"Step Id (${nextStepId.get}) does not exist in pipeline"),
+          context = Some(sfContext),
           pipelineProgress = Some(PipelineExecutionInfo(nextStepId, Some(sfContext.getGlobalString("pipelineId").getOrElse("")))))
       }
     } else {

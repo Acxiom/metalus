@@ -1,8 +1,5 @@
 package com.acxiom.pipeline
 
-import java.io.File
-import java.util.Date
-
 import com.acxiom.pipeline.applications.ApplicationUtils
 import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import com.acxiom.pipeline.utils.DriverUtils
@@ -12,6 +9,8 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 
+import java.io.File
+import java.util.Date
 import scala.collection.mutable
 import scala.io.Source
 
@@ -404,6 +403,7 @@ object ExecutionSteps {
 
   def exceptionStep(value: String, pipelineContext: PipelineContext): PipelineStepResponse = {
     throw PipelineException(message = Some("Called exception step"),
+      context = Some(pipelineContext),
       pipelineProgress = Some(PipelineExecutionInfo(pipelineContext.getGlobalString("stepId"),
         pipelineContext.getGlobalString("pipelineId"))))
   }

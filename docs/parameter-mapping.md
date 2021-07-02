@@ -116,6 +116,10 @@ would return
 Multiple values may be embedded as long as the resulting value is a string, boolean
 or number. A return value of an object will log a warning and ignore string concatenation to return the object value.
 
+**Escaping**
+Sometimes there is a need to use a mapping character and not have it get mapped. Adding a backslash before the mapping
+character informs the mapper to ignore that key.
+
 **Calling methods**
 In addition to accessing fields, methods can be called using the same syntax: 
 ```

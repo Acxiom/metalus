@@ -45,6 +45,7 @@ object DataSteps {
         .join(right.as(rightAlias.getOrElse("right")), expr(expression.get), jType)
     } else {
       throw PipelineException(message = Some("Expression must be provided for all non-cross joins."),
+        context = Some(pipelineContext),
         pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
     }
   }

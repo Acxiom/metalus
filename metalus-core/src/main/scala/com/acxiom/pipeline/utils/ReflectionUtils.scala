@@ -238,7 +238,7 @@ object ReflectionUtils {
 
       val finalValueType = getValueType(finalValue)
       if (validateParameterTypes) {
-        validateParamTypeAssignment(runtimeMirror, param, optionType, finalValue, finalValueType, funcName, Some(pipelineProgressInfo))
+        validateParamTypeAssignment(runtimeMirror, param, optionType, finalValue, finalValueType, funcName, Some(pipelineProgressInfo), pipelineContext)
       }
       logger.debug(s"Mapping parameter to method $funcName,paramName=$name,paramType=${param.typeSignature}," +
         s"valueType=$finalValueType,value=$finalValue")
@@ -284,7 +284,8 @@ object ReflectionUtils {
                                           value: Any,
                                           valueType: String,
                                           funcName: String,
-                                          pipelineProgess: Option[PipelineExecutionInfo]): Unit = {
+                                          pipelineProgess: Option[PipelineExecutionInfo],
+                                          pipelineContext: Option[PipelineContext]): Unit = {
     val paramType = if (isOption) param.typeSignature.typeArgs.head else param.typeSignature
     if (!(isOption && value.asInstanceOf[Option[_]].isEmpty) && !(paramType =:= typeOf[Any])) {
       val finalValue = if (isOption) value.asInstanceOf[Option[_]].get else value
@@ -297,7 +298,9 @@ object ReflectionUtils {
         val pipelineMessage = if (pipelineId.isDefined) s"in pipeline [${pipelineId.get}]" else ""
         val message = s"Failed to map value [$value] of type [$valueType] to paramName [${param.name.toString}] of" +
           s" type [${param.typeSignature}] for method [$funcName] $stepMessage $pipelineMessage"
-        throw PipelineException(message = Some(message), pipelineProgress = Some(PipelineExecutionInfo(stepId, pipelineId)))
+        throw PipelineException(message = Some(message),
+          context = pipelineContext,
+          pipelineProgress = Some(PipelineExecutionInfo(stepId, pipelineId)))
       }
     }
   }

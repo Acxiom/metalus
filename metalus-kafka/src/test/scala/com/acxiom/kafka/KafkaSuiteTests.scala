@@ -445,6 +445,7 @@ object MockTestSteps {
 
   def throwError(pipelineContext: PipelineContext): Any = {
     throw PipelineException(message = Some("This step should not be called"),
+      context = Some(pipelineContext),
       pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
   }
 
