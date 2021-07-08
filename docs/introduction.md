@@ -40,21 +40,70 @@ Metalus core provides the base library required to run metalus applications and 
 
 |Spark Version|Scala Version|Library|
 |-------------|-------------|-------|
-|2.4          |2.11         |[Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-core_2.11-spark_2.4)|
-|3.0          |2.12         |[Maven 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-core_2.12-spark_3.0)|
+|2.4          |2.11         |[Scala 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-core_2.11-spark_2.4)|
+|2.4          |2.12         |[Scala 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-core_2.12-spark_2.4)
+|3.0          |2.12         |[Scala 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-core_2.12-spark_3.0)|
+|3.1          |2.12         |[Scala 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-core_2.12-spark_3.1)
 
 ## Metalus Common
 Metalus common provides a step library for building basic applications.
 
 |Spark Version|Scala Version|Library|
 |-------------|-------------|-------|
-|2.4          |2.11         |[Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-common_2.11-spark_2.4)|
-|3.0          |2.12         |[Maven 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-common_2.12-spark_3.0)|
+|2.4          |2.11         |[Scala 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-common_2.11-spark_2.4)|
+|2.4          |2.12         |[Scala 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-common_2.12-spark_2.4)
+|3.0          |2.12         |[Scala 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-common_2.12-spark_3.0)|
+|3.1          |2.12         |[Scala 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-common_2.12-spark_3.1)
 
 ## Metalus AWS
-Metalus AWS provides a step library for working with AWS technologies.
+This step library contains AWS specific components. The [Kinesis](https://aws.amazon.com/kinesis/) driver provides a
+basic implementation that gathers data and then initiates the Metalus Pipeline Core for processing of the incoming data.
 
 |Spark Version|Scala Version|Library|
 |-------------|-------------|-------|
-|2.4          |2.11         |[Maven 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-aws_2.11-spark_2.4)|
-|3.0          |2.12         |[Maven 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_3.0)|
+|2.4          |2.11         |[Scala 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-aws_2.11-spark_2.4)|
+|2.4          |2.12         |[Scala 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_2.4)
+|3.0          |2.12         |[Scala 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_3.0)|
+|3.1          |2.12         |[Scala 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-aws_2.12-spark_3.1)
+
+## Metalus GCP
+This step library contains GCP specific components. The [Pub/Sub](https://cloud.google.com/pubsub/docs/overview) driver provides a
+basic implementation that gathers data and then initiates the Metalus Pipeline Core for processing of the incoming data.
+
+|Spark Version|Scala Version|Library|
+|-------------|-------------|-------|
+|2.4          |2.11         |[Scala 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-gcp_2.11-spark_2.4)
+|2.4          |2.12         |[Scala 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-gcp_2.12-spark_2.4)
+|3.0          |2.12         |[Scala 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-gcp_2.12-spark_3.0)
+|3.1          |2.12         |[Scala 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-gcp_2.12-spark_3.1)
+
+## Metalus Kafka
+This step library contains Kafka specific components. The [Kafka](https://kafka.apache.org/) driver provides a
+basic implementation that gathers data and then initiates the Metalus Pipeline Core for processing of the incoming data.
+
+|Spark Version|Scala Version|Library|
+|-------------|-------------|-------|
+|2.4          |2.11         |[Scala 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-kafka_2.11-spark_2.4)
+|2.4          |2.12         |[Scala 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-kafka_2.12-spark_2.4)
+|3.0          |2.12         |[Scala 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-kafka_2.12-spark_3.0)
+|3.1          |2.12         |[Scala 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-kafka_2.12-spark_3.1)
+
+## Metalus Mongo
+Metalus Mongo provides a step library for working with the Mongo Data store.
+
+|Spark Version|Scala Version|Library|
+|-------------|-------------|-------|
+|2.4          |2.11         |[Scala 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-mongo_2.11-spark_2.4)
+|2.4          |2.12         |[Scala 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-mongo_2.12-spark_2.4)
+|3.0          |2.12         |[Scala 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-mongo_2.12-spark_3.0)
+|3.1          |2.12         |[Scala 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-mongo_2.12-spark_3.1)
+
+## Metalus Utilities
+This project provides utilities that help work with the project.
+
+|Spark Version|Scala Version|Library|
+|-------------|-------------|-------|
+|2.4          |2.11         |[Scala 2.11 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-utils_2.11-spark_2.4)
+|2.4          |2.12         |[Scala 2.12 Spark 2.4 library](https://search.maven.org/search?q=a:metalus-utils_2.12-spark_2.4)
+|3.0          |2.12         |[Scala 2.12 Spark 3.0 library](https://search.maven.org/search?q=a:metalus-utils_2.12-spark_3.0)
+|3.1          |2.12         |[Scala 2.12 Spark 3.1 library](https://search.maven.org/search?q=a:metalus-utils_2.12-spark_3.1)
