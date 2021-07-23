@@ -1,7 +1,7 @@
 package com.acxiom.delta.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import io.delta.tables.DeltaTable
 import org.apache.spark.sql.DataFrame
 
@@ -68,6 +68,8 @@ object DeltaLakeSteps {
     "Deltalake")
   @StepParameters(Map("path" -> StepParameter(None, Some(true), None, None, None, Some("The path to the deltalake table")),
     "limit" -> StepParameter(Some("int"), Some(false), None, None, None, Some("The number of previous commands to retrieve"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def history(path: String, limit: Option[Int], pipelineContext: PipelineContext): DataFrame = {
     val table = DeltaTable.forPath(pipelineContext.sparkSession.get, path)
     if (limit.isDefined) table.history(limit.get) else table.history()

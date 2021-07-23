@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.{PipelineContext, PipelineStepResponse}
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
 import org.apache.spark.sql.{DataFrame, Dataset}
@@ -23,6 +23,8 @@ object JDBCSteps {
     "Pipeline",
     "InputOutput")
   @StepParameters(Map("jdbcOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("The options to use when loading the DataFrame"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def readWithJDBCOptions(jdbcOptions: JDBCOptions,
                           pipelineContext: PipelineContext): DataFrame = {
     val options = DataFrameReaderOptions("jdbc", Some(jdbcOptions.asProperties.toMap))
@@ -42,6 +44,8 @@ object JDBCSteps {
     "Pipeline",
     "InputOutput")
   @StepParameters(Map("jDBCStepsOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("The options to use when loading the DataFrameReader"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def readWithStepOptions(jDBCStepsOptions: JDBCDataFrameReaderOptions,
                           pipelineContext: PipelineContext): DataFrame = {
     val properties = new Properties()
@@ -81,6 +85,8 @@ object JDBCSteps {
     "table" -> StepParameter(None, Some(true), None, None, None, None, Some("A table name or subquery")),
     "predicates" -> StepParameter(None, Some(false), None, None, None, None, Some("Optional predicates used for partitioning")),
     "connectionProperties" -> StepParameter(None, Some(false), None, None, None, None, Some("Optional properties for the jdbc connection"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def readWithProperties(url: String,
                          table: String,
                          predicates: Option[List[String]] = None,
@@ -177,6 +183,8 @@ object JDBCSteps {
     "InputOutput")
   @StepParameters(Map("url"-> StepParameter(None, Some(true), None, None, None, None, Some("A valid jdbc url")),
     "properties" -> StepParameter(None, Some(false), None, None, None, None, Some("Optional properties for the jdbc connection"))))
+  @StepResults(primaryType = "java.sql.Connection",
+    secondaryTypes = None)
   def getConnection(url: String, properties: Option[Map[String, String]] = None): Connection = {
     val prop = new Properties()
     if (properties.isDefined) prop.putAll(properties.get)
@@ -191,6 +199,8 @@ object JDBCSteps {
   @StepParameters(Map("sql"-> StepParameter(None, Some(true), None, None, None, None, Some("Sql command to execute")),
     "connection" -> StepParameter(None, Some(true), None, None, None, None, Some("An open jdbc connection")),
   "parameters" -> StepParameter(None, Some(false), None, None, None, None, Some("Optional list of bind variables"))))
+  @StepResults(primaryType = "List",
+    secondaryTypes = Some(Map("count" -> "Int")))
   def executeSql(sql: String, connection: Connection, parameters: Option[List[Any]] = None): PipelineStepResponse = {
     val p = connection.prepareStatement(sql)
     if (parameters.isDefined) {

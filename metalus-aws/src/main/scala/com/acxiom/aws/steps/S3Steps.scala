@@ -1,9 +1,9 @@
 package com.acxiom.aws.steps
 
 import com.acxiom.aws.fs.S3FileManager
-import com.acxiom.aws.utils.{AWSUtilities, S3Utilities}
+import com.acxiom.aws.utils.S3Utilities
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameSteps, DataFrameWriterOptions}
 import com.amazonaws.services.s3.AmazonS3
 import org.apache.spark.sql.DataFrame
@@ -62,6 +62,7 @@ object S3Steps {
     "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional DataFrame Options")),
     "accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API key to use for S3 access")),
     "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API secret to use for S3 access"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame", secondaryTypes = None)
   def readFromPath(path: String,
                    accessKeyId: Option[String] = None,
                    secretAccessKey: Option[String] = None,
@@ -84,6 +85,7 @@ object S3Steps {
     "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional DataFrame Options")),
     "accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API key to use for S3 access")),
     "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API secret to use for S3 access"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame", secondaryTypes = None)
   def readFromPaths(paths: List[String],
                     accessKeyId: Option[String] = None,
                     secretAccessKey: Option[String] = None,
@@ -140,6 +142,7 @@ object S3Steps {
     "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the S3 bucket")),
     "accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API key to use for S3 access")),
     "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API secret to use for S3 access"))))
+  @StepResults(primaryType = "com.acxiom.pipeline.fs.FileManager", secondaryTypes = None)
   def createFileManager(region: String,
                         bucket: String,
                         accessKeyId: Option[String] = None,
@@ -165,6 +168,7 @@ object S3Steps {
   )
   @StepParameters(Map("bucket" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 bucket")),
     "s3Client" -> StepParameter(None, Some(true), None, None, None, None, Some("An existing S3 client use to access the bucket"))))
+  @StepResults(primaryType = "com.acxiom.pipeline.fs.FileManager", secondaryTypes = None)
   def createFileManagerWithClient(s3Client: AmazonS3, bucket: String): Option[S3FileManager] = {
     Some(new S3FileManager(s3Client, bucket))
   }

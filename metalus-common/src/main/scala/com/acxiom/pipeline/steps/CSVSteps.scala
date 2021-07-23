@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import org.apache.spark.sql.{DataFrame, Dataset}
 
 @StepObject
@@ -15,6 +15,8 @@ object CSVSteps {
   @StepParameters(Map(
     "dataset" -> StepParameter(None, Some(true), None, None, None, None, Some("The dataset containing CSV strings")),
     "dataFrameReaderOptions" -> StepParameter(None, Some(false), None, None, None, None, Some("The CSV parsing options"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def csvDatasetToDataFrame(dataset: Dataset[String],
                              dataFrameReaderOptions: Option[DataFrameReaderOptions] = None,
                              pipelineContext: PipelineContext): DataFrame = {
@@ -32,6 +34,8 @@ object CSVSteps {
     "delimiter" -> StepParameter(None, Some(false), Some(","), None, None, None, Some("The field delimiter")),
     "recordDelimiter" -> StepParameter(None, Some(false), Some("\n"), None, None, None, Some("The record delimiter")),
     "header" -> StepParameter(None, Some(false), Some("false"), None, None, None, Some("Build header from the first row"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def csvStringToDataFrame(csvString: String,
                            delimiter: Option[String] = None,
                            recordDelimiter: Option[String] = None,

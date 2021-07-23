@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import org.apache.log4j.Logger
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StructType
@@ -31,6 +31,7 @@ object TransformationSteps {
     "transforms" -> StepParameter(None, Some(true), None, None, None, None, Some("The object with transform, alias, and filter logic details")),
     "addNewColumns" -> StepParameter(None, Some(false), Some("true"),
       description = Some("Flag to determine whether new attributes are to be added to the output"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame", secondaryTypes = None)
   def mapToDestinationDataFrame(inputDataFrame: Dataset[_], destinationDataFrame: Dataset[_], transforms: Transformations = Transformations(List()),
                              addNewColumns: Option[Boolean] = None): DataFrame = {
     mapDataFrameToSchema(inputDataFrame, Schema.fromStructType(destinationDataFrame.schema), transforms, addNewColumns)
@@ -55,6 +56,7 @@ object TransformationSteps {
     "transforms" -> StepParameter(None, Some(true), None, None, None, None, Some("The object with transform, alias, and filter logic details")),
     "addNewColumns" -> StepParameter(None, Some(false), Some("true"),
       description = Some("Flag to determine whether new attributes are to be added to the output"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame", secondaryTypes = None)
   def mapDataFrameToSchema(inputDataFrame: Dataset[_], destinationSchema: Schema, transforms: Transformations = Transformations(List()),
                            addNewColumns: Option[Boolean] = None): DataFrame = {
     // create a struct type with cleaned names to pass to methods that need structtype
@@ -89,6 +91,7 @@ object TransformationSteps {
     "addNewColumns" -> StepParameter(None, Some(false), Some("true"),
       description = Some("Flag to determine whether new attributes are to be added to the output")),
     "distinct" -> StepParameter(None, Some(false), Some("true"), None, None, None, Some("Flag to determine whether a distinct union should be performed"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame", secondaryTypes = None)
   def mergeDataFrames(inputDataFrame: Dataset[_], destinationDataFrame: Dataset[_], transforms: Transformations = Transformations(List()),
                       addNewColumns: Option[Boolean] = None, distinct: Option[Boolean] = None): DataFrame = {
     // map to destination dataframe
@@ -114,6 +117,7 @@ object TransformationSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The input DataFrame")),
     "transforms" -> StepParameter(None, Some(true),
       description = Some("The object with transform, alias, and filter logic details"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame", secondaryTypes = None)
   def applyTransforms(dataFrame: Dataset[_], transforms: Transformations): DataFrame = {
     // pull out mappings that contain a transform
     val mappingsWithTransforms = transforms.columnDetails.filter(_.expression.nonEmpty).map(x => {
@@ -158,6 +162,7 @@ object TransformationSteps {
     "Transforms")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to select from")),
     "expressions" -> StepParameter(None, Some(true), None, None, None, None, Some("List of expressions to select"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame", secondaryTypes = None)
   def selectExpressions(dataFrame: Dataset[_], expressions: List[String]): DataFrame = {
     dataFrame.selectExpr(expressions: _*)
   }
@@ -180,6 +185,7 @@ object TransformationSteps {
     "expression" -> StepParameter(None, Some(true), None, None, None, None, Some("The expression used for the column")),
     "standardizeColumnName" -> StepParameter(None, Some(false), Some("true"),
       description = Some("Flag to control whether the column names should be cleansed"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame", secondaryTypes = None)
   def addColumn(dataFrame: Dataset[_], columnName: String, expression: String, standardizeColumnName: Option[Boolean] = None): DataFrame = {
     addColumns(dataFrame, Map(columnName -> expression), standardizeColumnName)
   }
@@ -199,6 +205,7 @@ object TransformationSteps {
     "columns" -> StepParameter(None, Some(true), None, None, None, None, Some("A map of column names and expressions")),
     "standardizeColumnNames" -> StepParameter(None, Some(false), Some("true"),
       description = Some("Flag to control whether the column names should be cleansed"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame", secondaryTypes = None)
   def addColumns(dataFrame: Dataset[_], columns: Map[String, String], standardizeColumnNames: Option[Boolean] = None): DataFrame = {
     val (first, remaining) = columns.splitAt(1)
     val getName: String => String = if (standardizeColumnNames.getOrElse(true)) cleanColumnName else identity
@@ -220,6 +227,7 @@ object TransformationSteps {
     "Transforms")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to drop columns from")),
     "columnNames" -> StepParameter(None, Some(true), None, None, None, None, Some("Columns to drop off the DataFrame"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame", secondaryTypes = None)
   def dropColumns(dataFrame: Dataset[_], columnNames: List[String]): DataFrame = {
     dataFrame.drop(columnNames: _*)
   }
@@ -234,6 +242,7 @@ object TransformationSteps {
     "separator" -> StepParameter(None, Some(false), Some("_"), None, None, None, Some("Separator to place between nested field names")),
     "fieldList" -> StepParameter(None, Some(false), None, None, None, None, Some("List of fields to flatten. Will flatten all fields if left empty")),
     "depth" -> StepParameter(None, Some(false), None, None, None, None, Some("How deep should we traverse when flattening."))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataSet", secondaryTypes = None)
   def flattenDataFrame(dataFrame: Dataset[_],
                        separator: Option[String] = None,
                        fieldList: Option[List[String]] = None,
@@ -275,6 +284,7 @@ object TransformationSteps {
     "Transforms")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true),
     description = Some("The DataFrame with columns that need to be standardized"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame", secondaryTypes = None)
   def standardizeColumnNames(dataFrame: DataFrame): DataFrame = {
     val getCol: ((String, String)) => (String, Column) = {case (old, newName) => old -> col(old).as(newName)}
     val nameMap = dataFrame.columns.map(c => c -> cleanColumnName(c)).groupBy(_._2).flatMap{

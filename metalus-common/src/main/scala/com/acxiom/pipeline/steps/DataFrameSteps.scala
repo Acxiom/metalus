@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.storage.StorageLevel
@@ -16,6 +16,8 @@ object DataFrameSteps {
     "InputOutput")
   @StepParameters(Map(
     "dataFrameReaderOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("The options to use when loading the DataFrameReader"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrameReader",
+    secondaryTypes = None)
   def getDataFrameReader(dataFrameReaderOptions: DataFrameReaderOptions,
                          pipelineContext: PipelineContext): DataFrameReader = {
     buildDataFrameReader(pipelineContext.sparkSession.get, dataFrameReaderOptions)
@@ -28,6 +30,8 @@ object DataFrameSteps {
     "InputOutput")
   @StepParameters(Map(
     "dataFrameReader" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrameReader to use when creating the DataFrame"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def load(dataFrameReader: DataFrameReader): DataFrame = {
     dataFrameReader.load()
   }
@@ -39,6 +43,8 @@ object DataFrameSteps {
     "InputOutput")
   @StepParameters(Map(
     "dataFrameReaderOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrameReaderOptions to use when creating the DataFrame"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def loadDataFrame(dataFrameReaderOptions: DataFrameReaderOptions,
                     pipelineContext: PipelineContext): DataFrame = {
     load(getDataFrameReader(dataFrameReaderOptions, pipelineContext))
@@ -51,6 +57,8 @@ object DataFrameSteps {
     "InputOutput")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to use when creating the DataFrameWriter")),
     "options" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrameWriterOptions to use when writing the DataFrame"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrameWriter",
+    secondaryTypes = None)
   def getDataFrameWriter[T](dataFrame: Dataset[T],
                          options: DataFrameWriterOptions): DataFrameWriter[T] = {
     buildDataFrameWriter(dataFrame, options)
@@ -86,6 +94,8 @@ object DataFrameSteps {
     "InputOutput")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to persist")),
     "storageLevel" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional storage mechanism to use when persisting the DataFrame"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataSet",
+    secondaryTypes = None)
   def persistDataFrame[T](dataFrame: Dataset[T], storageLevel: String = "MEMORY_AND_DISK"): Dataset[T] = {
     dataFrame.persist(StorageLevel.fromString(storageLevel.toUpperCase))
   }
@@ -112,6 +122,8 @@ object DataFrameSteps {
       Some("Flag indicating whether to repartition by range. This takes precedent over the shuffle flag")),
     "shuffle" -> StepParameter(None, Some(false), None, None, None, None, Some("Flag indicating whether to perform a normal partition")),
     "partitionExpressions" -> StepParameter(None, Some(false), None, None, None, None, Some("The partition expressions to use"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataSet",
+    secondaryTypes = None)
   def repartitionDataFrame[T](dataFrame: Dataset[T],
                            partitions: Int,
                            rangePartition: Option[Boolean] = None,
@@ -135,6 +147,8 @@ object DataFrameSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to sort")),
     "expressions" -> StepParameter(None, Some(true), None, None, None, None, Some("List of expressions to apply prior to the sort")),
     "descending" -> StepParameter(None, Some(false), None, None, None, None, Some("Flag indicating to sort order"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataSet",
+    secondaryTypes = None)
   def sortDataFrame[T](dataFrame: Dataset[T], expressions: List[String], descending: Option[Boolean] = None): Dataset[T] = {
     val sortOrders = if (descending.getOrElse(false)) {
       expressions.map(e => expr(e).desc)

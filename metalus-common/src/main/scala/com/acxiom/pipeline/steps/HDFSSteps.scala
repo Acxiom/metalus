@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.fs.HDFSFileManager
 import org.apache.spark.sql.{DataFrame, Dataset}
 
@@ -15,6 +15,8 @@ object HDFSSteps {
     "InputOutput")
   @StepParameters(Map("path" -> StepParameter(None, Some(true), None, None, None, None, Some("The HDFS path to load data into the DataFrame")),
     "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The options to use when loading the DataFrameReader"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def readFromPath(path: String,
                    options: Option[DataFrameReaderOptions] = None,
                    pipelineContext: PipelineContext): DataFrame = {
@@ -28,6 +30,8 @@ object HDFSSteps {
     "InputOutput")
   @StepParameters(Map("paths" -> StepParameter(None, Some(true), None, None, None, None, Some("The HDFS paths to load data into the DataFrame")),
     "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The options to use when loading the DataFrameReader"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def readFromPaths(paths: List[String],
                     options: Option[DataFrameReaderOptions] = None,
                     pipelineContext: PipelineContext): DataFrame = {
@@ -57,8 +61,9 @@ object HDFSSteps {
     "Create HDFS FileManager",
     "Simple function to generate the HDFSFileManager for the local HDFS file system",
     "Pipeline",
-    "InputOutput"
-  )
+    "InputOutput")
+  @StepResults(primaryType = "com.acxiom.pipeline.fs.FileManager",
+    secondaryTypes = None)
   def createFileManager(pipelineContext: PipelineContext): Option[HDFSFileManager] = {
     if (pipelineContext.sparkSession.isDefined) {
       Some(HDFSFileManager(pipelineContext.sparkSession.get.sparkContext.getConf))

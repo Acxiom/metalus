@@ -15,6 +15,8 @@ object CatalogSteps {
     "InputOutput")
   @StepParameters(Map("table" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the table to read")),
     "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The DataFrameReaderOptions to use"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def readDataFrame(table: String, options: Option[DataFrameReaderOptions] = None, pipelineContext: PipelineContext): DataFrame ={
     DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext).table(table)
   }
@@ -40,6 +42,8 @@ object CatalogSteps {
     "objectType" -> StepParameter(None, Some(false), Some("TABLE"), None, None, None, Some("Type of object to drop")),
     "ifExists" -> StepParameter(None, Some(false), Some("false"), None, None, None, Some("Flag to control whether existence is checked")),
     "cascade" -> StepParameter(None, Some(false), Some("false"), None, None, None, Some("Flag to control whether this deletion should cascade"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def drop(name: String,
            objectType: Option[String] = None,
            ifExists: Option[Boolean] = None,
@@ -100,6 +104,8 @@ object CatalogSteps {
     "name" -> StepParameter(None, Some(true), None, None, None, None, Some("Name of the table")),
     "externalPath" -> StepParameter(None, Some(false), None, None, None, None, Some("Path of the external table")),
     "options" -> StepParameter(None, Some(false), None, None, None, None, Some("Options containing the format, schema, and settings"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def createTable(name: String, externalPath: Option[String] = None,
                   options: Option[DataFrameReaderOptions] = None,
                   pipelineContext: PipelineContext): DataFrame = {
@@ -108,5 +114,4 @@ object CatalogSteps {
     val schema = dfOptions.schema.map(_.toStructType()).getOrElse(new StructType)
     pipelineContext.sparkSession.get.catalog.createTable(name, dfOptions.format, schema, finalOptions)
   }
-
 }

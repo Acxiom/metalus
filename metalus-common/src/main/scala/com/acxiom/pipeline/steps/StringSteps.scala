@@ -13,6 +13,7 @@ object StringSteps {
   @StepParameters(Map("value" -> StepParameter(None, Some(true), None, None, None, None, Some("The value to convert")),
     "unwrapOption" -> StepParameter(None, Some(false), None, None, None, None,
       Some("Boolean indicating whether to unwrap the value from an Option prior to calling toString"))))
+  @StepResults(primaryType = "String", secondaryTypes = None)
   def toString(value: Any, unwrapOption: Option[Boolean] = None): String = {
     if(unwrapOption.getOrElse(false)) {
       unwrap(value).toString
@@ -30,6 +31,7 @@ object StringSteps {
       Some("Separator character to use when making the string")),
     "unwrapOptions" -> StepParameter(None, Some(false), None, None, None, None,
       Some("Boolean indicating whether to unwrap each value from an Option"))))
+  @StepResults(primaryType = "String", secondaryTypes = None)
   def listToString(list: List[Any], separator: Option[String] = None, unwrapOptions: Option[Boolean] = None): String = {
     val finalList = if(unwrapOptions.getOrElse(false)) {
       list.map(unwrap)
@@ -48,6 +50,7 @@ object StringSteps {
     "Returns a lowercase string",
     "Pipeline", "String")
   @StepParameters(Map("value" -> StepParameter(None, Some(true), None, None, None, None, Some("The value to lowercase"))))
+  @StepResults(primaryType = "String", secondaryTypes = None)
   def toLowerCase(value: String): String = {
     value.toLowerCase
   }
@@ -57,6 +60,7 @@ object StringSteps {
     "Returns an uppercase string",
     "Pipeline", "String")
   @StepParameters(Map("value" -> StepParameter(None, Some(true), None, None, None, None, Some("The value to uppercase"))))
+  @StepResults(primaryType = "String", secondaryTypes = None)
   def toUpperCase(value: String): String = {
     value.toUpperCase
   }
@@ -70,6 +74,7 @@ object StringSteps {
       Some("Regex to use when splitting the string")),
     "limit" -> StepParameter(None, Some(false), None, None, None, None,
       Some("Max number elements to return in the list"))))
+  @StepResults(primaryType = "List[String]", secondaryTypes = None)
   def stringSplit(string: String, regex: String, limit: Option[Int] = None): List[String] = {
     if (limit.isDefined) {
       string.split(regex, limit.get).toList
@@ -85,6 +90,7 @@ object StringSteps {
   @StepParameters(Map("string" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to parse")),
     "begin" -> StepParameter(None, Some(true), None, None, None, None, Some("The beginning index")),
     "end" -> StepParameter(None, Some(false), None, None, None, None, Some("The end index"))))
+  @StepResults(primaryType = "String", secondaryTypes = None)
   def substring(string: String, begin: Int, end: Option[Int] = None): String = {
     if (end.isDefined) {
       string.substring(begin, end.get)
@@ -101,6 +107,7 @@ object StringSteps {
   @StepParameters(Map("string" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to compare")),
     "anotherString" -> StepParameter(None, Some(true), None, None, None, None, Some("The other string to compare")),
     "caseInsensitive" -> StepParameter(None, Some(false), None, None, None, None, Some("Boolean flag to indicate case sensitive compare"))))
+  @StepResults(primaryType = "Boolean", secondaryTypes = None)
   def stringEquals(string: String, anotherString: String, caseInsensitive: Option[Boolean] = None): Boolean = {
     if (caseInsensitive.getOrElse(false)) {
       string.equalsIgnoreCase(anotherString)
@@ -116,6 +123,7 @@ object StringSteps {
   @BranchResults(List("true", "false"))
   @StepParameters(Map("string" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to match")),
     "regex" -> StepParameter(None, Some(true), None, None, None, None, Some("Regex to use for the match"))))
+  @StepResults(primaryType = "Boolean", secondaryTypes = None)
   def stringMatches(string: String, regex: String): Boolean = {
     string.matches(regex)
   }
@@ -128,6 +136,7 @@ object StringSteps {
     "matchString" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to match")),
     "replacement" -> StepParameter(None, Some(false), None, None, None, None, Some("The replacement string")),
     "literal" -> StepParameter(None, Some(false), None, None, None, None, Some("Perform 'literal' match replacement"))))
+  @StepResults(primaryType = "String", secondaryTypes = None)
   def stringReplaceAll(string: String, matchString: String, replacement: String, literal: Option[Boolean] = None): String = {
     if (literal.getOrElse(false)) {
       string.replaceAllLiterally(matchString, replacement)
@@ -144,6 +153,7 @@ object StringSteps {
     "matchString" -> StepParameter(None, Some(true), None, None, None, None, Some("The string to match")),
     "replacement" -> StepParameter(None, Some(false), None, None, None, None, Some("The replacement string")),
     "literal" -> StepParameter(None, Some(false), None, None, None, None, Some("Perform 'literal' match replacement"))))
+  @StepResults(primaryType = "String", secondaryTypes = None)
   def stringReplaceFirst(string: String, matchString: String, replacement: String, literal: Option[Boolean] = None): String = {
     if (literal.getOrElse(false)) {
       string.replaceFirst(Pattern.quote(matchString), replacement)
