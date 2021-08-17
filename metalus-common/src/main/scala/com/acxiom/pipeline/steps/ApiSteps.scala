@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
 
 import java.io.{InputStream, OutputStream}
@@ -18,6 +18,7 @@ object ApiSteps {
     "authorization" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional authorization class to use when making connections")),
     "allowSelfSignedCertificates" ->
       StepParameter(None, Some(false), None, None, None, None, Some("Flag to allow using self signed certificates for http calls"))))
+  @StepResults(primaryType = "com.acxiom.pipeline.api.HttpRestClient", secondaryTypes = None)
   def createHttpRestClient(hostUrl: String,
                            authorization: Option[Authorization] = None,
                            allowSelfSignedCertificates: Boolean = false): HttpRestClient = {
@@ -33,6 +34,7 @@ object ApiSteps {
     "host" -> StepParameter(None, Some(true), None, None, None, None, Some("The host name to use when constructing the URL")),
     "port" -> StepParameter(None, Some(true), None, None, None, None, Some("The port to use when constructing the URL")),
     "authorization" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional authorization class to use when making connections"))))
+  @StepResults(primaryType = "com.acxiom.pipeline.api.HttpRestClient", secondaryTypes = None)
   def createHttpRestClientFromParameters(protocol: String,
                                          host: String,
                                          port: Int,
@@ -48,6 +50,7 @@ object ApiSteps {
   @StepParameters(Map(
     "httpRestClient" -> StepParameter(None, Some(true), None, None, None, None, Some("The HttpRestClient to use when accessing the provided path")),
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to verify"))))
+  @StepResults(primaryType = "Boolean", secondaryTypes = None)
   def exists(httpRestClient: HttpRestClient, path: String): Boolean = {
     httpRestClient.exists(path)
   }
@@ -60,6 +63,7 @@ object ApiSteps {
   @StepParameters(Map(
     "httpRestClient" -> StepParameter(None, Some(true), None, None, None, None, Some("The HttpRestClient to use when accessing the provided path")),
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to the resource to get the last modified date"))))
+  @StepResults(primaryType = "java.util.Date", secondaryTypes = None)
   def getLastModifiedDate(httpRestClient: HttpRestClient, path: String): Date = {
     httpRestClient.getLastModifiedDate(path)
   }
@@ -72,6 +76,7 @@ object ApiSteps {
   @StepParameters(Map(
     "httpRestClient" -> StepParameter(None, Some(true), None, None, None, None, Some("The HttpRestClient to use when accessing the provided path")),
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to the resource to get the content length"))))
+  @StepResults(primaryType = "Long", secondaryTypes = None)
   def getContentLength(httpRestClient: HttpRestClient, path: String): Long = {
     httpRestClient.getContentLength(path)
   }
@@ -84,6 +89,7 @@ object ApiSteps {
   @StepParameters(Map(
     "httpRestClient" -> StepParameter(None, Some(true), None, None, None, None, Some("The HttpRestClient to use when accessing the provided path")),
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to get the headers"))))
+  @StepResults(primaryType = "Map[String,List[String]]", secondaryTypes = None)
   def getHeaders(httpRestClient: HttpRestClient, path: String): Map[String, List[String]] = {
     httpRestClient.getHeaders(path)
   }
@@ -96,6 +102,7 @@ object ApiSteps {
   @StepParameters(Map(
     "httpRestClient" -> StepParameter(None, Some(true), None, None, None, None, Some("The HttpRestClient to use when accessing the provided path")),
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to delete"))))
+  @StepResults(primaryType = "Boolean", secondaryTypes = None)
   def delete(httpRestClient: HttpRestClient, path: String): Boolean = {
     httpRestClient.delete(path)
   }
@@ -108,6 +115,7 @@ object ApiSteps {
   @StepParameters(Map(
     "httpRestClient" -> StepParameter(None, Some(true), None, None, None, None, Some("The HttpRestClient to use when accessing the provided path")),
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to resource"))))
+  @StepResults(primaryType = "String", secondaryTypes = None)
   def getStringContent(httpRestClient: HttpRestClient, path: String): String = {
     httpRestClient.getStringContent(path)
   }
@@ -122,6 +130,7 @@ object ApiSteps {
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to post the content")),
     "content" -> StepParameter(None, Some(true), None, None, None, None, Some("The content to post")),
     "contentType" -> StepParameter(None, Some(false), None, None, None, None, Some("The content type being sent to the path"))))
+  @StepResults(primaryType = "String", secondaryTypes = None)
   def postStringContent(httpRestClient: HttpRestClient, path: String, content: String, contentType: String = "application/json"): String = {
     httpRestClient.postStringContent(path, content, contentType)
   }
@@ -136,6 +145,7 @@ object ApiSteps {
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to post the content")),
     "content" -> StepParameter(None, Some(true), None, None, None, None, Some("The content to put")),
     "contentType" -> StepParameter(None, Some(false), None, None, None, None, Some("The content type being sent to the path"))))
+  @StepResults(primaryType = "String", secondaryTypes = None)
   def putStringContent(httpRestClient: HttpRestClient, path: String, content: String, contentType: String = "application/json"): String = {
     httpRestClient.putStringContent(path, content, contentType)
   }
@@ -149,6 +159,7 @@ object ApiSteps {
     "httpRestClient" -> StepParameter(None, Some(true), None, None, None, None, Some("The HttpRestClient to use when accessing the provided path")),
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to the resource")),
     "bufferSize" -> StepParameter(None, Some(false), None, None, None, None, Some("The size of buffer to use with the stream"))))
+  @StepResults(primaryType = "java.io.InputStream", secondaryTypes = None)
   def getInputStream(httpRestClient: HttpRestClient, path: String, bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): InputStream = {
     httpRestClient.getInputStream(path, bufferSize)
   }
@@ -162,6 +173,7 @@ object ApiSteps {
     "httpRestClient" -> StepParameter(None, Some(true), None, None, None, None, Some("The HttpRestClient to use when accessing the provided path")),
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to the resource")),
     "bufferSize" -> StepParameter(None, Some(false), None, None, None, None, Some("The size of buffer to use with the stream"))))
+  @StepResults(primaryType = "java.io.OutputStream", secondaryTypes = None)
   def getOutputStream(httpRestClient: HttpRestClient, path: String, bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): OutputStream = {
     httpRestClient.getOutputStream(path, bufferSize)
   }

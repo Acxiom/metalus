@@ -2,7 +2,7 @@ package com.acxiom.gcp.steps
 
 import com.acxiom.gcp.fs.GCSFileManager
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameSteps, DataFrameWriterOptions}
 import org.apache.spark.sql.DataFrame
 import org.json4s.native.Serialization
@@ -20,6 +20,8 @@ object GCSSteps {
   @StepParameters(Map("path" -> StepParameter(None, Some(true), None, None, None, None, Some("The GCS path to load data")),
     "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional DataFrame Options")),
     "credentials" -> StepParameter(None, Some(false), None, None, None, None, Some("Optional credentials map"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def readFromPath(path: String,
                    credentials: Option[Map[String, String]],
                    options: Option[DataFrameReaderOptions] = None,
@@ -34,6 +36,8 @@ object GCSSteps {
   @StepParameters(Map("paths" -> StepParameter(None, Some(true), None, None, None, None, Some("The GCS paths to load data")),
     "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional DataFrame Options")),
     "credentials" -> StepParameter(None, Some(false), None, None, None, None, Some("Optional credentials map"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def readFromPaths(paths: List[String],
                     credentials: Option[Map[String, String]],
                     options: Option[DataFrameReaderOptions] = None,
@@ -84,6 +88,8 @@ object GCSSteps {
   @StepParameters(Map("bucket" -> StepParameter(None, Some(true), None, None, None, None, Some("The GCS bucket")),
     "projectId" -> StepParameter(None, Some(true), None, None, None, None, Some("The projectId for the GCS bucket")),
     "credentials" -> StepParameter(None, Some(true), None, None, None, None, Some("Optional credentials map"))))
+  @StepResults(primaryType = "com.acxiom.pipeline.fs.FileManager",
+    secondaryTypes = None)
   def createFileManager(projectId: String, bucket: String, credentials: Map[String, String]): Option[GCSFileManager] =
     Some(new GCSFileManager(projectId, bucket, Some(Serialization.write(credentials))))
 

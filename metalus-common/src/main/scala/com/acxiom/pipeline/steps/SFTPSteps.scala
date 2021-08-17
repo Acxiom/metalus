@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.fs.SFTPFileManager
 
 @StepObject
@@ -30,6 +30,8 @@ object SFTPSteps {
     "port" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional port if other than 22")),
     "strictHostChecking" -> StepParameter(None, Some(false), None, None, None, None,
       Some("Option to automatically add keys to the known_hosts file. Default is false."))))
+  @StepResults(primaryType = "com.acxiom.pipeline.fs.FileManager",
+    secondaryTypes = None)
   def createFileManager(hostName: String,
                         username: Option[String] = None,
                         password: Option[String] = None,

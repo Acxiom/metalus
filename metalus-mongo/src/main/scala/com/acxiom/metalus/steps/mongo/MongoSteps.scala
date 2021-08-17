@@ -1,7 +1,7 @@
 package com.acxiom.metalus.steps.mongo
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import com.mongodb.spark.MongoSpark
 import com.mongodb.spark.config.{ReadConfig, WriteConfig}
 import org.apache.spark.sql.DataFrame
@@ -26,6 +26,8 @@ object MongoSteps {
     "Mongo")
   @StepParameters(Map("uri" -> StepParameter(None, Some(true), None, None, None, None, Some("The Mongo connect string")),
     "collectionName" -> StepParameter(None, Some(true), None, None, None, None, Some("The Mongo collection name"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def loadDataFrameFromMongo(uri: String, collectionName: String, pipelineContext: PipelineContext): Option[DataFrame] =
     Some(MongoSpark.loadAndInferSchema(pipelineContext.sparkSession.get,
       ReadConfig(Map("collection" -> collectionName, "uri" -> uri))))
