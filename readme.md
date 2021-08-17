@@ -1,7 +1,8 @@
-|Branch|Build|Coverage|Quality|
--------|-----|---------|-------|
-|Develop|[![Develop Build](https://travis-ci.com/Acxiom/metalus.svg?branch=develop)](https://travis-ci.com/Acxiom/metalus?branch=develop)|[![Develop Coverage](https://img.shields.io/coveralls/github/Acxiom/metalus/develop.svg)](https://coveralls.io/github/Acxiom/metalus?branch=develop)
-|Master|[![Master Status](https://travis-ci.com/Acxiom/metalus.svg?branch=master)](https://travis-ci.com/Acxiom/metalus?branch=master)|[![Master Coverage](https://img.shields.io/coveralls/github/Acxiom/metalus/master.svg)](https://coveralls.io/github/Acxiom/metalus?branch=master)
+|Target||
+------|---------|
+|Build|[![Build](https://github.com/Acxiom/metalus/actions/workflows/build.yml/badge.svg)](https://github.com/Acxiom/metalus/actions/workflows/build.yml)|
+|Develop|[![Develop Coverage](https://img.shields.io/coveralls/github/Acxiom/metalus/develop.svg)](https://coveralls.io/github/Acxiom/metalus?branch=develop)|
+|Master|[![Master Coverage](https://img.shields.io/coveralls/github/Acxiom/metalus/master.svg)](https://coveralls.io/github/Acxiom/metalus?branch=master)|
 
 # Metalus Pipeline Library
 The Metalus library was created as a way to create Spark applications at runtime without the need to write or compile
