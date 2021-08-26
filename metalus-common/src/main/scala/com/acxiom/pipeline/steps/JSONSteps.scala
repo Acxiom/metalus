@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.applications.{ApplicationUtils, ClassInfo, Json4sSerializers}
 import com.acxiom.pipeline.utils.DriverUtils
 import org.apache.spark.sql.{DataFrame, Dataset}
@@ -32,6 +32,8 @@ object JSONSteps {
   @StepParameters(Map(
     "jsonMap" -> StepParameter(None, Some(true), None, None, None, None, Some("The JSON map to convert to a JSON string")),
     "formats" -> StepParameter(None, Some(false), None, None, None, None, Some("Json4s Formats object that will override the pipeline context formats"))))
+  @StepResults(primaryType = "String",
+    secondaryTypes = None)
   def jsonMapToString(jsonMap: Map[String, Any], formats: Option[Formats] = None, pipelineContext: PipelineContext): String = {
     implicit val f: Formats = formats.getOrElse(pipelineContext.getJson4sFormats)
     Serialization.write(jsonMap)
@@ -45,6 +47,8 @@ object JSONSteps {
   @StepParameters(Map(
     "obj" -> StepParameter(None, Some(true), None, None, None, None, Some("The object to convert to a JSON string")),
     "formats" -> StepParameter(None, Some(false), None, None, None, None, Some("Json4s Formats object that will override the pipeline context formats"))))
+  @StepResults(primaryType = "String",
+    secondaryTypes = None)
   def objectToJsonString(obj: AnyRef, formats: Option[Formats] = None, pipelineContext: PipelineContext): String = {
     implicit val f: Formats = formats.getOrElse(pipelineContext.getJson4sFormats)
     Serialization.write(obj)
@@ -87,6 +91,8 @@ object JSONSteps {
     "JSON")
   @StepParameters(Map(
     "jsonString" -> StepParameter(None, Some(true), None, None, None, None, Some("The JSON string to convert to a DataFrame"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def jsonStringToDataFrame(jsonString: String, pipelineContext: PipelineContext): DataFrame = {
     val spark = pipelineContext.sparkSession.get
     import spark.implicits._
@@ -107,6 +113,8 @@ object JSONSteps {
   @StepParameters(Map(
     "dataset" -> StepParameter(None, Some(true), None, None, None, None, Some("The dataset containing JSON strings")),
     "dataFrameReaderOptions" -> StepParameter(None, Some(false), None, None, None, None, Some("The JSON parsing options"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def jsonDatasetToDataFrame(dataset: Dataset[String],
                              dataFrameReaderOptions: Option[DataFrameReaderOptions] = None,
                              pipelineContext: PipelineContext): DataFrame = {

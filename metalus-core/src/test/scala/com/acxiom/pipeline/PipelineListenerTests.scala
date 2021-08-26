@@ -112,6 +112,7 @@ class PipelineListenerTests extends FunSpec with BeforeAndAfterAll with Suite {
         SplitStepException(exceptions =
         Map("" -> PipelineException(message = Some("Split  Message"),
           cause = new IllegalArgumentException("Stinky Pete"),
+          context = Some(splitCtx),
           pipelineProgress = Some(splitCtx.getPipelineExecutionInfo)))),
         splitCtx)
       val splitExceptionMap = parse(splitExceptionMessage).extract[Map[String, Any]]

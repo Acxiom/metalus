@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.fs.FileManager
 import org.apache.log4j.Logger
 
@@ -28,6 +28,8 @@ object FileManagerSteps {
     "srcPath" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to copy from")),
     "destFS" -> StepParameter(None, Some(true), None, None, None, None, Some("The destination FileManager")),
     "destPath" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to copy to"))))
+  @StepResults(primaryType = "com.acxiom.pipeline.steps.CopyResults",
+    secondaryTypes = None)
   def copy(srcFS: FileManager, srcPath: String, destFS: FileManager, destPath: String): CopyResults = {
     copy(srcFS, srcPath, destFS, destPath, FileManager.DEFAULT_BUFFER_SIZE, FileManager.DEFAULT_BUFFER_SIZE)
   }
@@ -54,6 +56,8 @@ object FileManagerSteps {
     "destPath" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to copy to")),
     "inputBufferSize" -> StepParameter(None, Some(true), None, None, None, None, Some("The size of the buffer to use for reading data during copy")),
     "outputBufferSize" -> StepParameter(None, Some(true), None, None, None, None, Some("The size of the buffer to use for writing data during copy"))))
+  @StepResults(primaryType = "com.acxiom.pipeline.steps.CopyResults",
+    secondaryTypes = None)
   def copy(srcFS: FileManager, srcPath: String, destFS: FileManager, destPath: String, inputBufferSize: Int, outputBufferSize: Int): CopyResults = {
     copy(srcFS, srcPath, destFS, destPath, inputBufferSize, outputBufferSize, FileManager.DEFAULT_COPY_BUFFER_SIZE)
   }
@@ -82,6 +86,8 @@ object FileManagerSteps {
     "inputBufferSize" -> StepParameter(None, Some(true), None, None, None, None, Some("The size of the buffer to use for reading data during copy")),
     "outputBufferSize" -> StepParameter(None, Some(true), None, None, None, None, Some("The size of the buffer to use for writing data during copy")),
     "copyBufferSize" -> StepParameter(None, Some(true), None, None, None, None, Some("The intermediate buffer size to use during copy"))))
+  @StepResults(primaryType = "com.acxiom.pipeline.steps.CopyResults",
+    secondaryTypes = None)
   def copy(srcFS: FileManager, srcPath: String, destFS: FileManager, destPath: String,
            inputBufferSize: Int, outputBufferSize: Int, copyBufferSize: Int): CopyResults = {
     // connect to source and destination file systems

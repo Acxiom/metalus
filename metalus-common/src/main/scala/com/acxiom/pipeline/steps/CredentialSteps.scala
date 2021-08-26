@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.{Credential, PipelineContext}
 
 @StepObject
@@ -12,6 +12,8 @@ object CredentialSteps {
     "Credentials")
   @StepParameters(Map(
     "credentialName" -> StepParameter(None, Some(true), None, None, None, None, Some("The dataset containing CSV strings"))))
+  @StepResults(primaryType = "com.acxiom.pipeline.Credential",
+    secondaryTypes = None)
   def getCredential(credentialName: String, pipelineContext: PipelineContext): Option[Credential] = {
     if (pipelineContext.credentialProvider.isDefined) {
       pipelineContext.credentialProvider.get.getNamedCredential(credentialName)

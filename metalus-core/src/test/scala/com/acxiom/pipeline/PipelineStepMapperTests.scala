@@ -113,6 +113,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
     it("should pull the appropriate value for given parameters") {
       val tests = List(
         ("basic string concatenation missing value", Parameter(value = Some("!{bad-value}::concat_value")), "None::concat_value"),
+        ("escaped template string", Parameter(value = Some("concat_value::\\!{globalBoolean}::!{pipelineId}::\\@{step-value}")), "concat_value::!{globalBoolean}::pipeline-id-3::@{step-value}"),
+        ("escaped and unescaped template string", Parameter(value = Some("concat_value::\\!{pipelineId}::!{pipelineId}::\\@{step-value}")), "concat_value::!{pipelineId}::pipeline-id-3::@{step-value}"),
         ("basic string concatenation with multiple options around value",
           Parameter(value = Some(Some("!{tripleOption}::concat_value"))), "stringWithinAnOption::concat_value"),
         ("basic string concatenation", Parameter(value = Some("!{pipelineId}::concat_value")), "pipeline-id-3::concat_value"),
@@ -205,7 +207,8 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("Global String with runtime character", Parameter(value = Some("!runtimeGlobal"), `type` = Some("text")), "$rawKey1"),
         ("Use default value", Parameter(name = Some("defaultparam"), defaultValue = Some("default chosen"), `type` = Some("text")), "default chosen"),
         ("Pull Credential Name", Parameter(value = Some("%testCredential.name"), `type` = Some("text")), "testCredential"),
-        ("Pull Credential Value", Parameter(value = Some("%testCredential.value"), `type` = Some("text")), "secretCredential")
+        ("Pull Credential Value", Parameter(value = Some("%testCredential.value"), `type` = Some("text")), "secretCredential"),
+        ("Pull Escaped Credential Value", Parameter(value = Some("\\%testCredential%"), `type` = Some("text")), "%testCredential%")
       )
       tests.foreach(test => {
         Then(s"test ${test._1}")

@@ -73,6 +73,7 @@ trait PipelineStepException extends Exception {
   def errorType: Option[String]
   def dateTime: Option[String]
   def message: Option[String]
+  def context: Option[PipelineContext]
 }
 
 /**
@@ -89,7 +90,8 @@ case class PauseException(errorType: Option[String] = Some("pauseException"),
                           dateTime: Option[String] = Some(new Date().toString),
                           message: Option[String] = Some(""),
                           pipelineProgress: Option[PipelineExecutionInfo],
-                          cause: Throwable = None.orNull)
+                          cause: Throwable = None.orNull,
+                          context: Option[PipelineContext] = None)
   extends Exception(message.getOrElse(""), cause)
     with PipelineStepException
 
@@ -107,7 +109,8 @@ case class PipelineException(errorType: Option[String] = Some("pipelineException
                              dateTime: Option[String] = Some(new Date().toString),
                              message: Option[String] = Some(""),
                              pipelineProgress: Option[PipelineExecutionInfo],
-                             cause: Throwable = None.orNull)
+                             cause: Throwable = None.orNull,
+                             context: Option[PipelineContext] = None)
   extends Exception(message.getOrElse(""), cause)
     with PipelineStepException
 
@@ -122,7 +125,8 @@ case class PipelineException(errorType: Option[String] = Some("pipelineException
 case class ForkedPipelineStepException(errorType: Option[String] = Some("forkStepException"),
                                        dateTime: Option[String] = Some(new Date().toString),
                                        message: Option[String] = Some(""),
-                                       exceptions: Map[Int, Throwable] = Map())
+                                       exceptions: Map[Int, Throwable] = Map(),
+                                       context: Option[PipelineContext] = None)
   extends Exception(message.getOrElse(""))
     with PipelineStepException {
   /**

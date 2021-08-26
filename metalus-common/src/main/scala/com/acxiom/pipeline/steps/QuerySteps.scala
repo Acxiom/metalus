@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import org.apache.log4j.Logger
 import org.apache.spark.sql.{DataFrame, Dataset}
 
@@ -27,6 +27,8 @@ object QuerySteps {
     "Query")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The dataframe to store")),
   "viewName" -> StepParameter(None, Some(false), None, None, None, None, Some("The name of the view to create (optional, random name will be created if not provided)"))))
+  @StepResults(primaryType = "String",
+    secondaryTypes = None)
   def dataFrameToTempView(dataFrame: Dataset[_], viewName: Option[String], pipelineContext: PipelineContext): String = {
     val outputViewName = if(viewName.isEmpty) generateTempViewName else viewName.get
     logger.info(s"storing dataframe to tempView '$outputViewName")
@@ -52,6 +54,8 @@ object QuerySteps {
   @StepParameters(Map("query" -> StepParameter(Some("script"), Some(true), None, Some("sql"), None, None, Some("The query to run (all tables referenced must exist as TempViews created in this session)")),
     "variableMap" -> StepParameter(None, Some(false), None, None, None, None, Some("The key/value pairs to be used in variable replacement in the query")),
     "viewName" -> StepParameter(None, Some(false), None, None, None, None, Some("The name of the view to create (optional, random name will be created if not provided)"))))
+  @StepResults(primaryType = "String",
+    secondaryTypes = None)
   def queryToTempView(query: String, variableMap: Option[Map[String, String]],
                       viewName: Option[String], pipelineContext: PipelineContext): String = {
     val outputViewName = if(viewName.isEmpty) generateTempViewName else viewName.get
@@ -75,6 +79,8 @@ object QuerySteps {
     "Query")
   @StepParameters(Map("query" -> StepParameter(Some("script"), Some(true), None, Some("sql"), None, None, Some("The query to run (all tables referenced must exist as TempViews created in this session)")),
     "variableMap" -> StepParameter(None, Some(false), None, None, None, None, Some("The key/value pairs to be used in variable replacement in the query"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def queryToDataFrame(query: String, variableMap: Option[Map[String, String]], pipelineContext: PipelineContext): DataFrame = {
     val finalQuery = replaceQueryVariables(query, variableMap)
     // return the dataframe
@@ -94,6 +100,8 @@ object QuerySteps {
     "Pipeline",
     "Query")
   @StepParameters(Map("viewName" -> StepParameter(None, Some(false), None, None, None, None, Some("The name of the view to use"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def tempViewToDataFrame(viewName: String, pipelineContext: PipelineContext): DataFrame = {
     logger.info(s"pulling TempView $viewName to a dataframe")
     pipelineContext.sparkSession.get.table(viewName)
@@ -121,6 +129,8 @@ object QuerySteps {
     "variableMap" -> StepParameter(None, Some(false), None, None, None, None, Some("The key/value pairs to be used in variable replacement in the query")),
     "inputViewName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name to use when creating the view representing the input dataframe (same name used in query)")),
     "outputViewName" -> StepParameter(None, Some(false), None, None, None, None, Some("The name of the view to create (optional, random name will be created if not provided)"))))
+  @StepResults(primaryType = "String",
+    secondaryTypes = None)
   def dataFrameQueryToTempView(dataFrame: Dataset[_], query: String, variableMap: Option[Map[String, String]],
                                inputViewName: String, outputViewName: Option[String], pipelineContext: PipelineContext): String = {
     val finalViewName = if(outputViewName.isEmpty) generateTempViewName else outputViewName.get
@@ -155,6 +165,8 @@ object QuerySteps {
     "query" -> StepParameter(Some("script"), Some(true), None, Some("sql"), None, None, Some("The query to run (all tables referenced must exist as TempViews created in this session)")),
     "variableMap" -> StepParameter(None, Some(false), None, None, None, None, Some("The key/value pairs to be used in variable replacement in the query")),
     "inputViewName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name to use when creating the view representing the input dataframe (same name used in query)"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def dataFrameQueryToDataFrame(dataFrame: Dataset[_], query: String, variableMap: Option[Map[String, String]],
                                 inputViewName: String, pipelineContext: PipelineContext): DataFrame = {
     // store the dataframe as a TempView
@@ -177,6 +189,8 @@ object QuerySteps {
     "Query")
   @StepParameters(Map("viewName" -> StepParameter(None, Some(false), None, None, None, None,
     Some("The name of the view to cache"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def cacheTempView(viewName: String, pipelineContext: PipelineContext): DataFrame = {
     logger.info(s"caching TempView $viewName")
     pipelineContext.sparkSession.get.table(viewName).cache

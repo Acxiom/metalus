@@ -35,6 +35,7 @@ case class StepGroupFlow(pipeline: Pipeline,
     val subPipeline =if (parameterValues.contains("pipelineId")) {
       pipelineContext.pipelineManager.getPipeline(parameterValues("pipelineId").toString)
         .getOrElse(throw PipelineException(message = Some(s"Unable to retrieve required step group id ${parameterValues("pipelineId")}"),
+          context = Some(pipelineContext),
           pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id))))
     } else { parameterValues("pipeline").asInstanceOf[Pipeline] }
     val firstStep = subPipeline.steps.get.head

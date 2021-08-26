@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.steps
 
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.steps.TransformationSteps.cleanColumnName
 import com.acxiom.pipeline.{PipelineContext, PipelineException}
 import org.apache.log4j.Logger
@@ -31,6 +31,8 @@ object DataSteps {
     "leftAlias" -> StepParameter(None, Some(false), Some("left"), None, None, None, Some("Left side alias")),
     "rightAlias" -> StepParameter(None, Some(false), Some("right"), None, None, None, Some("Right side alias")),
     "joinType" -> StepParameter(None, Some(false), Some("inner"), None, None, None, Some("Type of join to perform"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def join(left: Dataset[_], right: Dataset[_],
            expression: Option[String] = None,
            leftAlias: Option[String] = None,
@@ -45,6 +47,7 @@ object DataSteps {
         .join(right.as(rightAlias.getOrElse("right")), expr(expression.get), jType)
     } else {
       throw PipelineException(message = Some("Expression must be provided for all non-cross joins."),
+        context = Some(pipelineContext),
         pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
     }
   }
@@ -64,6 +67,8 @@ object DataSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to group")),
     "groupings" -> StepParameter(None, Some(true), None, None, None, None, Some("List of expressions to group by")),
     "aggregations" -> StepParameter(None, Some(true), None, None, None, None, Some("List of aggregations to apply"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def groupBy(dataFrame: Dataset[_], groupings: List[String], aggregations: List[String]): DataFrame = {
     val aggregates = aggregations.map(expr)
     val group = dataFrame.groupBy(groupings.map(expr): _*)
@@ -89,6 +94,8 @@ object DataSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The initial DataFrame")),
     "append" -> StepParameter(None, Some(true), None, None, None, None, Some("The dataFrame to append")),
     "distinct" -> StepParameter(None, Some(false), Some("true"), None, None, None, Some("Flag to control distinct behavior"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataSet",
+    secondaryTypes = None)
   def union[T](dataFrame: Dataset[T], append: Dataset[T], distinct: Option[Boolean] = None): Dataset[T] = {
     val res = dataFrame.unionByName(append)
     if(distinct.getOrElse(true)) res.distinct() else res
@@ -109,6 +116,8 @@ object DataSteps {
     "columnName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name to provide the id column")),
     "columnValue" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the new column")),
     "standardizeColumnName" -> StepParameter(None, Some(false), Some("true"), None, None, None, Some("The value to add"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def addStaticColumnToDataFrame(dataFrame: Dataset[_], columnName: String, columnValue: Any,
                                  standardizeColumnName: Option[Boolean] = None): DataFrame = {
     val name = if(standardizeColumnName.getOrElse(true)) TransformationSteps.cleanColumnName(columnName) else columnName
@@ -128,6 +137,8 @@ object DataSteps {
     "Pipeline", "Data")
   @StepParameters(Map("idColumnName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name to provide the id column")),
     "dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The data frame to add the column"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def addUniqueIdToDataFrame(idColumnName: String, dataFrame: Dataset[_]): DataFrame = {
     logger.info(s"adding unique id,name=$idColumnName")
     dataFrame.withColumn(cleanColumnName(idColumnName), monotonically_increasing_id)
@@ -146,6 +157,8 @@ object DataSteps {
     "Pipeline","Data")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to filter")),
     "expression" -> StepParameter(None, Some(true), None, None, None, None, Some("The expression to apply to the DataFrame to filter rows"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataSet",
+    secondaryTypes = None)
   def applyFilter[T](dataFrame: Dataset[T], expression: String): Dataset[T] = {
     dataFrame.where(expression)
   }
@@ -155,6 +168,8 @@ object DataSteps {
     "Get a count of records in a DataFrame.",
     "Pipeline", "InputOutput")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to count"))))
+  @StepResults(primaryType = "Long",
+    secondaryTypes = None)
   def getDataFrameCount(dataFrame: Dataset[_]): Long = {
     dataFrame.count()
   }
@@ -165,6 +180,8 @@ object DataSteps {
     "Pipeline", "Data")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to drop duplicate records from")),
     "columnNames" -> StepParameter(None, Some(true), None, None, None, None, Some("Columns to use for determining distinct values to drop"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataSet",
+    secondaryTypes = None)
   def dropDuplicateRecords[T](dataFrame: Dataset[T], columnNames: List[String]): Dataset[T] = {
     dataFrame.dropDuplicates(columnNames)
   }
@@ -176,6 +193,8 @@ object DataSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to change")),
     "oldColumnName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the column you want to change")),
     "newColumnName" -> StepParameter(None, Some(true), None, None, None, None, Some("The new name to give the column"))))
+  @StepResults(primaryType = "org.apache.spark.sql.DataFrame",
+    secondaryTypes = None)
   def renameColumn(dataFrame: Dataset[_], oldColumnName: String, newColumnName: String): DataFrame = {
     dataFrame.withColumnRenamed(oldColumnName, newColumnName)
   }
