@@ -7,9 +7,9 @@ import com.amazonaws.services.secretsmanager.AWSSecretsManagerClientBuilder
 import com.amazonaws.services.secretsmanager.model.{GetSecretValueRequest, InvalidParameterException, InvalidRequestException, ResourceNotFoundException}
 import org.apache.log4j.Logger
 
-class AWSSecretsManagerCredentialProvider(override val parameters: Map[String, Any])
-  extends DefaultCredentialProvider(parameters +
-    ("credential-parsers" -> s"${parameters.getOrElse("credential-parsers", "")},com.acxiom.aws.pipeline.AWSCredentialParser")) {
+class AWSSecretsManagerCredentialProvider(val params: Map[String, Any])
+  extends DefaultCredentialProvider(params +
+    ("credential-parsers" -> s"${params.getOrElse("credential-parsers", "")},com.acxiom.aws.pipeline.AWSCredentialParser")) {
   private val logger = Logger.getLogger(getClass)
   val region: String = parameters.getOrElse("region", "us-east-1").asInstanceOf[String]
   private val config = new AwsClientBuilder.EndpointConfiguration(s"secretsmanager.$region.amazonaws.com", region)
@@ -40,6 +40,9 @@ class AWSSecretsManagerCredentialProvider(override val parameters: Map[String, A
           None
         case e: InvalidParameterException =>
           logger.warn(s"The request had invalid params: ${e.getMessage}")
+          None
+        case e: Throwable =>
+          logger.warn(s"Unknown exception occurred while retrieving secret: ${e.getMessage}")
           None
       }
     }
