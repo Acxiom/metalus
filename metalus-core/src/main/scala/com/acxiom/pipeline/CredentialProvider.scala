@@ -60,14 +60,15 @@ class DefaultCredentialParser extends CredentialParser {
   * @param parameters A map containing parameters.
   */
 class DefaultCredentialProvider(override val parameters: Map[String, Any]) extends CredentialProvider {
+  protected val defaultParsers: List[CredentialParser] = List(new DefaultCredentialParser())
   protected lazy val credentialParsers: List[CredentialParser] = {
     if (parameters.contains("credential-parsers")) {
       parameters("credential-parsers").asInstanceOf[String]
         .split(',').filter(_.nonEmpty).distinct.map(className =>
         ReflectionUtils.loadClass(className, Some(Map("parameters" -> parameters)))
-          .asInstanceOf[CredentialParser]).toList:+ new DefaultCredentialParser()
+          .asInstanceOf[CredentialParser]).toList ++ defaultParsers
     } else {
-      List(new DefaultCredentialParser())
+      defaultParsers
     }
   }
   protected lazy val credentials: Map[String, Credential] = {

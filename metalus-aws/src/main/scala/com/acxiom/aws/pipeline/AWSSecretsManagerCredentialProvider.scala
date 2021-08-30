@@ -1,16 +1,16 @@
 package com.acxiom.aws.pipeline
 
 import com.acxiom.aws.utils.{AWSBasicCredential, AWSCloudWatchCredential, AWSDynamoDBCredential, DefaultAWSCredential}
-import com.acxiom.pipeline.{Credential, CredentialParser, DefaultCredentialProvider}
+import com.acxiom.pipeline.{Credential, CredentialParser, DefaultCredentialParser, DefaultCredentialProvider}
 import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.services.secretsmanager.AWSSecretsManagerClientBuilder
 import com.amazonaws.services.secretsmanager.model.{GetSecretValueRequest, InvalidParameterException, InvalidRequestException, ResourceNotFoundException}
 import org.apache.log4j.Logger
 
-class AWSSecretsManagerCredentialProvider(val params: Map[String, Any])
-  extends DefaultCredentialProvider(params +
-    ("credential-parsers" -> s"${params.getOrElse("credential-parsers", "")},com.acxiom.aws.pipeline.AWSCredentialParser")) {
+class AWSSecretsManagerCredentialProvider(override val parameters: Map[String, Any])
+  extends DefaultCredentialProvider(parameters) {
   private val logger = Logger.getLogger(getClass)
+  override protected val defaultParsers = List(new DefaultCredentialParser(), new AWSCredentialParser)
   val region: String = parameters.getOrElse("region", "us-east-1").asInstanceOf[String]
   private val config = new AwsClientBuilder.EndpointConfiguration(s"secretsmanager.$region.amazonaws.com", region)
   private val clientBuilder = AWSSecretsManagerClientBuilder.standard

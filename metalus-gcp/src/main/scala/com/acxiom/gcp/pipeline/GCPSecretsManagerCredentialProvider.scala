@@ -1,6 +1,6 @@
 package com.acxiom.gcp.pipeline
 
-import com.acxiom.pipeline.{Credential, CredentialParser, DefaultCredential, DefaultCredentialProvider}
+import com.acxiom.pipeline._
 import com.google.cloud.secretmanager.v1.{SecretManagerServiceClient, SecretName, SecretVersion, SecretVersionName}
 import org.apache.log4j.Logger
 
@@ -13,9 +13,9 @@ import scala.collection.JavaConverters._
   * @param parameters A map containing parameters. projectId is required.
   */
 class GCPSecretsManagerCredentialProvider(override val parameters: Map[String, Any])
-  extends DefaultCredentialProvider(parameters +
-    ("credential-parsers" -> s"${parameters.getOrElse("credential-parsers", "")},com.acxiom.gcp.pipeline.GCPCredentialParser")) {
+  extends DefaultCredentialProvider(parameters) {
   private val logger = Logger.getLogger(getClass)
+  override protected val defaultParsers = List(new DefaultCredentialParser(), new GCPCredentialParser)
   private val projectId = parameters.getOrElse("projectId", "").asInstanceOf[String]
   private val secretsManagerClient = SecretManagerServiceClient.create()
 
