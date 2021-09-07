@@ -71,7 +71,13 @@ class DefaultCredentialProvider(override val parameters: Map[String, Any]) exten
       defaultParsers
     }
   }
-  protected lazy val credentials: Map[String, Credential] = {
+  protected lazy val credentials: Map[String, Credential] = parseCredentials(parameters)
+
+  override def getNamedCredential(name: String): Option[Credential] = {
+    this.credentials.get(name)
+  }
+
+  protected def parseCredentials(parameters: Map[String, Any]): Map[String, Credential] = {
     credentialParsers.foldLeft(Map[String, Credential]())((credentials, parser) => {
       val creds = parser.parseCredentials(parameters)
       if (creds.nonEmpty) {
@@ -82,10 +88,6 @@ class DefaultCredentialProvider(override val parameters: Map[String, Any]) exten
         credentials
       }
     })
-  }
-
-  override def getNamedCredential(name: String): Option[Credential] = {
-    this.credentials.get(name)
   }
 }
 

@@ -7,6 +7,7 @@ using Spark.
 ## Step Classes
 * [ApiSteps](docs/apisteps.md)
 * [CSVSteps](docs/csvsteps.md)
+* [DataConnectorSteps](docs/dataconnectorsteps.md)
 * [DataFrameSteps](docs/dataframesteps.md)
 * [DataSteps](docs/datasteps.md)
 * [FileManagerSteps](docs/filemanagersteps.md)

@@ -12,6 +12,14 @@ trait GCPCredential extends Credential {
 }
 
 /**
+  * An implementation of GCPCredential where parameters represent the full authKey.
+  * @param parameters The actual JSON authKey
+  */
+class BasicGCPCredential(override val parameters: Map[String, Any]) extends GCPCredential {
+  override def authKey: Map[String, String] = parameters
+}
+
+/**
   * GCPCredential implementation that looks for the gcpAuthKeyArray parameter to generate the authKey.
   * @param parameters A map containing the gcpAuthKeyArray parameter
   */

@@ -15,6 +15,7 @@
         * [Parameter Mapping](parameter-mapping.md)
             * [Reserved Globals](parameter-mapping.md#reserved-globals)
         * [Execution and Data Flow](pipeline-flow.md)
+        * [Data Connectors](dataconnectors.md)
     * [Error Handling](error-handling.md)
     * [Logging](logging.md)
 * [Step Libraries](step-libraries.md)
@@ -22,6 +23,7 @@
         * Steps
             * [ApiSteps](../metalus-common/docs/apisteps.md)
             * [CredentialSteps](../metalus-common/docs/credentialsteps.md)
+            * [DataConnectorSteps](../metalus-common/docs/dataconnectorsteps.md)
             * [DataFrameSteps](../metalus-common/docs/dataframesteps.md)
             * [FileManagerSteps](../metalus-common/docs/filemanagersteps.md)
             * [HDFSSteps](../metalus-common/docs/hdfssteps.md)

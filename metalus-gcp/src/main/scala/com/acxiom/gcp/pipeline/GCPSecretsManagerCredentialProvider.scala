@@ -3,6 +3,8 @@ package com.acxiom.gcp.pipeline
 import com.acxiom.pipeline._
 import com.google.cloud.secretmanager.v1.{SecretManagerServiceClient, SecretName, SecretVersion, SecretVersionName}
 import org.apache.log4j.Logger
+import org.json4s.native.JsonMethods.parse
+import org.json4s.{DefaultFormats, Formats}
 
 import java.util.Base64
 import scala.collection.JavaConverters._
@@ -15,10 +17,10 @@ import scala.collection.JavaConverters._
 class GCPSecretsManagerCredentialProvider(override val parameters: Map[String, Any])
   extends DefaultCredentialProvider(parameters) {
   private val logger = Logger.getLogger(getClass)
+  private implicit val formats: Formats = DefaultFormats
   override protected val defaultParsers = List(new DefaultCredentialParser(), new GCPCredentialParser)
   private val projectId = parameters.getOrElse("projectId", "").asInstanceOf[String]
   private val secretsManagerClient = SecretManagerServiceClient.create()
-
 
   override def getNamedCredential(name: String): Option[Credential] = {
     val baseCredential = this.credentials.get(name)
@@ -40,7 +42,14 @@ class GCPSecretsManagerCredentialProvider(override val parameters: Map[String, A
         val secret = Option(secretsManagerClient.accessSecretVersion(SecretVersionName.of(projectId, name, recent.toString)))
         if (secret.isDefined &&
           Option(secret.get.getPayload.getData.toStringUtf8).isDefined) {
-          Some(DefaultCredential(Map("credentialName" -> name, "credentialValue" -> secret.get.getPayload.getData.toStringUtf8)))
+          val secretString = secret.get.getPayload.getData.toStringUtf8
+          val credsMap = if ("(\\{.*?})".r.findAllIn(secretString).hasNext) {
+            parse(secretString).extract[Map[String, String]]
+          } else {
+            Map("credentialName" -> name, "credentialValue" -> secretString)
+          }
+          val creds = parseCredentials(credsMap)
+          Some(creds.head._2)
         } else {
           None
         }
@@ -77,6 +86,8 @@ class GCPCredentialParser() extends CredentialParser {
       } else {
         credentialList :+ DefaultCredential(parameters)
       }
+    } else if (parameters.contains("project_id") && parameters.contains("auth_uri")) {
+      credentialList :+ new BasicGCPCredential(parameters)
     } else {
       credentialList
     }
