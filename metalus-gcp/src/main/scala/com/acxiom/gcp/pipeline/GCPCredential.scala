@@ -16,7 +16,7 @@ trait GCPCredential extends Credential {
   * @param parameters The actual JSON authKey
   */
 class BasicGCPCredential(override val parameters: Map[String, Any]) extends GCPCredential {
-  override def authKey: Map[String, String] = parameters
+  override def authKey: Map[String, String] = parameters.map(record => record._1 -> record._2.toString)
 }
 
 /**
