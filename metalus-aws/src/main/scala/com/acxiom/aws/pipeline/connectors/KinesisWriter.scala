@@ -91,7 +91,7 @@ class StructuredStreamingKinesisSink(override val streamName: String,
     true
   }
 
-  override def process(value: Row): Unit = super.process(_)
+  override def process(value: Row): Unit = super.process(_: Row)
 
   override def close(errorOrNull: Throwable): Unit = this.close()
 }
