@@ -7,6 +7,15 @@ to load and write a DataFrame based on the underlying system. Below is a breakdo
 
 ![DataConnectors](images/DataConnectors.png)
 
+**Parameters**
+The following parameters are available to all data connectors:
+
+* **name** - The name of the connector
+* **credentialName** - The optional credential name to use to authenticate
+* **credential** - The optional credential to use to authenticate
+* **readOptions** - The optional read options to use when loading the DataFrame
+* **writeOptions** - The optional write options to use when writing the DataFrame
+
 ## Batch
 Connectors that are designed to load and write data for batch processing will extend the _BatchDataConnector_. These
 are very straightforward and offer the most reusable components.
@@ -99,7 +108,39 @@ val connector = GCSDataConnector("my-connector", Some("my-credential-name-for-se
   }
 }
 ```
-## Streaming (Coming Soon)
+## Streaming
 Streaming connectors offer a way to use pipelines with [Spark Structured Streaming](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html) without 
 the need to write new [drivers](pipeline-drivers.md). When designing pipelines for streaming, care must be taken to not
 inject steps that are more batch oriented such as doing a file copy.
+
+### KinesisDataConnector
+This connector provides access to Kinesis. In addition to the standard parameters, the following parameters are
+available:
+
+* **streamName** - The name of the Kinesis stream.
+* **region** - The region containing the Kinesis stream
+* **partitionKey** - The optional static partition key to use
+* **partitionKeyIndex** - The optional field index in the DataFrame row containing the value to use as the partition key
+* **separator** - The field separator to use when formatting the row data
+
+Below is an example setup that expects a secrets manager credential provider:
+#### Scala
+```scala
+val connector = KinesisDataConnector("stream-name", "us-east-1", None, Some(15), ",", "my-connector",
+  Some("my-credential-name-for-secrets-manager"))
+```
+#### Globals JSON
+```json
+{
+  "connector": {
+    "className": "com.acxiom.aws.pipeline.connectors.S3DataConnector",
+    "object": {
+      "name": "my-connector",
+      "credentialName": "my-credential-name-for-secrets-manager",
+      "streamName": "stream-name",
+      "region": "us-east-1",
+      "separator": ","
+    }
+  }
+}
+```

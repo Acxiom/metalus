@@ -1,16 +1,18 @@
 package com.acxiom.aws.pipeline.connectors
 
-import com.acxiom.aws.utils.{AWSCredential, S3Utilities}
+import com.acxiom.aws.utils.S3Utilities
 import com.acxiom.pipeline.connectors.{BatchDataConnector, DataConnectorUtilities}
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
 import com.acxiom.pipeline.{Credential, PipelineContext}
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.streaming.StreamingQuery
 
 case class S3DataConnector(override val name: String,
                            override val credentialName: Option[String],
                            override val credential: Option[Credential],
                            override val readOptions: DataFrameReaderOptions = DataFrameReaderOptions(),
-                           override val writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()) extends BatchDataConnector {
+                           override val writeOptions: DataFrameWriterOptions = DataFrameWriterOptions())
+  extends BatchDataConnector with AWSDataConnector {
   override def load(source: Option[String], pipelineContext: PipelineContext): DataFrame = {
     val path = source.getOrElse("")
     setSecurity(pipelineContext, path)
@@ -19,20 +21,24 @@ case class S3DataConnector(override val name: String,
       .load(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
 
-  override def write(dataFrame: DataFrame, destination: Option[String], pipelineContext: PipelineContext): Unit = {
+  override def write(dataFrame: DataFrame, destination: Option[String], pipelineContext: PipelineContext): Option[StreamingQuery] = {
     val path = destination.getOrElse("")
     setSecurity(pipelineContext, path)
-
-    DataConnectorUtilities.buildDataFrameWriter(dataFrame, writeOptions)
-      .save(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
+    if (dataFrame.isStreaming) {
+      Some(dataFrame.writeStream
+        .format(writeOptions.format)
+        .option("path", destination.getOrElse(""))
+        .options(writeOptions.options.getOrElse(Map[String, String]()))
+        .start())
+    } else {
+      DataConnectorUtilities.buildDataFrameWriter(dataFrame, writeOptions)
+        .save(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
+      None
+    }
   }
 
   private def setSecurity(pipelineContext: PipelineContext, path: String): Unit = {
-    val finalCredential = (if (credentialName.isDefined) {
-      pipelineContext.credentialProvider.get.getNamedCredential(credentialName.get)
-    } else {
-      credential
-    }).asInstanceOf[Option[AWSCredential]]
+    val finalCredential = getCredential(pipelineContext)
 
     if (finalCredential.isDefined) {
       S3Utilities.setS3Authorization(path,

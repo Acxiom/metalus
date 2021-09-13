@@ -4,6 +4,7 @@ import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.acxiom.pipeline.connectors.DataConnector
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.streaming.StreamingQuery
 
 @StepObject
 object DataConnectorSteps {
@@ -32,6 +33,6 @@ object DataConnectorSteps {
   def writeDataFrame(dataFrame: DataFrame,
                      connector: DataConnector,
                      destination: Option[String],
-                     pipelineContext: PipelineContext): Unit =
+                     pipelineContext: PipelineContext): Option[StreamingQuery] =
     connector.write(dataFrame, destination, pipelineContext)
 }

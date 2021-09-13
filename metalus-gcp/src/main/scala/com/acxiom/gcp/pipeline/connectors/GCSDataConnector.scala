@@ -7,6 +7,7 @@ import com.acxiom.pipeline.connectors.{BatchDataConnector, DataConnectorUtilitie
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
 import com.acxiom.pipeline.{Credential, PipelineContext}
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.streaming.StreamingQuery
 
 case class GCSDataConnector(override val name: String,
                             override val credentialName: Option[String],
@@ -20,11 +21,20 @@ case class GCSDataConnector(override val name: String,
       .load(GCSFileManager.prepareGCSFilePath(path))
   }
 
-  override def write(dataFrame: DataFrame, destination: Option[String], pipelineContext: PipelineContext): Unit = {
+  override def write(dataFrame: DataFrame, destination: Option[String], pipelineContext: PipelineContext): Option[StreamingQuery] = {
     val path = destination.getOrElse("")
     setSecurity(pipelineContext)
-    DataConnectorUtilities.buildDataFrameWriter(dataFrame, writeOptions)
-      .save(GCSFileManager.prepareGCSFilePath(path))
+    if (dataFrame.isStreaming) {
+      Some(dataFrame.writeStream
+        .format(writeOptions.format)
+        .option("path", destination.getOrElse(""))
+        .options(writeOptions.options.getOrElse(Map[String, String]()))
+        .start())
+    } else {
+      DataConnectorUtilities.buildDataFrameWriter(dataFrame, writeOptions)
+        .save(GCSFileManager.prepareGCSFilePath(path))
+      None
+    }
   }
 
   private def setSecurity(pipelineContext: PipelineContext): Unit = {
