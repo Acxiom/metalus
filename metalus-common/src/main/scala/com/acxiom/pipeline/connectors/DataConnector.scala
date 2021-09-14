@@ -13,6 +13,14 @@ trait DataConnector {
   def writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()
   def load(source: Option[String], pipelineContext: PipelineContext): DataFrame
   def write(dataFrame: DataFrame, destination: Option[String], pipelineContext: PipelineContext): Option[StreamingQuery]
+
+  protected def getCredential(pipelineContext: PipelineContext): Option[Credential] = {
+    if (credentialName.isDefined) {
+      pipelineContext.credentialProvider.get.getNamedCredential(credentialName.get)
+    } else {
+      credential
+    }
+  }
 }
 
 trait BatchDataConnector extends DataConnector {}

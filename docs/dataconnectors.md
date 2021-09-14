@@ -108,6 +108,27 @@ val connector = GCSDataConnector("my-connector", Some("my-credential-name-for-se
   }
 }
 ```
+### BigQueryDataConnector
+This connector provides access to BigQuery. Below is an example setup that expects a secrets manager credential provider:
+#### Scala
+```scala
+val connector = BigDataConnector("temp-bucket-name", "my-connector", Some("my-credential-name-for-secrets-manager"), None,
+        DataFrameReaderOptions(format = "csv"),
+        DataFrameWriterOptions(format = "csv", options = Some(Map("delimiter" -> "þ"))))
+```
+#### Globals JSON
+```json
+{
+  "connector": {
+    "className": "com.acxiom.gcp.pipeline.connectors.GCSDataConnector",
+    "object": {
+      "name": "my-connector",
+      "credentialName": "my-credential-name-for-secrets-manager",
+      "tempWriteBucket": "temp-bucket-name"
+    }
+  }
+}
+```
 ## Streaming
 Streaming connectors offer a way to use pipelines with [Spark Structured Streaming](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html) without 
 the need to write new [drivers](pipeline-drivers.md). When designing pipelines for streaming, care must be taken to not

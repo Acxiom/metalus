@@ -1,12 +1,11 @@
 package com.acxiom.gcp.steps
 
-import com.acxiom.gcp.utils.GCPUtilities
+import com.acxiom.gcp.pipeline.BasicGCPCredential
+import com.acxiom.gcp.pipeline.connectors.BigQueryDataConnector
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations._
-import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameSteps, DataFrameWriterOptions}
+import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
 import org.apache.spark.sql.DataFrame
-
-import java.util.Base64
 
 @StepObject
 object BigQuerySteps {
@@ -20,22 +19,22 @@ object BigQuerySteps {
     "credentials" -> StepParameter(None, Some(false), None, None, None, None, Some("Optional credentials map"))))
   @StepResults(primaryType = "org.apache.spark.sql.DataFrame", secondaryTypes = None)
   def readFromTable(table: String,
-                   credentials: Option[Map[String, String]],
-                   options: Option[DataFrameReaderOptions] = None,
-                   pipelineContext: PipelineContext): DataFrame = {
+                    credentials: Option[Map[String, String]],
+                    options: Option[DataFrameReaderOptions] = None,
+                    pipelineContext: PipelineContext): DataFrame = {
     // Setup format for BigQuery
     val readerOptions = if (options.isDefined) {
-      options.get.copy(format = "bigquery")
+      options.get
     } else {
-      DataFrameReaderOptions("bigquery")
+      DataFrameReaderOptions()
     }
-    // Setup authentication
-    val finalOptions = if (credentials.isDefined) {
-      readerOptions.copy(options = setBigQueryAuthentication(credentials.get, readerOptions.options))
+    val creds = if (credentials.isDefined) {
+      Some(new BasicGCPCredential(credentials.get))
     } else {
-      readerOptions
+      None
     }
-    DataFrameSteps.getDataFrameReader(finalOptions, pipelineContext).load(table)
+    val connector = BigQueryDataConnector("", "readFromTable", None, creds, readerOptions)
+    connector.load(Some(table), pipelineContext)
   }
 
   @StepFunction("5b6e114b-51bb-406f-a95a-2a07bc0d05c7",
@@ -49,42 +48,23 @@ object BigQuerySteps {
     "options" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional DataFrame Options")),
     "credentials" -> StepParameter(None, Some(false), None, None, None, None, Some("Optional credentials map"))))
   def writeToTable(dataFrame: DataFrame,
-                  table: String,
-                  tempBucket: String,
-                  credentials: Option[Map[String, String]],
-                  options: Option[DataFrameWriterOptions] = None): Unit = {
+                   table: String,
+                   tempBucket: String,
+                   credentials: Option[Map[String, String]],
+                   options: Option[DataFrameWriterOptions] = None,
+                   pipelineContext: PipelineContext): Unit = {
     // Setup format for BigQuery
     val writerOptions = if (options.isDefined) {
-      options.get.copy(format = "bigquery")
+      options.get
     } else {
-      DataFrameWriterOptions("bigquery", options = Some(Map("temporaryGcsBucket" -> tempBucket)))
+      DataFrameWriterOptions()
     }
-    // Setup authentication
-    val finalOptions = if (credentials.isDefined) {
-      val tempOptions = if (writerOptions.options.isDefined) {
-        writerOptions.options.get + ("temporaryGcsBucket" -> tempBucket)
-      } else {
-        Map("temporaryGcsBucket" -> tempBucket)
-      }
-      writerOptions.copy(options = setBigQueryAuthentication(credentials.get, Some(tempOptions)))
+    val creds = if (credentials.isDefined) {
+      Some(new BasicGCPCredential(credentials.get))
     } else {
-      writerOptions
+      None
     }
-    DataFrameSteps.getDataFrameWriter(dataFrame, finalOptions).save(table)
-  }
-
-  private def setBigQueryAuthentication(credentials: Map[String, String],
-                                        options: Option[Map[String, String]]): Option[Map[String, String]] = {
-    val creds = GCPUtilities.generateCredentialsByteArray(Some(credentials))
-    if (creds.isDefined) {
-      val encodedCredential = Base64.getEncoder.encodeToString(creds.get)
-      if (options.isDefined) {
-        Some(options.get + ("credentials" -> encodedCredential))
-      } else {
-        Some(Map("credentials" -> encodedCredential))
-      }
-    } else {
-      options
-    }
+    val connector = BigQueryDataConnector(tempBucket, "writeToTable", None, creds, DataFrameReaderOptions(), writerOptions)
+    connector.write(dataFrame, Some(table), pipelineContext)
   }
 }

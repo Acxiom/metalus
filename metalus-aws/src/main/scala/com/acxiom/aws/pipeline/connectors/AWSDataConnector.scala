@@ -5,11 +5,7 @@ import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.connectors.DataConnector
 
 trait AWSDataConnector extends DataConnector{
-  protected def getCredential(pipelineContext: PipelineContext): Option[AWSCredential] = {
-    (if (credentialName.isDefined) {
-      pipelineContext.credentialProvider.get.getNamedCredential(credentialName.get)
-    } else {
-      credential
-    }).asInstanceOf[Option[AWSCredential]]
+  override protected def getCredential(pipelineContext: PipelineContext): Option[AWSCredential] = {
+    super.getCredential(pipelineContext).asInstanceOf[Option[AWSCredential]]
   }
 }
