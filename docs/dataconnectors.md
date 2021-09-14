@@ -165,3 +165,34 @@ val connector = KinesisDataConnector("stream-name", "us-east-1", None, Some(15),
   }
 }
 ```
+### KafkaDataConnector
+This connector provides access to Kinesis. In addition to the standard parameters, the following parameters are
+available:
+
+* **topics** - The name of the Kinesis stream.
+* **kafkaNodes** - The region containing the Kinesis stream
+* **key** - The optional static key to use
+* **keyField** - The optional field name in the DataFrame row containing the value to use as the key
+* **separator** - The field separator to use when formatting the row data
+* 
+Below is an example setup that expects a secrets manager credential provider:
+#### Scala
+```scala
+val connector = KafkaDataConnector("topic-name1,topic-name2", "host1:port1,host2:port2", "message-key", None,
+  "my-connector", Some("my-credential-name-for-secrets-manager"))
+```
+#### Globals JSON
+```json
+{
+  "connector": {
+    "className": "com.acxiom.aws.pipeline.connectors.S3DataConnector",
+    "object": {
+      "name": "my-connector",
+      "credentialName": "my-credential-name-for-secrets-manager",
+      "topics": "topic-name1,topic-name2",
+      "kafkaNodes": "host1:port1,host2:port2",
+      "key": "message-key"
+    }
+  }
+}
+```
