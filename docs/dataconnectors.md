@@ -112,7 +112,7 @@ val connector = GCSDataConnector("my-connector", Some("my-credential-name-for-se
 This connector provides access to BigQuery. Below is an example setup that expects a secrets manager credential provider:
 #### Scala
 ```scala
-val connector = BigDataConnector("temp-bucket-name", "my-connector", Some("my-credential-name-for-secrets-manager"), None,
+val connector = BigQueryDataConnector("temp-bucket-name", "my-connector", Some("my-credential-name-for-secrets-manager"), None,
         DataFrameReaderOptions(format = "csv"),
         DataFrameWriterOptions(format = "csv", options = Some(Map("delimiter" -> "þ"))))
 ```
@@ -120,11 +120,38 @@ val connector = BigDataConnector("temp-bucket-name", "my-connector", Some("my-cr
 ```json
 {
   "connector": {
-    "className": "com.acxiom.gcp.pipeline.connectors.GCSDataConnector",
+    "className": "com.acxiom.gcp.pipeline.connectors.BigQueryDataConnector",
     "object": {
       "name": "my-connector",
       "credentialName": "my-credential-name-for-secrets-manager",
       "tempWriteBucket": "temp-bucket-name"
+    }
+  }
+}
+```
+### MongoDataConnector
+This connector provides access to Mongo. Security is handled using the uri or a _UserNameCredential_. In addition to
+the standard parameters, the following parameters are available:
+
+* **uri** - The name connection URI
+* **collectionName** - The name of the collection
+
+#### Scala
+```scala
+val connector = MongoDataConnector("mongodb://127.0.0.1/test", "myCollectionName", "my-connector", Some("my-credential-name-for-secrets-manager"), None,
+        DataFrameReaderOptions(format = "csv"),
+        DataFrameWriterOptions(format = "csv", options = Some(Map("delimiter" -> "þ"))))
+```
+#### Globals JSON
+```json
+{
+  "connector": {
+    "className": "com.acxiom.metalus.pipeline.connectors.MongoDataConnector",
+    "object": {
+      "name": "my-connector",
+      "credentialName": "my-credential-name-for-secrets-manager",
+      "uri": "mongodb://127.0.0.1/test",
+      "collectionName": "myCollectionName"
     }
   }
 }
@@ -154,7 +181,7 @@ val connector = KinesisDataConnector("stream-name", "us-east-1", None, Some(15),
 ```json
 {
   "connector": {
-    "className": "com.acxiom.aws.pipeline.connectors.S3DataConnector",
+    "className": "com.acxiom.aws.pipeline.connectors.KinesisDataConnector",
     "object": {
       "name": "my-connector",
       "credentialName": "my-credential-name-for-secrets-manager",
@@ -185,7 +212,7 @@ val connector = KafkaDataConnector("topic-name1,topic-name2", "host1:port1,host2
 ```json
 {
   "connector": {
-    "className": "com.acxiom.aws.pipeline.connectors.S3DataConnector",
+    "className": "com.acxiom.kafka.pipeline.connectors.KafkaDataConnector",
     "object": {
       "name": "my-connector",
       "credentialName": "my-credential-name-for-secrets-manager",

@@ -20,6 +20,15 @@ trait Credential extends Serializable {
 }
 
 /**
+  * Creates a credential by parsing the parameters username and password.
+  * @param parameters The map containing parameters to scan.
+  */
+case class UserNameCredential(override val parameters: Map[String, Any]) extends Credential {
+  override def name: String = parameters("username").asInstanceOf[String]
+  def password: String = parameters("password").asInstanceOf[String]
+}
+
+/**
   * Provides an interface for parsing credentials from a map
   */
 trait CredentialParser extends Serializable {

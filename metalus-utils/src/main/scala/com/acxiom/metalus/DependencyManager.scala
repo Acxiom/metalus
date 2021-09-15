@@ -46,7 +46,8 @@ object DependencyManager {
         new File(file)
       }
       copyFileToLocal(srcFile, destFile)
-      cp.addDependency(Dependency(artifactName, artifactName.split("-")(1), destFile))
+      cp.addDependency(Dependency(artifactName.substring(0, artifactName.lastIndexOf("-")),
+        artifactName.split("-").last, destFile))
     })
     // Get the dependencies
     val dependencies = resolveDependencies(initialClassPath.dependencies, output, parameters)
