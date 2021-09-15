@@ -2,6 +2,7 @@ package com.acxiom.gcp.utils
 
 import com.acxiom.gcp.pipeline.GCPCredential
 import com.acxiom.pipeline.{Constants, CredentialProvider, PipelineContext}
+import com.google.api.gax.batching.BatchingSettings
 import com.google.api.gax.core.FixedCredentialsProvider
 import com.google.api.gax.retrying.RetrySettings
 import com.google.auth.oauth2.GoogleCredentials
@@ -16,8 +17,13 @@ import java.io.ByteArrayInputStream
 import java.util.concurrent.TimeUnit
 
 object GCPUtilities {
-
-  private val retrySettings = RetrySettings.newBuilder
+  val requestBytesThreshold = 5000L
+  val messageCountBatchSize = 100L
+  val batchingSettings: BatchingSettings = BatchingSettings.newBuilder
+    .setElementCountThreshold(messageCountBatchSize)
+    .setRequestByteThreshold(requestBytesThreshold)
+    .setDelayThreshold(Duration.ofMillis(Constants.ONE_HUNDRED)).build
+  val retrySettings: RetrySettings = RetrySettings.newBuilder
     .setInitialRetryDelay(Duration.ofMillis(Constants.ONE_HUNDRED))
     .setRetryDelayMultiplier(2.0)
     .setMaxRetryDelay(Duration.ofSeconds(Constants.TWO))
@@ -112,15 +118,25 @@ object GCPUtilities {
     * @return A boolean indicating whether the message was published
     */
   def postMessage(topicName: String, creds: Option[GoogleCredentials], message: String): Boolean = {
-    val publisher = (if (creds.isDefined) {
-      Publisher.newBuilder(topicName).setCredentialsProvider(FixedCredentialsProvider.create(creds.get))
-    } else {
-      Publisher.newBuilder(topicName)
-    }).setRetrySettings(retrySettings).build()
+    val publisher = getPublisherBuilder(topicName, creds).setRetrySettings(retrySettings).build()
     val data = ByteString.copyFromUtf8(message)
     val pubsubMessage = PubsubMessage.newBuilder.setData(data).build
     publisher.publish(pubsubMessage)
     publisher.shutdown()
     publisher.awaitTermination(2, TimeUnit.MINUTES)
+  }
+
+  /**
+    * Generates the builder used to create a publisher for Pub/Sub messages.
+    * @param topicName The topic within the Pub/Sub
+    * @param creds The credentials needed to post the message
+    * @return
+    */
+  def getPublisherBuilder(topicName: String, creds: Option[GoogleCredentials]): Publisher.Builder = {
+    if (creds.isDefined) {
+      Publisher.newBuilder(topicName).setCredentialsProvider(FixedCredentialsProvider.create(creds.get))
+    } else {
+      Publisher.newBuilder(topicName)
+    }
   }
 }
