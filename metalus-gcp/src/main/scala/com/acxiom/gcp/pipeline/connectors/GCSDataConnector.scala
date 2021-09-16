@@ -1,7 +1,6 @@
 package com.acxiom.gcp.pipeline.connectors
 
 import com.acxiom.gcp.fs.GCSFileManager
-import com.acxiom.gcp.pipeline.GCPCredential
 import com.acxiom.gcp.utils.GCPUtilities
 import com.acxiom.pipeline.connectors.{BatchDataConnector, DataConnectorUtilities}
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
@@ -13,7 +12,8 @@ case class GCSDataConnector(override val name: String,
                             override val credentialName: Option[String],
                             override val credential: Option[Credential],
                             override val readOptions: DataFrameReaderOptions = DataFrameReaderOptions(),
-                            override val writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()) extends BatchDataConnector {
+                            override val writeOptions: DataFrameWriterOptions = DataFrameWriterOptions())
+  extends BatchDataConnector with GCSConnector {
   override def load(source: Option[String], pipelineContext: PipelineContext): DataFrame = {
     val path = source.getOrElse("")
     setSecurity(pipelineContext)
@@ -38,11 +38,7 @@ case class GCSDataConnector(override val name: String,
   }
 
   private def setSecurity(pipelineContext: PipelineContext): Unit = {
-    val finalCredential = (if (credentialName.isDefined) {
-      pipelineContext.credentialProvider.get.getNamedCredential(credentialName.get)
-    } else {
-      credential
-    }).asInstanceOf[Option[GCPCredential]]
+    val finalCredential = getCredential(pipelineContext)
     if (finalCredential.isDefined) {
       GCPUtilities.setGCSAuthorization(finalCredential.get.authKey, pipelineContext)
     }

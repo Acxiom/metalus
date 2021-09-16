@@ -12,7 +12,7 @@ case class S3DataConnector(override val name: String,
                            override val credential: Option[Credential],
                            override val readOptions: DataFrameReaderOptions = DataFrameReaderOptions(),
                            override val writeOptions: DataFrameWriterOptions = DataFrameWriterOptions())
-  extends BatchDataConnector with AWSDataConnector {
+  extends BatchDataConnector with AWSConnector {
   override def load(source: Option[String], pipelineContext: PipelineContext): DataFrame = {
     val path = source.getOrElse("")
     setSecurity(pipelineContext, path)

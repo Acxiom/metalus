@@ -1,7 +1,7 @@
 [Documentation Home](../../docs/readme.md) | [Common Home](../readme.md)
 
 # FileManagerSteps
-This object provides steps for working with FileManager implementations.
+This object provides steps for working with [FileManager](../../docs/filemanager.md) implementations.
 
 ## Copy
 This step will copy the contents from the source path using the source FileManager to the
@@ -18,3 +18,10 @@ This step provides an easy way to disconnect the FileManager and free any resour
 listed below:
 
 * **fileManager** - The FileManager to disconnect. 
+
+## Create a FileManager
+This step will create a FileManager using the provided [FileConnector](../../docs/fileconnectors.md).
+
+Full parameter descriptions are listed below:
+
+* **fileConnector** - The FileConnector with implementation information.

@@ -1,6 +1,8 @@
 package com.acxiom.pipeline.steps
 
+import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations._
+import com.acxiom.pipeline.connectors.FileConnector
 import com.acxiom.pipeline.fs.FileManager
 import org.apache.log4j.Logger
 
@@ -131,6 +133,21 @@ object FileManagerSteps {
   def disconnectFileManager(fileManager: FileManager): Unit = {
     fileManager.disconnect()
   }
+
+  /**
+    * Creates a FileManager from provided connector
+    *
+    * @return fileManager The FileManager implementation
+    */
+  @StepFunction("259a880a-3e12-4843-9f02-2cfc2a05f576",
+    "Create a FileManager",
+    "Creates a FileManager using the provided FileConnector",
+    "Pipeline",
+    "InputOutput")
+  @StepParameters(Map("fileConnector" -> StepParameter(None, Some(true), None, None,
+    None, None, Some("The FileConnector to use to create the FileManager implementation"))))
+  def getFileManager(fileConnector: FileConnector, pipelineContext: PipelineContext): FileManager =
+    fileConnector.getFileManager(pipelineContext)
 }
 
 case class CopyResults(success: Boolean, fileSize: Long, durationMS: Long, startTime: Date, endTime: Date)

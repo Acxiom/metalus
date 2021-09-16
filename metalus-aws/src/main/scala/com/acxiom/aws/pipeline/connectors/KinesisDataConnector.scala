@@ -32,7 +32,7 @@ case class KinesisDataConnector(streamName: String,
                                 override val credential: Option[Credential],
                                 override val readOptions: DataFrameReaderOptions = DataFrameReaderOptions(),
                                 override val writeOptions: DataFrameWriterOptions = DataFrameWriterOptions())
-  extends StreamingDataConnector with AWSDataConnector {
+  extends StreamingDataConnector with AWSConnector {
   override def load(source: Option[String], pipelineContext: PipelineContext): DataFrame = {
     val initialReader = pipelineContext.sparkSession.get.readStream
       .format("kinesis")

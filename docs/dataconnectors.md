@@ -1,11 +1,9 @@
-[Documentation Home](readme.md)
+[Documentation Home](readme.md) | [Connectors](connectors.md)
 
 # Data Connectors
-Data Connectors provide an abstraction for loading and writing data. This is useful for creating generic pipelines that
-can used across providers without source/destination knowledge prior to runtime. Each connector has the responsibility
-to load and write a DataFrame based on the underlying system. Below is a breakdown of how connectors may be classified:
-
-![DataConnectors](images/DataConnectors.png)
+Data Connectors provide an abstraction for loading and writing data using the [DataConnectorSteps](../metalus-common/docs/dataconnectorsteps.md).
+This is useful for creating generic pipelines that can used across providers without source/destination knowledge prior
+to runtime. Each connector has the responsibility to load and write a DataFrame based on the underlying system. 
 
 **Parameters**
 The following parameters are available to all data connectors:
