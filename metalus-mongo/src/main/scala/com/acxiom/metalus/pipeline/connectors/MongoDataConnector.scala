@@ -17,19 +17,22 @@ case class MongoDataConnector(uri: String,
                               collectionName: String,
                               override val name: String,
                               override val credentialName: Option[String],
-                              override val credential: Option[Credential],
-                              override val readOptions: DataFrameReaderOptions = DataFrameReaderOptions(),
-                              override val writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()) extends BatchDataConnector {
+                              override val credential: Option[Credential]) extends BatchDataConnector {
 
   private val passwordTest = "[@#?\\/\\[\\]:]".r
   private val connectionString = new ConnectionString(uri)
 
-  override def load(source: Option[String], pipelineContext: PipelineContext): DataFrame = {
+  override def load(source: Option[String],
+                    pipelineContext: PipelineContext,
+                    readOptions: DataFrameReaderOptions = DataFrameReaderOptions()): DataFrame = {
     MongoSpark.loadAndInferSchema(pipelineContext.sparkSession.get,
       ReadConfig(Map("collection" -> collectionName, "uri" -> buildConnectionString(pipelineContext))))
   }
 
-  override def write(dataFrame: DataFrame, destination: Option[String], pipelineContext: PipelineContext): Option[StreamingQuery] = {
+  override def write(dataFrame: DataFrame,
+                     destination: Option[String],
+                     pipelineContext: PipelineContext,
+                     writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery] = {
     val writeConfig = WriteConfig(Map("collection" -> collectionName, "uri" -> buildConnectionString(pipelineContext)))
     if (dataFrame.isStreaming) {
       Some(dataFrame

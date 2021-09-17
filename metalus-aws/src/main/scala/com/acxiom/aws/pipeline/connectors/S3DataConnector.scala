@@ -9,11 +9,11 @@ import org.apache.spark.sql.streaming.StreamingQuery
 
 case class S3DataConnector(override val name: String,
                            override val credentialName: Option[String],
-                           override val credential: Option[Credential],
-                           override val readOptions: DataFrameReaderOptions = DataFrameReaderOptions(),
-                           override val writeOptions: DataFrameWriterOptions = DataFrameWriterOptions())
+                           override val credential: Option[Credential])
   extends BatchDataConnector with AWSConnector {
-  override def load(source: Option[String], pipelineContext: PipelineContext): DataFrame = {
+  override def load(source: Option[String],
+                    pipelineContext: PipelineContext,
+                    readOptions: DataFrameReaderOptions = DataFrameReaderOptions()): DataFrame = {
     val path = source.getOrElse("")
     setSecurity(pipelineContext, path)
 
@@ -21,7 +21,10 @@ case class S3DataConnector(override val name: String,
       .load(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
 
-  override def write(dataFrame: DataFrame, destination: Option[String], pipelineContext: PipelineContext): Option[StreamingQuery] = {
+  override def write(dataFrame: DataFrame,
+                     destination: Option[String],
+                     pipelineContext: PipelineContext,
+                     writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery] = {
     val path = destination.getOrElse("")
     setSecurity(pipelineContext, path)
     if (dataFrame.isStreaming) {

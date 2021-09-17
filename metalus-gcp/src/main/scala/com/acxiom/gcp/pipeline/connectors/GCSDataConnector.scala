@@ -10,18 +10,21 @@ import org.apache.spark.sql.streaming.StreamingQuery
 
 case class GCSDataConnector(override val name: String,
                             override val credentialName: Option[String],
-                            override val credential: Option[Credential],
-                            override val readOptions: DataFrameReaderOptions = DataFrameReaderOptions(),
-                            override val writeOptions: DataFrameWriterOptions = DataFrameWriterOptions())
+                            override val credential: Option[Credential])
   extends BatchDataConnector with GCSConnector {
-  override def load(source: Option[String], pipelineContext: PipelineContext): DataFrame = {
+  override def load(source: Option[String],
+                    pipelineContext: PipelineContext,
+                    readOptions: DataFrameReaderOptions = DataFrameReaderOptions()): DataFrame = {
     val path = source.getOrElse("")
     setSecurity(pipelineContext)
     DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession.get, readOptions)
       .load(GCSFileManager.prepareGCSFilePath(path))
   }
 
-  override def write(dataFrame: DataFrame, destination: Option[String], pipelineContext: PipelineContext): Option[StreamingQuery] = {
+  override def write(dataFrame: DataFrame,
+                     destination: Option[String],
+                     pipelineContext: PipelineContext,
+                     writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery] = {
     val path = destination.getOrElse("")
     setSecurity(pipelineContext)
     if (dataFrame.isStreaming) {

@@ -18,12 +18,12 @@ This connector provides access to the HDFS file system. The _credentialName_ and
 this implementation, instead relying on the permissions of the cluster. Below is an example setup:
 #### Scala
 ```scala
-val connector = HDFSFileConnector("my-connector", None, None)
+val connector = HDFSFileConnector("my-hdfs-connector", None, None)
 ```
 #### Globals JSON
 ```json
 {
-  "connector": {
+  "myHdfsConnector": {
     "className": "com.acxiom.pipeline.connectors.HDFSFileConnector",
     "object": {
       "name": "my-connector"
@@ -45,12 +45,12 @@ available:
 Below is an example setup:
 #### Scala
 ```scala
-val connector = SFTPFileConnector("sftp.myhost.com", "my-connector", None, None)
+val connector = SFTPFileConnector("sftp.myhost.com", "my-sftp-connector", None, None)
 ```
 #### Globals JSON
 ```json
 {
-  "connector": {
+  "sftpConnector": {
     "className": "com.acxiom.pipeline.connectors.SFTPFileConnector",
     "object": {
       "name": "my-connector",

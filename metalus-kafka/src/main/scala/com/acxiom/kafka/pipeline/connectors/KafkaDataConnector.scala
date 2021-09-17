@@ -15,11 +15,11 @@ case class KafkaDataConnector(topics: String,
                               override val name: String,
                               override val credentialName: Option[String],
                               override val credential: Option[Credential],
-                              override val readOptions: DataFrameReaderOptions = DataFrameReaderOptions(),
-                              override val writeOptions: DataFrameWriterOptions = DataFrameWriterOptions(),
                               clientId: String = "metalus_default_kafka_producer_client",
                               separator: String = ",") extends StreamingDataConnector {
-  override def load(source: Option[String], pipelineContext: PipelineContext): DataFrame = {
+  override def load(source: Option[String],
+                    pipelineContext: PipelineContext,
+                    readOptions: DataFrameReaderOptions = DataFrameReaderOptions()): DataFrame = {
     pipelineContext.sparkSession.get
       .readStream
       .format("kafka")
@@ -29,7 +29,10 @@ case class KafkaDataConnector(topics: String,
       .load()
   }
 
-  override def write(dataFrame: DataFrame, destination: Option[String], pipelineContext: PipelineContext): Option[StreamingQuery] = {
+  override def write(dataFrame: DataFrame,
+                     destination: Option[String],
+                     pipelineContext: PipelineContext,
+                     writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery] = {
     if (dataFrame.isStreaming) {
       Some(dataFrame
         .writeStream

@@ -19,8 +19,6 @@ import org.apache.spark.sql.streaming.StreamingQuery
   * @param name              The name of the connector
   * @param credentialName    The optional name of the credential to use when authorizing to the Kinesis stream
   * @param credential        The optional credential to use when authorizing to the Kinesis stream
-  * @param readOptions       The optional read options to use
-  * @param writeOptions      The optional write options to use
   */
 case class KinesisDataConnector(streamName: String,
                                 region: String = "us-east-1",
@@ -29,11 +27,11 @@ case class KinesisDataConnector(streamName: String,
                                 separator: String = ",",
                                 override val name: String,
                                 override val credentialName: Option[String],
-                                override val credential: Option[Credential],
-                                override val readOptions: DataFrameReaderOptions = DataFrameReaderOptions(),
-                                override val writeOptions: DataFrameWriterOptions = DataFrameWriterOptions())
+                                override val credential: Option[Credential])
   extends StreamingDataConnector with AWSConnector {
-  override def load(source: Option[String], pipelineContext: PipelineContext): DataFrame = {
+  override def load(source: Option[String],
+                    pipelineContext: PipelineContext,
+                    readOptions: DataFrameReaderOptions = DataFrameReaderOptions()): DataFrame = {
     val initialReader = pipelineContext.sparkSession.get.readStream
       .format("kinesis")
       .option("streamName", streamName)
@@ -73,7 +71,10 @@ case class KinesisDataConnector(streamName: String,
     finalReader.load()
   }
 
-  override def write(dataFrame: DataFrame, destination: Option[String], pipelineContext: PipelineContext): Option[StreamingQuery] = {
+  override def write(dataFrame: DataFrame,
+                     destination: Option[String],
+                     pipelineContext: PipelineContext,
+                     writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery] = {
     val finalCredential: Option[AWSCredential] = getCredential(pipelineContext)
     if (dataFrame.isStreaming) {
       Some(dataFrame

@@ -81,10 +81,9 @@ class DataConnectorStepsTests extends FunSpec with BeforeAndAfterAll {
 
       val dataFrame = chickens.toDF("id", "chicken")
 
-      val connector = HDFSDataConnector("my-connector", None, None,
-        DataFrameReaderOptions(),
-        DataFrameWriterOptions(format = "csv"))
-      DataConnectorSteps.writeDataFrame(dataFrame, connector, Some(miniCluster.getURI + "/data/chickens.csv"), pipelineContext)
+      val connector = HDFSDataConnector("my-connector", None, None)
+      DataConnectorSteps.writeDataFrame(dataFrame, connector, Some(miniCluster.getURI + "/data/chickens.csv"),
+        DataFrameWriterOptions(format = "csv"), pipelineContext)
       val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
 
       assert(list.size == 3)
@@ -105,10 +104,9 @@ class DataConnectorStepsTests extends FunSpec with BeforeAndAfterAll {
 
       val dataFrame = chickens.toDF("id", "chicken")
       DataFrameSteps.persistDataFrame(dataFrame, "MEMORY_ONLY")
-      val connector = HDFSDataConnector("my-connector", None, None,
-        DataFrameReaderOptions(),
-        DataFrameWriterOptions(format = "csv", options = Some(Map("delimiter" -> "þ"))))
-      DataConnectorSteps.writeDataFrame(dataFrame, connector, Some(miniCluster.getURI + "/data/chickens.csv"), pipelineContext)
+      val connector = HDFSDataConnector("my-connector", None, None)
+      DataConnectorSteps.writeDataFrame(dataFrame, connector, Some(miniCluster.getURI + "/data/chickens.csv"),
+        DataFrameWriterOptions(format = "csv", options = Some(Map("delimiter" -> "þ"))), pipelineContext)
       DataFrameSteps.unpersistDataFrame(dataFrame)
       val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
 
@@ -131,10 +129,9 @@ class DataConnectorStepsTests extends FunSpec with BeforeAndAfterAll {
 
       val dataFrame = chickens.toDF("id", "chicken")
       val path = miniCluster.getURI + "/data/chickens.csv"
-      val connector = HDFSDataConnector("my-connector", None, None,
-        DataFrameReaderOptions(),
-        DataFrameWriterOptions(format = "csv", saveMode = "overwrite"))
-      DataConnectorSteps.writeDataFrame(dataFrame, connector, Some(path), pipelineContext)
+      val connector = HDFSDataConnector("my-connector", None, None)
+      DataConnectorSteps.writeDataFrame(dataFrame, connector, Some(path),
+        DataFrameWriterOptions(format = "csv", saveMode = "overwrite"), pipelineContext)
       val list = readHDFSContent(fs, miniCluster.getURI + "/data/chickens.csv")
       assert(list.size == 3)
       var writtenData: Seq[(String, String)] = Seq()
@@ -159,9 +156,9 @@ class DataConnectorStepsTests extends FunSpec with BeforeAndAfterAll {
       val path = miniCluster.getURI + "/data/chickens2.csv"
 
       writeHDFSContext(fs, path, csv)
-      val connector = HDFSDataConnector("my-connector", None, None,
-        DataFrameReaderOptions(format = "csv"))
-      val dataFrame = DataConnectorSteps.loadDataFrame(connector, Some(path), pipelineContext)
+      val connector = HDFSDataConnector("my-connector", None, None)
+      val dataFrame = DataConnectorSteps.loadDataFrame(connector, Some(path),
+        DataFrameReaderOptions(format = "csv"), pipelineContext)
       DataFrameSteps.persistDataFrame(dataFrame)
       assert(dataFrame.count() == 3)
       val result = dataFrame.take(3).map(r => (r.getString(0), r.getString(1))).toSeq
@@ -174,10 +171,9 @@ class DataConnectorStepsTests extends FunSpec with BeforeAndAfterAll {
       val path = miniCluster.getURI + "/data/chickens2.csv"
 
       writeHDFSContext(fs, path, csv)
-      val connector = HDFSDataConnector("my-connector", None, None,
-        DataFrameReaderOptions(format = "csv", options = Some(Map("header" -> "true", "delimiter" -> "þ"))),
-        DataFrameWriterOptions())
-      val dataFrame = DataConnectorSteps.loadDataFrame(connector, Some(path), pipelineContext)
+      val connector = HDFSDataConnector("my-connector", None, None)
+      val dataFrame = DataConnectorSteps.loadDataFrame(connector, Some(path),
+        DataFrameReaderOptions(format = "csv", options = Some(Map("header" -> "true", "delimiter" -> "þ"))), pipelineContext)
 
       assert(dataFrame.count() == 3)
       val result = dataFrame.take(3).map(r => (r.getString(0), r.getString(1))).toSeq
@@ -188,10 +184,9 @@ class DataConnectorStepsTests extends FunSpec with BeforeAndAfterAll {
       val csv = "1,silkie\n2,polish\n3,sultan"
       val path = miniCluster.getURI + "/data/chickens2.csv"
       writeHDFSContext(fs, path, csv)
-      val connector = HDFSDataConnector("my-connector", None, None,
-        DataFrameReaderOptions(format = "csv"),
-        DataFrameWriterOptions())
-      val dataFrame = DataConnectorSteps.loadDataFrame(connector, Some(path), pipelineContext)
+      val connector = HDFSDataConnector("my-connector", None, None)
+      val dataFrame = DataConnectorSteps.loadDataFrame(connector, Some(path),
+        DataFrameReaderOptions(format = "csv"), pipelineContext)
       val results = dataFrame.collect().map(r => (r.getString(0), r.getString(1))).toSeq
       assert(results.size == 3)
       assert(results == chickens)

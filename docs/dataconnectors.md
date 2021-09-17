@@ -11,8 +11,6 @@ The following parameters are available to all data connectors:
 * **name** - The name of the connector
 * **credentialName** - The optional credential name to use to authenticate
 * **credential** - The optional credential to use to authenticate
-* **readOptions** - The optional read options to use when loading the DataFrame
-* **writeOptions** - The optional write options to use when writing the DataFrame
 
 ## Batch
 Connectors that are designed to load and write data for batch processing will extend the _BatchDataConnector_. These
@@ -31,7 +29,7 @@ val connector = HDFSDataConnector("my-connector", None, None,
 #### Globals JSON
 ```json
 {
-  "connector": {
+  "myConnector": {
     "className": "com.acxiom.pipeline.connectors.HDFSDataConnector",
     "object": {
       "name": "my-connector",
@@ -59,7 +57,7 @@ val connector = S3DataConnector("my-connector", Some("my-credential-name-for-sec
 #### Globals JSON
 ```json
 {
-  "connector": {
+  "myS3Connector": {
     "className": "com.acxiom.aws.pipeline.connectors.S3DataConnector",
     "object": {
       "name": "my-connector",
@@ -88,7 +86,7 @@ val connector = GCSDataConnector("my-connector", Some("my-credential-name-for-se
 #### Globals JSON
 ```json
 {
-  "connector": {
+  "myGCSConnector": {
     "className": "com.acxiom.gcp.pipeline.connectors.GCSDataConnector",
     "object": {
       "name": "my-connector",
@@ -117,7 +115,7 @@ val connector = BigQueryDataConnector("temp-bucket-name", "my-connector", Some("
 #### Globals JSON
 ```json
 {
-  "connector": {
+  "bigQueryConnector": {
     "className": "com.acxiom.gcp.pipeline.connectors.BigQueryDataConnector",
     "object": {
       "name": "my-connector",
@@ -136,14 +134,12 @@ the standard parameters, the following parameters are available:
 
 #### Scala
 ```scala
-val connector = MongoDataConnector("mongodb://127.0.0.1/test", "myCollectionName", "my-connector", Some("my-credential-name-for-secrets-manager"), None,
-        DataFrameReaderOptions(format = "csv"),
-        DataFrameWriterOptions(format = "csv", options = Some(Map("delimiter" -> "þ"))))
+val connector = MongoDataConnector("mongodb://127.0.0.1/test", "myCollectionName", "my-connector", Some("my-credential-name-for-secrets-manager"), None)
 ```
 #### Globals JSON
 ```json
 {
-  "connector": {
+  "customMongoConnector": {
     "className": "com.acxiom.metalus.pipeline.connectors.MongoDataConnector",
     "object": {
       "name": "my-connector",
@@ -178,7 +174,7 @@ val connector = KinesisDataConnector("stream-name", "us-east-1", None, Some(15),
 #### Globals JSON
 ```json
 {
-  "connector": {
+  "kinesisConnector": {
     "className": "com.acxiom.aws.pipeline.connectors.KinesisDataConnector",
     "object": {
       "name": "my-connector",
@@ -209,7 +205,7 @@ val connector = KafkaDataConnector("topic-name1,topic-name2", "host1:port1,host2
 #### Globals JSON
 ```json
 {
-  "connector": {
+  "kafkaConnector": {
     "className": "com.acxiom.kafka.pipeline.connectors.KafkaDataConnector",
     "object": {
       "name": "my-connector",

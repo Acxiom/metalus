@@ -6,10 +6,13 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.streaming.StreamingQuery
 
 trait DataConnector extends Connector {
-  def readOptions: DataFrameReaderOptions = DataFrameReaderOptions()
-  def writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()
-  def load(source: Option[String], pipelineContext: PipelineContext): DataFrame
-  def write(dataFrame: DataFrame, destination: Option[String], pipelineContext: PipelineContext): Option[StreamingQuery]
+  def load(source: Option[String],
+           pipelineContext: PipelineContext,
+           readOptions: DataFrameReaderOptions = DataFrameReaderOptions()): DataFrame
+  def write(dataFrame: DataFrame,
+            destination: Option[String],
+            pipelineContext: PipelineContext,
+            writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery]
 }
 
 trait BatchDataConnector extends DataConnector {}

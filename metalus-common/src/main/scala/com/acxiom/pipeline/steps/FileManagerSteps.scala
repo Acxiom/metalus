@@ -143,7 +143,7 @@ object FileManagerSteps {
     "Create a FileManager",
     "Creates a FileManager using the provided FileConnector",
     "Pipeline",
-    "InputOutput")
+    "Connectors")
   @StepParameters(Map("fileConnector" -> StepParameter(None, Some(true), None, None,
     None, None, Some("The FileConnector to use to create the FileManager implementation"))))
   def getFileManager(fileConnector: FileConnector, pipelineContext: PipelineContext): FileManager =

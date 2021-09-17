@@ -13,10 +13,10 @@ import java.util.Base64
 case class BigQueryDataConnector(tempWriteBucket: String,
                                  override val name: String,
                                  override val credentialName: Option[String],
-                                 override val credential: Option[Credential],
-                                 override val readOptions: DataFrameReaderOptions = DataFrameReaderOptions(),
-                                 override val writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()) extends BatchDataConnector {
-  override def load(source: Option[String], pipelineContext: PipelineContext): DataFrame = {
+                                 override val credential: Option[Credential]) extends BatchDataConnector {
+  override def load(source: Option[String],
+                    pipelineContext: PipelineContext,
+                    readOptions: DataFrameReaderOptions = DataFrameReaderOptions()): DataFrame = {
     val table = source.getOrElse("")
     val readerOptions = readOptions.copy(format = "bigquery")
     // Setup authentication
@@ -29,7 +29,9 @@ case class BigQueryDataConnector(tempWriteBucket: String,
     DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession.get, finalOptions).load(table)
   }
 
-  override def write(dataFrame: DataFrame, destination: Option[String], pipelineContext: PipelineContext): Option[StreamingQuery] = {
+  override def write(dataFrame: DataFrame, destination: Option[String],
+                     pipelineContext: PipelineContext,
+                     writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery] = {
     val table = destination.getOrElse("")
     // Setup format for BigQuery
     val writerOptions = writeOptions.copy(format = "bigquery", options = Some(Map("temporaryGcsBucket" -> tempWriteBucket)))

@@ -33,8 +33,8 @@ object BigQuerySteps {
     } else {
       None
     }
-    val connector = BigQueryDataConnector("", "readFromTable", None, creds, readerOptions)
-    connector.load(Some(table), pipelineContext)
+    val connector = BigQueryDataConnector("", "readFromTable", None, creds)
+    connector.load(Some(table), pipelineContext, readerOptions)
   }
 
   @StepFunction("5b6e114b-51bb-406f-a95a-2a07bc0d05c7",
@@ -64,7 +64,7 @@ object BigQuerySteps {
     } else {
       None
     }
-    val connector = BigQueryDataConnector(tempBucket, "writeToTable", None, creds, DataFrameReaderOptions(), writerOptions)
-    connector.write(dataFrame, Some(table), pipelineContext)
+    val connector = BigQueryDataConnector(tempBucket, "writeToTable", None, creds)
+    connector.write(dataFrame, Some(table), pipelineContext, writerOptions)
   }
 }
