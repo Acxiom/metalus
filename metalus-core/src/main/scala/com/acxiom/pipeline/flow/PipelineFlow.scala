@@ -151,27 +151,7 @@ trait PipelineFlow {
                           pipelineContext: PipelineContext): PipelineContext = {
     logger.debug(s"Executing Step (${step.id.getOrElse("")}) ${step.displayName.getOrElse("")}")
     val ssContext = PipelineFlow.handleEvent(pipelineContext, "pipelineStepStarted", List(pipeline, step, pipelineContext))
-    val (nextStepId, sfContext) = try {
-      val result = processPipelineStep(step, pipeline, ssContext)
-      // setup the next step
-      val (newPipelineContext, nextStepId) = result match {
-        case flowResult: FlowResult => (updatePipelineContext(step, result, flowResult.nextStepId, flowResult.pipelineContext), flowResult.nextStepId)
-        case _ =>
-          val nextStepId = getNextStepId(step, result)
-          (updatePipelineContext(step, result, nextStepId, ssContext), nextStepId)
-      }
-      // run the step finished event
-      val sfContext = PipelineFlow.handleEvent(newPipelineContext, "pipelineStepFinished", List(pipeline, step, newPipelineContext))
-      (nextStepId, sfContext)
-    } catch {
-      case e: Throwable if step.nextStepOnError.isDefined =>
-        // handle exception
-        val ex = PipelineFlow.handleStepExecutionExceptions(e, pipeline, pipelineContext)
-        // put exception on the context as the "result" for this step.
-        val updateContext = updatePipelineContext(step, PipelineStepResponse(Some(ex), None), step.nextStepOnError, ssContext)
-        (step.nextStepOnError, updateContext)
-      case e => throw e
-    }
+    val (nextStepId, sfContext) = processStepWithRetry(step, pipeline, ssContext, pipelineContext, 0)
     // Call the next step here
     if (steps.contains(nextStepId.getOrElse("")) &&
       (steps(nextStepId.getOrElse("")).`type`.getOrElse("") == PipelineStepType.JOIN ||
@@ -191,6 +171,37 @@ trait PipelineFlow {
       }
     } else {
       sfContext
+    }
+  }
+
+  private def processStepWithRetry(step: PipelineStep, pipeline: Pipeline,
+                                   ssContext: PipelineContext,
+                                   pipelineContext: PipelineContext,
+                                   stepRetryCount: Int): (Option[String], PipelineContext) = {
+    try {
+      val result = processPipelineStep(step, pipeline, ssContext.setGlobal("stepRetryCount", stepRetryCount))
+      // setup the next step
+      val (newPipelineContext, nextStepId) = result match {
+        case flowResult: FlowResult => (updatePipelineContext(step, result, flowResult.nextStepId, flowResult.pipelineContext), flowResult.nextStepId)
+        case _ =>
+          val nextStepId = getNextStepId(step, result)
+          (updatePipelineContext(step, result, nextStepId, ssContext), nextStepId)
+      }
+      // run the step finished event
+      val sfContext = PipelineFlow.handleEvent(newPipelineContext, "pipelineStepFinished", List(pipeline, step, newPipelineContext))
+      (nextStepId, sfContext.removeGlobal("stepRetryCount"))
+    } catch {
+      case _: Throwable if step.retryLimit.getOrElse(-1) > 0 && stepRetryCount < step.retryLimit.getOrElse(-1) =>
+        // Backoff timer
+        Thread.sleep(stepRetryCount * 1000)
+        processStepWithRetry(step, pipeline, ssContext, pipelineContext, stepRetryCount + 1)
+      case e: Throwable if step.nextStepOnError.isDefined =>
+        // handle exception
+        val ex = PipelineFlow.handleStepExecutionExceptions(e, pipeline, pipelineContext)
+        // put exception on the context as the "result" for this step.
+        val updateContext = updatePipelineContext(step, PipelineStepResponse(Some(ex), None), step.nextStepOnError, ssContext)
+        (step.nextStepOnError, updateContext)
+      case e => throw e
     }
   }
 
