@@ -22,10 +22,10 @@ object FileManagerSteps {
     * @return object with copy results.
     */
   @StepFunction("0342654c-2722-56fe-ba22-e342169545af",
-    "Copy source contents to destination",
+    "Copy (auto buffering)",
     "Copy the contents of the source path to the destination path. This function will call connect on both FileManagers.",
     "Pipeline",
-    "InputOutput")
+    "FileManager")
   @StepParameters(Map("srcFS" -> StepParameter(None, Some(true), None, None, None, None, Some("The source FileManager")),
     "srcPath" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to copy from")),
     "destFS" -> StepParameter(None, Some(true), None, None, None, None, Some("The destination FileManager")),
@@ -48,10 +48,10 @@ object FileManagerSteps {
     * @return object with copy results.
     */
   @StepFunction("c40169a3-1e77-51ab-9e0a-3f24fb98beef",
-    "Copy source contents to destination with buffering",
+    "Copy (basic buffering)",
     "Copy the contents of the source path to the destination path using buffer sizes. This function will call connect on both FileManagers.",
     "Pipeline",
-    "InputOutput")
+    "FileManager")
   @StepParameters(Map("srcFS" -> StepParameter(None, Some(true), None, None, None, None, Some("The source FileManager")),
     "srcPath" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to copy from")),
     "destFS" -> StepParameter(None, Some(true), None, None, None, None, Some("The destination FileManager")),
@@ -77,10 +77,10 @@ object FileManagerSteps {
     * @return object with copy results.
     */
   @StepFunction("f5a24db0-e91b-5c88-8e67-ab5cff09c883",
-    "Buffered file copy",
+    "Copy (advanced buffering)",
     "Copy the contents of the source path to the destination path using full buffer sizes. This function will call connect on both FileManagers.",
     "Pipeline",
-    "InputOutput")
+    "FileManager")
   @StepParameters(Map("srcFS" -> StepParameter(None, Some(true), None, None, None, None, Some("The source FileManager")),
     "srcPath" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to copy from")),
     "destFS" -> StepParameter(None, Some(true), None, None, None, None, Some("The destination FileManager")),
@@ -120,6 +120,45 @@ object FileManagerSteps {
   }
 
   /**
+    * Verify that a source path and destination path are the same size.
+    *
+    * @param srcFS    FileManager for the source file system
+    * @param srcPath  Source path
+    * @param destFS   FileManager for the destination file system
+    * @param destPath Destination path
+    * @return true if the source and destination files are the same size
+    */
+  @StepFunction("1af68ab5-a3fe-4afb-b5fa-34e52f7c77f5",
+    "Compare File Sizes",
+    "Compare the file sizes of the source and destination paths",
+    "Pipeline",
+    "FileManager")
+  @StepParameters(Map("srcFS" -> StepParameter(None, Some(true), None, None, None, None, Some("The source FileManager")),
+    "srcPath" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to the source")),
+    "destFS" -> StepParameter(None, Some(true), None, None, None, None, Some("The destination FileManager")),
+    "destPath" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to th destination"))))
+  def compareFileSizes(srcFS: FileManager, srcPath: String, destFS: FileManager, destPath: String): Int =
+    srcFS.getSize(srcPath).compareTo(destFS.getSize(destPath))
+
+  /**
+    * Delete the file using the provided FileManager and Path
+    *
+    * @param fileManager The FileManager to use when deleting the file
+    * @param path        The full path to the file
+    * @return true if the file can be deleted
+    */
+  @StepFunction("bf2c4df8-a215-480b-87d8-586984e04189",
+    "Delete (file)",
+    "Delete a file",
+    "Pipeline",
+    "FileManager")
+  @StepParameters(Map("fileManager" -> StepParameter(None, Some(true), None, None, None, None, Some("The FileManager")),
+    "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to the file being deleted"))))
+  @StepResults(primaryType = "Boolean", secondaryTypes = None)
+  def deleteFile(fileManager: FileManager, path: String): Boolean =
+    fileManager.deleteFile(path)
+
+  /**
     * Disconnects a FileManager from the underlying file system
     *
     * @param fileManager The FileManager implementation to disconnect
@@ -128,7 +167,7 @@ object FileManagerSteps {
     "Disconnect a FileManager",
     "Disconnects a FileManager from the underlying file system",
     "Pipeline",
-    "InputOutput")
+    "FileManager")
   @StepParameters(Map("fileManager" -> StepParameter(None, Some(true), None, None, None, None, Some("The file manager to disconnect"))))
   def disconnectFileManager(fileManager: FileManager): Unit = {
     fileManager.disconnect()

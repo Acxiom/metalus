@@ -28,6 +28,7 @@
             * [DataConnectorSteps](../metalus-common/docs/dataconnectorsteps.md)
             * [DataFrameSteps](../metalus-common/docs/dataframesteps.md)
             * [FileManagerSteps](../metalus-common/docs/filemanagersteps.md)
+            * [FlowUtilsSteps](../metalus-common/docs/flowutilssteps.md)
             * [HDFSSteps](../metalus-common/docs/hdfssteps.md)
             * [HiveSteps](../metalus-common/docs/hivesteps.md)
             * [JavascriptSteps](../metalus-common/docs/javascriptsteps.md)
@@ -39,6 +40,7 @@
             * [StringSteps](../metalus-common/docs/stringsteps.md)
             * [TransformationSteps](../metalus-common/docs/transformationsteps.md)
         * Pipelines/Step Groups
+            * [Copy File](../metalus-common/docs/copyfile.md)
             * [SFTP to HDFS](../metalus-common/docs/sftp2hdfs.md)
             * [Download To Bronze HDFS](../metalus-common/docs/downloadToBronzeHdfs.md)
             * [DownloadSFTPToHDFSWithDataFrame](../metalus-common/docs/downloadsftptohdfswithdataframe.md)

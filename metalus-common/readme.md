@@ -11,6 +11,7 @@ using Spark.
 * [DataFrameSteps](docs/dataframesteps.md)
 * [DataSteps](docs/datasteps.md)
 * [FileManagerSteps](docs/filemanagersteps.md)
+* [FlowUtilsSteps](docs/flowutilssteps.md)
 * [HDFSSteps](docs/hdfssteps.md)
 * [HiveSteps](docs/catalogsteps.md)
 * [JavascriptSteps](docs/javascriptsteps.md)
@@ -23,6 +24,7 @@ using Spark.
 * [TransformationSteps](docs/transformationsteps.md)
 
 ## Pipelines/Step Groups
+* [Copy File](docs/copyfile.md)
 * [SFTP to HDFS](docs/sftp2hdfs.md)
 * [Download to Bronze HDFS](docs/downloadToBronzeHdfs.md)
 * [LoadToParquet](docs/loadtoparquet.md)
