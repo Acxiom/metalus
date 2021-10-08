@@ -24,7 +24,8 @@ using Spark.
 * [TransformationSteps](docs/transformationsteps.md)
 
 ## Pipelines/Step Groups
-* [Copy File](docs/copyfile.md)
+* [Copy File](docs/copyfile.md)  * _Uses new connectors api_
+* [Load To Bronze](docs/loadtobronze.md)  * _Uses new connectors api_
 * [SFTP to HDFS](docs/sftp2hdfs.md)
 * [Download to Bronze HDFS](docs/downloadToBronzeHdfs.md)
 * [LoadToParquet](docs/loadtoparquet.md)
