@@ -22,9 +22,7 @@ instead relying on the permissions of the cluster. Below is an example setup:
 
 #### Scala
 ```scala
-val connector = HDFSDataConnector("my-connector", None, None,
-        DataFrameReaderOptions(format = "csv"),
-        DataFrameWriterOptions(format = "csv", options = Some(Map("delimiter" -> "þ"))))
+val connector = HDFSDataConnector("my-connector", None, None)
 ```
 #### Globals JSON
 ```json
@@ -32,16 +30,7 @@ val connector = HDFSDataConnector("my-connector", None, None,
   "myConnector": {
     "className": "com.acxiom.pipeline.connectors.HDFSDataConnector",
     "object": {
-      "name": "my-connector",
-      "readOptions": {
-        "format": "csv"
-      },
-      "writeOptions": {
-        "format": "csv",
-        "options": {
-          "delimiter": "þ"
-        }
-      }
+      "name": "my-connector"
     }
   }
 }
@@ -50,9 +39,7 @@ val connector = HDFSDataConnector("my-connector", None, None,
 This connector provides access to S3. Below is an example setup that expects a secrets manager credential provider:
 #### Scala
 ```scala
-val connector = S3DataConnector("my-connector", Some("my-credential-name-for-secrets-manager"), None,
-        DataFrameReaderOptions(format = "csv"),
-        DataFrameWriterOptions(format = "csv", options = Some(Map("delimiter" -> "þ"))))
+val connector = S3DataConnector("my-connector", Some("my-credential-name-for-secrets-manager"), None)
 ```
 #### Globals JSON
 ```json
@@ -61,16 +48,7 @@ val connector = S3DataConnector("my-connector", Some("my-credential-name-for-sec
     "className": "com.acxiom.aws.pipeline.connectors.S3DataConnector",
     "object": {
       "name": "my-connector",
-      "credentialName": "my-credential-name-for-secrets-manager",
-      "readOptions": {
-        "format": "csv"
-      },
-      "writeOptions": {
-        "format": "csv",
-        "options": {
-          "delimiter": "þ"
-        }
-      }
+      "credentialName": "my-credential-name-for-secrets-manager"
     }
   }
 }
@@ -79,9 +57,7 @@ val connector = S3DataConnector("my-connector", Some("my-credential-name-for-sec
 This connector provides access to GCS. Below is an example setup that expects a secrets manager credential provider:
 #### Scala
 ```scala
-val connector = GCSDataConnector("my-connector", Some("my-credential-name-for-secrets-manager"), None,
-        DataFrameReaderOptions(format = "csv"),
-        DataFrameWriterOptions(format = "csv", options = Some(Map("delimiter" -> "þ"))))
+val connector = GCSDataConnector("my-connector", Some("my-credential-name-for-secrets-manager"), None)
 ```
 #### Globals JSON
 ```json
@@ -90,16 +66,7 @@ val connector = GCSDataConnector("my-connector", Some("my-credential-name-for-se
     "className": "com.acxiom.gcp.pipeline.connectors.GCSDataConnector",
     "object": {
       "name": "my-connector",
-      "credentialName": "my-credential-name-for-secrets-manager",
-      "readOptions": {
-        "format": "csv"
-      },
-      "writeOptions": {
-        "format": "csv",
-        "options": {
-          "delimiter": "þ"
-        }
-      }
+      "credentialName": "my-credential-name-for-secrets-manager"
     }
   }
 }
@@ -108,9 +75,7 @@ val connector = GCSDataConnector("my-connector", Some("my-credential-name-for-se
 This connector provides access to BigQuery. Below is an example setup that expects a secrets manager credential provider:
 #### Scala
 ```scala
-val connector = BigQueryDataConnector("temp-bucket-name", "my-connector", Some("my-credential-name-for-secrets-manager"), None,
-        DataFrameReaderOptions(format = "csv"),
-        DataFrameWriterOptions(format = "csv", options = Some(Map("delimiter" -> "þ"))))
+val connector = BigQueryDataConnector("temp-bucket-name", "my-connector", Some("my-credential-name-for-secrets-manager"), None)
 ```
 #### Globals JSON
 ```json

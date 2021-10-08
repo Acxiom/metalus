@@ -40,7 +40,8 @@
             * [StringSteps](../metalus-common/docs/stringsteps.md)
             * [TransformationSteps](../metalus-common/docs/transformationsteps.md)
         * Pipelines/Step Groups
-            * [Copy File](../metalus-common/docs/copyfile.md)
+            * [Copy File](../metalus-common/docs/copyfile.md) * _Uses new connectors api_
+            * [Load to Bronze](../metalus-common/docs/loadtobronze.md) * _Uses new connectors api_
             * [SFTP to HDFS](../metalus-common/docs/sftp2hdfs.md)
             * [Download To Bronze HDFS](../metalus-common/docs/downloadToBronzeHdfs.md)
             * [DownloadSFTPToHDFSWithDataFrame](../metalus-common/docs/downloadsftptohdfswithdataframe.md)
