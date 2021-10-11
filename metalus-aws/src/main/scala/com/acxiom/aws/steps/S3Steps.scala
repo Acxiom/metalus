@@ -4,7 +4,8 @@ import com.acxiom.aws.fs.S3FileManager
 import com.acxiom.aws.utils.S3Utilities
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations._
-import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameSteps, DataFrameWriterOptions}
+import com.acxiom.pipeline.connectors.DataConnectorUtilities
+import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
 import com.amazonaws.services.s3.AmazonS3
 import org.apache.spark.sql.DataFrame
 
@@ -72,7 +73,7 @@ object S3Steps {
                    options: Option[DataFrameReaderOptions] = None,
                    pipelineContext: PipelineContext): DataFrame = {
     S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, accountId, role, partition, pipelineContext)
-    DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext)
+    DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession.get, options.getOrElse(DataFrameReaderOptions()))
       .load(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
 
@@ -95,7 +96,7 @@ object S3Steps {
                     options: Option[DataFrameReaderOptions] = None,
                     pipelineContext: PipelineContext): DataFrame = {
     S3Utilities.setS3Authorization(paths.head, accessKeyId, secretAccessKey, accountId, role, partition, pipelineContext)
-    DataFrameSteps.getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext)
+    DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession.get, options.getOrElse(DataFrameReaderOptions()))
       .load(paths.map(p => S3Utilities.replaceProtocol(p, S3Utilities.deriveProtocol(p))): _*)
   }
 
@@ -119,7 +120,7 @@ object S3Steps {
                   options: Option[DataFrameWriterOptions] = None,
                   pipelineContext: PipelineContext): Unit = {
     S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, accountId, role, partition, pipelineContext)
-    DataFrameSteps.getDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions()))
+    DataConnectorUtilities.buildDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions()))
       .save(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
 

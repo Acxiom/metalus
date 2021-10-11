@@ -15,6 +15,9 @@
         * [Parameter Mapping](parameter-mapping.md)
             * [Reserved Globals](parameter-mapping.md#reserved-globals)
         * [Execution and Data Flow](pipeline-flow.md)
+        * [Connectors](connectors.md)
+          * [Data Connectors](dataconnectors.md)
+          * [File Connectors](fileconnectors.md)
     * [Error Handling](error-handling.md)
     * [Logging](logging.md)
 * [Step Libraries](step-libraries.md)
@@ -22,8 +25,10 @@
         * Steps
             * [ApiSteps](../metalus-common/docs/apisteps.md)
             * [CredentialSteps](../metalus-common/docs/credentialsteps.md)
+            * [DataConnectorSteps](../metalus-common/docs/dataconnectorsteps.md)
             * [DataFrameSteps](../metalus-common/docs/dataframesteps.md)
             * [FileManagerSteps](../metalus-common/docs/filemanagersteps.md)
+            * [FlowUtilsSteps](../metalus-common/docs/flowutilssteps.md)
             * [HDFSSteps](../metalus-common/docs/hdfssteps.md)
             * [HiveSteps](../metalus-common/docs/hivesteps.md)
             * [JavascriptSteps](../metalus-common/docs/javascriptsteps.md)
@@ -35,6 +40,8 @@
             * [StringSteps](../metalus-common/docs/stringsteps.md)
             * [TransformationSteps](../metalus-common/docs/transformationsteps.md)
         * Pipelines/Step Groups
+            * [Copy File](../metalus-common/docs/copyfile.md) * _Uses new connectors api_
+            * [Load to Bronze](../metalus-common/docs/loadtobronze.md) * _Uses new connectors api_
             * [SFTP to HDFS](../metalus-common/docs/sftp2hdfs.md)
             * [Download To Bronze HDFS](../metalus-common/docs/downloadToBronzeHdfs.md)
             * [DownloadSFTPToHDFSWithDataFrame](../metalus-common/docs/downloadsftptohdfswithdataframe.md)

@@ -24,6 +24,11 @@ both execute normally and invoke _Error Step_. The  _Error Step_ will throw an e
 _Error Handler_ step and then complete the pipeline. _Step 4_ will never be executed when there is an exception. Metalus
 will consider this as a successful execution.
 
+## Step Retry
+A step which defines the _retryLimit_ attribute will be automatically restarted when an exception is thrown. Once the
+limit has been reached, the [nextStepOnError](#next-step-error-handling) will be invoked or the exception will
+be thrown to stop the pipeline.
+
 ![Next Step On Error Flow](images/next_step_on_error_flow.png)
 ## Pipeline Exceptions
 Metalus uses the _PipelineStepException_ trait as the base for application exceptions. Any exception that extends

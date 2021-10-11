@@ -1,10 +1,15 @@
 package com.acxiom.gcp.steps
 
 import com.acxiom.gcp.utils.GCPUtilities
+import com.acxiom.gcp.utils.GCPUtilities.getPublisherBuilder
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.google.auth.oauth2.GoogleCredentials
+import com.google.protobuf.ByteString
+import com.google.pubsub.v1.PubsubMessage
 import org.apache.spark.sql.DataFrame
+
+import java.util.concurrent.TimeUnit
 
 @StepObject
 object PubSubSteps {
@@ -18,9 +23,9 @@ object PubSubSteps {
     "separator" -> StepParameter(None, Some(false), None, None, None, None, Some("The separator character to use when combining the column data")),
     "credentials" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional credentials to use for Pub/Sub access"))))
   def writeToStreamWithCredentials(dataFrame: DataFrame,
-                    topicName: String,
-                    separator: String = ",",
-                    credentials: Option[Map[String, String]] = None): Unit = {
+                                   topicName: String,
+                                   separator: String = ",",
+                                   credentials: Option[Map[String, String]] = None): Unit = {
     val creds = GCPUtilities.generateCredentials(credentials)
     publishDataFrame(dataFrame, separator, topicName, creds)
   }
@@ -74,9 +79,16 @@ object PubSubSteps {
     * @param creds     The optional GoogleCredentials
     */
   private def publishDataFrame(dataFrame: DataFrame, topicName: String, separator: String, creds: Option[GoogleCredentials]): Unit = {
-    dataFrame.rdd.foreach(row => {
-      val rowData = row.mkString(separator)
-      GCPUtilities.postMessage(topicName, creds, rowData)
+    dataFrame.rdd.foreachPartition(iter => {
+      val publisher = getPublisherBuilder(topicName, creds)
+        .setRetrySettings(GCPUtilities.retrySettings).setBatchingSettings(GCPUtilities.batchingSettings).build()
+      iter.foreach(row => {
+        val data = row.mkString(separator)
+        val pubsubMessage = PubsubMessage.newBuilder.setData(ByteString.copyFromUtf8(data)).build
+        publisher.publish(pubsubMessage)
+      })
+      publisher.shutdown()
+      publisher.awaitTermination(2, TimeUnit.MINUTES)
     })
   }
 }

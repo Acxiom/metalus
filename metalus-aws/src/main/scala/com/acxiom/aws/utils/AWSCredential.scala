@@ -51,9 +51,47 @@ trait AWSCredential extends Credential {
 class DefaultAWSCredential(override val parameters: Map[String, Any]) extends AWSCredential {
   private implicit val formats: Formats = DefaultFormats
   override def name: String = parameters("credentialName").asInstanceOf[String]
-  private val keyMap = parse(parameters("credentialValue").asInstanceOf[String]).extract[Map[String, String]]
-  override def awsAccessKey: Option[String] = Some(keyMap.head._1)
-  override def awsAccessSecret: Option[String] = Some(keyMap.head._2)
+  private val keyMap = parse(parameters.getOrElse("credentialValue", "{}").asInstanceOf[String]).extract[Map[String, String]]
+  override def awsRole: Option[String] = if (keyMap.contains("role")) {
+    keyMap.get("role")
+  } else if (parameters.contains("role")) {
+    parameters.get("role").asInstanceOf[Option[String]]
+  } else { None }
+  override def awsAccountId: Option[String] = if (keyMap.contains("accountId")) {
+    keyMap.get("accountId")
+  } else if (parameters.contains("accountId")) {
+    parameters.get("accountId").asInstanceOf[Option[String]]
+  } else { None }
+  // See if the key is stored by name, then see if this is a role key and then use the default
+  override def awsAccessKey: Option[String] = if (keyMap.contains("accessKeyId")) {
+    keyMap.get("accessKeyId")
+  } else if ( parameters.contains("accessKeyId")) {
+    parameters.get("accessKeyId").asInstanceOf[Option[String]]
+  } else if (awsRole.isDefined) {
+    None
+  } else { Some(keyMap.head._1) }
+  override def awsAccessSecret: Option[String] = if (keyMap.contains("secretAccessKey")) {
+    keyMap.get("secretAccessKey")
+  } else if (parameters.contains("secretAccessKey")) {
+    parameters.get("secretAccessKey").asInstanceOf[Option[String]]
+  } else if (awsRole.isDefined) {
+    None
+  } else { Some(keyMap.head._2) }
+  override def sessionName: Option[String] = if (keyMap.contains("session")) {
+    keyMap.get("session")
+  } else if (parameters.contains("session")) {
+    parameters.get("session").asInstanceOf[Option[String]]
+  } else { None }
+  override def awsPartition: Option[String] = if (keyMap.contains("partition")) {
+    keyMap.get("partition")
+  } else if (parameters.contains("partition")) {
+    parameters.get("partition").asInstanceOf[Option[String]]
+  } else { None }
+  override def externalId: Option[String] = if (keyMap.contains("externalId")) {
+    keyMap.get("externalId")
+  } else if (parameters.contains("externalId")) {
+    parameters.get("externalId").asInstanceOf[Option[String]]
+  } else { None }
 }
 
 class AWSBasicCredential(override val parameters: Map[String, Any]) extends AWSCredential {

@@ -1,6 +1,6 @@
 package com.acxiom.aws.steps
 
-import com.acxiom.aws.utils.{AWSUtilities, KinesisUtilities}
+import com.acxiom.aws.utils.{AWSBasicCredential, AWSUtilities, KinesisUtilities}
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import org.apache.spark.sql.DataFrame
@@ -26,13 +26,11 @@ object KinesisSteps {
                     separator: String = ",",
                     accessKeyId: Option[String] = None,
                     secretAccessKey: Option[String] = None): Unit = {
-    val index = determinePartitionKey(dataFrame, partitionKey)
-    dataFrame.rdd.foreach(row => {
-      val rowData = row.mkString(separator)
-      val key = row.getAs[Any](index).toString
-      postMessage(rowData, region, streamName, key, accessKeyId, secretAccessKey)
-    })
+    val index = KinesisUtilities.determinePartitionKey(dataFrame, partitionKey)
+    val creds  = Some(new AWSBasicCredential(Map("accessKeyId" -> accessKeyId, "secretAccessKey" -> secretAccessKey)))
+    KinesisUtilities.writeDataFrame(dataFrame, region, streamName, None, Some(index), separator, creds)
   }
+
   @StepFunction("5c9c7056-5c7a-4463-93c8-7e99bad66d4f",
     "Write DataFrame to a Kinesis Stream Using Global Credentials",
     "This step will write a DataFrame to a Kinesis Stream using the CredentialProvider to get Credentials",
@@ -49,13 +47,9 @@ object KinesisSteps {
                   partitionKey: String,
                   separator: String = ",",
                   pipelineContext: PipelineContext): Unit = {
-    val index = determinePartitionKey(dataFrame, partitionKey)
+    val index = KinesisUtilities.determinePartitionKey(dataFrame, partitionKey)
     val creds = AWSUtilities.getAWSCredential(pipelineContext.credentialProvider)
-    dataFrame.rdd.foreach(row => {
-      val rowData = row.mkString(separator)
-      val key = row.getAs[Any](index).toString
-      KinesisUtilities.postMessageWithCredentials(rowData, region, streamName, key, creds)
-    })
+    KinesisUtilities.writeDataFrame(dataFrame, region, streamName, None, Some(index), separator, creds)
   }
 
   @StepFunction("52f161a5-3025-4e40-a10b-f201940b5cbf",
@@ -94,24 +88,5 @@ object KinesisSteps {
                   accessKeyId: Option[String] = None,
                   secretAccessKey: Option[String] = None): Unit = {
     KinesisUtilities.postMessage(message, region, streamName, partitionKey, accessKeyId, secretAccessKey)
-  }
-
-  /**
-    * Determines the column id to use to extract the partition key value when writing rows
-    * @param dataFrame The DataFrame containing the schema
-    * @param partitionKey The field name of the column to use for the key value.
-    * @return The column index or zero id the column name is not found.
-    */
-  private def determinePartitionKey(dataFrame: DataFrame, partitionKey: String): Int = {
-    if (dataFrame.schema.isEmpty) {
-      0
-    } else {
-      val field = dataFrame.schema.fieldIndex(partitionKey)
-      if (field < 0) {
-        0
-      } else {
-        field
-      }
-    }
   }
 }

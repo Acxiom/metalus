@@ -142,6 +142,10 @@ jobs:
           echo 'METALUS_VERSION<<EOF' >> $GITHUB_ENV
           mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
+      - name: Display Metalus Application Target Directory
+        run: |
+          pwd
+          ls -l metalus-application/target
       - name: Upload Application Jar
         uses: actions/upload-artifact@v2
         with:
@@ -177,38 +181,8 @@ jobs:
           echo 'METALUS_VERSION<<EOF' >> $GITHUB_ENV
           mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
-      - name: Download Application Jar Spark 2.4
+      - name: Download Artifacts
         uses: actions/download-artifact@v2
-        with:
-          name: metalus-application_2.11-spark_2.4-${{ env.METALUS_VERSION }}.jar
-      - name: Download Utils Spark 2.4
-        uses: actions/download-artifact@v2
-        with:
-          name: metalus-utils_2.11-spark_2.4-${{ env.METALUS_VERSION }}.tar.gz
-      - name: Download Application Jar Spark 2.4 Scala 2.12
-        uses: actions/download-artifact@v2
-        with:
-          name: metalus-application_2.12-spark_2.4-${{ env.METALUS_VERSION }}.jar
-      - name: Download Utils Spark 2.4 Scala 2.12
-        uses: actions/download-artifact@v2
-        with:
-          name: metalus-utils_2.12-spark_2.4-${{ env.METALUS_VERSION }}.tar.gz
-      - name: Download Application Jar Spark 3.0
-        uses: actions/download-artifact@v2
-        with:
-          name: metalus-application_2.12-spark_3.0-${{ env.METALUS_VERSION }}.jar
-      - name: Download Utils Spark 3.0
-        uses: actions/download-artifact@v2
-        with:
-          name: metalus-utils_2.12-spark_3.0-${{ env.METALUS_VERSION }}.tar.gz
-      - name: Download Application Jar Spark 3.1
-        uses: actions/download-artifact@v2
-        with:
-          name: metalus-application_2.12-spark_3.1-${{ env.METALUS_VERSION }}.jar
-      - name: Download Utils Spark 3.1
-        uses: actions/download-artifact@v2
-        with:
-          name: metalus-utils_2.12-spark_3.1-${{ env.METALUS_VERSION }}.tar.gz
       - name: Create Github Release
         uses: "marvinpinto/action-automatic-releases@latest"
         with:

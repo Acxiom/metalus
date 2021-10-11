@@ -9,13 +9,19 @@
     <parent>
         <groupId>com.acxiom</groupId>
         <artifactId>metalus</artifactId>
-        <version>1.8.2-SNAPSHOT</version>
+        <version>1.8.3-SNAPSHOT</version>
     </parent>
 
     <dependencies>
         <dependency>
             <groupId>com.acxiom</groupId>
             <artifactId>metalus-core_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
+            <version>${parent.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.acxiom</groupId>
+            <artifactId>metalus-common_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
             <version>${parent.version}</version>
             <scope>provided</scope>
         </dependency>

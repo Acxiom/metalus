@@ -2,8 +2,8 @@ package com.acxiom.kafka.steps
 
 import com.acxiom.kafka.utils.KafkaUtilities
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{Column, DataFrame}
 
 @StepObject
 object KafkaSteps {
@@ -29,7 +29,7 @@ object KafkaSteps {
     } else {
       lit(keyField)
     }
-    publishDataFrame(dataFrame, topic, kafkaNodes, col, separator, clientId)
+    KafkaUtilities.publishDataFrame(dataFrame, topic, kafkaNodes, col, separator, clientId)
   }
 
   @StepFunction("eaf68ea6-1c37-4427-85be-165ee9777c4d",
@@ -49,7 +49,7 @@ object KafkaSteps {
                          key: String,
                          separator: String = ",",
                          clientId: String = "metalus_default_kafka_producer_client"): Unit = {
-    publishDataFrame(dataFrame, topic, kafkaNodes, lit(key), separator, clientId)
+    KafkaUtilities.publishDataFrame(dataFrame, topic, kafkaNodes, lit(key), separator, clientId)
   }
 
   @StepFunction("74efe1e1-edd1-4c38-8e2b-bb693e3e3f4c",
@@ -67,33 +67,4 @@ object KafkaSteps {
                   kafkaNodes: String,
                   key: String,
                   clientId: String = "metalus_default_kafka_producer_client"): Unit = KafkaUtilities.postMessage(message, topic, kafkaNodes, key, clientId)
-
-  /**
-    * Publish DataFrame data to a Kafka topic.
-    *
-    * @param dataFrame  The DataFrame being published
-    * @param topic      The Kafka topic
-    * @param kafkaNodes Comma separated list of kafka nodes
-    * @param key        The Kafka key used for partitioning
-    * @param separator  The field separator used to combine the columns.
-    * @param clientId   The kafka clientId.
-    */
-  private def publishDataFrame(dataFrame: DataFrame,
-                               topic: String,
-                               kafkaNodes: String,
-                               key: Column,
-                               separator: String = ",",
-                               clientId: String = "metalus_default_kafka_producer_client"): Unit = {
-    val columns = dataFrame.schema.fields.foldLeft(List[Column]())((cols, field) => {
-      cols :+ dataFrame.col(field.name) :+ lit(separator)
-    })
-    dataFrame.withColumn("topic", lit(topic))
-      .withColumn("key", key)
-      .withColumn("value", concat(columns.dropRight(1): _*))
-      .write
-      .format("kafka")
-      .option("kafka.bootstrap.servers", kafkaNodes)
-      .option("kafka.client.id", clientId)
-      .save()
-  }
 }

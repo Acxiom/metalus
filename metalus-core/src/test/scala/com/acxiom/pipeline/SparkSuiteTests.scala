@@ -1,7 +1,5 @@
 package com.acxiom.pipeline
 
-import java.io.File
-
 import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import com.acxiom.pipeline.drivers.{DefaultPipelineDriver, DriverSetup}
 import com.acxiom.pipeline.utils.DriverUtils
@@ -12,6 +10,8 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen, Suite}
+
+import java.io.File
 
 class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen with Suite {
   override def beforeAll() {
@@ -292,6 +292,62 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       }
       assert(thrown.getMessage.startsWith("Failed to process execution plan after 1 attempts"))
     }
+
+    it("Should retry a step") {
+      val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "retry")
+      val results = new ListenerValidations
+      SparkTestHelper.pipelineListener = new PipelineListener {
+        override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
+          step.id.getOrElse("") match {
+            case "RETRYSTEP" =>
+              results.addValidation("RETRYSTEP return value is incorrect",
+                pipelineContext.parameters.getParametersByPipelineId("1").get.parameters("RETRYSTEP")
+                  .asInstanceOf[PipelineStepResponse].primaryReturn.get.asInstanceOf[String] == "Retried step 3 of 3")
+            case _ =>
+          }
+          None
+        }
+
+        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+          exception match {
+            case e: Throwable =>
+              results.addValidation("Retry step failed", valid = true)
+          }
+        }
+      }
+      // Execution should complete without exception
+      DefaultPipelineDriver.main(args.toArray)
+      results.validate()
+    }
+
+    it("Should retry and fail a step") {
+      val args = List("--driverSetupClass", "com.acxiom.pipeline.SparkTestDriverSetup", "--pipeline", "retryFailure")
+      val results = new ListenerValidations
+      SparkTestHelper.pipelineListener = new PipelineListener {
+        override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
+          step.id.getOrElse("") match {
+            case "PARROTSTEP" =>
+              results.addValidation("PARROTSTEP return value is incorrect",
+                pipelineContext.parameters.getParametersByPipelineId("1").get.parameters("PARROTSTEP")
+                  .asInstanceOf[PipelineStepResponse].primaryReturn.get.asInstanceOf[String] == "error step called!")
+            case "RETURNNONESTEP" =>
+              results.addValidation("RETURNNONESTEP should not have been called", valid = true)
+            case _ =>
+          }
+          None
+        }
+
+        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+          exception match {
+            case e: Throwable =>
+              results.addValidation("Retry step failed", valid = true)
+          }
+        }
+      }
+      // Execution should complete without exception
+      DefaultPipelineDriver.main(args.toArray)
+      results.validate()
+    }
   }
 
   describe("PipelineContext") {
@@ -365,6 +421,8 @@ case class SparkTestDriverSetup(parameters: Map[String, Any]) extends DriverSetu
     case "four" => PipelineDefs.FOUR_PIPELINE
     case "nopause" => PipelineDefs.BASIC_NOPAUSE
     case "errorTest" => PipelineDefs.ERROR_PIPELINE
+    case "retry" => PipelineDefs.RETRY_PIPELINE
+    case "retryFailure" => PipelineDefs.RETRY_FAILURE_PIPELINE
     case "noPipelines" => List()
   }
 
@@ -408,5 +466,14 @@ object MockPipelineSteps {
   def throwError(pipelineContext: PipelineContext): Any = {
     throw PipelineException(message = Some("This step should not be called"),
       pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+  }
+
+  def retryStep(retryCount: Int, pipelineContext: PipelineContext): String = {
+    if (pipelineContext.getGlobalAs[Int]("stepRetryCount").getOrElse(-1) == retryCount) {
+      s"Retried step ${pipelineContext.getGlobalAs[Int]("stepRetryCount").getOrElse(-1)} of $retryCount"
+    } else {
+      throw PipelineException(message = Some("Force a retry"),
+        pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+    }
   }
 }

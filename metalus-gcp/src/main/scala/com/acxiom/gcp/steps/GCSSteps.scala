@@ -1,9 +1,11 @@
 package com.acxiom.gcp.steps
 
 import com.acxiom.gcp.fs.GCSFileManager
+import com.acxiom.gcp.utils.GCPUtilities
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations._
-import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameSteps, DataFrameWriterOptions}
+import com.acxiom.pipeline.connectors.DataConnectorUtilities
+import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
 import org.apache.spark.sql.DataFrame
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
@@ -43,10 +45,9 @@ object GCSSteps {
                     options: Option[DataFrameReaderOptions] = None,
                     pipelineContext: PipelineContext): DataFrame = {
     if (credentials.isDefined) {
-      setGCSAuthorization(credentials.get, pipelineContext)
+      GCPUtilities.setGCSAuthorization(credentials.get, pipelineContext)
     }
-    DataFrameSteps
-      .getDataFrameReader(options.getOrElse(DataFrameReaderOptions()), pipelineContext)
+    DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession.get, options.getOrElse(DataFrameReaderOptions()))
       .load(paths.map(GCSFileManager.prepareGCSFilePath(_)): _*)
   }
 
@@ -65,9 +66,9 @@ object GCSSteps {
                   options: Option[DataFrameWriterOptions] = None,
                   pipelineContext: PipelineContext): Unit = {
     if (credentials.isDefined) {
-      setGCSAuthorization(credentials.get, pipelineContext)
+      GCPUtilities.setGCSAuthorization(credentials.get, pipelineContext)
     }
-    DataFrameSteps.getDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions()))
+    DataConnectorUtilities.buildDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions()))
       .save(GCSFileManager.prepareGCSFilePath(path))
   }
 
@@ -92,22 +93,4 @@ object GCSSteps {
     secondaryTypes = None)
   def createFileManager(projectId: String, bucket: String, credentials: Map[String, String]): Option[GCSFileManager] =
     Some(new GCSFileManager(projectId, bucket, Some(Serialization.write(credentials))))
-
-  /**
-    * Given a credential map, this function will set the appropriate properties required for Spark access.
-    *
-    * @param credentials     The GCP auth map
-    * @param pipelineContext The current pipeline context
-    */
-  private def setGCSAuthorization(credentials: Map[String, String], pipelineContext: PipelineContext): Unit = {
-    val sc = pipelineContext.sparkSession.get.sparkContext
-    sc.hadoopConfiguration.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
-    sc.hadoopConfiguration.set("fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS")
-    // Private Key
-    sc.hadoopConfiguration.set("fs.gs.project.id", credentials("project_id"))
-    sc.hadoopConfiguration.set("fs.gs.auth.service.account.enable", "true")
-    sc.hadoopConfiguration.set("fs.gs.auth.service.account.email", credentials("client_email"))
-    sc.hadoopConfiguration.set("fs.gs.auth.service.account.private.key.id", credentials("private_key_id"))
-    sc.hadoopConfiguration.set("fs.gs.auth.service.account.private.key", credentials("private_key"))
-  }
 }

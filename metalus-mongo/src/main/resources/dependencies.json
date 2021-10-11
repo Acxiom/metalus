@@ -2,6 +2,11 @@
   "maven": {
     "libraries": [
       {
+        "groupId": "com.acxiom",
+        "artifactId": "metalus-common_${scala.compat.version}-spark_${spark.compat.version}",
+        "version": "${parent.version}"
+      },
+      {
         "groupId": "org.mongodb.spark",
         "artifactId": "mongo-spark-connector_${scala.compat.version}",
         "version": "${mongo.version}"

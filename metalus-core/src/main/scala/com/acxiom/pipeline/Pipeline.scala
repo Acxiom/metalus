@@ -166,6 +166,15 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     this.copy(globals = Some(if(this.globals.isDefined) this.globals.get ++ globals else globals))
 
   /**
+    * This function will remove a single entry on the globals map.
+    *
+    * @param globalName The name of the global property to remove.
+    * @return A new PipelineContext with an updated globals map.
+    */
+  def removeGlobal(globalName: String): PipelineContext =
+    this.copy(globals = Some(this.globals.getOrElse(Map[String, Any]()) - globalName))
+
+  /**
     * Adds a new PipelineStepMessage to the context
     *
     * @param message The message to add.

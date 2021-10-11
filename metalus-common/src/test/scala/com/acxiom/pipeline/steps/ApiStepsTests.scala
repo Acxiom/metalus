@@ -1,13 +1,12 @@
 package com.acxiom.pipeline.steps
 
-import java.net.{HttpURLConnection, URL}
-import java.text.SimpleDateFormat
-
-import com.acxiom.pipeline.api.{BasicAuthorization, HttpRestClient, SessionAuthorization}
+import com.acxiom.pipeline.api.{BasicAuthorization, HttpRestClient}
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.{aMultipart, aResponse, containing, delete, equalTo, get, post, put, urlPathEqualTo}
+import com.github.tomakehurst.wiremock.client.WireMock._
 import org.scalatest.{BeforeAndAfterAll, FunSpec}
 
+import java.net.HttpURLConnection
+import java.text.SimpleDateFormat
 import scala.io.Source
 
 class ApiStepsTests extends FunSpec with BeforeAndAfterAll {

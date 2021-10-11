@@ -7,15 +7,18 @@ import java.util.Date
 /**
   * Metadata about the next step in the pipeline process.
   *
-  * @param id             The unique (to the pipeline) id of this step. This pproperty is used to chain steps together.
-  * @param displayName    A name that can be displayed in logs and errors.
-  * @param description    A long description of this step.
-  * @param `type`         The type of step.
-  * @param params         The step parameters that are used during execution.
-  * @param engineMeta     Contains the instruction for invoking the step function.
-  * @param executeIfEmpty This field allows a value to be passed in rather than executing the step.
-  * @param nextStepId     The id of the next step to execute.
-  * @param stepId         The id of the step that provided the metadata.
+  * @param id              The unique (to the pipeline) id of this step. This pproperty is used to chain steps together.
+  * @param displayName     A name that can be displayed in logs and errors.
+  * @param description     A long description of this step.
+  * @param `type`          The type of step.
+  * @param params          The step parameters that are used during execution.
+  * @param engineMeta      Contains the instruction for invoking the step function.
+  * @param executeIfEmpty  This field allows a value to be passed in rather than executing the step.
+  * @param nextStepId      The id of the next step to execute.
+  * @param stepId          The id of the step that provided the metadata.
+  * @param nextStepOnError The id of the step that should be called on error
+  * @param retryLimit      The number of times that this step should be retried on error. Default is -1 indicating to
+  *                        not retry. This parameter will be considered before nextStepOnError.
   */
 case class PipelineStep(id: Option[String] = None,
                         displayName: Option[String] = None,
@@ -26,7 +29,8 @@ case class PipelineStep(id: Option[String] = None,
                         nextStepId: Option[String] = None,
                         executeIfEmpty: Option[String] = None,
                         stepId: Option[String] = None,
-                        nextStepOnError: Option[String] = None)
+                        nextStepOnError: Option[String] = None,
+                        retryLimit: Option[Int] = Some(-1))
 
 /**
   * Represents a single parameter in a step.

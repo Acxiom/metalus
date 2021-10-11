@@ -46,6 +46,11 @@ The pipeline step will include a new attribute named **nextStepId** which indica
 that should be executed. Branch steps will not have this attribute since the next step id is determined by the **params**
 array **result** type parameters.
 
+### retryLimit
+The pipeline step has an optional attribute named **retryLimit** which will retry the step if an exception is thrown.
+Once the limit has been reached, the **nextStepOnError** will be called if it has been defined or the exception will
+be thrown to stop the pipeline.
+
 ### params
 At a minimum, the parameter from the step template should be replicated here. Required parameters will have to additionally
 set the **value** attribute unless the **defaultValue** attribute is provided. Additional attributes will be required 
