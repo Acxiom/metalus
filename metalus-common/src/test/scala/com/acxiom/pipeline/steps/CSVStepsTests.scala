@@ -12,7 +12,7 @@ import org.scalatest.{BeforeAndAfterAll, FunSpec}
 class CSVStepsTests extends FunSpec with BeforeAndAfterAll {
 
   private val MASTER = "local[2]"
-  private val APPNAME = "json-steps-spark"
+  private val APPNAME = "csv-steps-spark"
   private var sparkConf: SparkConf = _
   private var sparkSession: SparkSession = _
   private val sparkLocalDir: Path = Files.createTempDirectory("sparkLocal")

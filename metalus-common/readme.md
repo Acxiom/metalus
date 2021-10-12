@@ -20,6 +20,7 @@ using Spark.
 * [QuerySteps](docs/querysteps.md)
 * [ScalaSteps](docs/scalascriptsteps.md)
 * [SFTPSteps](docs/sftpsteps.md)
+* [SparkConfigurationSteps](docs/sparkconfigurationstepds.md)
 * [StringSteps](docs/stringsteps.md)
 * [TransformationSteps](docs/transformationsteps.md)
 
