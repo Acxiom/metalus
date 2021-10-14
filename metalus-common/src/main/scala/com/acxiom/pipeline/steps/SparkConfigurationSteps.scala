@@ -15,7 +15,7 @@ object SparkConfigurationSteps {
   @StepParameters(Map("key" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the property to set")),
     "value" -> StepParameter(None, Some(true), None, None, None, None, Some("The value to set"))))
   def setLocalProperty(key: String, value: Any, pipelineContext: PipelineContext): Unit = {
-    setLocalProperties(Map(key -> value), Some(false), pipelineContext)
+    setLocalProperties(Map(key -> value), None, pipelineContext)
   }
 
   @StepFunction("0b86b314-2657-4392-927c-e555af56b415",
@@ -24,11 +24,11 @@ object SparkConfigurationSteps {
     "Pipeline", "Spark")
   @StepParameters(Map("properties" -> StepParameter(None, Some(true), None, None, None, None,
     Some("Map representing local properties to set")),
-    "replaceUnderScores" -> StepParameter(None, Some(false), Some("true"), None, None, None,
-      Some("When true, will replace underscores in the keys with periods"))))
-  def setLocalProperties(properties: Map[String, Any], replaceUnderScores: Option[Boolean] = None, pipelineContext: PipelineContext): Unit = {
+    "keySeparator" -> StepParameter(None, Some(false), Some("__"), None, None, None,
+      Some("String that will be replaced with a period character"))))
+  def setLocalProperties(properties: Map[String, Any], keySeparator: Option[String] = None, pipelineContext: PipelineContext): Unit = {
     val sc = pipelineContext.sparkSession.get.sparkContext
-    cleanseMap(properties, replaceUnderScores).foreach {
+    cleanseMap(properties, keySeparator).foreach {
       case (key, Some(value)) => sc.setLocalProperty(key, value.toString)
       case (key, None) => sc.setLocalProperty(key, None.orNull)
       case (key, value) => sc.setLocalProperty(key, value.toString)
@@ -41,12 +41,12 @@ object SparkConfigurationSteps {
     "Pipeline", "Spark")
   @StepParameters(Map("properties" -> StepParameter(None, Some(true), None, None, None, None,
     Some("Map representing local properties to set")),
-    "replaceUnderScores" -> StepParameter(None, Some(false), Some("true"), None, None, None,
-      Some("When true, will replace underscores in the keys with periods"))))
-  def setHadoopConfigurationProperties(properties: Map[String, Any], replaceUnderScores: Option[Boolean] = None,
+    "keySeparator" -> StepParameter(None, Some(false), Some("__"), None, None, None,
+      Some("String that will be replaced with a period character"))))
+  def setHadoopConfigurationProperties(properties: Map[String, Any], keySeparator: Option[String] = None,
                                        pipelineContext: PipelineContext): Unit = {
     val hc = pipelineContext.sparkSession.get.sparkContext.hadoopConfiguration
-    cleanseMap(properties, replaceUnderScores).foreach {
+    cleanseMap(properties, keySeparator).foreach {
       case (key, Some(value)) => hc.set(key, value.toString)
       case (key, None) => hc.unset(key)
       case (key, value) => hc.set(key, value.toString)
@@ -61,7 +61,7 @@ object SparkConfigurationSteps {
     "value" -> StepParameter(None, Some(true), None, None, None, None, Some("The value to set"))))
   def setHadoopConfigurationProperty(key: String, value: Any,
                                        pipelineContext: PipelineContext): Unit = {
-    setHadoopConfigurationProperties(Map(key -> value), Some(false), pipelineContext)
+    setHadoopConfigurationProperties(Map(key -> value), None, pipelineContext)
   }
 
   @StepFunction("b7373f02-4d1e-44cf-a9c9-315a5c1ccecc",
@@ -94,11 +94,10 @@ object SparkConfigurationSteps {
     }
   }
 
-  private def cleanseMap(map: Map[String, Any], replaceUnderScores: Option[Boolean] = None): Map[String, Any] = {
-    val replace = replaceUnderScores.getOrElse(true)
+  private def cleanseMap(map: Map[String, Any], keySeparator: Option[String] = None): Map[String, Any] = {
+    val sep = keySeparator.getOrElse("__")
     map.map{ case (key, value) =>
-      val finalKey = if (replace) key.replaceAllLiterally("_", ".") else key
-      finalKey -> unwrapOptions(value)
+      key.replaceAllLiterally(sep, ".") -> unwrapOptions(value)
     }
   }
 

@@ -65,7 +65,7 @@ class SparkConfigurationStepsTests extends FunSpec with BeforeAndAfterAll with G
 
     it ("should set a local properties") {
       try {
-        SparkConfigurationSteps.setLocalProperties(Map("moo_m1" -> "m1", "moo_m2" -> "m2"), Some(true), pipelineContext)
+        SparkConfigurationSteps.setLocalProperties(Map("moo_m1" -> "m1", "moo_m2" -> "m2"), Some("_"), pipelineContext)
         assert(sparkSession.sparkContext.getLocalProperty("moo.m1") == "m1")
         assert(sparkSession.sparkContext.getLocalProperty("moo.m2") == "m2")
       } finally {
@@ -78,7 +78,7 @@ class SparkConfigurationStepsTests extends FunSpec with BeforeAndAfterAll with G
       try {
         sparkSession.sparkContext.setLocalProperty("moo.m1", "m1")
         sparkSession.sparkContext.setLocalProperty("moo.m2", "m2")
-        SparkConfigurationSteps.setLocalProperties(Map("moo_m1" -> None, "moo_m2" -> None), Some(true), pipelineContext)
+        SparkConfigurationSteps.setLocalProperties(Map("moo_m1" -> None, "moo_m2" -> None), Some("_"), pipelineContext)
         assert(Option(sparkSession.sparkContext.getLocalProperty("moo.m1")).isEmpty)
         assert(Option(sparkSession.sparkContext.getLocalProperty("moo.m2")).isEmpty)
       } finally {

@@ -13,7 +13,7 @@ Set a local property on the current thread.
 Set a local property on the current thread for each entry in the properties map.
 
 * **properties** - A Map where each entry will be set as a key/value pair.
-* **replaceUnderScores** - Replace underscores in the property keys with periods. Enabled by default.
+* **keySeparator** - Replaces all occurrences of this string with periods in the keys. Default is __.
 
 ##Set Hadoop Configuration Property
 Set a property on the hadoop configuration.
@@ -25,7 +25,7 @@ Set a property on the hadoop configuration.
 Set a property on the hadoop configuration for each entry in the properties map.
 
 * **properties** - A Map where each entry will be set as a key/value pair.
-* **replaceUnderScores** - Replace underscores in the property keys with periods. Enabled by default.
+* **keySeparator** - Replaces all occurrences of this string with periods in the keys. Default is __.
 
 ##Set Job Group
 Set a job group id and description to group all upcoming jobs on the current thread.
