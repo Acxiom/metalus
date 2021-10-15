@@ -75,6 +75,11 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
   private val errorValueStep = PipelineStep(Some("EXCEPTION"), None, None, Some("Pipeline"),
     Some(List(Parameter(Some("text"), Some("string"), value = Some("@FORK_DATA")))),
     engineMeta = Some(EngineMeta(Some("MockStepObject.mockExceptionStepFunction"))))
+  private val simpleForkParallelStepWithLimit = PipelineStep(Some("FORK_DATA"), None, None, Some("fork"),
+    Some(List(Parameter(Some("text"), Some("forkByValues"), value = Some("@GENERATE_DATA")),
+      Parameter(Some("text"), Some("forkMethod"), value = Some("parallel")),
+      Parameter(Some("text"), Some("forkLimit"), value = Some("2")))),
+    nextStepId = Some("PROCESS_VALUE"))
 
   describe("Fork Step Without Join") {
     it("Should process list and merge results using serial processing") {
@@ -86,6 +91,14 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
 
     it("Should process list and merge results using parallel processing") {
       val pipelineSteps = List(generateDataStep, simpleForkParallelStep, processValueStep)
+      val pipeline = Pipeline(Some("PARALLEL_FORK_TEST"), Some("Parallel Fork Test"), Some(pipelineSteps))
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(List(pipeline), Some("PARALLEL_FORK_TEST"), SparkTestHelper.generatePipelineContext())
+      verifySimpleForkSteps(pipeline, executionResult)
+    }
+
+    it("Should process list and merge results using parallel processing with limit") {
+      val pipelineSteps = List(generateDataStep, simpleForkParallelStepWithLimit, processValueStep)
       val pipeline = Pipeline(Some("PARALLEL_FORK_TEST"), Some("Parallel Fork Test"), Some(pipelineSteps))
       SparkTestHelper.pipelineListener = PipelineListener()
       val executionResult = PipelineExecutor.executePipelines(List(pipeline), Some("PARALLEL_FORK_TEST"), SparkTestHelper.generatePipelineContext())
@@ -106,6 +119,16 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
     it("Should process list and merge results using parallel processing") {
       val pipeline = Pipeline(Some("PARALLEL_FORK_TEST"), Some("Parallel Fork Test"), Some(
         List(generateDataStep, simpleForkParallelStep, processValueStep.copy(nextStepId = Some("BRANCH_VALUE")),
+          simpleBranchStep, joinStep.copy(nextStepId = Some("PROCESS_RAW_VALUE")), simpleMockStep)
+      ))
+      SparkTestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      verifySimpleForkSteps(pipeline, executionResult, extraStep = true)
+    }
+
+    it("Should process list and merge results using parallel processing with limit") {
+      val pipeline = Pipeline(Some("PARALLEL_FORK_TEST"), Some("Parallel Fork Test"), Some(
+        List(generateDataStep, simpleForkParallelStepWithLimit, processValueStep.copy(nextStepId = Some("BRANCH_VALUE")),
           simpleBranchStep, joinStep.copy(nextStepId = Some("PROCESS_RAW_VALUE")), simpleMockStep)
       ))
       SparkTestHelper.pipelineListener = PipelineListener()
