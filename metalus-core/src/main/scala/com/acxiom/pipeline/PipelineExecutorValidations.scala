@@ -67,21 +67,14 @@ object PipelineExecutorValidations {
         pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
     }
     val forkMethod = step.params.get.find(p => p.name.getOrElse("") == "forkMethod")
-    if(forkMethod.isDefined && forkMethod.get.value.nonEmpty){
-      val method = forkMethod.get.value.get.asInstanceOf[String]
-      if(!(method == "serial" || method == "parallel")){
-        throw PipelineException(
-          message = Some(s"Unknown value [$method] for parameter [forkMethod]." +
-            s" Value must be either [serial] or [parallel] for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
-          pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
-      }
-    } else {
+
+    if (forkMethod.flatMap(_.value).isEmpty) {
       throw PipelineException(
         message = Some(s"Parameter [forkMethod] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
         pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
     }
     val forkByValues = step.params.get.find(p => p.name.getOrElse("") == "forkByValues")
-    if(forkByValues.isEmpty || forkByValues.get.value.isEmpty){
+    if(forkByValues.flatMap(_.value).isEmpty){
       throw PipelineException(
         message = Some(s"Parameter [forkByValues] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
         pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))

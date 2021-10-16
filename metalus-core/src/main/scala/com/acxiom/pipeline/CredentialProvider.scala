@@ -20,6 +20,15 @@ trait Credential extends Serializable {
 }
 
 /**
+  * Creates a credential by parsing the parameters username and password.
+  * @param parameters The map containing parameters to scan.
+  */
+case class UserNameCredential(override val parameters: Map[String, Any]) extends Credential {
+  override def name: String = parameters("username").asInstanceOf[String]
+  def password: String = parameters("password").asInstanceOf[String]
+}
+
+/**
   * Provides an interface for parsing credentials from a map
   */
 trait CredentialParser extends Serializable {
@@ -60,17 +69,24 @@ class DefaultCredentialParser extends CredentialParser {
   * @param parameters A map containing parameters.
   */
 class DefaultCredentialProvider(override val parameters: Map[String, Any]) extends CredentialProvider {
+  protected val defaultParsers: List[CredentialParser] = List(new DefaultCredentialParser())
   protected lazy val credentialParsers: List[CredentialParser] = {
     if (parameters.contains("credential-parsers")) {
       parameters("credential-parsers").asInstanceOf[String]
         .split(',').filter(_.nonEmpty).distinct.map(className =>
         ReflectionUtils.loadClass(className, Some(Map("parameters" -> parameters)))
-          .asInstanceOf[CredentialParser]).toList:+ new DefaultCredentialParser()
+          .asInstanceOf[CredentialParser]).toList ++ defaultParsers
     } else {
-      List(new DefaultCredentialParser())
+      defaultParsers
     }
   }
-  protected lazy val credentials: Map[String, Credential] = {
+  protected lazy val credentials: Map[String, Credential] = parseCredentials(parameters)
+
+  override def getNamedCredential(name: String): Option[Credential] = {
+    this.credentials.get(name)
+  }
+
+  protected def parseCredentials(parameters: Map[String, Any]): Map[String, Credential] = {
     credentialParsers.foldLeft(Map[String, Credential]())((credentials, parser) => {
       val creds = parser.parseCredentials(parameters)
       if (creds.nonEmpty) {
@@ -81,10 +97,6 @@ class DefaultCredentialProvider(override val parameters: Map[String, Any]) exten
         credentials
       }
     })
-  }
-
-  override def getNamedCredential(name: String): Option[Credential] = {
-    this.credentials.get(name)
   }
 }
 

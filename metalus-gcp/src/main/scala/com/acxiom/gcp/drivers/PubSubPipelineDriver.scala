@@ -33,7 +33,7 @@ object PubSubPipelineDriver {
       Some(parameters.getOrElse("duration", "10").asInstanceOf[String]))
     // Get the credential provider
     val credentialProvider = driverSetup.credentialProvider
-    val gcpCredential = credentialProvider.getNamedCredential("GCPCredential")
+    val gcpCredential = credentialProvider.getNamedCredential(parameters.getOrElse("pubsubCredentialName", "GCPCredential").toString)
     val sparkGCPCredentials = if (gcpCredential.isDefined) {
       SparkGCPCredentials.builder.jsonServiceAccount(
         GCPUtilities.generateCredentialsByteArray(Some(gcpCredential.get.asInstanceOf[GCPCredential].authKey)).get).build()

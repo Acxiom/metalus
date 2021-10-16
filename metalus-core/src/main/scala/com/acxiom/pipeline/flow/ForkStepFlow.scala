@@ -1,11 +1,16 @@
 package com.acxiom.pipeline.flow
 
 import com.acxiom.pipeline._
-
 import java.util.UUID
-import scala.concurrent.ExecutionContext.Implicits.global
+
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.forkjoin.ForkJoinPool
+import scala.concurrent.{Await, ExecutionContext, Future}
+import org.apache.log4j.Logger
+
+object ForkStepFlow {
+  val FORK_METHOD_TYPES = List("serial", "parallel")
+}
 
 case class ForkStepFlow(pipeline: Pipeline,
                         initialContext: PipelineContext,
@@ -13,6 +18,9 @@ case class ForkStepFlow(pipeline: Pipeline,
                         executingPipelines: List[Pipeline],
                         step: PipelineStep,
                         parameterValues: Map[String, Any]) extends PipelineFlow {
+
+  private val logger = Logger.getLogger(getClass)
+
   override def execute(): FlowResult = {
     val result = processForkStep(step, pipeline, stepLookup, parameterValues, initialContext)
     FlowResult(result.pipelineContext, result.nextStepId, Some(result))
@@ -35,17 +43,31 @@ case class ForkStepFlow(pipeline: Pipeline,
     val forkFlow = getForkSteps(firstStep, pipeline, steps, ForkFlow(List(), pipeline, List[ForkPair](ForkPair(step, None, root = true))))
     forkFlow.validate()
     val newSteps = forkFlow.steps
-    // Identify the join steps and verify that only one is present
-    val joinSteps = newSteps.filter(_.`type`.getOrElse("").toLowerCase == PipelineStepType.JOIN)
     val newStepLookup = newSteps.foldLeft(Map[String, PipelineStep]())((map, s) => map + (s.id.get -> s))
     // See if the forks should be executed in threads or a loop
     val forkByValues = parameterValues("forkByValues").asInstanceOf[List[Any]]
+    val forkMethod = parameterValues("forkMethod")
+    if (!ForkStepFlow.FORK_METHOD_TYPES.contains(forkMethod.toString.toLowerCase)) {
+      throw PipelineException(
+        message = Some(s"Unsupported value [$forkMethod] for parameter [forkMethod]." +
+          s" Value must be one of the supported values [${ForkStepFlow.FORK_METHOD_TYPES.mkString(", ")}]" +
+          s" for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),
+        pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+    }
     val results = if (parameterValues("forkMethod").asInstanceOf[String] == "parallel") {
       processForkStepsParallel(forkByValues, firstStep, step.id.get, pipeline, newStepLookup, pipelineContext)
     } else { // "serial"
       processForkStepsSerial(forkByValues, firstStep, step.id.get, pipeline, newStepLookup, pipelineContext)
     }
     // Gather the results and create a list
+    handleResults(results, forkFlow, steps, pipelineContext)
+  }
+
+  private def handleResults(results: List[ForkStepExecutionResult], forkFlow: ForkFlow, steps: Map[String, PipelineStep],
+                            pipelineContext: PipelineContext): ForkStepResult = {
+    val newSteps = forkFlow.steps
+    // Identify the join steps and verify that only one is present
+    val joinSteps = newSteps.filter(_.`type`.getOrElse("").toLowerCase == PipelineStepType.JOIN)
     val finalResult = results.sortBy(_.index).foldLeft(ForkStepExecutionResult(-1, Some(pipelineContext), None))((combinedResult, result) => {
       if (result.result.isDefined) {
         val ctx = result.result.get
@@ -233,6 +255,15 @@ case class ForkStepFlow(pipeline: Pipeline,
                                        pipeline: Pipeline,
                                        steps: Map[String, PipelineStep],
                                        pipelineContext: PipelineContext): List[ForkStepExecutionResult] = {
+    implicit val executionContext: ExecutionContext = parameterValues.get("forkLimit").flatMap{ v =>
+      val limit = v.toString.trim
+      if (limit.forall(_.isDigit)) {
+        Some(ExecutionContext.fromExecutorService(new ForkJoinPool(limit.toInt)))
+      } else {
+        logger.warn(s"Unable to parse forkLimit value: [$limit] as integer. Defaulting to global ExecutionContext.")
+        None
+      }
+    }.getOrElse(scala.concurrent.ExecutionContext.Implicits.global)
     val futures = forkByValues.zipWithIndex.map(value => {
       Future {
         startForkedStepExecution(firstStep, forkStepId, pipeline, steps,

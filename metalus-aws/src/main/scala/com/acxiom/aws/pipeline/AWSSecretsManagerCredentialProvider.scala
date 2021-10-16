@@ -1,16 +1,19 @@
 package com.acxiom.aws.pipeline
 
 import com.acxiom.aws.utils.{AWSBasicCredential, AWSCloudWatchCredential, AWSDynamoDBCredential, DefaultAWSCredential}
-import com.acxiom.pipeline.{Credential, CredentialParser, DefaultCredentialProvider}
+import com.acxiom.pipeline.{Credential, CredentialParser, DefaultCredentialParser, DefaultCredentialProvider}
 import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.services.secretsmanager.AWSSecretsManagerClientBuilder
 import com.amazonaws.services.secretsmanager.model.{GetSecretValueRequest, InvalidParameterException, InvalidRequestException, ResourceNotFoundException}
 import org.apache.log4j.Logger
+import org.json4s.native.JsonMethods.parse
+import org.json4s.{DefaultFormats, Formats}
 
-class AWSSecretsManagerCredentialProvider(val params: Map[String, Any])
-  extends DefaultCredentialProvider(params +
-    ("credential-parsers" -> s"${params.getOrElse("credential-parsers", "")},com.acxiom.aws.pipeline.AWSCredentialParser")) {
+class AWSSecretsManagerCredentialProvider(override val parameters: Map[String, Any])
+  extends DefaultCredentialProvider(parameters) {
   private val logger = Logger.getLogger(getClass)
+  private implicit val formats: Formats = DefaultFormats
+  override protected val defaultParsers = List(new DefaultCredentialParser(), new AWSCredentialParser)
   val region: String = parameters.getOrElse("region", "us-east-1").asInstanceOf[String]
   private val config = new AwsClientBuilder.EndpointConfiguration(s"secretsmanager.$region.amazonaws.com", region)
   private val clientBuilder = AWSSecretsManagerClientBuilder.standard
@@ -26,11 +29,18 @@ class AWSSecretsManagerCredentialProvider(val params: Map[String, Any])
       try {
         val getSecretValueResult = Option(client.getSecretValue(new GetSecretValueRequest()
           .withSecretId(name).withVersionStage("AWSCURRENT")))
-        Some(if (getSecretValueResult.isDefined &&
+        val secretString = if (getSecretValueResult.isDefined &&
           Option(getSecretValueResult.get.getSecretString).isDefined) {
-          new DefaultAWSCredential(Map("credentialName" -> name, "credentialValue" -> getSecretValueResult.get.getSecretString))
+          getSecretValueResult.get.getSecretString
         } else {
-          new DefaultAWSCredential(Map("credentialName" -> name, "credentialValue" -> getSecretValueResult.get.getSecretBinary.toString))
+          getSecretValueResult.get.getSecretBinary.toString
+        }
+        val keyMap = parse(secretString).extract[Map[String, String]]
+        val creds = parseCredentials(keyMap)
+        Some(if (creds.contains("AWSCredential")) {
+          creds("AWSCredential")
+        } else {
+          new DefaultAWSCredential(Map("credentialName" -> name, "credentialValue" -> secretString))
         })
       }
       catch {
@@ -60,6 +70,7 @@ class AWSCredentialParser extends CredentialParser {
     parameters.foldLeft(List[Credential]())((credentials, param) => {
       param._1 match {
         case "accessKeyId" => credentials :+ new AWSBasicCredential(parameters)
+        case "accountId" if !parameters.contains("accessKeyId") => credentials :+ new AWSBasicCredential(parameters)
         case "cloudWatchAccessKeyId" => credentials :+ new AWSCloudWatchCredential(parameters)
         case "dynamoDBAccessKeyId" => credentials :+ new AWSDynamoDBCredential(parameters)
         case _ => credentials

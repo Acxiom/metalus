@@ -2,6 +2,7 @@ package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations._
+import com.acxiom.pipeline.connectors.DataConnectorUtilities
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.storage.StorageLevel
@@ -20,7 +21,7 @@ object DataFrameSteps {
     secondaryTypes = None)
   def getDataFrameReader(dataFrameReaderOptions: DataFrameReaderOptions,
                          pipelineContext: PipelineContext): DataFrameReader = {
-    buildDataFrameReader(pipelineContext.sparkSession.get, dataFrameReaderOptions)
+    DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession.get, dataFrameReaderOptions)
   }
 
   @StepFunction("66a451c8-ffbd-4481-9c37-71777c3a240f",
@@ -61,7 +62,7 @@ object DataFrameSteps {
     secondaryTypes = None)
   def getDataFrameWriter[T](dataFrame: Dataset[T],
                          options: DataFrameWriterOptions): DataFrameWriter[T] = {
-    buildDataFrameWriter(dataFrame, options)
+    DataConnectorUtilities.buildDataFrameWriter(dataFrame, options)
   }
 
   @StepFunction("9aa6ae9f-cbeb-4b36-ba6a-02eee0a46558",
@@ -171,54 +172,6 @@ object DataFrameSteps {
       dataFrame.repartition(partitions, partitionExpressions.get: _*)
     } else {
       dataFrame.repartition(partitions)
-    }
-  }
-
-  /**
-    *
-    * @param sparkSession The current spark session to use.
-    * @param options      A DataFrameReaderOptions object for configuring the reader.
-    * @return A DataFrameReader based on the provided options.
-    */
-  private def buildDataFrameReader(sparkSession: SparkSession, options: DataFrameReaderOptions): DataFrameReader = {
-    val reader = sparkSession.read
-      .format(options.format)
-      .options(options.options.getOrElse(Map[String, String]()))
-
-    if (options.schema.isDefined) {
-      reader.schema(options.schema.get.toStructType())
-    } else {
-      reader
-    }
-  }
-
-  /**
-    *
-    * @param dataFrame A DataFrame to write.
-    * @param options   A DataFrameWriterOptions object for configuring the writer.
-    * @return A DataFrameWriter[Row] based on the provided options.
-    */
-  private def buildDataFrameWriter[T](dataFrame: Dataset[T], options: DataFrameWriterOptions): DataFrameWriter[T] = {
-    val writer = dataFrame.write.format(options.format)
-      .mode(options.saveMode)
-      .options(options.options.getOrElse(Map[String, String]()))
-
-    val w1 = if (options.bucketingOptions.isDefined && options.bucketingOptions.get.columns.nonEmpty) {
-      val bucketingOptions = options.bucketingOptions.get
-      writer.bucketBy(bucketingOptions.numBuckets, bucketingOptions.columns.head, bucketingOptions.columns.drop(1): _*)
-    } else {
-      writer
-    }
-    val w2 = if (options.partitionBy.isDefined && options.partitionBy.get.nonEmpty) {
-      w1.partitionBy(options.partitionBy.get: _*)
-    } else {
-      w1
-    }
-    if (options.sortBy.isDefined && options.sortBy.get.nonEmpty) {
-      val sortBy = options.sortBy.get
-      w2.sortBy(sortBy.head, sortBy.drop(1): _*)
-    } else {
-      w2
     }
   }
 }

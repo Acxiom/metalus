@@ -19,9 +19,21 @@ object PipelineDefs {
   val DYNAMIC_BRANCH2_STEP: PipelineStep = PipelineStep(Some("DYNAMICBRANCH2STEP"), Some("Global Value Step"), None, Some("Pipeline"),
     Some(List(Parameter(Some("text"), Some("string"), Some(true), None, Some("!globalInput")))),
     Some(EngineMeta(Some("MockPipelineSteps.globalVariableStep"))), None, Some("!NON_EXISTENT_VALUE || @DYNAMICBRANCHSTEP"))
+  val RETRY_STEP: PipelineStep = PipelineStep(Some("RETRYSTEP"), Some("Retry Step"), None, Some("Pipeline"),
+    Some(List(Parameter(Some("int"), Some("retryCount"), Some(true), None, Some(3)))),
+    Some(EngineMeta(Some("MockPipelineSteps.retryStep"))), retryLimit = Some(Constants.FOUR))
+  val PARROT_STEP: PipelineStep = PipelineStep(Some("PARROTSTEP"), Some("Parrot Step"), None, Some("Pipeline"),
+    Some(List(Parameter(Some("text"), Some("value"), Some(true), None, Some("error step called!")))),
+    Some(EngineMeta(Some("MockPipelineSteps.parrotStep"))))
 
   val BASIC_PIPELINE = List(TestPipeline(Some("1"), Some("Basic Pipeline"),
     Some(List(GLOBAL_VALUE_STEP.copy(nextStepId = Some("PAUSESTEP")), PAUSE_STEP))))
+
+  val RETRY_PIPELINE = List(TestPipeline(Some("1"), Some("Retry Pipeline"),
+    Some(List(RETRY_STEP.copy(nextStepId = Some("RETURNNONESTEP")), RETURN_NOTHING_STEP))))
+
+  val RETRY_FAILURE_PIPELINE = List(TestPipeline(Some("1"), Some("Retry Failure Pipeline"),
+    Some(List(RETRY_STEP.copy(nextStepId = Some("RETURNNONESTEP"), nextStepOnError = Some("PARROTSTEP")), RETURN_NOTHING_STEP, PARROT_STEP))))
 
   val TWO_PIPELINE = List(TestPipeline(Some("0"), Some("First Pipeline"), Some(List(GLOBAL_SINGLE_STEP))),
     TestPipeline(Some("1"), Some("Second Pipeline"), Some(List(GLOBAL_SINGLE_STEP))))

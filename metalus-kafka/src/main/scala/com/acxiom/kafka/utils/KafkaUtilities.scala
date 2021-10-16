@@ -1,6 +1,8 @@
 package com.acxiom.kafka.utils
 
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
+import org.apache.spark.sql.functions.{concat, lit}
+import org.apache.spark.sql.{Column, DataFrame}
 
 import java.util.Properties
 
@@ -36,5 +38,34 @@ object KafkaUtilities {
     producer.send(record)
     producer.flush()
     producer.close()
+  }
+
+  /**
+    * Publish DataFrame data to a Kafka topic.
+    *
+    * @param dataFrame  The DataFrame being published
+    * @param topic      The Kafka topic
+    * @param kafkaNodes Comma separated list of kafka nodes
+    * @param key        The Kafka key used for partitioning
+    * @param separator  The field separator used to combine the columns.
+    * @param clientId   The kafka clientId.
+    */
+  def publishDataFrame(dataFrame: DataFrame,
+                               topic: String,
+                               kafkaNodes: String,
+                               key: Column,
+                               separator: String = ",",
+                               clientId: String = "metalus_default_kafka_producer_client"): Unit = {
+    val columns = dataFrame.schema.fields.foldLeft(List[Column]())((cols, field) => {
+      cols :+ dataFrame.col(field.name) :+ lit(separator)
+    })
+    dataFrame.withColumn("topic", lit(topic))
+      .withColumn("key", key)
+      .withColumn("value", concat(columns.dropRight(1): _*))
+      .write
+      .format("kafka")
+      .option("kafka.bootstrap.servers", kafkaNodes)
+      .option("kafka.client.id", clientId)
+      .save()
   }
 }

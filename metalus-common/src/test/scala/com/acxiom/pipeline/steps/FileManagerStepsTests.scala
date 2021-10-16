@@ -1,9 +1,7 @@
 package com.acxiom.pipeline.steps
 
-import java.io.File
-import java.nio.file.{Files, Path, StandardCopyOption}
-
 import com.acxiom.pipeline._
+import com.acxiom.pipeline.connectors.{HDFSFileConnector, SFTPFileConnector}
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
@@ -12,6 +10,9 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec}
 import software.sham.sftp.MockSftpServer
+
+import java.io.File
+import java.nio.file.{Files, Path, StandardCopyOption}
 
 class FileManagerStepsTests extends FunSpec with BeforeAndAfterAll {
   val MASTER = "local[2]"
@@ -70,22 +71,23 @@ class FileManagerStepsTests extends FunSpec with BeforeAndAfterAll {
 
   describe("FileManagerSteps - Copy") {
     it("Should fail when strict host checking is enabled against localhost") {
-      val sftp = SFTPSteps.createFileManager("localhost", Some("tester"), Some("testing"), Some(SFTP_PORT), Some(true), pipelineContext)
-      assert(sftp.isDefined)
+      val sftpConnector = SFTPFileConnector("localhost", "sftp-connector", None,
+        Some(UserNameCredential(Map("username" -> "tester", "password" -> "testing"))),
+        Some(SFTP_PORT), None, None, Some(Map[String, String]("StrictHostKeyChecking" -> "yes")))
       val exception = intercept[com.jcraft.jsch.JSchException] {
-        sftp.get.connect()
+        sftpConnector.getFileManager(pipelineContext)
       }
       assert(Option(exception).nonEmpty)
       assert(exception.getMessage == "reject HostKey: localhost")
     }
 
     it("Should copy from/to SFTP to HDFS") {
-      val hdfs = HDFSSteps.createFileManager(pipelineContext)
+      val hdfsConnector = HDFSFileConnector("my-connector", None, None)
+      val hdfs = hdfsConnector.getFileManager(pipelineContext)
       val sftp = SFTPSteps.createFileManager("localhost", Some("tester"), Some("testing"), Some(SFTP_PORT), Some(false), pipelineContext)
-      assert(hdfs.isDefined)
       assert(sftp.isDefined)
       // Verify that the HDFS file system has nothing
-      assert(hdfs.get.getFileListing("/").isEmpty)
+      assert(hdfs.getFileListing("/").isEmpty)
       // Connect to the SFTP file system
       sftp.get.connect()
 
@@ -96,13 +98,13 @@ class FileManagerStepsTests extends FunSpec with BeforeAndAfterAll {
       assert(originalSftpFile.isDefined)
 
       // Copy from SFTP to HDFS
-      FileManagerSteps.copy(sftp.get, "/MOCK_DATA.csv", hdfs.get, "/COPIED_DATA.csv")
-      val copiedHdfsFile = hdfs.get.getFileListing("/").find(_.fileName == "COPIED_DATA.csv")
+      FileManagerSteps.copy(sftp.get, "/MOCK_DATA.csv", hdfs, "/COPIED_DATA.csv")
+      val copiedHdfsFile = hdfs.getFileListing("/").find(_.fileName == "COPIED_DATA.csv")
       assert(copiedHdfsFile.isDefined)
       assert(originalSftpFile.get.size == copiedHdfsFile.get.size)
 
       // Copy from HDFS to SFTP
-      FileManagerSteps.copy(hdfs.get, "/COPIED_DATA.csv", sftp.get, "/HDFS_COPIED_DATA.csv")
+      FileManagerSteps.copy(hdfs, "/COPIED_DATA.csv", sftp.get, "/HDFS_COPIED_DATA.csv")
       val sftpCopiedHdfsFile = sftp.get.getFileListing("/").find(_.fileName == "HDFS_COPIED_DATA.csv")
       assert(sftpCopiedHdfsFile.isDefined)
       assert(originalSftpFile.get.size == sftpCopiedHdfsFile.get.size)

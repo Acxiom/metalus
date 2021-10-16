@@ -42,17 +42,21 @@ object S3Utilities {
                          role: Option[String] = None,
                          partition: Option[String] = None,
                          pipelineContext: PipelineContext): Unit = {
-    if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+    val keyAndSecret = accessKeyId.isDefined && secretAccessKey.isDefined
+    val roleBased = role.isDefined && accountId.isDefined
+    if (keyAndSecret || roleBased) {
       logger.debug(s"Setting up S3 authorization for $path")
       val protocol = S3Utilities.deriveProtocol(path)
       val sc = pipelineContext.sparkSession.get.sparkContext
       if (accessKeyId.isDefined && secretAccessKey.isDefined) {
+        sc.hadoopConfiguration.unset("spark.hadoop.fs.s3a.aws.credentials.provider")
+        sc.hadoopConfiguration.unset("fs.s3a.aws.credentials.provider")
         sc.hadoopConfiguration.set(s"fs.$protocol.awsAccessKeyId", accessKeyId.get)
         sc.hadoopConfiguration.set(s"fs.$protocol.awsSecretAccessKey", secretAccessKey.get)
         sc.hadoopConfiguration.set(s"fs.$protocol.access.key", accessKeyId.get)
         sc.hadoopConfiguration.set(s"fs.$protocol.secret.key", secretAccessKey.get)
       }
-      if(role.isDefined && accountId.isDefined && protocol == "s3a") {
+      if(roleBased && protocol == "s3a") {
         sc.hadoopConfiguration.set("fs.s3a.assumed.role.arn", buildARN(accountId.get, role.get, partition))
         sc.hadoopConfiguration.setStrings("spark.hadoop.fs.s3a.aws.credentials.provider",
           s"org.apache.hadoop.fs.s3a.AssumedRoleCredentialProvider",

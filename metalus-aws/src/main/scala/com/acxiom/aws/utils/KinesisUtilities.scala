@@ -1,10 +1,12 @@
 package com.acxiom.aws.utils
 
+import com.acxiom.aws.pipeline.connectors.BatchKinesisWriter
 import com.amazonaws.auth.{AWSCredentials, AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
-import com.amazonaws.regions.Regions
 import com.amazonaws.services.kinesis.model.PutRecordRequest
 import com.amazonaws.services.kinesis.{AmazonKinesis, AmazonKinesisClient}
+import org.apache.spark.sql.DataFrame
+
 import java.nio.ByteBuffer
 
 object KinesisUtilities {
@@ -40,6 +42,25 @@ object KinesisUtilities {
     kinesisClient.withEndpointConfiguration(
       new EndpointConfiguration(s"https://kinesis.$region.amazonaws.com", region))
     kinesisClient.build()
+  }
+
+  /**
+    * Determines the column id to use to extract the partition key value when writing rows
+    * @param dataFrame The DataFrame containing the schema
+    * @param partitionKey The field name of the column to use for the key value.
+    * @return The column index or zero id the column name is not found.
+    */
+  def determinePartitionKey(dataFrame: DataFrame, partitionKey: String): Int = {
+    if (dataFrame.schema.isEmpty) {
+      0
+    } else {
+      val field = dataFrame.schema.fieldIndex(partitionKey)
+      if (field < 0) {
+        0
+      } else {
+        field
+      }
+    }
   }
 
   /**
@@ -86,5 +107,30 @@ object KinesisUtilities {
     val kinesisClient = KinesisUtilities.buildKinesisClient(region, credential)
     kinesisClient.putRecord(putRecordRequest)
     kinesisClient.shutdown()
+  }
+
+  /**
+    * Write a batch DataFrame to Kinesis using record batching.
+    * @param dataFrame The DataFrame to write
+    * @param region The region of the Kinesis stream
+    * @param streamName The Kinesis stream name
+    * @param partitionKey The static partition key to use
+    * @param partitionKeyIndex The field index in the DataFrame row containing the value to use as the partition key
+    * @param separator The field separator to use when formatting the row data
+    * @param credential An optional credential to use to authenticate to Kinesis
+    */
+  def writeDataFrame(dataFrame: DataFrame,
+                     region: String,
+                     streamName: String,
+                     partitionKey: Option[String],
+                     partitionKeyIndex: Option[Int],
+                     separator: String = ",",
+                     credential: Option[AWSCredential] = None): Unit = {
+    dataFrame.rdd.foreachPartition(rows => {
+      val writer = new BatchKinesisWriter(streamName, region, partitionKey, partitionKeyIndex, separator, credential)
+      writer.open()
+      rows.foreach(writer.process)
+      writer.close()
+    })
   }
 }

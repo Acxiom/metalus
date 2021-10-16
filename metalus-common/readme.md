@@ -7,9 +7,11 @@ using Spark.
 ## Step Classes
 * [ApiSteps](docs/apisteps.md)
 * [CSVSteps](docs/csvsteps.md)
+* [DataConnectorSteps](docs/dataconnectorsteps.md)
 * [DataFrameSteps](docs/dataframesteps.md)
 * [DataSteps](docs/datasteps.md)
 * [FileManagerSteps](docs/filemanagersteps.md)
+* [FlowUtilsSteps](docs/flowutilssteps.md)
 * [HDFSSteps](docs/hdfssteps.md)
 * [HiveSteps](docs/catalogsteps.md)
 * [JavascriptSteps](docs/javascriptsteps.md)
@@ -18,10 +20,13 @@ using Spark.
 * [QuerySteps](docs/querysteps.md)
 * [ScalaSteps](docs/scalascriptsteps.md)
 * [SFTPSteps](docs/sftpsteps.md)
+* [SparkConfigurationSteps](docs/sparkconfigurationstepds.md)
 * [StringSteps](docs/stringsteps.md)
 * [TransformationSteps](docs/transformationsteps.md)
 
 ## Pipelines/Step Groups
+* [Copy File](docs/copyfile.md)  * _Uses new connectors api_
+* [Load To Bronze](docs/loadtobronze.md)  * _Uses new connectors api_
 * [SFTP to HDFS](docs/sftp2hdfs.md)
 * [Download to Bronze HDFS](docs/downloadToBronzeHdfs.md)
 * [LoadToParquet](docs/loadtoparquet.md)

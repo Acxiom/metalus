@@ -52,11 +52,11 @@ object KinesisPipelineDriver {
     val appName = parameters.getOrElse("appName", s"Metalus_Kinesis_$streamName(${new Date().getTime})").asInstanceOf[String]
     // Get the credential provider
     val credentialProvider = driverSetup.credentialProvider
-    val awsCredential = credentialProvider.getNamedCredential("AWSCredential").asInstanceOf[Option[AWSCredential]]
+    val awsCredential = credentialProvider.getNamedCredential(
+      parameters.getOrElse("kinesisCredentialName", "AWSCredential").toString).asInstanceOf[Option[AWSCredential]]
     val duration = StreamingUtils.getDuration(parameters.get("duration-type").map(_.asInstanceOf[String]),
       parameters.get("duration").map(_.asInstanceOf[String]))
-    val streamingContext =
-      StreamingUtils.createStreamingContext(sparkSession.sparkContext, Some(duration))
+    val streamingContext = StreamingUtils.createStreamingContext(sparkSession.sparkContext, Some(duration))
     // Get the client
     val kinesisClient = KinesisUtilities.buildKinesisClient(region, awsCredential)
     // Handle multiple shards
@@ -64,7 +64,8 @@ object KinesisPipelineDriver {
     logger.info("Number of Kinesis shards is : " + numShards)
     val numStreams = parameters.getOrElse("consumerStreams", numShards).toString.toInt
     // Create the Kinesis DStreams
-    val kinesisStreams = createKinesisDStreams(credentialProvider, appName, duration, streamingContext, numStreams, region, streamName)
+    val kinesisStreams = createKinesisDStreams(awsCredential, credentialProvider, appName, duration,
+      streamingContext, numStreams, region, streamName, parameters)
     logger.info("Created " + kinesisStreams.size + " Kinesis DStreams")
     val defaultParser = new KinesisStreamingDataParser(appName)
     val streamingParsers = StreamingUtils.generateStreamingDataParsers(parameters, Some(List(defaultParser)))
@@ -73,8 +74,7 @@ object KinesisPipelineDriver {
     allStreams.foreachRDD { (rdd: RDD[Record], time: Time) =>
       logger.debug(s"Checking RDD for data(${time.toString()}): ${rdd.count()}")
       if (streamingParameters.processEmptyRDD || !rdd.isEmpty()) {
-        logger.debug("RDD received")
-        // Convert the RDD into a dataFrame
+        logger.debug("RDD received") // Convert the RDD into a dataFrame
         val parser = StreamingUtils.getStreamingParser[Record](rdd, streamingParsers)
         val dataFrame = parser.getOrElse(defaultParser).parseRDD(rdd, sparkSession)
         // Refresh the execution plan prior to processing new data
@@ -87,11 +87,14 @@ object KinesisPipelineDriver {
     logger.info("Shutting down Kinesis Pipeline Driver")
   }
 
-  private def createKinesisDStreams(credentialProvider: CredentialProvider, appName: String, duration: Duration,
-                                    streamingContext: StreamingContext, numStreams: Int, region: String, streamName: String) = {
-    val awsCredential = credentialProvider.getNamedCredential("AWSCredential").asInstanceOf[Option[AWSCredential]]
-    val cloudWatchCredential = credentialProvider.getNamedCredential("AWSCloudWatchCredential").asInstanceOf[Option[AWSCredential]]
-    val dynamoDBCredential = credentialProvider.getNamedCredential("AWSDynamoDBCredential").asInstanceOf[Option[AWSCredential]]
+  private def createKinesisDStreams(awsCredential: Option[AWSCredential], credentialProvider: CredentialProvider, appName: String, duration: Duration,
+                                    streamingContext: StreamingContext, numStreams: Int, region: String, streamName: String,
+                                    parameters: Map[String, Any]) = {
+    val cloudWatchCredential = credentialProvider.getNamedCredential(
+      parameters.getOrElse("kinesisCloudWatchCredentialName", "AWSCloudWatchCredential").toString
+    ).asInstanceOf[Option[AWSCredential]]
+    val dynamoDBCredential = credentialProvider.getNamedCredential(
+      parameters.getOrElse("kinesisDynamoDBCredentialName", "AWSDynamoDBCredential").toString).asInstanceOf[Option[AWSCredential]]
     (0 until numStreams).map { _ =>
       val builder = KinesisInputDStream.builder
         .endpointUrl(s"https://kinesis.$region.amazonaws.com")
