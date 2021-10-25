@@ -1,17 +1,15 @@
 package com.acxiom.pipeline.steps
 
-import java.nio.file.{Files, Path}
-
 import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
-import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
-import java.sql.DriverManager
-
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
+import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 
+import java.nio.file.{Files, Path}
+import java.sql.DriverManager
 import scala.collection.mutable
 
 class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
@@ -145,7 +143,9 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
       JDBCSteps.writeWithJDBCOptions(
         dataFrame = chickens.toDF("ID", "NAME", "COLOR"),
-        jdbcOptions = new JDBCOptions(jDBCOptions.toMap)
+        jdbcOptions = new JDBCOptions(jDBCOptions.toMap),
+        "Overwrite",
+        pipelineContext
       )
       verifyCount(count = 2)
     }
@@ -165,7 +165,8 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
           table = "CHICKENS",
           writerOptions = DataFrameWriterOptions("jdbc").setOptions(
             Map[String, String]("driver" -> "org.apache.derby.jdbc.EmbeddedDriver", "user" -> "test_fixture"))
-        )
+        ),
+        pipelineContext
       )
       verifyCount(count = 1)
     }
@@ -184,7 +185,9 @@ class JDBCStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
         dataFrame = chickens.toDF("ID", "NAME", "COLOR"),
         url = "jdbc:derby:memory:test",
         table = "CHICKENS",
-        connectionProperties = Some(Map("driver" -> "org.apache.derby.jdbc.EmbeddedDriver", "user" -> "test_fixture"))
+        connectionProperties = Some(Map("driver" -> "org.apache.derby.jdbc.EmbeddedDriver", "user" -> "test_fixture")),
+        "Overwrite",
+        pipelineContext
       )
       verifyCount(FOUR)
     }
