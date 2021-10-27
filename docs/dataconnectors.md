@@ -115,6 +115,29 @@ val connector = MongoDataConnector("mongodb://127.0.0.1/test", "myCollectionName
   }
 }
 ```
+###JDBCDataConnector
+This connector provides access to JDBC. Security is handled using the uri or a _UserNameCredential_. In addition to
+the standard parameters, the following parameters are available:
+
+* **url** - The connection URL
+
+#### Scala
+```scala
+val connector = JDBCDataConnector("jdbc:derby:memory:test", "table_name", "my-connector", Some("my-credential-name-for-secrets-manager"), None)
+```
+#### Globals JSON
+```json
+{
+  "customJDBCConnector": {
+    "className": "com.acxiom.pipeline.connectors.JDBCDataConnector",
+    "object": {
+      "name": "my-jdbc-connector",
+      "credentialName": "my-credential-name-for-secrets-manager",
+      "url": "jdbc:derby:memory:test"
+    }
+  }
+}
+```
 ## Streaming
 Streaming connectors offer a way to use pipelines with [Spark Structured Streaming](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html) without 
 the need to write new [drivers](pipeline-drivers.md). When designing pipelines for streaming, care must be taken to not
