@@ -1,15 +1,14 @@
 package com.acxiom.gcp.fs
 
-import java.io._
-import java.net.URI
-import java.nio.channels.Channels
-
 import com.acxiom.pipeline.fs.{FileInfo, FileManager}
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.storage.{BlobId, BlobInfo, Storage, StorageOptions}
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization
 
+import java.io._
+import java.net.URI
+import java.nio.channels.Channels
 import scala.collection.JavaConverters._
 
 object GCSFileManager {
@@ -22,7 +21,7 @@ object GCSFileManager {
   def prepareGCSFilePath(path: String, bucket: Option[String] = None): String = {
     if (path.startsWith("/")) {
       path.substring(1)
-    } else if (path.startsWith(s"gs:")) {
+    } else if (path.startsWith("gs:")) {
       new URI(path).normalize().toString
     } else {
       path
