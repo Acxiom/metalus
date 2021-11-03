@@ -325,7 +325,7 @@ trait PipelineStepMapper {
     * @param pipelineContext The pipelineContext
     * @return A map with substituted values
     */
-  private def mapEmbeddedVariables(classMap: Map[String, Any], pipelineContext: PipelineContext): Map[String, Any] = {
+  private[pipeline] def mapEmbeddedVariables(classMap: Map[String, Any], pipelineContext: PipelineContext): Map[String, Any] = {
     implicit val formats: Formats = pipelineContext.getJson4sFormats
     classMap.foldLeft(classMap)((map, entry) => {
       entry._2 match {
