@@ -21,3 +21,8 @@ column names, add a unique record id and a static file id column.
 * **destinationBronzeConnector** - The data connector to use as the destination.
 * **destinationBronzePath** - The path to write the data.
 * **destinationBronzeWriteOptions** - The [options](dataoptions.md#dataframe-writer-options) to use during the write.
+
+## Streaming
+This pipeline can be used with streaming connectors. By default, if a streaming connector is provided as the load connector,
+the job will run indefinitely. The [Streaming Query Monitor](streamingquerymonitor.md) provides additional options for
+writing [partitioned data](streamingquerymonitor.md#batchpartitionedstreamingquerymonitor-_comacxiompipelinestreamingbatchpartitionedstreamingquerymonitor_).

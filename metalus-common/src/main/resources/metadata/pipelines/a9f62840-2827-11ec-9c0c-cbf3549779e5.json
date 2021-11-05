@@ -3,46 +3,122 @@
   "name": "LoadToBronze",
   "category": "pipeline",
   "layout": {
-    "Load": {
+    "START_LOG": {
       "x": 493,
       "y": 64
     },
-    "ExecuteColumnCleanup": {
+    "Load": {
       "x": 493,
       "y": 178
     },
-    "StandardizeColumnNames": {
-      "x": 526.5,
-      "y": 292
+    "ExecuteColumnCleanup": {
+      "x": 398,
+      "y": 281
     },
-    "AddRecordIdDecision": {
+    "StandardizeColumnNames": {
       "x": 493,
       "y": 406
     },
-    "AddRecordId": {
-      "x": 526.5,
-      "y": 520
+    "AddRecordIdDecision": {
+      "x": 384,
+      "y": 529
     },
-    "AddFileIdDecision": {
+    "AddRecordId": {
       "x": 493,
       "y": 634
     },
-    "AddFileId": {
-      "x": 526.5,
-      "y": 748
+    "AddFileIdDecision": {
+      "x": 379,
+      "y": 745
     },
-    "Write": {
+    "AddFileId": {
       "x": 493,
       "y": 862
+    },
+    "AddStaticPartitionColumn": {
+      "x": 379,
+      "y": 973
+    },
+    "AddPartitionColumn": {
+      "x": 493,
+      "y": 1090
+    },
+    "Write": {
+      "x": 383,
+      "y": 1196
+    },
+    "StreamingMonitor": {
+      "x": 493,
+      "y": 1318
+    },
+    "END_LOG": {
+      "x": 492,
+      "y": 1432
     }
   },
   "steps": [
     {
+      "id": "START_LOG",
+      "displayName": "Log Message",
+      "description": "Log a simple message",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "message",
+          "required": true,
+          "value": "Starting Load To Bronze",
+          "parameterType": "String",
+          "description": "The message to log"
+        },
+        {
+          "type": "text",
+          "name": "level",
+          "required": true,
+          "value": "INFO",
+          "parameterType": "String",
+          "description": "Log level at which to log. Should be a valid log4j level"
+        }
+      ],
+      "engineMeta": {
+        "spark": "LoggingSteps.logMessage",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "nextStepId": "Load",
+      "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090"
+    },
+    {
       "id": "Load",
-      "category": "Connectors",
-      "creationDate": "2021-10-06T09:34:22.488Z",
-      "description": "This step will create a DataFrame using the given DataConnector",
       "displayName": "Load",
+      "description": "This step will create a DataFrame using the given DataConnector",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "connector",
+          "required": true,
+          "value": "!sourceBronzeConnector",
+          "parameterType": "com.acxiom.pipeline.connectors.DataConnector",
+          "description": "The data connector to use when writing"
+        },
+        {
+          "type": "text",
+          "name": "source",
+          "required": false,
+          "value": "!sourceBronzePath",
+          "parameterType": "String",
+          "description": "The source path to load data"
+        },
+        {
+          "type": "object",
+          "name": "readOptions",
+          "required": false,
+          "value": "!sourceBronzeReadOptions",
+          "className": "com.acxiom.pipeline.steps.DataFrameReaderOptions",
+          "parameterType": "com.acxiom.pipeline.steps.DataFrameReaderOptions",
+          "description": "The optional options to use while reading the data"
+        }
+      ],
       "engineMeta": {
         "spark": "DataConnectorSteps.loadDataFrame",
         "pkg": "com.acxiom.pipeline.steps",
@@ -50,40 +126,8 @@
           "primaryType": "org.apache.spark.sql.DataFrame"
         }
       },
-      "modifiedDate": "2021-10-07T11:41:28.885Z",
-      "params": [
-        {
-          "type": "text",
-          "name": "connector",
-          "required": true,
-          "parameterType": "com.acxiom.pipeline.connectors.DataConnector",
-          "description": "The data connector to use when writing",
-          "value": "!sourceBronzeConnector"
-        },
-        {
-          "type": "text",
-          "name": "source",
-          "required": false,
-          "parameterType": "String",
-          "description": "The source path to load data",
-          "value": "!sourceBronzePath"
-        },
-        {
-          "type": "object",
-          "name": "readOptions",
-          "required": false,
-          "className": "com.acxiom.pipeline.steps.DataFrameReaderOptions",
-          "parameterType": "com.acxiom.pipeline.steps.DataFrameReaderOptions",
-          "description": "The optional options to use while reading the data",
-          "value": "!sourceBronzeReadOptions"
-        }
-      ],
-      "tags": [
-        "metalus-common_2.11-spark_2.4-1.8.3-SNAPSHOT.jar"
-      ],
-      "type": "Pipeline",
-      "stepId": "836aab38-1140-4606-ab73-5b6744f0e7e7",
-      "nextStepId": "ExecuteColumnCleanup"
+      "nextStepId": "ExecuteColumnCleanup",
+      "stepId": "836aab38-1140-4606-ab73-5b6744f0e7e7"
     },
     {
       "id": "ExecuteColumnCleanup",
@@ -274,7 +318,7 @@
           "type": "result",
           "name": "false",
           "required": false,
-          "value": "Write",
+          "value": "AddStaticPartitionColumn",
           "description": ""
         }
       ],
@@ -319,15 +363,153 @@
         "spark": "DataSteps.addStaticColumnToDataFrame",
         "pkg": "com.acxiom.pipeline.steps"
       },
-      "nextStepId": "Write",
+      "nextStepId": "AddStaticPartitionColumn",
       "stepId": "37e10488-02c1-5c85-b47a-efecf681fdd4"
     },
     {
+      "id": "AddStaticPartitionColumn",
+      "displayName": "String Equals",
+      "description": "Return whether string1 equals string2",
+      "type": "branch",
+      "params": [
+        {
+          "type": "text",
+          "name": "string",
+          "required": true,
+          "value": "!AddPartitionColumn",
+          "parameterType": "String",
+          "description": "The string to compare"
+        },
+        {
+          "type": "text",
+          "name": "anotherString",
+          "required": true,
+          "value": "true",
+          "parameterType": "String",
+          "description": "The other string to compare"
+        },
+        {
+          "type": "boolean",
+          "name": "caseInsensitive",
+          "required": false,
+          "value": true,
+          "parameterType": "Boolean",
+          "description": "Boolean flag to indicate case sensitive compare"
+        },
+        {
+          "type": "result",
+          "name": "true",
+          "required": false,
+          "value": "AddPartitionColumn",
+          "description": ""
+        },
+        {
+          "type": "result",
+          "name": "false",
+          "required": false,
+          "value": "Write",
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "StringSteps.stringEquals",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "Boolean"
+        }
+      },
+      "stepId": "3fabf9ec-5383-4eb3-81af-6092ab7c370d"
+    },
+    {
+      "id": "AddPartitionColumn",
+      "displayName": "Add a Column with a Static Value to All Rows in a DataFrame (metalus-common)",
+      "description": "This step will add a column with a static value to all rows in the provided data frame",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "dataFrame",
+          "required": true,
+          "value": "@AddFileId || @AddRecordId || @StandardizeColumnNames || @Load",
+          "parameterType": "org.apache.spark.sql.Dataset[_]",
+          "description": "The data frame to add the column"
+        },
+        {
+          "type": "text",
+          "name": "columnName",
+          "required": true,
+          "value": "!partitionColumnNameBronze || partition_column",
+          "parameterType": "String",
+          "description": "The name to provide the id column"
+        },
+        {
+          "type": "text",
+          "name": "columnValue",
+          "required": true,
+          "value": "!PARTITION_VALUE",
+          "parameterType": "Any",
+          "description": "The name of the new column"
+        },
+        {
+          "type": "boolean",
+          "name": "standardizeColumnName",
+          "required": false,
+          "defaultValue": "true",
+          "value": false,
+          "parameterType": "Boolean",
+          "description": "The value to add"
+        }
+      ],
+      "engineMeta": {
+        "spark": "DataSteps.addStaticColumnToDataFrame",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "org.apache.spark.sql.DataFrame"
+        }
+      },
+      "nextStepId": "Write",
+      "stepId": "80583aa9-41b7-4906-8357-cc2d3670d970"
+    },
+    {
       "id": "Write",
-      "category": "Connectors",
-      "creationDate": "2021-10-06T09:34:22.558Z",
-      "description": "This step will write a DataFrame using the given DataConnector",
       "displayName": "Write",
+      "description": "This step will write a DataFrame using the given DataConnector",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "dataFrame",
+          "required": true,
+          "value": "@AddPartitionColumn || @AddFileId || @AddRecordId || @StandardizeColumnNames || @Load",
+          "parameterType": "org.apache.spark.sql.DataFrame",
+          "description": "The DataFrame to write"
+        },
+        {
+          "type": "text",
+          "name": "connector",
+          "required": true,
+          "value": "!destinationBronzeConnector",
+          "parameterType": "com.acxiom.pipeline.connectors.DataConnector",
+          "description": "The data connector to use when writing"
+        },
+        {
+          "type": "text",
+          "name": "destination",
+          "required": false,
+          "value": "!destinationBronzePath",
+          "parameterType": "String",
+          "description": "The destination path to write data"
+        },
+        {
+          "type": "object",
+          "name": "writeOptions",
+          "required": false,
+          "value": "!destinationBronzeWriteOptions",
+          "className": "com.acxiom.pipeline.steps.DataFrameWriterOptions",
+          "parameterType": "com.acxiom.pipeline.steps.DataFrameWriterOptions",
+          "description": "The optional DataFrame options to use while writing"
+        }
+      ],
       "engineMeta": {
         "spark": "DataConnectorSteps.writeDataFrame",
         "pkg": "com.acxiom.pipeline.steps",
@@ -335,47 +517,84 @@
           "primaryType": "org.apache.spark.sql.streaming.StreamingQuery"
         }
       },
-      "modifiedDate": "2021-10-07T11:41:28.969Z",
+      "nextStepId": "StreamingMonitor",
+      "stepId": "5608eba7-e9ff-48e6-af77-b5e810b99d89"
+    },
+    {
+      "id": "StreamingMonitor",
+      "displayName": "Streaming Monitor",
+      "description": "Given a StreamingQuery, this step will invoke the monitor thread and wait while records are processed. The monitor class will be used to stop the query and determine if further processing should occur.",
+      "type": "branch",
       "params": [
         {
           "type": "text",
-          "name": "dataFrame",
-          "required": true,
-          "parameterType": "org.apache.spark.sql.DataFrame",
-          "description": "The DataFrame to write",
-          "value": "@AddFileId || @AddRecordId || @StandardizeColumnNames || @Load"
-        },
-        {
-          "type": "text",
-          "name": "connector",
-          "required": true,
-          "parameterType": "com.acxiom.pipeline.connectors.DataConnector",
-          "description": "The data connector to use when writing",
-          "value": "!destinationBronzeConnector"
-        },
-        {
-          "type": "text",
-          "name": "destination",
+          "name": "query",
           "required": false,
+          "value": "@Write",
+          "parameterType": "org.apache.spark.sql.streaming.StreamingQuery",
+          "description": "The streaming query to monitor"
+        },
+        {
+          "type": "text",
+          "name": "streamingMonitorClassName",
+          "required": false,
+          "value": "!STREAMING_MONITOR_CLASS_NAME || com.acxiom.pipeline.streaming.BaseStreamingQueryMonitor",
           "parameterType": "String",
-          "description": "The destination path to write data",
-          "value": "!destinationBronzePath"
+          "description": "Fully qualified classname of the monitor class"
         },
         {
-          "type": "object",
-          "name": "writeOptions",
+          "type": "result",
+          "name": "continue",
           "required": false,
-          "className": "com.acxiom.pipeline.steps.DataFrameWriterOptions",
-          "parameterType": "com.acxiom.pipeline.steps.DataFrameWriterOptions",
-          "description": "The optional DataFrame options to use while writing",
-          "value": "!destinationBronzeWriteOptions"
+          "value": "Load",
+          "description": ""
+        },
+        {
+          "type": "result",
+          "name": "stop",
+          "required": false,
+          "value": "END_LOG",
+          "description": ""
         }
       ],
-      "tags": [
-        "metalus-common_2.11-spark_2.4-1.8.3-SNAPSHOT.jar"
-      ],
+      "engineMeta": {
+        "spark": "FlowUtilsSteps.monitorStreamingQuery",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "com.acxiom.pipeline.PipelineStepResponse"
+        }
+      },
+      "stepId": "64c983e2-5eac-4fb6-87b2-024b69aa0ded"
+    },
+    {
+      "id": "END_LOG",
+      "displayName": "Log Message",
+      "description": "Log a simple message",
       "type": "Pipeline",
-      "stepId": "5608eba7-e9ff-48e6-af77-b5e810b99d89"
+      "params": [
+        {
+          "type": "text",
+          "name": "message",
+          "required": true,
+          "value": "Finished Load To Bronze Pipeline. Streaming was not used.",
+          "parameterType": "String",
+          "description": "The message to log"
+        },
+        {
+          "type": "text",
+          "name": "level",
+          "required": true,
+          "value": "INFO",
+          "parameterType": "String",
+          "description": "Log level at which to log. Should be a valid log4j level"
+        }
+      ],
+      "engineMeta": {
+        "spark": "LoggingSteps.logMessage",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "executeIfEmpty": "@Write",
+      "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090"
     }
   ]
 }

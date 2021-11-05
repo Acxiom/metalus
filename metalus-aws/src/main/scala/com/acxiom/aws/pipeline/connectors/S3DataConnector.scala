@@ -28,11 +28,7 @@ case class S3DataConnector(override val name: String,
     val path = destination.getOrElse("")
     setSecurity(pipelineContext, path)
     if (dataFrame.isStreaming) {
-      Some(dataFrame.writeStream
-        .format(writeOptions.format)
-        .option("path", destination.getOrElse(""))
-        .options(writeOptions.options.getOrElse(Map[String, String]()))
-        .start())
+      Some(DataConnectorUtilities.buildDataStreamWriter(dataFrame, writeOptions, path).start())
     } else {
       DataConnectorUtilities.buildDataFrameWriter(dataFrame, writeOptions)
         .save(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))

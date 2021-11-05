@@ -19,11 +19,7 @@ case class HDFSDataConnector(override val name: String,
                      pipelineContext: PipelineContext,
                      writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery] = {
     if (dataFrame.isStreaming) {
-      Some(dataFrame.writeStream
-        .format(writeOptions.format)
-        .option("path", destination.getOrElse(""))
-        .options(writeOptions.options.getOrElse(Map[String, String]()))
-        .start())
+      Some(DataConnectorUtilities.buildDataStreamWriter(dataFrame, writeOptions, destination.getOrElse("")).start())
     } else {
       DataConnectorUtilities.buildDataFrameWriter(dataFrame, writeOptions).save(destination.getOrElse(""))
       None

@@ -7,7 +7,7 @@ import com.acxiom.pipeline.drivers.{DriverSetup, ResultSummary}
 import com.acxiom.pipeline.fs.FileManager
 import org.apache.hadoop.io.LongWritable
 import org.apache.http.client.entity.UrlEncodedFormEntity
-import org.apache.log4j.Logger
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.Dataset
 import org.json4s.ext.EnumNameSerializer
@@ -280,6 +280,24 @@ object DriverUtils {
     val fileManager = ReflectionUtils.loadClass(fileLoaderClassName, Some(parameters + ("conf" -> sparkConf))).asInstanceOf[FileManager]
     val json = Source.fromInputStream(fileManager.getInputStream(path)).mkString
     json
+  }
+
+  /**
+    * Converts a log level string into a alid log level.
+    * @param level The string representing the level
+    * @return A Level object to use with loggers
+    */
+  def getLogLevel(level: String): Level = {
+    Option(level).getOrElse("INFO").toUpperCase match {
+      case "INFO" => Level.INFO
+      case "DEBUG" => Level.DEBUG
+      case "ERROR" => Level.ERROR
+      case "WARN" => Level.WARN
+      case "TRACE" => Level.TRACE
+      case "FATAL" => Level.FATAL
+      case "OFF" => Level.OFF
+      case _ => Level.INFO
+    }
   }
 }
 
