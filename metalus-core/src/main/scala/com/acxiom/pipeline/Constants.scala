@@ -18,6 +18,7 @@ object Constants {
   val SIXTY = 60
   val ONE_HUNDRED: Int = 100
   val ONE_THOUSAND: Int = 1000
+  val NINE_THOUSAND: Int = 9000
   val SPARK_METRICS: String = "SparkMetrics"
   val SPARK_SETTINGS: String = "SparkSettings"
 

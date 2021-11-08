@@ -6,7 +6,7 @@ import org.apache.log4j.Logger
 import org.apache.spark.sql.streaming.StreamingQuery
 
 import java.text.SimpleDateFormat
-import java.util.{Date, UUID}
+import java.util.Date
 
 trait StreamingQueryMonitor extends Thread {
   protected val logger: Logger = Logger.getLogger(getClass)
@@ -37,7 +37,7 @@ abstract class BatchWriteStreamingQueryMonitor(override val query: StreamingQuer
   protected var startTime: Long = System.currentTimeMillis()
   protected var rowCount: Long = 0L
   protected var currentDuration: Long = 0L
-  protected var lastStatusId: UUID = _
+  protected var lastStatusId: String = _
   protected var globals: Map[String, Any] = Map()
   protected var continueProcessing = false
 
@@ -51,9 +51,9 @@ abstract class BatchWriteStreamingQueryMonitor(override val query: StreamingQuer
     processing = if ((monitorType == "duration" && currentDuration >= sleepDuration) ||
       (rowCount >= approximateRows)) {
       logger.info("Streaming threshold met")
-      startTime = System.currentTimeMillis()
-      currentDuration = 0L
-      rowCount = 0
+//      startTime = System.currentTimeMillis()
+//      currentDuration = 0L
+//      rowCount = 0
       false
     } else {
       true
@@ -66,19 +66,20 @@ abstract class BatchWriteStreamingQueryMonitor(override val query: StreamingQuer
     logger.info("Starting streaming batch monitor")
     while (keepProcessing) {
       // Do the sleep at the beginning assuming that we want to process some data before we check the status
-      Thread.sleep(Constants.ONE_THOUSAND)
+      Thread.sleep(Constants.ONE_HUNDRED)
       // Capture the current run length
       currentDuration = System.currentTimeMillis() - startTime
       // Update the stats - The array should be oldest to most recent
-      val index = query.recentProgress.indexWhere(_.id == lastStatusId)
+      val recentProgress = query.recentProgress.toList
+      val index = recentProgress.indexWhere(p => s"${p.id}::${p.runId}::${p.batchId}::${p.timestamp}" == lastStatusId)
       val progressList = if (index != -1) {
-        query.recentProgress.toList.slice(index, query.recentProgress.toList.size)
+        recentProgress.slice(index + 1, query.recentProgress.toList.size)
       } else {
-        query.recentProgress.toList
+        recentProgress
       }
       progressList.foreach(p => {
         rowCount += p.numInputRows
-        lastStatusId = p.id
+        lastStatusId = s"${p.id}::${p.runId}::${p.batchId}::${p.timestamp}"
       })
       // Call the functions to determine if we need to stop or keep going
       checkCurrentStatus()

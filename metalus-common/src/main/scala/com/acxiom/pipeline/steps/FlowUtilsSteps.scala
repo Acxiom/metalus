@@ -59,12 +59,13 @@ object FlowUtilsSteps {
         Some(Map("query" -> query, "pipelineContext" -> ctx)))
         .asInstanceOf[StreamingQueryMonitor]
       queryMonitor.start()
-      query.get.awaitTermination()
-      val state = if (queryMonitor.continue) {
-        "continue"
+      val awaitTimeOut = pipelineContext.getGlobalAs[String]("STREAMING_QUERY_TIMEOUT_MS")
+      if (awaitTimeOut.getOrElse("NOT_A_NUMBER").forall(_.isDigit)) {
+        query.get.awaitTermination(awaitTimeOut.get.toLong)
       } else {
-        "stop"
+        query.get.awaitTermination()
       }
+      val state = if (queryMonitor.continue) { "continue" } else { "stop" }
       logger.info(s"SteamingQuery stopped with state $state")
       PipelineStepResponse(Some(state),
         Some(queryMonitor.getGlobalUpdates.foldLeft(Map[String, Any]())((globals, entry) => {
