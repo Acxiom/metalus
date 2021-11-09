@@ -15,7 +15,8 @@ object Constants {
   val NINE = 9
   val TEN: Int = 10
   val FIFTEEN: Int = 15
-  val SIXTY = 60
+  val TWENTY: Int = 20
+  val SIXTY: Int = 60
   val ONE_HUNDRED: Int = 100
   val ONE_THOUSAND: Int = 1000
   val NINE_THOUSAND: Int = 9000

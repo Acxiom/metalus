@@ -3,7 +3,8 @@
 # Streaming Query Monitor
 Streaming Query Monitors provide a method for interacting with a running Spark StreamingQuery object. Implementations
 can be created to perform different types of monitoring, control whether the query is stopped, whether to continue and
-provide a map of variables that will be placed on the globals for the next step.
+provide a map of variables that will be placed on the globals for the next step. A [step is provided](flowutilssteps.md#streaming-monitor) which
+is designed to use the monitors and provide a decision to _continue_ or _stop_.
 ## BaseStreamingQueryMonitor
 This implementation doesn't do anything but allow continuous streaming. The query doesn't actually get monitored or stopped.
 ## BatchWriteStreamingQueryMonitor
