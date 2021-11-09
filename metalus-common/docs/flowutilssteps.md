@@ -15,3 +15,15 @@ which provide a mechanism for retrying a single step when an exception occurs.
 ### Results
 * **retry** - This branch is used to transition to the step that needs to be retried.
 * **stop** - This branch is used to call the step when retries have been exhausted.
+
+## Streaming Monitor
+This step provides a mechanism to monitor a streaming query in a pipeline. This step can safely be called without 
+providing the streaming query and the _stop_ action will be taken. The [StreamingQueryMonitor](streamingquerymonitor.md) framework provides an
+integration point for controlling how this step handles the streaming query.
+
+### Parameters
+* **query** - The streaming query to monitor.
+* **streamingMonitorClassName** - Fully qualified classname of the monitor class. The [default monitor class](streamingquerymonitor.md#basestreamingquerymonitor) never stops the query.
+### Results
+* **continue** - This branch is used to allow restarting the streaming query.
+* **stop** - This branch is used to call the step when streaming should not continue.
