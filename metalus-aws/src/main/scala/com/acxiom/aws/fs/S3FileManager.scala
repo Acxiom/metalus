@@ -144,12 +144,18 @@ class S3FileManager(s3Client: AmazonS3, bucket: String) extends FileManager {
     * @param path The path to list.
     * @return A list of files at the given path
     */
-  override def getFileListing(path: String): List[FileInfo] = {
-    if (exists(path)) {
-      nextObjectBatch(s3Client, s3Client.listObjects(bucket, path))
+  override def getFileListing(path: String, recursive: Boolean = true): List[FileInfo] = {
+    val finalPath = S3Utilities.prepareS3FilePath(path, Some(bucket))
+    val objListing = if (recursive) {
+      s3Client.listObjects(bucket, finalPath)
     } else {
-      throw new FileNotFoundException(s"Path not found when attempting to get listing,inputPath=$path")
+      val req = new ListObjectsRequest()
+        .withBucketName(bucket)
+        .withDelimiter("/")
+        .withPrefix(if (!finalPath.endsWith("/")) finalPath + "/" else finalPath)
+      s3Client.listObjects(req)
     }
+    nextObjectBatch(s3Client, objListing).map(_.copy(path = Some(s"s3://$bucket")))
   }
 
   /**

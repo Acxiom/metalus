@@ -69,10 +69,10 @@ case class HDFSFileManager(conf: SparkConf) extends FileManager {
    * @param path The path to list.
    * @return A list of files at the given path
    */
-  override def getFileListing(path: String): List[FileInfo] = {
+  override def getFileListing(path: String, recursive: Boolean = false): List[FileInfo] = {
     val filePath = new Path(path)
     if (fileSystem.exists(filePath)) {
-      iterateRemoteIterator(fileSystem.listFiles(filePath, false), List()).reverse
+      iterateRemoteIterator(fileSystem.listFiles(filePath, recursive), List()).reverse
     } else {
       throw new FileNotFoundException(s"Path not found when attempting to get listing,inputPath=$path")
     }
@@ -100,7 +100,8 @@ case class HDFSFileManager(conf: SparkConf) extends FileManager {
   private def iterateRemoteIterator(iterator: RemoteIterator[LocatedFileStatus], list: List[FileInfo]): List[FileInfo] = {
     if (iterator.hasNext) {
       val status = iterator.next()
-      iterateRemoteIterator(iterator, FileInfo(status.getPath.getName, status.getLen, status.isDirectory) :: list)
+      iterateRemoteIterator(iterator, FileInfo(status.getPath.getName, status.getLen, status.isDirectory,
+        Option(status.getPath.getParent).map(_.toString)) :: list)
     } else {
       list
     }

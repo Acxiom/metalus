@@ -12,6 +12,7 @@ object SFTPFileManager {
   val DEFAULT_INPUT_BUFFER = 65536
   val DEFAULT_OUTPUT_BUFFER = 65536
   val DEFAULT_TIMEOUT = 0
+  val IGNORED_DIRECTORIES = List(".", "..")
 
   def apply(hostName: String,
             port: Option[Int] = None,
@@ -136,11 +137,14 @@ class SFTPFileManager(hostName: String,
    * @param path The path to list.
    * @return A list of files at the given path
    */
-  override def getFileListing(path: String): List[FileInfo] = {
-    channel.ls(path).map(e => {
-      val entry = e.asInstanceOf[channel.LsEntry]
-      FileInfo(entry.getFilename, entry.getAttrs.getSize, entry.getAttrs.isDir)
-    }).toList
+  override def getFileListing(path: String, recursive: Boolean = false): List[FileInfo] = {
+    channel.ls(path).map(_.asInstanceOf[channel.LsEntry]).flatMap {
+      case e if recursive && SFTPFileManager.IGNORED_DIRECTORIES.contains(e.getFilename) => List.empty[FileInfo]
+      case e if recursive && e.getAttrs.isDir && !SFTPFileManager.IGNORED_DIRECTORIES.contains(e.getFilename) =>
+        getFileListing(s"${path.stripSuffix("/")}/${e.getFilename}", recursive)
+      case e =>
+        List(FileInfo(e.getFilename, e.getAttrs.getSize, e.getAttrs.isDir, Some(path)))
+    }.toList
   }
 
   /**
