@@ -1,7 +1,11 @@
 package com.acxiom.pipeline.connectors
 
+import com.acxiom.pipeline.Constants
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
+import org.apache.spark.sql.streaming.DataStreamWriter
 import org.apache.spark.sql.{DataFrameReader, DataFrameWriter, Dataset, SparkSession}
+
+import java.util.Date
 
 object DataConnectorUtilities {
   /**
@@ -49,6 +53,42 @@ object DataConnectorUtilities {
       w2.sortBy(sortBy.head, sortBy.drop(1): _*)
     } else {
       w2
+    }
+  }
+
+  /**
+    * Build a DataStreamWriter that automattically adds the checkpointLocation if not provided and applies partition
+    * information.
+    *
+    * @param dataFrame    A DataFrame to write.
+    * @param writeOptions A DataFrameWriterOptions object for configuring the writer.
+    * @param path         The path to write the data.
+    * @return A DataStreamWriter[Row] based on the provided options.
+    */
+  def buildDataStreamWriter[T](dataFrame: Dataset[T], writeOptions: DataFrameWriterOptions, path: String): DataStreamWriter[T] = {
+    val options = writeOptions.options.getOrElse(Map[String, String]())
+    val finalOptions = if (!options.contains("checkpointLocation")) {
+      options + ("checkpointLocation" ->
+        s"${path.substring(0, path.lastIndexOf("/"))}/streaming_checkpoints_${Constants.FILE_APPEND_DATE_FORMAT.format(new Date())}")
+    } else {
+      options
+    }
+    val writer = dataFrame.writeStream.format(writeOptions.format).option("path", path).options(finalOptions)
+    addPartitionInformation(writer, writeOptions)
+  }
+
+  /**
+    * The DataStreamWriter to add partition information.
+    *
+    * @param writer The DataStreamWriter[Row] to configure.
+    * @param writeOptions A DataFrameWriterOptions object for configuring the writer.
+    * @return A DataStreamWriter[Row] configured with partitioning if applicable.
+    */
+  def addPartitionInformation[T](writer: DataStreamWriter[T], writeOptions: DataFrameWriterOptions): DataStreamWriter[T] = {
+    if (writeOptions.partitionBy.isDefined && writeOptions.partitionBy.get.nonEmpty) {
+      writer.partitionBy(writeOptions.partitionBy.get: _*)
+    } else {
+      writer
     }
   }
 }

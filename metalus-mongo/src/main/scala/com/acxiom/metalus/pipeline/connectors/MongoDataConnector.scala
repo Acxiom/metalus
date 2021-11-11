@@ -1,6 +1,6 @@
 package com.acxiom.metalus.pipeline.connectors
 
-import com.acxiom.pipeline.connectors.BatchDataConnector
+import com.acxiom.pipeline.connectors.{BatchDataConnector, DataConnectorUtilities}
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
 import com.acxiom.pipeline.{Credential, PipelineContext, UserNameCredential}
 import com.mongodb.ConnectionString
@@ -35,11 +35,12 @@ case class MongoDataConnector(uri: String,
                      writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery] = {
     val writeConfig = WriteConfig(Map("collection" -> collectionName, "uri" -> buildConnectionString(pipelineContext)))
     if (dataFrame.isStreaming) {
-      Some(dataFrame
+
+      Some(DataConnectorUtilities.addPartitionInformation(dataFrame
         .writeStream
         .format(writeOptions.format)
         .options(writeOptions.options.getOrElse(Map[String, String]()))
-        .foreach(new StructuredStreamingMongoSink(writeConfig, pipelineContext.sparkSession.get))
+        .foreach(new StructuredStreamingMongoSink(writeConfig, pipelineContext.sparkSession.get)), writeOptions)
         .start())
     } else {
       MongoSpark.save(dataFrame, writeConfig)
