@@ -229,8 +229,9 @@ object DriverUtils {
                            successFunc: () => Unit,
                            throwExceptionOnFailure: Boolean,
                            attempt: Int = 1,
-                           maxAttempts: Int = Constants.FIVE): Unit = {
-    val plan = if (dataFrame.isDefined) {
+                           maxAttempts: Int = Constants.FIVE,
+                           streamingJob: Boolean = false): Unit = {
+    val plan = if (dataFrame.isDefined || streamingJob) {
       DriverUtils.addInitialDataFrameToExecutionPlan(
         driverSetup.refreshExecutionPlan(executionPlan, resultMap("results")), dataFrame.get)
     } else {
@@ -261,7 +262,8 @@ object DriverUtils {
   def parseCommonParameters(parameters: Map[String, Any]): CommonParameters =
     CommonParameters(parameters("driverSetupClass").asInstanceOf[String],
       parameters.getOrElse("maxRetryAttempts", "0").toString.toInt,
-      parameters.getOrElse("terminateAfterFailures", "false").toString.toBoolean)
+      parameters.getOrElse("terminateAfterFailures", "false").toString.toBoolean,
+      parameters.getOrElse("streaming-job", "false").toString.toBoolean)
 
   def loadJsonFromFile(path: String,
                        fileLoaderClassName: String = "com.acxiom.pipeline.fs.LocalFileManager",
@@ -301,4 +303,7 @@ object DriverUtils {
   }
 }
 
-case class CommonParameters(initializationClass: String, maxRetryAttempts: Int, terminateAfterFailures: Boolean)
+case class CommonParameters(initializationClass: String,
+                            maxRetryAttempts: Int,
+                            terminateAfterFailures: Boolean,
+                            streamingJob: Boolean)

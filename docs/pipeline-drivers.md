@@ -13,6 +13,7 @@ The **DefaultPipelineDriver** is provided for most batch processing.
 *Optional Parameters:*
 * **maxRetryAttempts** - [number] The number of times data will attempt to process before failing. Default is 0.
 * **terminateAfterFailures** - [boolean] After processing has been retried, fail the process. Default is false.
+* **streaming-job** - [boolean] This flag tells the driver to continually run the execution plan, restarting after each execution. This is used for [connector](dataconnectors.md#streaming) based streaming.
 
 ## DriverSetup
 The *DriverSetup* is invoked by the chosen driver class with a map containing the application command line 
