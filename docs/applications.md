@@ -13,6 +13,11 @@ The _DefaultPipelineDriver_ class requires an additional parameter named ```driv
 
 This is an extension point where developers may customize how applications are loaded.
 
+Sometimes an application will need to be restarted without having to run all of the executions again. A parameter
+named **root-executions** is a comma separated list of one or more execution ids to start processing. This will override
+the default behavior of identifying the root executions. **Note:** Application designers should ensure that any required
+state is saved off and executions can intelligently read this state when restarts happeen.
+
 ## Application Driver Setup
 The Metalus application framework provides a default implementation that may be used:
 ```com.acxiom.pipeline.applications.DefaultApplicationDriverSetup```

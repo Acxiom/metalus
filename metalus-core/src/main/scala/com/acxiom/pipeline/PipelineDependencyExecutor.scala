@@ -1,9 +1,8 @@
 package com.acxiom.pipeline
 
-import java.util.UUID
-
 import org.apache.log4j.Logger
 
+import java.util.UUID
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -16,9 +15,19 @@ object PipelineDependencyExecutor {
     *
     * @param executions A list of executions to process
     */
-  def executePlan(executions: List[PipelineExecution]): Option[Map[String, DependencyResult]] = {
+  def executePlan(executions: List[PipelineExecution], initialExecutions: List[String] = List()): Option[Map[String, DependencyResult]] = {
     // Find the initial executions
-    val rootExecutions = executions.filter(e => e.parents.isEmpty || e.parents.get.isEmpty)
+    val tempExecutions = if (initialExecutions.nonEmpty) {
+      executions.filter(e => initialExecutions.contains(e.id))
+    } else {
+      List()
+    }
+    // Define the root executions
+    val rootExecutions = if(tempExecutions.nonEmpty) {
+      tempExecutions
+    } else {
+      executions.filter(e => e.parents.isEmpty || e.parents.get.isEmpty)
+    }
     // Only execute if there is at least one execution
     if (rootExecutions.nonEmpty) {
       // Create an execution lookup

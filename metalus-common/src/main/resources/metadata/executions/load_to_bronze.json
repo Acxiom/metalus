@@ -1,0 +1,18 @@
+{
+  "description" : "Load to Bronze",
+  "exposePipelineManager" : false,
+  "id" : "load_to_bronze",
+  "displayName" : "Load to Bronze",
+  "initialPipelineId" : "",
+  "mergeGlobals" : true,
+  "parents" : [],
+  "pipelineIds" : [
+    "a9f62840-2827-11ec-9c0c-cbf3549779e5"
+  ],
+  "globals": {
+    "extractMethodsEnabled": true
+  },
+  "template": {
+    "form": "{}"
+  }
+}

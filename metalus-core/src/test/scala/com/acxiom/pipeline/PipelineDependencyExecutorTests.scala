@@ -16,7 +16,7 @@ import scala.io.Source
 
 class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll with Suite {
 
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
     Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
@@ -35,7 +35,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
     FileUtils.deleteDirectory(new File("user-warehouse"))
   }
 
-  override def afterAll() {
+  override def afterAll(): Unit = {
     SparkTestHelper.sparkSession.stop()
     Logger.getRootLogger.setLevel(Level.INFO)
 
@@ -121,8 +121,33 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
         }
       }
       val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/parent-child.json")).mkString)
-      val execResults = PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
-      val rootAudit = execResults.get.head._2.result.get.pipelineContext.rootAudit
+      PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener))
+      results.validate()
+    }
+
+    it("Should execute athe second execution") {
+      val results = new ListenerValidations
+      val listener = new SparkPipelineListener {
+        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+          val pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
+          pipelineId match {
+            case "Pipeline1" =>
+              results.addValidation("Execution failed", valid = false)
+            case "Pipeline2" =>
+              results.addValidation("Execution failed", getStringValue(pipelineContext, "Pipeline2", "Pipeline2Step1") == "Not Fred")
+          }
+          None
+        }
+
+        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+          exception match {
+            case _ =>
+              results.addValidation("Unexpected exception registered", valid = false)
+          }
+        }
+      }
+      val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/parent-child-skip.json")).mkString)
+      PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf, listener), List("1"))
       results.validate()
     }
 
@@ -132,7 +157,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
       var audits = ExecutionAudit("NONE", AuditType.EXECUTION, Map(), System.currentTimeMillis())
       val listener = new PipelineListener {
         override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-          var pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
+          val pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
           pipelineId match {
             case "Pipeline1" =>
               results.addValidation(s"Execution failed for $pipelineId",
@@ -198,7 +223,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
       val resultBuffer = mutable.ListBuffer[String]()
       val listener = new PipelineListener {
         override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-          var pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
+          val pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
           pipelineId match {
             case "Pipeline1" =>
               results.addValidation(s"Execution failed for $pipelineId",
@@ -226,7 +251,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
         override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
             case ex: PipelineException =>
-              if (ex.message.getOrElse("") != "Called exception step") {
+              if (ex.message.getOrElse("") != "Called exception step: fred") {
                 val e = Option(exception.getCause).getOrElse(exception)
                 results.addValidation(s"Failed: ${e.getMessage}", valid = false)
               }
@@ -251,7 +276,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
       val resultBuffer = mutable.ListBuffer[String]()
       val listener = new PipelineListener {
         override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-          var pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
+          val pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
           pipelineId match {
             case "Pipeline1" =>
               results.addValidation(s"Execution failed for $pipelineId",
@@ -279,7 +304,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
         override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
             case ex: PauseException =>
-              if (ex.message.getOrElse("") != "Called pause step") {
+              if (ex.message.getOrElse("") != "Called pause step: fred") {
                 val e = Option(exception.getCause).getOrElse(exception)
                 results.addValidation(s"Failed: ${e.getMessage}", valid = false)
               }
@@ -392,17 +417,17 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
 object ExecutionSteps {
   private val ONE_SEC = 1000
 
-  def sleepFunction(value: String, pipelineContext: PipelineContext): PipelineStepResponse = {
+  def sleepFunction(value: String): PipelineStepResponse = {
     Thread.sleep(ONE_SEC)
     PipelineStepResponse(Some(value), Some(Map[String, Any]("time" -> new Date())))
   }
 
-  def normalFunction(value: String, pipelineContext: PipelineContext): PipelineStepResponse = {
+  def normalFunction(value: String): PipelineStepResponse = {
     PipelineStepResponse(Some(value), Some(Map[String, Any]("time" -> new Date(), "$metrics.funcMetric" -> value)))
   }
 
   def exceptionStep(value: String, pipelineContext: PipelineContext): PipelineStepResponse = {
-    throw PipelineException(message = Some("Called exception step"),
+    throw PipelineException(message = Some(s"Called exception step: $value"),
       context = Some(pipelineContext),
       pipelineProgress = Some(PipelineExecutionInfo(pipelineContext.getGlobalString("stepId"),
         pipelineContext.getGlobalString("pipelineId"))))
@@ -410,7 +435,7 @@ object ExecutionSteps {
 
   def pauseStep(value: String, pipelineContext: PipelineContext): Unit = {
     pipelineContext.addStepMessage(
-      PipelineStepMessage("Called pause step",
+      PipelineStepMessage(s"Called pause step: $value",
         pipelineContext.getGlobalString("stepId").getOrElse(""),
         pipelineContext.getGlobalString("pipelineId").getOrElse(""),
         PipelineStepMessageType.pause))
