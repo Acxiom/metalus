@@ -12,7 +12,7 @@ used to indicate whether the file should be overwritten or appended.
 * **rename(path, destPath)** - Renames the provided *path* to the *destPath*.
 * **deleteFile(path)** - Deletes the path.
 * **getSize(path)** - Returns the size in bytes of the remote file
-* **getFileListing(path)** - Returns a list of files on the remote path.
+* **getFileListing(path, recursive)** - Returns a list of files on the remote path. supports recursive and simple listings.
 * **getDirectoryListing(path)** - Returns a list of directories on the remote path.
 * **disconnect()** - Disconnects from the remote file system and releases any resources.
 * **copy(input, output, copyBufferSize)** - Copies the contents from the input to the output. This function

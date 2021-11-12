@@ -67,6 +67,7 @@ case class HDFSFileManager(conf: SparkConf) extends FileManager {
    * Directories will not be included in this listing.
    *
    * @param path The path to list.
+   * @param recursive Flag indicating whether to run a recursive or simple listing.
    * @return A list of files at the given path
    */
   override def getFileListing(path: String, recursive: Boolean = false): List[FileInfo] = {

@@ -142,6 +142,7 @@ class S3FileManager(s3Client: AmazonS3, bucket: String) extends FileManager {
     * Returns a list of file names at the given path.
     *
     * @param path The path to list.
+    * @param recursive Flag indicating whether to run a recursive or simple listing.
     * @return A list of files at the given path
     */
   override def getFileListing(path: String, recursive: Boolean = true): List[FileInfo] = {
