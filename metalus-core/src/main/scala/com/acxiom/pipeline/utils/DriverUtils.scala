@@ -230,14 +230,15 @@ object DriverUtils {
                            throwExceptionOnFailure: Boolean,
                            attempt: Int = 1,
                            maxAttempts: Int = Constants.FIVE,
-                           streamingJob: Boolean = false): Unit = {
+                           streamingJob: Boolean = false,
+                           rootExecutions: List[String] = List()): Unit = {
     val plan = if (dataFrame.isDefined || streamingJob) {
       DriverUtils.addInitialDataFrameToExecutionPlan(
         driverSetup.refreshExecutionPlan(executionPlan, resultMap("results")), dataFrame.get)
     } else {
       executionPlan
     }
-    val executorResultMap = PipelineDependencyExecutor.executePlan(plan)
+    val executorResultMap = PipelineDependencyExecutor.executePlan(plan, rootExecutions)
     val results = driverSetup.handleExecutionResult(executorResultMap)
     if (results.success) {
       resultMap += ("results" -> executorResultMap)
@@ -263,7 +264,8 @@ object DriverUtils {
     CommonParameters(parameters("driverSetupClass").asInstanceOf[String],
       parameters.getOrElse("maxRetryAttempts", "0").toString.toInt,
       parameters.getOrElse("terminateAfterFailures", "false").toString.toBoolean,
-      parameters.getOrElse("streaming-job", "false").toString.toBoolean)
+      parameters.getOrElse("streaming-job", "false").toString.toBoolean,
+      parameters.getOrElse("root-executions", "").toString.split(",").toList)
 
   def loadJsonFromFile(path: String,
                        fileLoaderClassName: String = "com.acxiom.pipeline.fs.LocalFileManager",
@@ -306,4 +308,5 @@ object DriverUtils {
 case class CommonParameters(initializationClass: String,
                             maxRetryAttempts: Int,
                             terminateAfterFailures: Boolean,
-                            streamingJob: Boolean)
+                            streamingJob: Boolean,
+                            rootExecutions: List[String] = List())

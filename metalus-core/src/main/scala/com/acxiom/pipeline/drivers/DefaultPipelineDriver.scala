@@ -26,7 +26,7 @@ object DefaultPipelineDriver {
   def process(driverSetup: DriverSetup, commonParameters: CommonParameters): Unit = {
     DriverUtils.processExecutionPlan(driverSetup, driverSetup.executionPlan.get, None, () => {},
       commonParameters.terminateAfterFailures, 1, commonParameters.maxRetryAttempts,
-      commonParameters.streamingJob)
+      commonParameters.streamingJob, commonParameters.rootExecutions)
     if (commonParameters.streamingJob) {
       process(driverSetup, commonParameters)
     }
