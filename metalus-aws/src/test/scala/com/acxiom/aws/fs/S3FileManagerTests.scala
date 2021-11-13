@@ -76,11 +76,6 @@ class S3FileManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(fileList.head.fileName == "data.txt")
       assert(fileList.head.size == fileData.length)
 
-      // Fail to get a file listing
-      val listingException = intercept[FileNotFoundException] {
-        fileManager.getFileListing("/missing-directory")
-      }
-      assert(listingException.getMessage.startsWith("Path not found when attempting to get listing,inputPath="))
       // Rename the file
       assert(!fileManager.exists(file1))
       assert(fileManager.rename(file, file1))
@@ -98,7 +93,6 @@ class S3FileManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
       val root = s"s3://$bucketName/recursive"
       val f1 = new PrintWriter(fileManager.getOutputStream(s"$root/f1.txt"))
       f1.print("file1")
-      f1.flush()
       f1.close()
       val f2 = new PrintWriter(fileManager.getOutputStream(s"$root/dir1/f2.txt"))
       f2.print("file2")
