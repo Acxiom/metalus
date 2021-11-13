@@ -141,7 +141,9 @@ val connector = JDBCDataConnector("jdbc:derby:memory:test", "table_name", "my-co
 ## Streaming
 Streaming connectors offer a way to use pipelines with [Spark Structured Streaming](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html) without 
 the need to write new [drivers](pipeline-drivers.md). When designing pipelines for streaming, care must be taken to not
-inject steps that are more batch oriented such as doing a file copy.
+inject steps that are more batch oriented such as doing a file copy. When using streaming connectors, the
+[monitor step](../metalus-common/docs/flowutilssteps.md#streaming-monitor) should be used and the command line parameter
+**streaming-job** should be set to true when invoking the [Default Pipeline Driver](pipeline-drivers.md#default-pipeline-driver).
 
 ### KinesisDataConnector
 This connector provides access to Kinesis. In addition to the standard parameters, the following parameters are

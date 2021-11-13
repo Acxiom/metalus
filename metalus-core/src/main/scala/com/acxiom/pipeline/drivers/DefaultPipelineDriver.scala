@@ -1,6 +1,8 @@
 package com.acxiom.pipeline.drivers
 
-import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
+import com.acxiom.pipeline.utils.{CommonParameters, DriverUtils, ReflectionUtils}
+
+import scala.annotation.tailrec
 
 /**
   * Provides a basic driver that will read in command line parameters and execute pipelines. The only required parameter
@@ -17,7 +19,16 @@ object DefaultPipelineDriver {
     if (driverSetup.executionPlan.isEmpty) {
       throw new IllegalStateException(s"Unable to obtain valid execution plan. Please check the DriverSetup class: ${commonParameters.initializationClass}")
     }
+    process(driverSetup, commonParameters)
+  }
+
+  @tailrec
+  def process(driverSetup: DriverSetup, commonParameters: CommonParameters): Unit = {
     DriverUtils.processExecutionPlan(driverSetup, driverSetup.executionPlan.get, None, () => {},
-      commonParameters.terminateAfterFailures, 1, commonParameters.maxRetryAttempts)
+      commonParameters.terminateAfterFailures, 1, commonParameters.maxRetryAttempts,
+      commonParameters.streamingJob, commonParameters.rootExecutions)
+    if (commonParameters.streamingJob) {
+      process(driverSetup, commonParameters)
+    }
   }
 }
