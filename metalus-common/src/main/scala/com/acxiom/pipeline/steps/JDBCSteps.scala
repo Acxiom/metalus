@@ -1,6 +1,7 @@
 package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.annotations._
+import com.acxiom.pipeline.connectors.JDBCDataConnector
 import com.acxiom.pipeline.{PipelineContext, PipelineStepResponse}
 import org.apache.spark.sql.execution.datasources.jdbc.JDBCOptions
 import org.apache.spark.sql.{DataFrame, Dataset}
@@ -28,7 +29,8 @@ object JDBCSteps {
   def readWithJDBCOptions(jdbcOptions: JDBCOptions,
                           pipelineContext: PipelineContext): DataFrame = {
     val options = DataFrameReaderOptions("jdbc", Some(jdbcOptions.asProperties.toMap))
-    DataFrameSteps.getDataFrameReader(options, pipelineContext).load()
+    val jdbc = JDBCDataConnector(jdbcOptions.url, None, "JDBCSteps_readWithJDBCOptions", None, None)
+    jdbc.load(Some(jdbcOptions.tableOrQuery), pipelineContext, options)
   }
 
   /**
@@ -50,21 +52,8 @@ object JDBCSteps {
                           pipelineContext: PipelineContext): DataFrame = {
     val properties = new Properties()
     properties.putAll(jDBCStepsOptions.readerOptions.options.getOrElse(Map[String, String]()))
-    val reader = DataFrameSteps.getDataFrameReader(jDBCStepsOptions.readerOptions, pipelineContext)
-    if (jDBCStepsOptions.predicates.isDefined) {
-      reader.jdbc(
-        url = jDBCStepsOptions.url,
-        table = jDBCStepsOptions.table,
-        predicates = jDBCStepsOptions.predicates.get.toArray,
-        connectionProperties = properties
-      )
-    } else {
-      reader.jdbc(
-        url = jDBCStepsOptions.url,
-        table = jDBCStepsOptions.table,
-        properties = properties
-      )
-    }
+    val jdbc = JDBCDataConnector(jDBCStepsOptions.url, jDBCStepsOptions.predicates, "JDBCSteps_readWithStepOptions", None, None)
+    jdbc.load(Some(jDBCStepsOptions.table), pipelineContext, jDBCStepsOptions.readerOptions)
   }
 
   /**
@@ -92,15 +81,8 @@ object JDBCSteps {
                          predicates: Option[List[String]] = None,
                          connectionProperties: Option[Map[String, String]] = None,
                          pipelineContext: PipelineContext): DataFrame = {
-    val spark = pipelineContext.sparkSession.get
-    val properties = new Properties()
-    properties.putAll(connectionProperties.getOrElse(Map[String, String]()))
-
-    if (predicates.isDefined) {
-      spark.read.jdbc(url, table, predicates.get.toArray, properties)
-    } else {
-      spark.read.jdbc(url, table, properties)
-    }
+    val jdbc = JDBCDataConnector(url, predicates, "JDBCSteps_readWithProperties", None, None)
+    jdbc.load(Some(table), pipelineContext, DataFrameReaderOptions(options = connectionProperties))
   }
 
   /**
@@ -119,9 +101,11 @@ object JDBCSteps {
     "saveMode" -> StepParameter(None, Some(false), None, None, None, None, Some("The value for the mode option. Defaulted to Overwrite"))))
   def writeWithJDBCOptions(dataFrame: Dataset[_],
                            jdbcOptions: JDBCOptions,
-                           saveMode: String = "Overwrite"): Unit = {
+                           saveMode: String = "Overwrite",
+                           pipelineContext: PipelineContext): Unit = {
     val options = DataFrameWriterOptions("jdbc", saveMode, Some(jdbcOptions.asProperties.toMap))
-    DataFrameSteps.getDataFrameWriter(dataFrame, options).save()
+    val jdbc = JDBCDataConnector(jdbcOptions.url, None, "JDBCSteps_writeWithJDBCOptions", None, None)
+    jdbc.write(dataFrame.asInstanceOf[DataFrame], Some(jdbcOptions.tableOrQuery), pipelineContext, options)
   }
 
   /**
@@ -147,12 +131,10 @@ object JDBCSteps {
                           url: String,
                           table: String,
                           connectionProperties: Option[Map[String, String]] = None,
-                          saveMode: String = "Overwrite"): Unit = {
-    val properties = new Properties()
-    properties.putAll(connectionProperties.getOrElse(Map[String, String]()))
-    dataFrame.write
-      .mode(saveMode)
-      .jdbc(url, table, properties)
+                          saveMode: String = "Overwrite",
+                          pipelineContext: PipelineContext): Unit = {
+    val jdbc = JDBCDataConnector(url, None, "JDBCSteps_writeWithProperties", None, None)
+    jdbc.write(dataFrame.asInstanceOf[DataFrame], Some(table), pipelineContext, DataFrameWriterOptions(options = connectionProperties))
   }
 
   /**
@@ -169,11 +151,10 @@ object JDBCSteps {
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to be written")),
     "jDBCStepsOptions" -> StepParameter(None, Some(true), None, None, None, None, Some("Options for the JDBC connect and spark DataFrameWriter"))))
   def writeWithStepOptions(dataFrame: Dataset[_],
-                           jDBCStepsOptions: JDBCDataFrameWriterOptions): Unit = {
-    val properties = new Properties()
-    properties.putAll(jDBCStepsOptions.writerOptions.options.getOrElse(Map[String, String]()))
-    DataFrameSteps.getDataFrameWriter(dataFrame, jDBCStepsOptions.writerOptions)
-      .jdbc(jDBCStepsOptions.url, jDBCStepsOptions.table, properties)
+                           jDBCStepsOptions: JDBCDataFrameWriterOptions,
+                           pipelineContext: PipelineContext): Unit = {
+    val jdbc = JDBCDataConnector(jDBCStepsOptions.url, None, "JDBCSteps_writeWithStepOptions", None, None)
+    jdbc.write(dataFrame.asInstanceOf[DataFrame], Some(jDBCStepsOptions.table), pipelineContext, jDBCStepsOptions.writerOptions)
   }
 
   @StepFunction("713fff3d-d407-4970-89ae-7844e6fc60e3",

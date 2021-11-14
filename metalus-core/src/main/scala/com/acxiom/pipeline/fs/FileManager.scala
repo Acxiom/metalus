@@ -75,16 +75,18 @@ trait FileManager {
   /**
     * Returns a list of file names at the given path.
     * @param path The path to list.
+    * @param recursive Flag indicating whether to run a recursive or simple listing.
     * @return A list of files at the given path.
     */
-  def getFileListing(path: String): List[FileInfo]
+  def getFileListing(path: String, recursive: Boolean = false): List[FileInfo]
 
   /**
    * Returns a list of directory names at the given path.
    * @param path The path to list.
    * @return A list of directories at the given path.
    */
-  def getDirectoryListing(path: String): List[FileInfo] = getFileListing(path).filter(_.directory)
+  def getDirectoryListing(path: String): List[FileInfo] =
+    getFileListing(path).filter(_.directory)
 
   /**
     * Disconnect from the file system
@@ -132,7 +134,7 @@ trait FileManager {
   }
 }
 
-case class FileInfo(fileName: String, size: Long, directory: Boolean)
+case class FileInfo(fileName: String, size: Long, directory: Boolean, path: Option[String] = None)
 
 /**
   * Default implementation of the FileManager that works with local files.
@@ -178,10 +180,24 @@ class LocalFileManager extends FileManager {
     * Returns a list of file names at the given path.
     *
     * @param path The path to list.
+    * @param recursive Flag indicating whether to run a recursive or simple listing.
     * @return A list of files at the given path
     */
-  override def getFileListing(path: String): List[FileInfo] =
-    new File(path).listFiles().foldLeft(List[FileInfo]())((list, file) => FileInfo(file.getName, file.length(), file.isDirectory) :: list)
+  override def getFileListing(path: String, recursive: Boolean = false): List[FileInfo] = {
+    if (recursive) {
+      new File(path).listFiles().foldLeft(List[FileInfo]()) {
+        case (listing, file) if file.isDirectory && (file.getName == "." || file.getName == "..") => listing
+        case (listing, file) if file.isDirectory => listing ++ getFileListing(file.getAbsolutePath, recursive)
+        case (listing, file) => listing :+ FileInfo(file.getName, file.length(), file.isDirectory, Option(file.getParent))
+      }
+    } else {
+      new File(path)
+        .listFiles()
+        .foldLeft(List[FileInfo]()){ (list, file) =>
+          FileInfo(file.getName, file.length(), file.isDirectory, Option(file.getParent)) :: list
+        }
+    }
+  }
 
   /**
     * Disconnect from the file system

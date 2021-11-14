@@ -1,15 +1,14 @@
 package com.acxiom.gcp.fs
 
-import java.io._
-import java.net.URI
-import java.nio.channels.Channels
-
 import com.acxiom.pipeline.fs.{FileInfo, FileManager}
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.storage.{BlobId, BlobInfo, Storage, StorageOptions}
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization
 
+import java.io._
+import java.net.URI
+import java.nio.channels.Channels
 import scala.collection.JavaConverters._
 
 object GCSFileManager {
@@ -22,7 +21,7 @@ object GCSFileManager {
   def prepareGCSFilePath(path: String, bucket: Option[String] = None): String = {
     if (path.startsWith("/")) {
       path.substring(1)
-    } else if (path.startsWith(s"gs:")) {
+    } else if (path.startsWith("gs:")) {
       new URI(path).normalize().toString
     } else {
       path
@@ -135,13 +134,22 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
     * Returns a list of file names at the given path.
     *
     * @param path The path to list.
+    * @param recursive Flag indicating whether to run a recursive or simple listing.
     * @return A list of files at the given path.
     */
-  override def getFileListing(path: String): List[FileInfo] = {
-    val page = storage.list(bucket, Storage.BlobListOption.prefix(GCSFileManager.prepareGCSFilePath(path)))
-    page.iterateAll().iterator().asScala.foldLeft(List[FileInfo]())((list, blob) => {
-      list :+ FileInfo(blob.getName, blob.getSize, blob.isDirectory)
-    })
+  override def getFileListing(path: String, recursive: Boolean = true): List[FileInfo] = {
+    if (!recursive) {
+      storage.list(bucket, Storage.BlobListOption.delimiter("/"),
+        Storage.BlobListOption.prefix(GCSFileManager.prepareGCSFilePath(path)))
+        .iterateAll().iterator().asScala.foldLeft(List[FileInfo]())((list, blob) => {
+        list :+ FileInfo(blob.getName, blob.getSize, blob.isDirectory, Some("gs://bucket"))
+      }).filterNot(_.directory)
+    } else {
+      val page = storage.list(bucket, Storage.BlobListOption.prefix(GCSFileManager.prepareGCSFilePath(path)))
+      page.iterateAll().iterator().asScala.foldLeft(List[FileInfo]())((list, blob) => {
+        list :+ FileInfo(blob.getName, blob.getSize, blob.isDirectory, Some("gs://bucket"))
+      })
+    }
   }
 
   /**
@@ -156,7 +164,7 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
       if (index != -1) {
         val dirName = file.fileName.substring(0, index)
         if (!list.exists(_.fileName == dirName)) {
-          list :+ FileInfo(dirName, 0L, directory = true)
+          list :+ FileInfo(dirName, 0L, directory = true, Some("gs://bucket"))
         } else {
           list
         }

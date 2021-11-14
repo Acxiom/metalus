@@ -13,7 +13,12 @@ The _DefaultPipelineDriver_ class requires an additional parameter named ```driv
 
 This is an extension point where developers may customize how applications are loaded.
 
-## Applicaton Driver Setup
+Sometimes an application will need to be restarted without having to run all of the executions again. A parameter
+named **root-executions** is a comma separated list of one or more execution ids to start processing. This will override
+the default behavior of identifying the root executions. **Note:** Application designers should ensure that any required
+state is saved off and executions can intelligently read this state when restarts happeen.
+
+## Application Driver Setup
 The Metalus application framework provides a default implementation that may be used:
 ```com.acxiom.pipeline.applications.DefaultApplicationDriverSetup```
 
@@ -89,6 +94,10 @@ Any objects embedded  will automatically get picked up as long as they are defin
 By default, library will attempt to instantiate _case classes_ with the values stored in the _object_ attribute.
 To serialize more complicated objects with _traits_ and _Enumerations_, custom serializers can be provided using the
 _json4sSerializers_ object. More on custom serializers can be found [here](serialization.md).
+
+In addition to _className_ and _object_, the _mapEmbeddedVariables_ attribute in the object will indicate that the
+map should parse for embedded values using the command line parameters. These values should start with thee **!**
+character.
 
 #### Arrays
 Values of a global entry may be an array of any of the supported types except array. When embedding objects, refer to 

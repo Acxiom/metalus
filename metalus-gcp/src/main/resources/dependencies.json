@@ -7,6 +7,11 @@
         "version": "${parent.version}"
       },
       {
+        "groupId": "com.google.cloud.spark",
+        "artifactId": "spark-bigquery-with-dependencies_${scala.compat.version}",
+        "version": "0.21.1"
+      },
+      {
         "groupId": "org.apache.spark",
         "artifactId": "spark-streaming_${scala.compat.version}",
         "version": "${spark.version}",

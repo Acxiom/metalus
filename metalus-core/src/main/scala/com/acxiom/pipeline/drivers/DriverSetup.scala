@@ -90,15 +90,7 @@ trait DriverSetup {
   }
 
   private def getLogLevel(level: String): Level = {
-    Option(level).getOrElse("INFO").toUpperCase match {
-      case "INFO" => Level.INFO
-      case "DEBUG" => Level.DEBUG
-      case "ERROR" => Level.ERROR
-      case "WARN" => Level.WARN
-      case "TRACE" => Level.TRACE
-      case "FATAL" => Level.FATAL
-      case "OFF" => Level.OFF
-    }
+    DriverUtils.getLogLevel(level)
   }
 }
 

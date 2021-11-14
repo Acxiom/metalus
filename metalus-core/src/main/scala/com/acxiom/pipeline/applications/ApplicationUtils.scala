@@ -275,17 +275,8 @@ object ApplicationUtils {
                               defaultGlobals: Option[Map[String, Any]],
                               pipelineContext: PipelineContext,
                               merge: Boolean = false)(implicit formats: Formats): Option[Map[String, Any]] = {
-    globals.map { baseGlobals =>
-      val result = rootGlobals ++ baseGlobals.map{
-        case (key, m: Map[String, Any]) if m.contains("className") =>
-          key -> Parameter(Some("object"), Some(key), value = m.get("object"), className = m.get("className").map(_.toString))
-        case (key, l: List[Any]) => key -> Parameter(Some("list"), Some(key), value = Some(l))
-        case (key, value) => key -> Parameter(Some("text"), Some(key), value = Some(value))
-      }.map{
-        case ("GlobalLinks", p) => "GlobalLinks" -> p.value.get // skip global links
-        case (key, p) => key -> pipelineContext.parameterMapper.mapParameter(p, pipelineContext)
-      }
-      // val result = baseGlobals.foldLeft(rootGlobals)((rootMap, entry) => parseValue(rootMap, entry._1, entry._2))
+    globals.map{ baseGlobals =>
+      val result = baseGlobals.foldLeft(rootGlobals)((rootMap, entry) => parseValue(rootMap, entry._1, entry._2, Some(pipelineContext)))
       if (merge) {
         defaultGlobals.getOrElse(Map[String, Any]()) ++ result
       } else {
@@ -299,21 +290,33 @@ object ApplicationUtils {
       .foldLeft(Map[String, Any]("credentialProvider" -> credentialProvider))((rootMap, entry) => parseValue(rootMap, entry._1, entry._2))
   }
 
-  private def parseValue(rootMap: Map[String, Any], key: String, value: Any)(implicit formats: Formats) = {
+  private def parseValue(rootMap: Map[String, Any], key: String, value: Any, ctx: Option[PipelineContext] = None)(implicit formats: Formats) = {
     value match {
       case map: Map[String, Any] if map.contains("className") =>
-        val obj = DriverUtils.parseJson(Serialization.write(map("object").asInstanceOf[Map[String, Any]]), map("className").asInstanceOf[String])
+        val mapEmbedded = map.get("mapEmbeddedVariables").exists(_.toString.toBoolean) && ctx.isDefined
+        val finalMap = if (mapEmbedded) {
+          ctx.get.parameterMapper.mapEmbeddedVariables(map("object").asInstanceOf[Map[String, Any]], ctx.get)
+        } else {
+          map("object").asInstanceOf[Map[String, Any]]
+        }
+        val obj = DriverUtils.parseJson(Serialization.write(finalMap), map("className").asInstanceOf[String])
         rootMap + (key -> obj)
       case listMap: List[Any] =>
         val obj = listMap.map {
           case m: Map[String, Any] =>
             if (m.contains("className")) {
+              val mapEmbedded = m.get("mapEmbeddedVariables").exists(_.toString.toBoolean) && ctx.isDefined
               val map = if (m.contains("parameters")) {
                 m("parameters").asInstanceOf[Map[String, Any]]
               } else {
                 m("object").asInstanceOf[Map[String, Any]]
               }
-              DriverUtils.parseJson(Serialization.write(map), m("className").asInstanceOf[String])
+              val finalMap = if (mapEmbedded) {
+                ctx.get.parameterMapper.mapEmbeddedVariables(map, ctx.get)
+              } else {
+                map
+              }
+              DriverUtils.parseJson(Serialization.write(finalMap), m("className").asInstanceOf[String])
             } else {
               m
             }

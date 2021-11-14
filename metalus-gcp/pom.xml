@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.acxiom</groupId>
         <artifactId>metalus</artifactId>
-        <version>1.8.3-SNAPSHOT</version>
+        <version>1.8.4-SNAPSHOT</version>
     </parent>
 
     <dependencyManagement>
@@ -60,11 +60,6 @@
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-datastore</artifactId>
             <version>1.104.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.cloud.spark</groupId>
-            <artifactId>spark-bigquery-with-dependencies_${scala.compat.version}</artifactId>
-            <version>0.21.1</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>

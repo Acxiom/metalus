@@ -5,9 +5,11 @@ import com.acxiom.pipeline.Constants
 import com.amazonaws.client.builder.S3ClientBuilder
 import io.findify.s3mock.S3Mock
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
-
-import java.io.{FileNotFoundException, OutputStreamWriter}
+import java.io.{FileNotFoundException, OutputStreamWriter, PrintWriter}
 import java.nio.file.Files
+
+import com.acxiom.pipeline.fs.FileManager
+
 import scala.io.Source
 import scala.reflect.io.Directory
 
@@ -74,11 +76,6 @@ class S3FileManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(fileList.head.fileName == "data.txt")
       assert(fileList.head.size == fileData.length)
 
-      // Fail to get a file listing
-      val listingException = intercept[FileNotFoundException] {
-        fileManager.getFileListing("/missing-directory")
-      }
-      assert(listingException.getMessage.startsWith("Path not found when attempting to get listing,inputPath="))
       // Rename the file
       assert(!fileManager.exists(file1))
       assert(fileManager.rename(file, file1))
@@ -89,6 +86,27 @@ class S3FileManagerTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(fileManager.deleteFile(file1))
       assert(!fileManager.exists(file1))
       assert(!fileManager.exists(file1))
+    }
+
+    it("should respect the recursive listing flag") {
+      val fileManager: FileManager = S3Steps.createFileManagerWithClient(s3Client, bucketName).get
+      val root = s"s3://$bucketName/recursive"
+      val f1 = new PrintWriter(fileManager.getOutputStream(s"$root/f1.txt"))
+      f1.print("file1")
+      f1.close()
+      val f2 = new PrintWriter(fileManager.getOutputStream(s"$root/dir1/f2.txt"))
+      f2.print("file2")
+      f2.close()
+      val f3 = new PrintWriter(fileManager.getOutputStream(s"$root/dir1/dir2/f3.txt"))
+      f3.print("file3")
+      f3.close()
+      val flattened = fileManager.getFileListing(s"$root/")
+      val expected = List("recursive/dir1/dir2/f3.txt", "recursive/dir1/f2.txt", "recursive/f1.txt")
+      assert(flattened.size == 3)
+      assert(flattened.map(_.fileName).forall(expected.contains))
+       val listing = fileManager.getFileListing(s"$root/dir1/", recursive = false)
+      assert(listing.size == 1)
+      assert(listing.head.fileName == "recursive/dir1/f2.txt")
     }
   }
 }

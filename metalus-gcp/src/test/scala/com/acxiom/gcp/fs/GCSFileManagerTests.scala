@@ -1,7 +1,8 @@
 package com.acxiom.gcp.fs
 
-import java.io.OutputStreamWriter
+import java.io.{OutputStreamWriter, PrintWriter}
 
+import com.acxiom.pipeline.fs.FileManager
 import com.google.cloud.storage.contrib.nio.testing.LocalStorageHelper
 import com.google.cloud.storage.{BlobId, BlobInfo}
 import org.scalatest.{FunSpec, Suite}
@@ -81,6 +82,27 @@ class GCSFileManagerTests extends FunSpec with Suite {
       assert(!fileManager.exists("data-new.txt"))
       val file2 = localStorage.get(MAIN_BUCKET_NAME, "data-new.txt")
       assert(Option(file2).isEmpty || !file2.exists())
+    }
+
+    it("should respect the recursive listing flag") {
+      val fileManager: FileManager = new GCSFileManager(localStorage, MAIN_BUCKET_NAME)
+      val root = s"/recursive"
+      val f1 = new PrintWriter(fileManager.getOutputStream(s"$root/f1.txt"))
+      f1.print("file1")
+      f1.close()
+      val f2 = new PrintWriter(fileManager.getOutputStream(s"$root/dir1/f2.txt"))
+      f2.print("file2")
+      f2.close()
+      val f3 = new PrintWriter(fileManager.getOutputStream(s"$root/dir1/dir2/f3.txt"))
+      f3.print("file3")
+      f3.close()
+      val flattened = fileManager.getFileListing(s"$root/")
+      val expected = List("recursive/dir1/dir2/f3.txt", "recursive/dir1/f2.txt", "recursive/f1.txt")
+      assert(flattened.size == 3)
+      assert(flattened.map(_.fileName).forall(expected.contains))
+      val listing = fileManager.getFileListing(s"$root/dir1/", recursive = false)
+      assert(listing.size == 1)
+      assert(listing.head.fileName == "recursive/dir1/f2.txt")
     }
   }
 }

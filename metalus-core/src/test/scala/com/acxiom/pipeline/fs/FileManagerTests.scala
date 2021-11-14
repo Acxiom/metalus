@@ -94,17 +94,42 @@ class FileManagerTests extends FunSpec with Suite {
       // Should fail to copy
       assert(!FileManager().copy(new ByteArrayInputStream(data.getBytes), specificBufferSizeOutput, -1))
     }
+
+    it("Should respect the recursive listing flag") {
+      val testDir = Files.createTempDirectory("recursiveTest")
+      val fileManager = FileManager()
+      val root = s"${testDir.toAbsolutePath.toString}/recursive"
+      new File(root).mkdir()
+      new File(s"$root/dir1").mkdir()
+      new File(s"$root/dir1/dir2").mkdir()
+      val f1 = new PrintWriter(fileManager.getOutputStream(s"$root/f1.txt"))
+      f1.print("file1")
+      f1.flush()
+      f1.close()
+      val f2 = new PrintWriter(fileManager.getOutputStream(s"$root/dir1/f2.txt"))
+      f2.print("file2")
+      f2.close()
+      val f3 = new PrintWriter(fileManager.getOutputStream(s"$root/dir1/dir2/f3.txt"))
+      f3.print("file3")
+      f3.close()
+      val listing = fileManager.getFileListing(root, recursive = true)
+      assert(listing.size == 3)
+      val expected = List("f1.txt", "f2.txt", "f3.txt")
+      assert(listing.map(_.fileName).forall(expected.contains))
+      fileManager.deleteFile(testDir.toAbsolutePath.toString)
+    }
   }
 
   describe("FileManager - HDFS") {
     // set up mini hadoop cluster
-    val testDirectory = Files.createTempDirectory("hdfsFileManagerTests")
-    val config = new HdfsConfiguration()
-    config.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, testDirectory.toFile.getAbsolutePath)
-    val miniCluster = new MiniDFSCluster.Builder(config).build()
-    miniCluster.waitActive()
-    val fs = miniCluster.getFileSystem
+
     it("Should perform proper file operations against a HDFS file system") {
+      val testDirectory = Files.createTempDirectory("hdfsFileManagerTests")
+      val config = new HdfsConfiguration()
+      config.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, testDirectory.toFile.getAbsolutePath)
+      val miniCluster = new MiniDFSCluster.Builder(config).build()
+      miniCluster.waitActive()
+      val fs = miniCluster.getFileSystem
       val conf = new SparkConf()
         .setMaster("local")
         .set("spark.hadoop.fs.defaultFS", miniCluster.getFileSystem().getUri.toString)
@@ -193,6 +218,32 @@ class FileManagerTests extends FunSpec with Suite {
       miniCluster.shutdown(true)
       FileUtils.deleteDirectory(testDirectory.toFile)
       sparkSession.stop()
+    }
+
+    it("Should respect the recursive listing flag") {
+      val testDirectory = Files.createTempDirectory("hdfsRecursive")
+      val config = new HdfsConfiguration()
+      config.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, testDirectory.toFile.getAbsolutePath)
+      val miniCluster = new MiniDFSCluster.Builder(config).build()
+      miniCluster.waitActive()
+      val conf = new SparkConf()
+        .setMaster("local")
+        .set("spark.hadoop.fs.defaultFS", miniCluster.getFileSystem().getUri.toString)
+      val fileManager = HDFSFileManager(conf)
+      val root = s"/recursive"
+      val f1 = new PrintWriter(fileManager.getOutputStream(s"$root/f1.txt"))
+      f1.print("file1")
+      f1.close()
+      val f2 = new PrintWriter(fileManager.getOutputStream(s"$root/dir1/f2.txt"))
+      f2.print("file2")
+      f2.close()
+      val f3 = new PrintWriter(fileManager.getOutputStream(s"$root/dir1/dir2/f3.txt"))
+      f3.print("file3")
+      f3.close()
+      val listing = fileManager.getFileListing(root, recursive = true)
+      assert(listing.size == 3)
+      val expected = List("f1.txt", "f2.txt", "f3.txt")
+      assert(listing.map(_.fileName).forall(expected.contains))
     }
   }
 
@@ -299,6 +350,25 @@ class FileManagerTests extends FunSpec with Suite {
       val listings = sftp.getFileListing("/").filterNot(_.directory)
       assert(listings.size == 1)
       assert(listings.head.fileName == "chicken5.txt")
+      sftp.disconnect()
+      server.stop()
+    }
+
+    it("Should be able to get recursive file listings") {
+      val server = new MockSftpServer(PORT)
+      new File(s"${server.getBaseDirectory}/recursive").mkdir()
+      new File(s"${server.getBaseDirectory}/recursive/dir1").mkdir()
+      new File(s"${server.getBaseDirectory}/recursive/dir1/dir2").mkdir()
+      writeRemoteFile(s"${server.getBaseDirectory}/recursive/f1.txt", "moo1")
+      writeRemoteFile(s"${server.getBaseDirectory}/recursive/dir1/f2.txt", "moo2")
+      writeRemoteFile(s"${server.getBaseDirectory}/recursive/dir1/dir2/f3.txt", "moo3")
+      val sftp = new SFTPFileManager("localhost", Some(PORT), Some("tester"), Some("testing"), None,
+        config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
+      sftp.connect()
+      val listings = sftp.getFileListing("/recursive", recursive = true)
+      assert(listings.size == 3)
+      val expected = List("f1.txt", "f2.txt", "f3.txt")
+      assert(listings.map(_.fileName).forall(expected.contains))
       sftp.disconnect()
       server.stop()
     }
