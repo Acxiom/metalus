@@ -96,8 +96,9 @@ class FileManagerTests extends FunSpec with Suite {
     }
 
     it("Should respect the recursive listing flag") {
+      val testDir = Files.createTempDirectory("recursiveTest")
       val fileManager = FileManager()
-      val root = s"${testDirectory.toAbsolutePath.toString}/recursive"
+      val root = s"${testDir.toAbsolutePath.toString}/recursive"
       new File(root).mkdir()
       new File(s"$root/dir1").mkdir()
       new File(s"$root/dir1/dir2").mkdir()
@@ -115,18 +116,20 @@ class FileManagerTests extends FunSpec with Suite {
       assert(listing.size == 3)
       val expected = List("f1.txt", "f2.txt", "f3.txt")
       assert(listing.map(_.fileName).forall(expected.contains))
+      fileManager.deleteFile(testDir.toAbsolutePath.toString)
     }
   }
 
   describe("FileManager - HDFS") {
     // set up mini hadoop cluster
-    val testDirectory = Files.createTempDirectory("hdfsFileManagerTests")
-    val config = new HdfsConfiguration()
-    config.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, testDirectory.toFile.getAbsolutePath)
-    val miniCluster = new MiniDFSCluster.Builder(config).build()
-    miniCluster.waitActive()
-    val fs = miniCluster.getFileSystem
+
     it("Should perform proper file operations against a HDFS file system") {
+      val testDirectory = Files.createTempDirectory("hdfsFileManagerTests")
+      val config = new HdfsConfiguration()
+      config.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, testDirectory.toFile.getAbsolutePath)
+      val miniCluster = new MiniDFSCluster.Builder(config).build()
+      miniCluster.waitActive()
+      val fs = miniCluster.getFileSystem
       val conf = new SparkConf()
         .setMaster("local")
         .set("spark.hadoop.fs.defaultFS", miniCluster.getFileSystem().getUri.toString)
@@ -218,6 +221,11 @@ class FileManagerTests extends FunSpec with Suite {
     }
 
     it("Should respect the recursive listing flag") {
+      val testDirectory = Files.createTempDirectory("hdfsRecursive")
+      val config = new HdfsConfiguration()
+      config.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, testDirectory.toFile.getAbsolutePath)
+      val miniCluster = new MiniDFSCluster.Builder(config).build()
+      miniCluster.waitActive()
       val conf = new SparkConf()
         .setMaster("local")
         .set("spark.hadoop.fs.defaultFS", miniCluster.getFileSystem().getUri.toString)
@@ -225,7 +233,6 @@ class FileManagerTests extends FunSpec with Suite {
       val root = s"/recursive"
       val f1 = new PrintWriter(fileManager.getOutputStream(s"$root/f1.txt"))
       f1.print("file1")
-      f1.flush()
       f1.close()
       val f2 = new PrintWriter(fileManager.getOutputStream(s"$root/dir1/f2.txt"))
       f2.print("file2")

@@ -89,7 +89,6 @@ class GCSFileManagerTests extends FunSpec with Suite {
       val root = s"/recursive"
       val f1 = new PrintWriter(fileManager.getOutputStream(s"$root/f1.txt"))
       f1.print("file1")
-      f1.flush()
       f1.close()
       val f2 = new PrintWriter(fileManager.getOutputStream(s"$root/dir1/f2.txt"))
       f2.print("file2")
