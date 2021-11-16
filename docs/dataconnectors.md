@@ -95,11 +95,10 @@ This connector provides access to Mongo. Security is handled using the uri or a 
 the standard parameters, the following parameters are available:
 
 * **uri** - The name connection URI
-* **collectionName** - The name of the collection
 
 #### Scala
 ```scala
-val connector = MongoDataConnector("mongodb://127.0.0.1/test", "myCollectionName", "my-connector", Some("my-credential-name-for-secrets-manager"), None)
+val connector = MongoDataConnector("mongodb://127.0.0.1/test", "my-connector", Some("my-credential-name-for-secrets-manager"), None)
 ```
 #### Globals JSON
 ```json
@@ -109,8 +108,7 @@ val connector = MongoDataConnector("mongodb://127.0.0.1/test", "myCollectionName
     "object": {
       "name": "my-connector",
       "credentialName": "my-credential-name-for-secrets-manager",
-      "uri": "mongodb://127.0.0.1/test",
-      "collectionName": "myCollectionName"
+      "uri": "mongodb://127.0.0.1/test"
     }
   }
 }
