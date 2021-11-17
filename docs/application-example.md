@@ -389,7 +389,6 @@ Create the step json:
       ],
       "engineMeta": {
         "spark": "TransformationSteps.mapDataFrameToSchema"
-        "spark": "TransformationSteps.mapDataFrameToSchema"
       }
     }
 ```
