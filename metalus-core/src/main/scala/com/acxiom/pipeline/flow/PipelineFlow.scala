@@ -302,7 +302,7 @@ trait PipelineFlow {
           entry._1 match {
             case e if e.startsWith("$globals.") =>
               val keyName = entry._1.substring(Constants.NINE)
-              PipelineFlow.updateGlobals(step.displayName.get, pipelineId, context, entry._2, keyName)
+              PipelineFlow.updateGlobals(step.displayName.getOrElse(step.id.getOrElse("")), pipelineId, context, entry._2, keyName)
             case e if e.startsWith("$metrics.") =>
               val keyName = entry._1.substring(Constants.NINE)
               context.setStepMetric(pipelineId, step.id.getOrElse(""), None, keyName, entry._2)
@@ -310,6 +310,24 @@ trait PipelineFlow {
           }
         })
       case _ => updatedCtx
+    }
+  }
+
+  def gatherGlobalUpdates(pipelineParams: Option[PipelineParameter], step: PipelineStep, pipelineId: String): List[GlobalUpdates] = {
+    if (pipelineParams.isDefined &&
+      pipelineParams.get.parameters.contains(step.id.getOrElse("")) &&
+      pipelineParams.get.parameters(step.id.getOrElse("")).isInstanceOf[PipelineStepResponse] &&
+      pipelineParams.get.parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse].namedReturns.isDefined) {
+      pipelineParams.get.parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse]
+        .namedReturns.get.foldLeft(List[GlobalUpdates]())((list, entry) => {
+        if (entry._1.startsWith("$globals.")) {
+          list :+ GlobalUpdates(step.displayName.get, pipelineId, entry._1.substring(Constants.NINE), entry._2)
+        } else {
+          list
+        }
+      })
+    } else {
+      List()
     }
   }
 }
@@ -320,3 +338,5 @@ case class PipelineStepFlow(pipeline: Pipeline,
                        initialContext: PipelineContext,
                        pipelineLookup: Map[String, String],
                        executingPipelines: List[Pipeline]) extends PipelineFlow
+
+case class GlobalUpdates(stepName: String, pipelineId: String, globalName: String, global: Any)

@@ -125,6 +125,38 @@
       "engineMeta": {
         "spark": "MockStepObject.mockListOfIntsToString"
       },
+      "nextStepId": "GLOBAL_VALUES"
+    },
+    {
+      "id": "GLOBAL_VALUES",
+      "type": "Pipeline",
+      "displayName": "Global Test Step",
+      "params": [
+        {
+          "type": "text",
+          "name": "string",
+          "required": false,
+          "value": "global_string",
+          "description": ""
+        },
+        {
+          "type": "boolean",
+          "name": "boolean",
+          "required": false,
+          "value": false,
+          "description": ""
+        },
+        {
+          "type": "text",
+          "name": "global",
+          "required": false,
+          "value": "split_global",
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "MockStepObject.mockStepGlobalsUpdateFunction"
+      },
       "nextStepId": "MERGE"
     },
     {
