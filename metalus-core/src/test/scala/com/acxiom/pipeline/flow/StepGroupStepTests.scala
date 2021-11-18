@@ -13,7 +13,7 @@ import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
 import java.io.File
 
 class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
     Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
@@ -32,7 +32,7 @@ class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
     FileUtils.deleteDirectory(new File("user-warehouse"))
   }
 
-  override def afterAll() {
+  override def afterAll(): Unit = {
     SparkTestHelper.sparkSession.stop()
     Logger.getRootLogger.setLevel(Level.INFO)
 

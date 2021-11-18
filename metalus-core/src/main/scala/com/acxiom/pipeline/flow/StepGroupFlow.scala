@@ -67,13 +67,7 @@ case class StepGroupFlow(pipeline: Pipeline,
         pipelineParams.isDefined && pipelineParams.get.parameters.get(step.id.getOrElse(""))
           .exists(r => r.isInstanceOf[PipelineStepResponse] && r.asInstanceOf[PipelineStepResponse].namedReturns.isDefined)
       }.foldLeft(List[GlobalUpdates]())((updates, step) => {
-      val updateList = pipelineParams.get.parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse]
-        .namedReturns.get.foldLeft(List[GlobalUpdates]())((list, entry) => {
-        if (entry._1.startsWith("$globals.")) {
-          list :+ GlobalUpdates(step.displayName.get, subPipeline.id.get, entry._1.substring(Constants.NINE), entry._2)
-        } else { list }
-      })
-      updates ++ updateList
+      updates ++ gatherGlobalUpdates(pipelineParams, step, subPipeline.id.get)
     })
     StepGroupResult(resultCtx.rootAudit, response, updates)
   }
@@ -121,4 +115,3 @@ case class StepGroupFlow(pipeline: Pipeline,
 }
 
 case class StepGroupResult(audit: ExecutionAudit, pipelineStepResponse: PipelineStepResponse, globalUpdates: List[GlobalUpdates])
-case class GlobalUpdates(stepName: String, pipelineId: String, globalName: String, global: Any)
