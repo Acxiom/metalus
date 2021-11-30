@@ -66,6 +66,7 @@
             * [AWS Secrets Manager Credential Provider](../metalus-aws/docs/awssecretsmanager-credentialprovider.md)
     * [Metalus GCP](../metalus-gcp/readme.md)
         * Steps
+            * [BigQuerySteps](../metalus-gcp/docs/bigquerysteps.md)
             * [GCSSteps](../metalus-gcp/docs/gcssteps.md)
             * [PubSubSteps](../metalus-gcp/docs/pubsubsteps.md)
         * Extensions

@@ -163,6 +163,10 @@
                                 <relocation>
                                     <pattern>com.google</pattern>
                                     <shadedPattern>metalus.com.google</shadedPattern>
+                                    <excludes>
+                                        <exclude>com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem</exclude>
+                                        <exclude>com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS</exclude>
+                                    </excludes>
                                 </relocation>
                             </relocations>
                         </configuration>
