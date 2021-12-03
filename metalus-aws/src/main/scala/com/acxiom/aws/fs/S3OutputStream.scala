@@ -2,7 +2,7 @@ package com.acxiom.aws.fs
 
 import com.acxiom.aws.utils.S3Utilities
 import com.amazonaws.services.s3.AmazonS3
-import com.amazonaws.services.s3.model.{AbortMultipartUploadRequest, CompleteMultipartUploadRequest, InitiateMultipartUploadRequest, PartETag, UploadPartRequest}
+import com.amazonaws.services.s3.model.{CompleteMultipartUploadRequest, InitiateMultipartUploadRequest, PartETag, UploadPartRequest}
 import java.io.{ByteArrayInputStream, OutputStream}
 
 import scala.collection.JavaConverters._
@@ -52,11 +52,8 @@ class S3OutputStream(s3Client: AmazonS3, bucket: String, key: String, bufferLeng
   }
 
   override def close(): Unit = {
-    if (buffer.nonEmpty || position > 0) {
+    if (partNumber == 1) {
       writeBuffer()
-    }
-    if (partNumber == 1) { // nothing was sent, abort the request
-      s3Client.abortMultipartUpload(new AbortMultipartUploadRequest(bucket, key, request.getUploadId))
     }
     s3Client.completeMultipartUpload(new CompleteMultipartUploadRequest(bucket, key, request.getUploadId, etags.toList.asJava))
     super.close()
