@@ -14,7 +14,6 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 
 case class MongoDataConnector(uri: String,
-                              collectionName: String,
                               override val name: String,
                               override val credentialName: Option[String],
                               override val credential: Option[Credential]) extends BatchDataConnector {
@@ -25,17 +24,24 @@ case class MongoDataConnector(uri: String,
   override def load(source: Option[String],
                     pipelineContext: PipelineContext,
                     readOptions: DataFrameReaderOptions = DataFrameReaderOptions()): DataFrame = {
-    MongoSpark.loadAndInferSchema(pipelineContext.sparkSession.get,
-      ReadConfig(Map("collection" -> collectionName, "uri" -> buildConnectionString(pipelineContext))))
+    val readConfig = ReadConfig(if (readOptions.options.isDefined) {
+      readOptions.options.get ++ Map("collection" -> source.getOrElse(""), "uri" -> buildConnectionString(pipelineContext))
+    } else {
+      Map("collection" -> source.getOrElse(""), "uri" -> buildConnectionString(pipelineContext))
+    })
+    MongoSpark.loadAndInferSchema(pipelineContext.sparkSession.get, readConfig)
   }
 
   override def write(dataFrame: DataFrame,
                      destination: Option[String],
                      pipelineContext: PipelineContext,
                      writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery] = {
-    val writeConfig = WriteConfig(Map("collection" -> collectionName, "uri" -> buildConnectionString(pipelineContext)))
+    val writeConfig = WriteConfig(if (writeOptions.options.isDefined) {
+      writeOptions.options.get ++ Map("collection" -> destination.getOrElse(""), "uri" -> buildConnectionString(pipelineContext))
+    } else {
+      Map("collection" -> destination.getOrElse(""), "uri" -> buildConnectionString(pipelineContext))
+    })
     if (dataFrame.isStreaming) {
-
       Some(DataConnectorUtilities.addPartitionInformation(dataFrame
         .writeStream
         .format(writeOptions.format)
@@ -69,7 +75,7 @@ case class MongoDataConnector(uri: String,
     }
     // TODO make sure this works
     // Inject the credentials into the uri
-    s"$conn1${connectionString.getConnectionString.substring(conn.length + 1)}"
+    s"$conn1${connectionString.getConnectionString.substring(conn.length)}"
   }
 }
 
