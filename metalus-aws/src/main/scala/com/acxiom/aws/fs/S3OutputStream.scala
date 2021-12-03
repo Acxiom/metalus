@@ -20,11 +20,11 @@ class S3OutputStream(s3Client: AmazonS3, bucket: String, key: String, bufferLeng
   private var position = 0
 
   override def write(b: Int): Unit = {
-    if (buffer.length >= position) {
-      writeBuffer()
-    }
     buffer(position) = b.toByte
     position += 1
+    if (position >= buffer.length) {
+      writeBuffer()
+    }
   }
 
   override def write(b: Array[Byte]): Unit = {
