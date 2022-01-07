@@ -52,7 +52,7 @@ class S3OutputStream(s3Client: AmazonS3, bucket: String, key: String, bufferLeng
   }
 
   override def close(): Unit = {
-    if (partNumber == 1) {
+    if (partNumber == 1 || position > 0) {
       writeBuffer()
     }
     s3Client.completeMultipartUpload(new CompleteMultipartUploadRequest(bucket, key, request.getUploadId, etags.toList.asJava))
