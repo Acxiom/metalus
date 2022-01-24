@@ -65,13 +65,18 @@ class DataFrameStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenT
     }
 
     it ("Should validate DataFrameReaderOptions set functions") {
-      val schema = Schema(List(Attribute("col1", "string"), Attribute("col2", "integer"), Attribute("col3", "double")))
+      val schema = Schema(List(Attribute("col1", AttributeType("string"), nullable = false, Map("key" -> "value")),
+        Attribute("col2", "integer"), Attribute("col3", "double")))
       val options = DataFrameReaderOptions()
       assert(options.schema.isEmpty)
       val options1 = options.setSchema(schema)
       assert(options1.schema.isDefined)
       assert(options1.schema.get.attributes.length == 3)
-      assert(options1.schema.get.attributes.head.name == "col1")
+      val col1 = options1.schema.get.attributes.head
+      assert(col1.name == "col1")
+      assert(!col1.nullable)
+      val sf = col1.toStructField()
+      assert(sf.metadata.contains("key") && sf.metadata.getString("key") == "value")
       assert(options1.schema.get.attributes(1).name == "col2")
       assert(options1.schema.get.attributes(2).name == "col3")
     }
