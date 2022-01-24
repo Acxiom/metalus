@@ -1,4 +1,4 @@
-[Documentation Home](../../docs/readme.md) | [Common Home](../readme.md)
+[Documentation Home](../../docs/readme.md) | [Common Home](../../metalus-common/readme.md)
 
 # JavascriptSteps
 This step object provides a way for the application developer to define steps at runtime using the Javascript language
