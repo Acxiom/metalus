@@ -191,7 +191,8 @@ trait PipelineFlow {
       val sfContext = PipelineFlow.handleEvent(newPipelineContext, "pipelineStepFinished", List(pipeline, step, newPipelineContext))
       (nextStepId, sfContext.removeGlobal("stepRetryCount"))
     } catch {
-      case _: Throwable if step.retryLimit.getOrElse(-1) > 0 && stepRetryCount < step.retryLimit.getOrElse(-1) =>
+      case t: Throwable if step.retryLimit.getOrElse(-1) > 0 && stepRetryCount < step.retryLimit.getOrElse(-1) =>
+        logger.warn(s"Retrying step ${step.id.getOrElse("")}", t)
         // Backoff timer
         Thread.sleep(stepRetryCount * 1000)
         processStepWithRetry(step, pipeline, ssContext, pipelineContext, stepRetryCount + 1)

@@ -11,10 +11,10 @@ out [step libraries](step-libraries.md) to introduce new functionality. This sho
 to test changes, but it is still a best practice to fold that logic back into a proper step library.
 
 ## Steps
-In addition to the two engines provided, two steps are provided as part of [metalus-common](../metalus-common/readme.md)
+In addition to the two engines provided, two steps are provided as part of [metalus-core](../metalus-core/readme.md)
 which allow writing custom steps within a pipeline:
-* [Javascript Steps](../metalus-common/docs/javascriptsteps.md)
-* [Scala Steps](../metalus-common/docs/scalascriptsteps.md)
+* [Javascript Steps](../metalus-core/docs/javascriptsteps.md)
+* [Scala Steps](../metalus-core/docs/scalascriptsteps.md)
 
 ## Functions
 ### Execute Simple Script
