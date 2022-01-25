@@ -19,7 +19,9 @@ object Attribute {
     Attribute(field.name, AttributeType.fromDataType(field.dataType))
   }
 
-  def apply(name: String, dataType: String): Attribute = Attribute(name, AttributeType(dataType), nullable = true, Map())
+  def apply(name: String, dataType: AttributeType): Attribute = Attribute(name, dataType)
+
+  def apply(name: String, dataType: String): Attribute = Attribute(name, AttributeType(dataType))
 }
 
 case class AttributeType(baseType: String, valueType: Option[AttributeType] = None, nameType: Option[AttributeType] = None, schema: Option[Schema] = None) {
