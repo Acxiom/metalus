@@ -1,14 +1,14 @@
 package com.acxiom.pipeline.steps
 
-import java.io.File
-import java.nio.file.{FileSystems, Files, Path, StandardCopyOption}
-
 import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
+
+import java.io.File
+import java.nio.file.{FileSystems, Files, Path, StandardCopyOption}
 
 class ScalaStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
   val MASTER = "local[2]"

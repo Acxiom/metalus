@@ -4,7 +4,7 @@ import com.acxiom.pipeline.steps.TransformationSteps.cleanColumnName
 import org.apache.spark.sql.types._
 import org.json4s.jackson.Serialization
 
-case class Attribute(name: String, dataType: AttributeType, nullable: Boolean, metadata: Map[String, Any]) {
+case class Attribute(name: String, dataType: AttributeType, nullable: Boolean = true, metadata: Map[String, Any] = Map()) {
   def toStructField(transforms: Option[Transformations] = None): StructField = {
     StructField(this.name, dataType.toDataType(transforms), nullable, buildMetadata)
   }
