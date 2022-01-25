@@ -1,12 +1,12 @@
 package com.acxiom.pipeline.steps
 
-import java.nio.file.{Files, Path}
-
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
+
+import java.nio.file.{Files, Path}
 
 class DataFrameStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
 
@@ -65,7 +65,7 @@ class DataFrameStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenT
     }
 
     it ("Should validate DataFrameReaderOptions set functions") {
-      val schema = Schema(List(Attribute("col1", AttributeType("string"), nullable = false, Map("key" -> "value")),
+      val schema = Schema(List(Attribute("col1", AttributeType("string"), nullable = Some(false), Some(Map("key" -> "value"))),
         Attribute("col2", "integer"), Attribute("col3", "double")))
       val options = DataFrameReaderOptions()
       assert(options.schema.isEmpty)
@@ -74,7 +74,7 @@ class DataFrameStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenT
       assert(options1.schema.get.attributes.length == 3)
       val col1 = options1.schema.get.attributes.head
       assert(col1.name == "col1")
-      assert(!col1.nullable)
+      assert(!col1.nullable.getOrElse(true))
       val sf = col1.toStructField()
       assert(sf.metadata.contains("key") && sf.metadata.getString("key") == "value")
       assert(options1.schema.get.attributes(1).name == "col2")
