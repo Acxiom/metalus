@@ -1,7 +1,5 @@
 package com.acxiom.pipeline.steps
 
-import java.nio.file.{Files, Path}
-
 import com.acxiom.pipeline._
 import com.acxiom.pipeline.applications.ClassInfo
 import com.acxiom.pipeline.steps.Color.Color
@@ -10,11 +8,13 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StringType
-import org.json4s.{CustomSerializer, DefaultFormats, Formats, JObject}
 import org.json4s.JsonAST.JString
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.JsonMethods.parse
+import org.json4s.{CustomSerializer, DefaultFormats, Formats, JObject}
 import org.scalatest.{BeforeAndAfterAll, FunSpec}
+
+import java.nio.file.{Files, Path}
 
 class JSONStepsTests extends FunSpec with BeforeAndAfterAll {
   private val MASTER = "local[2]"
@@ -126,13 +126,16 @@ class JSONStepsTests extends FunSpec with BeforeAndAfterAll {
           |     "name": "col1",
           |     "dataType": {
           |       "baseType": "string"
-          |     }
+          |     },
+          |     "nullable": false
           |   },
           |   {
           |     "name": "col2",
           |     "dataType": {
           |       "baseType": "integer"
-          |     }
+          |     },
+          |     "metadata": {"key": "value"},
+          |     "nullable": true
           |   },
           |   {
           |     "name": "col3",
@@ -147,8 +150,11 @@ class JSONStepsTests extends FunSpec with BeforeAndAfterAll {
       assert(schema.attributes.length == 3)
       assert(schema.attributes.head.name == "col1")
       assert(schema.attributes.head.dataType.baseType == "string")
+      assert(!schema.attributes.head.nullable.getOrElse(true))
       assert(schema.attributes(1).name == "col2")
       assert(schema.attributes(1).dataType.baseType == "integer")
+      assert(schema.attributes(1).nullable.getOrElse(true))
+      assert(schema.attributes(1).metadata.getOrElse(Map()) == Map("key" -> "value"))
       assert(schema.attributes(2).name == "col3")
       assert(schema.attributes(2).dataType.baseType == "decimal")
     }

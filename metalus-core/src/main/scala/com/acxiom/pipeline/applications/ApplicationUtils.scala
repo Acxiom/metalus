@@ -70,12 +70,13 @@ object ApplicationUtils {
                           pipelineListener: PipelineListener = PipelineListener(),
                           applicationTriggers: ApplicationTriggers = ApplicationTriggers(),
                           credentialProvider: Option[CredentialProvider] = None): List[PipelineExecution] = {
+    logger.info("Building Execution Plan")
     val sparkSession = if (applicationTriggers.enableHiveSupport) { // Create the SparkSession
       SparkSession.builder().config(sparkConf).enableHiveSupport().getOrCreate()
     } else {
       SparkSession.builder().config(sparkConf).getOrCreate()
     }
-    logger.info(s"setting parquet dictionary enabled to ${applicationTriggers.parquetDictionaryEnabled.toString}")
+    logger.info(s"Setting parquet dictionary enabled to ${applicationTriggers.parquetDictionaryEnabled.toString}")
     sparkSession.sparkContext.hadoopConfiguration.set("parquet.enable.dictionary", applicationTriggers.parquetDictionaryEnabled.toString)
     implicit val formats: Formats = getJson4sFormats(application.json4sSerializers)
     val globalStepMapper = generateStepMapper(application.stepMapper, Some(PipelineStepMapper()),
