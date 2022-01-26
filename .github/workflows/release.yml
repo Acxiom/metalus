@@ -1,17 +1,15 @@
-name: Build
+name: Release
 
 on:
   push:
-    branches: [ develop, master ]
-  pull_request_target:
-    branches: [ develop, master ]
+    branches: [ master ]
 
 jobs:
   build:
     name: Compile and Test
     strategy:
       matrix:
-        os: [ ubuntu-latest, macos-latest ]
+        os: [ ubuntu-latest ]
         spark: [ '2.4_2.11', '2.4_2.12', '3.0_2.12', '3.1_2.12' ]
     runs-on: ${{ matrix.os }}
     steps:
