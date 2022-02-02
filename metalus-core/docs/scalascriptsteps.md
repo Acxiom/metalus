@@ -1,4 +1,4 @@
-[Documentation Home](../../docs/readme.md) | [Common Home](../../metalus-common/readme.md)
+[Documentation Home](../../docs/readme.md) | [Core Home](../readme.md)
 
 # ScalaSteps
 This step object provides a way for the application developer to define steps at runtime using the Scala language
