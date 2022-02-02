@@ -141,6 +141,8 @@ trait PipelineFlow {
             pipelineProgress = Some(PipelineExecutionInfo(Some(m.stepId), Some(m.pipelineId))))
         case PipelineStepMessageType.warn =>
           logger.warn(s"Step ${m.stepId} in pipeline ${pipelineLookup(m.pipelineId)} issued a warning: ${m.message}")
+        case PipelineStepMessageType.skip =>
+          throw SkipExecutionPipelineStepException(context = Some(pipelineContext))
         case _ =>
       })
     }

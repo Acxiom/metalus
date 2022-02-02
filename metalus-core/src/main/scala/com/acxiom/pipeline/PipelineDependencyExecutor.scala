@@ -182,14 +182,25 @@ object PipelineDependencyExecutor {
     * Executes the pipeline within a Future
     *
     * @param execution The execution information to use when starting the job
-    * @return A Future containing th job execution
+    * @return A Future containing the job execution
     */
   private def startExecution(execution: PipelineExecution): Future[DependencyResult] = {
     Future {
       try {
-        DependencyResult(execution,
-          Some(PipelineExecutor.executePipelines(execution.pipelines, execution.initialPipelineId,
-            execution.pipelineContext.setGlobal("executionId", execution.id))), None)
+        val executionResult = if (execution.evaluationPipelines.getOrElse(List()).nonEmpty) {
+          PipelineExecutor.executePipelines(execution.evaluationPipelines.get, None,
+            execution.pipelineContext.setGlobal("executionId", s"${execution.id}-evaluation"))
+        } else {
+          PipelineExecutionResult(execution.pipelineContext, success = true, paused = false, None)
+        }
+        executionResult.runStatus match {
+          case ExecutionEvaluationResult.RUN =>
+            DependencyResult(execution,
+              Some(PipelineExecutor.executePipelines(execution.pipelines, execution.initialPipelineId,
+                execution.pipelineContext.setGlobal("executionId", execution.id))), None)
+          case _ =>
+            DependencyResult(execution, Some(executionResult), None)
+        }
       } catch {
         case t: Throwable => DependencyResult(execution, None, Some(t))
       }
@@ -205,6 +216,9 @@ trait PipelineExecution {
   val parents: Option[List[String]]
   val id: String
   val initialPipelineId: Option[String]
+  val evaluationPipelines: Option[List[Pipeline]]
+  val forkByValue: Option[String]
+  val executionType: String = "pipeline"
 
   def pipelineContext: PipelineContext
 
@@ -221,24 +235,33 @@ object PipelineExecution {
             pipelines: List[Pipeline],
             initialPipelineId: Option[String] = None,
             pipelineContext: PipelineContext,
-            parents: Option[List[String]] = None): PipelineExecution =
-    DefaultPipelineExecution(id, pipelines, initialPipelineId, pipelineContext, parents)
+            parents: Option[List[String]] = None,
+            evaluationPipelines: Option[List[Pipeline]] = None,
+            forkByValue: Option[String] = None,
+            executionType: String = "pipeline"): PipelineExecution =
+    DefaultPipelineExecution(id, pipelines, initialPipelineId, pipelineContext, parents, evaluationPipelines, forkByValue, executionType)
 }
 
 /**
   * This case class represents a default PipelineExecution
   *
-  * @param id                An id that is unique among the list of executions
-  * @param pipelines         The list of pipelines that should be executed as part of this execution
-  * @param initialPipelineId An optional pipeline id to start the processing
-  * @param pipelineContext   The PipelineContext to use during this execution
-  * @param parents           A list of parent execution that must be satisfied before this execution may start.
+  * @param id                  An id that is unique among the list of executions
+  * @param pipelines           The list of pipelines that should be executed as part of this execution
+  * @param initialPipelineId   An optional pipeline id to start the processing
+  * @param pipelineContext     The PipelineContext to use during this execution
+  * @param parents             A list of parent execution that must be satisfied before this execution may start.
+  * @param evaluationPipelines A list of pipelines to execute when evaluating the run status of this execution.
+  * @param forkByValue         A global path to an array of values to use for forking this execution.
+  * @param executionType       Type of execution. Default is pipeline. fork and merge should be used to denote forked processes.
   */
 case class DefaultPipelineExecution(id: String = UUID.randomUUID().toString,
                                     pipelines: List[Pipeline],
                                     initialPipelineId: Option[String] = None,
                                     pipelineContext: PipelineContext,
-                                    parents: Option[List[String]] = None) extends PipelineExecution
+                                    parents: Option[List[String]] = None,
+                                    evaluationPipelines: Option[List[Pipeline]] = None,
+                                    forkByValue: Option[String] = None,
+                                    override val executionType: String = "pipeline") extends PipelineExecution
 
 case class FutureMap(futures: List[Future[DependencyResult]],
                      resultMap:  Map[String, DependencyResult])

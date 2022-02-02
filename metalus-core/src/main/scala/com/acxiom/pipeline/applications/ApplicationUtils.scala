@@ -120,7 +120,14 @@ object ApplicationUtils {
         pipelineListener = pipelineListener
       )
       PipelineExecution(execution.id.getOrElse(""),
-        generatePipelines(execution, application, pipelineManager), execution.initialPipelineId, ctx, execution.parents)
+        generatePipelines(execution, application, pipelineManager),
+        execution.initialPipelineId,
+        ctx,
+        execution.parents,
+        populatePipelines(execution.evaluationPipelines.getOrElse(List()),
+          execution.evaluationPipelineIds.getOrElse(List()), application.pipelines.getOrElse(List()), pipelineManager, allowEmpty = true),
+        execution.forkByValue,
+        execution.executionType.getOrElse("pipeline"))
     })
   }
 
@@ -153,11 +160,19 @@ object ApplicationUtils {
     val pipelineIds = execution.pipelineIds.getOrElse(List[String]())
     val applicationPipelines = application.pipelines.getOrElse(List[Pipeline]())
 
+    populatePipelines(executionPipelines, pipelineIds, applicationPipelines, pipelineManager).get
+  }
+
+  private def populatePipelines(pipelines: List[Pipeline],
+                                pipelineIds: List[String],
+                                applicationPipelines: List[Pipeline],
+                                pipelineManager: PipelineManager,
+                                allowEmpty: Boolean = false): Option[List[Pipeline]] = {
     if (pipelineIds.nonEmpty) {
       // Start with any pipelines that are part of the execution and listed in the pipelineIds
-      val filteredExecutionPipelines = executionPipelines.filter(p => pipelineIds.contains(p.id.getOrElse("")))
+      val filteredExecutionPipelines = pipelines.filter(p => pipelineIds.contains(p.id.getOrElse("")))
       // Get the remaining pipelines listed in pipelineIds
-      pipelineIds.filter(id => !filteredExecutionPipelines.exists(_.id.getOrElse("") == id))
+      Some(pipelineIds.filter(id => !filteredExecutionPipelines.exists(_.id.getOrElse("") == id))
         .foldLeft(filteredExecutionPipelines)((pipelines, pipelineId) => {
           val pipeline = applicationPipelines.find(p => p.id.getOrElse("") == pipelineId)
           if (pipeline.isDefined) {
@@ -170,13 +185,16 @@ object ApplicationUtils {
               pipelines
             }
           }
-        })
-    } else if (executionPipelines.nonEmpty) {
-      executionPipelines
-    } else if (applicationPipelines.nonEmpty) {
-      applicationPipelines
+        }))
+    } else if (pipelines.nonEmpty) {
+      Some(pipelines)
+    } else if (!allowEmpty && applicationPipelines.nonEmpty) {
+      Some(applicationPipelines)
     } else {
-      throw new IllegalArgumentException("Either execution pipelines, pipelineIds or application pipelines must be provided for an execution")
+      if (!allowEmpty) {
+        throw new IllegalArgumentException("Either pipelines, pipelineIds or application pipelines must be provided for an execution")
+      }
+      None
     }
   }
 

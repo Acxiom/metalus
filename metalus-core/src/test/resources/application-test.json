@@ -212,7 +212,29 @@
             ]
           }
         }
-      }
+      },
+      "evaluationPipelines": [{
+        "id": "Pipeline1a",
+        "name": "Pipeline 1a",
+        "steps": [
+          {
+            "id": "Pipeline1Step1",
+            "displayName": "Pipeline1Step1",
+            "type": "pipeline",
+            "params": [
+              {
+                "type": "text",
+                "name": "value",
+                "required": true,
+                "value": "!mappedObject"
+              }
+            ],
+            "engineMeta": {
+              "spark": "ExecutionSteps.normalFunction"
+            }
+          }
+        ]
+      }]
     },
     {
       "id": "1",
@@ -289,7 +311,8 @@
             }
           }
         ]
-      }
+      },
+      "evaluationPipelineIds": ["Pipeline2"]
     },
     {
       "id": "2",
@@ -343,7 +366,9 @@
             ]
           }
         }
-      }
+      },
+      "executionType": "fork",
+      "forkByValue": "some.path.within.globals"
     },
     {
       "id": "3",

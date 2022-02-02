@@ -403,6 +403,23 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
     }
   }
 
+  describe("Flow Control") {
+    it("Should skip parent execution and run child execution") {
+      val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/skip-execution-test.json")).mkString)
+      val resultMap = PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf))
+      assert(resultMap.isDefined)
+      assert(resultMap.get("0").result.isDefined)
+      assert(resultMap.get("0").result.get.runStatus == ExecutionEvaluationResult.SKIP)
+      assert(resultMap.get("0").result.get.success)
+      assert(resultMap.get("0").result.get.pipelineContext.parameters.parameters.isEmpty)
+      assert(resultMap.get("1").result.isDefined)
+      assert(resultMap.get("1").result.get.runStatus == ExecutionEvaluationResult.RUN)
+      assert(resultMap.get("1").result.get.pipelineContext.parameters.parameters.nonEmpty)
+      assert(resultMap.get("1").result.get.pipelineContext.parameters.parameters.head
+        .parameters("Pipeline1Step1").asInstanceOf[PipelineStepResponse].primaryReturn.get.asInstanceOf[String] == "Fred")
+    }
+  }
+
   private def getStringValue(pipelineContext: PipelineContext, pipelineId: String, stepId: String): String = {
     val pipelineParameters = pipelineContext.parameters.getParametersByPipelineId(pipelineId)
     if (pipelineParameters.isDefined) {

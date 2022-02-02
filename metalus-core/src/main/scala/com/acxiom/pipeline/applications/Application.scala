@@ -42,17 +42,20 @@ case class Application(executions: Option[List[Execution]],
 /**
   * Represents a single execution of a Spark application.
   *
-  * @param id                 The unique id of this execution to be used by dependent executions.
-  * @param pipelines          A list of pipelines to execute.
-  * @param pipelineIds        A List of pipelineIds, referencing the pipelines defined in the application.
-  * @param initialPipelineId  The id of the first pipeline that should be executed.
-  * @param mergeGlobals       Defines whether to merge or overwrite the application globals with the local globals.
-  * @param globals            A default set of globals for this execution.
-  * @param parents            A list of parent execution ids.
-  * @param pipelineListener   The pipeline listener class to use while processing this execution.
-  * @param securityManager    An alternate security manager class to use while processing this execution.
-  * @param stepMapper         An alternate pipeline step mapper class to use while processing this execution.
-  * @param pipelineParameters A default set of pipeline parameters to make available while processing this execution.
+  * @param id                    The unique id of this execution to be used by dependent executions.
+  * @param pipelines             A list of pipelines to execute.
+  * @param pipelineIds           A List of pipelineIds, referencing the pipelines defined in the application.
+  * @param initialPipelineId     The id of the first pipeline that should be executed.
+  * @param mergeGlobals          Defines whether to merge or overwrite the application globals with the local globals.
+  * @param globals               A default set of globals for this execution.
+  * @param parents               A list of parent execution ids.
+  * @param pipelineListener      The pipeline listener class to use while processing this execution.
+  * @param securityManager       An alternate security manager class to use while processing this execution.
+  * @param stepMapper            An alternate pipeline step mapper class to use while processing this execution.
+  * @param pipelineParameters    A default set of pipeline parameters to make available while processing this execution.
+  * @param evaluationPipelines   A list of pipelines to execute when evaluating the run status of this execution.
+  * @param evaluationPipelineIds A list of pipeline ids to execute when evaluating the run status of this execution.
+  * @param forkByValue           A global path to an array of values to use for forking this execution.
   */
 case class Execution(id: Option[String],
                      pipelines: Option[List[DefaultPipeline]] = None,
@@ -65,7 +68,11 @@ case class Execution(id: Option[String],
                      sparkListeners: Option[List[ClassInfo]] = None,
                      securityManager: Option[ClassInfo] = None,
                      stepMapper: Option[ClassInfo] = None,
-                     pipelineParameters: Option[PipelineParameters] = None)
+                     pipelineParameters: Option[PipelineParameters] = None,
+                     evaluationPipelines: Option[List[DefaultPipeline]] = None,
+                     evaluationPipelineIds: Option[List[String]] = None,
+                     forkByValue: Option[String] = None,
+                     executionType: Option[String] = None)
 
 /**
   * Contains information about a class that needs to be instantiated at runtime.

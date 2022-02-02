@@ -27,20 +27,23 @@ object PipelineExecutor {
       PipelineExecutionResult(PipelineFlow.handleEvent(exCtx, "executionFinished", List(executingPipelines, exCtx)),
         success = true, paused = false, None)
     } catch {
+      case see: SkipExecutionPipelineStepException =>
+        logger.warn(s"Stopping pipeline because of a skip exception: ${see.getMessage}")
+        PipelineExecutionResult(see.context.getOrElse(esContext), success = true, paused = false, None, ExecutionEvaluationResult.SKIP)
       case fe: ForkedPipelineStepException =>
         fe.exceptions.foreach(entry =>
           logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
-        PipelineExecutionResult(fe.context.getOrElse(esContext), success = false, paused = false, Some(fe))
+        PipelineExecutionResult(fe.context.getOrElse(esContext), success = false, paused = false, Some(fe), ExecutionEvaluationResult.STOP)
       case se: SplitStepException =>
         se.exceptions.foreach(entry =>
           logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
-        PipelineExecutionResult(se.context.getOrElse(esContext), success = false, paused = false, Some(se))
+        PipelineExecutionResult(se.context.getOrElse(esContext), success = false, paused = false, Some(se), ExecutionEvaluationResult.STOP)
       case p: PauseException =>
         logger.info(s"Paused pipeline flow at ${p.pipelineProgress.getOrElse(PipelineExecutionInfo()).displayPipelineStepString}. ${p.message}")
-        PipelineExecutionResult(p.context.getOrElse(esContext), success = false, paused = true, Some(p))
+        PipelineExecutionResult(p.context.getOrElse(esContext), success = false, paused = true, Some(p), ExecutionEvaluationResult.STOP)
       case pse: PipelineStepException =>
         logger.error(s"Stopping pipeline because of an exception", pse)
-        PipelineExecutionResult(pse.context.getOrElse(esContext), success = false, paused = false, Some(pse))
+        PipelineExecutionResult(pse.context.getOrElse(esContext), success = false, paused = false, Some(pse), ExecutionEvaluationResult.STOP)
       case t: Throwable => throw t
     }
   }
