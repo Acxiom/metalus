@@ -54,6 +54,19 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
         "customLogLevels" -> "")), sparkConf,
         PipelineListener())
       verifyApplication(executionPlan)
+      // Verify the evaluation pipelines
+      assert(executionPlan.head.evaluationPipelines.isDefined)
+      assert(executionPlan.head.evaluationPipelines.get.nonEmpty)
+      assert(executionPlan.head.evaluationPipelines.get.head.id.getOrElse("NONE") == "Pipeline1a")
+      assert(executionPlan.head.executionType == "pipeline")
+      assert(executionPlan(1).evaluationPipelines.isDefined)
+      assert(executionPlan(1).evaluationPipelines.get.nonEmpty)
+      assert(executionPlan(1).evaluationPipelines.get.head.id.getOrElse("NONE") == "Pipeline2")
+      assert(executionPlan(1).executionType == "pipeline")
+      assert(executionPlan(2).forkByValue.isDefined)
+      assert(executionPlan(2).forkByValue.get == "some.path.within.globals")
+      assert(executionPlan(2).executionType == "fork")
+      // Clean up
       removeSparkListeners(executionPlan.head.pipelineContext.sparkSession.get)
       executionPlan.head.pipelineContext.sparkSession.get.stop()
     }
@@ -81,7 +94,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
         executionPlan.head.pipelineContext.sparkSession.get.stop()
       }
       removeSparkListeners(SparkSession.builder().getOrCreate())
-      assert(thrown.getMessage == "Either execution pipelines, pipelineIds or application pipelines must be provided for an execution")
+      assert(thrown.getMessage == "Either pipelines, pipelineIds or application pipelines must be provided for an execution")
     }
 
     it("Should load custom json4s formats from the application json") {

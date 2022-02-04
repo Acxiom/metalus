@@ -1,0 +1,99 @@
+{
+  "sparkConf": {
+    "kryoClasses": [
+      "org.apache.hadoop.io.LongWritable",
+      "org.apache.http.client.entity.UrlEncodedFormEntity"
+    ],
+    "setOptions": [
+      {
+        "name": "spark.hadoop.io.compression.codecs",
+        "value": "org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec,hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec,org.apache.hadoop.io.compress.GzipCodec"
+      }
+    ]
+  },
+  "stepPackages": [
+    "com.acxiom.pipeline.steps",
+    "com.acxiom.pipeline"
+  ],
+  "executions": [
+    {
+      "id": "0",
+      "pipelines": [
+        {
+          "id": "Pipeline1Skipped",
+          "name": "Pipeline 1 Skipped",
+          "steps": [
+            {
+              "id": "Pipeline1Step1",
+              "displayName": "Pipeline1Step1",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "Fred Should Not Appear"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
+        }
+      ],
+      "evaluationPipelines": [
+        {
+          "id": "SkipPipeline",
+          "name": "Skip Pipeline",
+          "steps": [
+            {
+              "id": "SkipException",
+              "displayName": "SkipException",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "message",
+                  "required": true,
+                  "value": "Skip Execution Thrown"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExceptionSteps.throwSkipExecutionException"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "1",
+      "pipelines": [
+        {
+          "id": "Pipeline1",
+          "name": "Pipeline 1",
+          "steps": [
+            {
+              "id": "Pipeline1Step1",
+              "displayName": "Pipeline1Step1",
+              "type": "pipeline",
+              "params": [
+                {
+                  "type": "text",
+                  "name": "value",
+                  "required": true,
+                  "value": "Fred"
+                }
+              ],
+              "engineMeta": {
+                "spark": "ExecutionSteps.normalFunction"
+              }
+            }
+          ]
+        }
+      ],
+      "parents": ["0"]
+    }
+  ]
+}

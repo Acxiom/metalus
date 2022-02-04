@@ -63,5 +63,30 @@ from the parameter in the value.
  
 _**Note:**_ in the case of global name collision, the latest value (child over parent) for a shortened name will be used.
 
+## Forks (MVP)
+An execution may process a list of values in parallel by changing the _executionType_ to _fork_ and providing the _forkByValue_
+attribute. The behavior is similar to [fork steps](fork-join.md) within pipelines with the exception that the fork and 
+join executions will run the provided pipelines. The _forkByValue_ is a mapping string will be applied to the execution 
+globals in an effort to locate the list which is used to spin up parallel processes. Within the _fork_ execution, the 
+individual fork value will be assigned to a global named _executionForkValue_. All child executions of the fork will process
+in parallel until a join execution (executionType will be join) is reached. The join execution will be executed once and
+the output (pipelineParameters and globals) of the parallel executions will be merged into a list. A join execution is
+required.
+
+* **executionType** - An optional type. Default is pipeline. _fork_ and _join_ are also options.
+* **forkByValues** - An optional mapping that will be applied to globals to identify a list of values that should be processed in parallel.
+  This attribute is only used when _executionType_ is set to _fork_.
+## Evaluations
+An execution can now provide pipelines that will run prior to the main pipelines and determine whether the execution 
+should _RUN_, _STOP_ or _SKIP_. Prior to this feature, executions default behavior was _RUN_ and _STOP_. The _SKIP_ 
+action provides a new behavior that allows an execution to skip running the pipelines and run the child executions.
+
+* **evaluationPipelines** - An optional array of pipelines to run to determine if the execution should run, stop or skip.
+  These pipelines will be executed before the _pipelines_. When the pipelines result in a SKIP,
+  then the main pipelines will be skipped, but children will be executed. A new exception
+  _SkipExecutionPipelineStepException_ and step [throwSkipExecutionException](../metalus-core/docs/exceptionsteps.md#throw-skip-execution-exception) have been created
+  to make it easier to control this behavior.
+* **evaluationPipelineIds** - An optional array of pipelines ids to run prior to executing the main pipelines. This is an alternate to the _evaluationPipelines_ array.
+
 ## Execution Flow
 ![Execution Flow](images/Execution_Plan_Flow.png "Execution Flow")

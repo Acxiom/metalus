@@ -150,6 +150,19 @@ case class ForkedPipelineStepException(errorType: Option[String] = Some("forkSte
   }
 }
 
+/**
+  *
+  * @param errorType  The type of exception. The default is forkStepException
+  * @param dateTime   The date and time of the exception
+  * @param message    The base message to detailing the reason
+  * @param context    The PipelineContext at the time of the exception
+  */
+case class SkipExecutionPipelineStepException(errorType: Option[String] = Some("skipExecutionException"),
+                                              dateTime: Option[String] = Some(new Date().toString),
+                                              message: Option[String] = Some("Execution should be skipped"),
+                                              context: Option[PipelineContext] = None) extends Exception(message.getOrElse(""))
+  with PipelineStepException
+
 trait PipelineStepMessage {
   val stepId: String
   val pipelineId: String
@@ -159,7 +172,7 @@ trait PipelineStepMessage {
 
 object PipelineStepMessageType extends Enumeration {
   type PipelineStepMessageType = Value
-  val error, warn, pause, info = Value
+  val error, warn, pause, info, skip = Value
 }
 
 object PipelineStepMessage {

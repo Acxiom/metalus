@@ -27,3 +27,4 @@ _Authorization_ implementations may be provided.
 ## Step Classes
 * [JavascriptSteps](docs/javascriptsteps.md)
 * [ScalaSteps](docs/scalascriptsteps.md)
+* [ExceptionSteps](docs/exceptionsteps.md)

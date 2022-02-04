@@ -403,6 +403,91 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
     }
   }
 
+  describe("Flow Control") {
+    it("Should skip parent execution and run child execution") {
+      val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/skip-execution-test.json")).mkString)
+      val resultMap = PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf))
+      assert(resultMap.isDefined)
+      assert(resultMap.get("0").result.isDefined)
+      assert(resultMap.get("0").result.get.runStatus == ExecutionEvaluationResult.SKIP)
+      assert(resultMap.get("0").result.get.success)
+      assert(resultMap.get("0").result.get.pipelineContext.parameters.parameters.isEmpty)
+      assert(resultMap.get("1").result.isDefined)
+      assert(resultMap.get("1").result.get.runStatus == ExecutionEvaluationResult.RUN)
+      assert(resultMap.get("1").result.get.pipelineContext.parameters.parameters.nonEmpty)
+      assert(resultMap.get("1").result.get.pipelineContext.parameters.parameters.head
+        .parameters("Pipeline1Step1").asInstanceOf[PipelineStepResponse].primaryReturn.get.asInstanceOf[String] == "Fred")
+    }
+
+    it ("Should process with embedded forks") {
+      val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/fork-application-test.json")).mkString)
+      val resultMap = PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf))
+      assert(resultMap.isDefined)
+      assert(resultMap.get.size == 10)
+      // Validate results
+      val root = resultMap.get("Root")
+      assert(Option(root).isDefined)
+      assert(root.result.isDefined)
+      assert(root.result.get.success)
+      val e1 = resultMap.get("E1")
+      assert(Option(e1).isDefined)
+      assert(e1.result.isDefined)
+      assert(e1.result.get.success)
+      val e2 = resultMap.get("E2")
+      assert(Option(e2).isDefined)
+      assert(e2.result.isDefined)
+      assert(e2.result.get.success)
+      val e3 = resultMap.get("E3")
+      assert(Option(e3).isDefined)
+      assert(e3.result.isDefined)
+      assert(e3.result.get.success)
+      val e4 = resultMap.get("E4")
+      assert(Option(e4).isDefined)
+      assert(e4.result.isDefined)
+      assert(e4.result.get.success)
+      val e5 = resultMap.get("E5")
+      assert(Option(e5).isDefined)
+      assert(e5.result.isDefined)
+      assert(e5.result.get.success)
+      val fork1 = resultMap.get("Fork1")
+      assert(Option(fork1).isDefined)
+      assert(fork1.result.isDefined)
+      assert(fork1.result.get.success)
+      assert(fork1.result.get.pipelineContext.getGlobalAs[Map[String, Any]]("Fork1")
+        .get("pipelineParameters").asInstanceOf[List[Map[String, Any]]].length == 3)
+      val fork2 = resultMap.get("Fork2")
+      assert(Option(fork2).isDefined)
+      assert(fork2.result.isDefined)
+      assert(fork2.result.get.success)
+      val join1 = resultMap.get("Join1")
+      assert(Option(join1).isDefined)
+      assert(join1.result.isDefined)
+      assert(join1.result.get.success)
+      val join2 = resultMap.get("Join2")
+      assert(Option(join2).isDefined)
+      assert(join2.result.isDefined)
+      assert(join2.result.get.success)
+    }
+
+    it ("Should fail when a valid join cannot be found") {
+      val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/fork-validation-test.json")).mkString)
+      val thrown = intercept[IllegalStateException] {
+        PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf))
+      }
+      assert(Option(thrown).isDefined)
+      assert(thrown.getMessage == "Unable to find a join execution for the fork execution 0")
+    }
+
+    it ("Should fail when multiple joins are found") {
+      val application = ApplicationUtils.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/fork-validation-test2.json")).mkString)
+      val thrown = intercept[PipelineException] {
+        PipelineDependencyExecutor.executePlan(ApplicationUtils.createExecutionPlan(application, None, SparkTestHelper.sparkConf))
+      }
+      assert(Option(thrown).isDefined)
+      assert(thrown.getMessage == "Multiple join executions found for 0")
+    }
+  }
+
   private def getStringValue(pipelineContext: PipelineContext, pipelineId: String, stepId: String): String = {
     val pipelineParameters = pipelineContext.parameters.getParametersByPipelineId(pipelineId)
     if (pipelineParameters.isDefined) {
