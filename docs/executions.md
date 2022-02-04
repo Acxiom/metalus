@@ -63,8 +63,8 @@ from the parameter in the value.
  
 _**Note:**_ in the case of global name collision, the latest value (child over parent) for a shortened name will be used.
 
-## Forks
-An execution may be process a list of values in parallel by changing the _executionType_ to _fork_ and providing the _forkByValue_
+## Forks (MVP)
+An execution may process a list of values in parallel by changing the _executionType_ to _fork_ and providing the _forkByValue_
 attribute. The behavior is similar to [fork steps](fork-join.md) within pipelines with the exception that the fork and 
 join executions will run the provided pipelines. The _forkByValue_ is a mapping string will be applied to the execution 
 globals in an effort to locate the list which is used to spin up parallel processes. Within the _fork_ execution, the 

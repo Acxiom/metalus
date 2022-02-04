@@ -193,11 +193,7 @@ object PipelineDependencyExecutor {
   private def mergeForkResults(mergedResults: Map[String, DependencyResult], result: (String, DependencyResult)) = {
     if (mergedResults.contains(result._1)) {
       val baseResult = mergedResults(result._1)
-      val error = if (result._2.error.isDefined) {
-        result._2.error
-      } else {
-        baseResult.error
-      }
+      val error = result._2.error.orElse(baseResult.error)
       val r = if (error.isDefined) {
         None
       } else if (baseResult.result.isEmpty && result._2.result.isDefined) {
@@ -353,11 +349,7 @@ object PipelineDependencyExecutor {
     * @param result The FutureResult containing the result of the execution.
     */
   private def logExecutionSuccess(result: DependencyResult): Unit = {
-    val success = if (result.result.isDefined) {
-      result.result.get.success
-    } else {
-      false
-    }
+    val success = result.result.exists(_.success)
     logger.debug(s"Saving result of execution ${result.execution.id} as $success")
     if (!success && result.error.isDefined) {
       logger.error(s"Exception thrown from execution ${result.execution.id}", result.error.get)

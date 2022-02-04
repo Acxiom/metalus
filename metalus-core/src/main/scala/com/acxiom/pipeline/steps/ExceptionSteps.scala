@@ -22,11 +22,14 @@ object ExceptionSteps {
     "Throws an Exception that will indicate that the current pipeline should stop.",
     "Pipeline",
     "Exceptions")
-  @StepParameters(Map("message" -> StepParameter(Some("message"), Some(true), None,
-    None, None, None, Some("Thee message to log when the exception is thrown"))))
-  def throwPipelineException(message: String, pipelineContext: PipelineContext): Unit = {
-    throw PipelineException(message = Some(message),
-      context = Some(pipelineContext),
-      pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+  @StepParameters(Map("message" -> StepParameter(Some("message"), Some(true), None, None, None, None, Some("The message to log when the exception is thrown")),
+  "cause" -> StepParameter(Some("cause"), Some(true), None, None, None, None, Some("An optional exception to include in the thrown exception")),
+  "stepIdOverride" -> StepParameter(Some("stepIdOverride"), Some(true), None, None, None, None, Some("An optional stepId to use instead of the default"))))
+  def throwPipelineException(message: String, cause: Option[Throwable] = None,
+                             stepIdOverride: Option[String] = None, pipelineContext: PipelineContext): Unit = {
+    val progress = stepIdOverride.map(id => pipelineContext.getPipelineExecutionInfo.copy(stepId = Some(id)))
+      .getOrElse(pipelineContext.getPipelineExecutionInfo)
+    throw PipelineException(message = Some(message), context = Some(pipelineContext),
+      cause = cause.orNull, pipelineProgress = Some(progress))
   }
 }

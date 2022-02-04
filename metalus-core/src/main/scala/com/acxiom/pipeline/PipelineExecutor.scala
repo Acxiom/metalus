@@ -44,7 +44,6 @@ object PipelineExecutor {
       case pse: PipelineStepException =>
         logger.error(s"Stopping pipeline because of an exception", pse)
         PipelineExecutionResult(pse.context.getOrElse(esContext), success = false, paused = false, Some(pse), ExecutionEvaluationResult.STOP)
-      case t: Throwable => throw t
     }
   }
 }

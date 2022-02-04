@@ -56,6 +56,7 @@ case class Application(executions: Option[List[Execution]],
   * @param evaluationPipelines   A list of pipelines to execute when evaluating the run status of this execution.
   * @param evaluationPipelineIds A list of pipeline ids to execute when evaluating the run status of this execution.
   * @param forkByValue           A global path to an array of values to use for forking this execution.
+  * @param executionType         An optional type parameter that may be pipeline (default), fork or join
   */
 case class Execution(id: Option[String],
                      pipelines: Option[List[DefaultPipeline]] = None,
