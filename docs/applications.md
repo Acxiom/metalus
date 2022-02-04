@@ -220,9 +220,12 @@ array then the application pipelines will be checked and then finally the classp
 * **evaluationPipelines** - An optional array of pipelines to run to determine if the execution should run, stop or skip.
                             These pipelines will be executed before the _pipelines_. When the pipelines result in a SKIP,
                             then the main pipelines will be skipped, but children will be executed. A new exception
-                            _SkipExecutionPipelineStepException_ and step _throwSkipExecutionException_ have been created
+                            _SkipExecutionPipelineStepException_ and step [throwSkipExecutionException](../metalus-core/docs/exceptionsteps.md#throw-skip-execution-exception) have been created
                             to make it easier to control this behavior.
 * **evaluationPipelineIds** - An optional array of pipelines ids to run prior to executing the main pipelines. This is an alternate to the _evaluationPipelines_ array.
+* **executionType** - An optional type. Default is pipeline. _fork_ and _join_ are also options.
+* **forkByValues** - An optional mapping that will be applied to globals to identify a list of values that should be processed in parallel.
+                     This attribute is only used when _executionType_ is set to _fork_.
 
 
 Below is a list of overrides:
