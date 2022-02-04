@@ -10,9 +10,10 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec}
 import software.sham.sftp.MockSftpServer
-
-import java.io.File
+import java.io.{File, PrintWriter}
 import java.nio.file.{Files, Path, StandardCopyOption}
+
+import scala.io.Source
 
 class FileManagerStepsTests extends FunSpec with BeforeAndAfterAll {
   val MASTER = "local[2]"
@@ -69,6 +70,94 @@ class FileManagerStepsTests extends FunSpec with BeforeAndAfterAll {
     FileUtils.deleteDirectory(sparkLocalDir.toFile)
   }
 
+  describe("FileManagerSteps - Basic") {
+    val hdfsConnector = HDFSFileConnector("my-connector", None, None)
+    it("Should get input and output streams") {
+      val hdfs = hdfsConnector.getFileManager(pipelineContext)
+      val out = FileManagerSteps.getOutputStream(hdfs, "/fm-out.txt", Some(true))
+      val pw = new PrintWriter(out)
+      pw.print("chicken")
+      pw.flush()
+      pw.close()
+
+      val in = FileManagerSteps.getInputStream(hdfs, "/fm-out.txt")
+      assert(Source.fromInputStream(in).mkString == "chicken")
+    }
+
+    it("Should check if a file exists") {
+      val hdfs = hdfsConnector.getFileManager(pipelineContext)
+      assert(!FileManagerSteps.exists(hdfs, "/exists.txt"))
+      val out = FileManagerSteps.getOutputStream(hdfs, "/exists.txt", Some(true))
+      val pw = new PrintWriter(out)
+      pw.print("chicken")
+      pw.flush()
+      pw.close()
+      assert(FileManagerSteps.exists(hdfs, "/exists.txt"))
+    }
+
+    it("Should rename a file") {
+      val hdfs = hdfsConnector.getFileManager(pipelineContext)
+      val out = FileManagerSteps.getOutputStream(hdfs, "/bad-name.txt", Some(true))
+      val pw = new PrintWriter(out)
+      pw.print("chicken")
+      pw.flush()
+      pw.close()
+      FileManagerSteps.rename(hdfs, "/bad-name.txt", "/good-name.txt")
+      assert(FileManagerSteps.exists(hdfs, "/good-name.txt"))
+    }
+
+    it("Should get a file size") {
+      val hdfs = hdfsConnector.getFileManager(pipelineContext)
+      assert(!FileManagerSteps.exists(hdfs, "/size.txt"))
+      val out = FileManagerSteps.getOutputStream(hdfs, "/size.txt", Some(true))
+      val pw = new PrintWriter(out)
+      pw.print("chicken")
+      pw.flush()
+      pw.close()
+      val size = 7
+      assert(FileManagerSteps.getSize(hdfs, "/size.txt") == size)
+    }
+
+    it("Should delete a file") {
+      val hdfs = hdfsConnector.getFileManager(pipelineContext)
+      assert(!FileManagerSteps.exists(hdfs, "/delete.txt"))
+      val out = FileManagerSteps.getOutputStream(hdfs, "/delete.txt", Some(true))
+      val pw = new PrintWriter(out)
+      pw.print("chicken")
+      pw.flush()
+      pw.close()
+      assert(FileManagerSteps.exists(hdfs, "/delete.txt"))
+      FileManagerSteps.deleteFile(hdfs, "/delete.txt")
+      assert(!FileManagerSteps.exists(hdfs, "/delete.txt"))
+    }
+
+    it("Should get a file listing") {
+      val hdfs = hdfsConnector.getFileManager(pipelineContext)
+      assert(!FileManagerSteps.exists(hdfs, "/listing/file.txt"))
+      val out = FileManagerSteps.getOutputStream(hdfs, "/listing/file.txt", Some(true))
+      val pw = new PrintWriter(out)
+      pw.print("chicken")
+      pw.flush()
+      pw.close()
+      val listing = FileManagerSteps.getFileListing(hdfs, "/listing")
+      assert(listing.size == 1)
+      assert(listing.head.fileName == "file.txt")
+    }
+
+    it("Should get a directory listing") {
+      val hdfs = hdfsConnector.getFileManager(pipelineContext)
+      assert(!FileManagerSteps.exists(hdfs, "/dlisting/sub/list.txt"))
+      val out = FileManagerSteps.getOutputStream(hdfs, "/dlisting/sub/list.txt", Some(true))
+      val pw = new PrintWriter(out)
+      pw.print("chicken")
+      pw.flush()
+      pw.close()
+      val listing = FileManagerSteps.getDirectoryListing(hdfs, "/dlisting")
+      assert(listing.size == 1)
+      assert(listing.head.fileName == "sub")
+    }
+  }
+
   describe("FileManagerSteps - Copy") {
     it("Should fail when strict host checking is enabled against localhost") {
       val sftpConnector = SFTPFileConnector("localhost", "sftp-connector", None,
@@ -86,8 +175,8 @@ class FileManagerStepsTests extends FunSpec with BeforeAndAfterAll {
       val hdfs = hdfsConnector.getFileManager(pipelineContext)
       val sftp = SFTPSteps.createFileManager("localhost", Some("tester"), Some("testing"), Some(SFTP_PORT), Some(false), pipelineContext)
       assert(sftp.isDefined)
-      // Verify that the HDFS file system has nothing
-      assert(hdfs.getFileListing("/").isEmpty)
+      // Verify copied_data doesn't exist
+      assert(!hdfs.exists("/COPIED_DATA.csv"))
       // Connect to the SFTP file system
       sftp.get.connect()
 

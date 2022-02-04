@@ -30,6 +30,54 @@ size.
 * **srcPath** - The path on the source file system to the file.
 * **destFS** - The destination FileManger.
 * **destPath** - The path on the destination file system to the file.
+
+## Get an InputStream
+This step will get an input stream.
+
+* **fileManager** - The FileManager.
+* **path** - The path to the file being read.
+* **bufferSize** - The optional buffer size. Uses the file manager's default if not provided.
+
+## Get an OutputStream
+This step will get an Output stream.
+
+* **fileManager** - The FileManager.
+* **path** - The path to the file being written.
+* **append** - The optional append flag. Uses the file manager's default if not provided.
+* **bufferSize** - The optional buffer size. Uses the file manager's default if not provided.
+
+## Rename a File
+This step will rename a file.
+
+* **fileManager** - The FileManager.
+* **path** - The path to the file being renamed.
+* **destPath** - The destination path.
+
+## Get File Size
+This step will return the size of a file.
+
+* **fileManager** - The FileManager.
+* **path** - The path to the file being checked.
+
+## Does File Exist
+This step will return whether a file exists.
+
+* **fileManager** - The FileManager.
+* **path** - The path to the file being checked.
+
+## Get a File Listing
+This step will return a file listing.
+
+* **fileManager** - The FileManager.
+* **path** - The path to list.
+* **recursive** - Indicates whether to perform a recursive listing. Uses the file manager's default if not provided.
+
+## Get a Directory Listing
+This step will return a file listing.
+
+* **fileManager** - The FileManager.
+* **path** - The path to list.
+
 ## Delete File
 This step will delete a file.
 

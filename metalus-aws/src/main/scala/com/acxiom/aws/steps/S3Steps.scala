@@ -70,9 +70,10 @@ object S3Steps {
                    accountId: Option[String] = None,
                    role: Option[String] = None,
                    partition: Option[String] = None,
+                   duration: Option[String] = None,
                    options: Option[DataFrameReaderOptions] = None,
                    pipelineContext: PipelineContext): DataFrame = {
-    S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, accountId, role, partition, pipelineContext)
+    S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, accountId, role, partition, duration, pipelineContext)
     DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession.get, options.getOrElse(DataFrameReaderOptions()))
       .load(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
@@ -93,9 +94,10 @@ object S3Steps {
                     accountId: Option[String] = None,
                     role: Option[String] = None,
                     partition: Option[String] = None,
+                    duration: Option[String] = None,
                     options: Option[DataFrameReaderOptions] = None,
                     pipelineContext: PipelineContext): DataFrame = {
-    S3Utilities.setS3Authorization(paths.head, accessKeyId, secretAccessKey, accountId, role, partition, pipelineContext)
+    S3Utilities.setS3Authorization(paths.head, accessKeyId, secretAccessKey, accountId, role, partition, duration, pipelineContext)
     DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession.get, options.getOrElse(DataFrameReaderOptions()))
       .load(paths.map(p => S3Utilities.replaceProtocol(p, S3Utilities.deriveProtocol(p))): _*)
   }
@@ -117,9 +119,10 @@ object S3Steps {
                   accountId: Option[String] = None,
                   role: Option[String] = None,
                   partition: Option[String] = None,
+                  duration: Option[String] = None,
                   options: Option[DataFrameWriterOptions] = None,
                   pipelineContext: PipelineContext): Unit = {
-    S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, accountId, role, partition, pipelineContext)
+    S3Utilities.setS3Authorization(path, accessKeyId, secretAccessKey, accountId, role, partition, duration, pipelineContext)
     DataConnectorUtilities.buildDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions()))
       .save(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
   }
