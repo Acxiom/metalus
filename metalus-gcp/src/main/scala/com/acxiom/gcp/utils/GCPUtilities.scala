@@ -90,7 +90,7 @@ object GCPUtilities {
   def generateCredentials(credentials: Option[Map[String, String]]): Option[GoogleCredentials] = {
     if (credentials.isDefined) {
       Some(GoogleCredentials.fromStream(
-        new ByteArrayInputStream(Serialization.write(credentials)(DefaultFormats).getBytes))
+        new ByteArrayInputStream(Serialization.write(credentials.get)(DefaultFormats).getBytes))
         .createScoped("https://www.googleapis.com/auth/cloud-platform"))
     } else {
       None
@@ -104,7 +104,7 @@ object GCPUtilities {
     */
   def generateCredentialsByteArray(credentials: Option[Map[String, String]]): Option[Array[Byte]] = {
     if (credentials.isDefined) {
-      Some(Serialization.write(credentials)(DefaultFormats).getBytes)
+      Some(Serialization.write(credentials.get)(DefaultFormats).getBytes)
     } else {
       None
     }

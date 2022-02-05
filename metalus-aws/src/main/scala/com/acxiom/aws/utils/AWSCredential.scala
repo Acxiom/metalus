@@ -15,6 +15,7 @@ trait AWSCredential extends Credential {
   def sessionName: Option[String] = None
   def awsPartition: Option[String] = None
   def externalId: Option[String] = None
+  def duration: Option[String] = None
 
   def awsRoleARN: Option[String] = {
     val role = awsRole
@@ -92,36 +93,41 @@ class DefaultAWSCredential(override val parameters: Map[String, Any]) extends AW
   } else if (parameters.contains("externalId")) {
     parameters.get("externalId").asInstanceOf[Option[String]]
   } else { None }
+
+  override def duration: Option[String] = keyMap.get("duration").orElse(parameters.get("duration").map(_.toString))
 }
 
 class AWSBasicCredential(override val parameters: Map[String, Any]) extends AWSCredential {
-  override def awsAccessKey: Option[String] = parameters.get("accessKeyId").asInstanceOf[Option[String]]
-  override def awsAccessSecret: Option[String] = parameters.get("secretAccessKey").asInstanceOf[Option[String]]
-  override def awsRole: Option[String] = parameters.get("role").asInstanceOf[Option[String]]
-  override def awsAccountId: Option[String] = parameters.get("accountId").asInstanceOf[Option[String]]
-  override def sessionName: Option[String] = parameters.get("session").asInstanceOf[Option[String]]
-  override def awsPartition: Option[String] = parameters.get("partition").asInstanceOf[Option[String]]
-  override def externalId: Option[String] = parameters.get("externalId").asInstanceOf[Option[String]]
+  override def awsAccessKey: Option[String] = parameters.get("accessKeyId").map(_.toString)
+  override def awsAccessSecret: Option[String] = parameters.get("secretAccessKey").map(_.toString)
+  override def awsRole: Option[String] = parameters.get("role").map(_.toString)
+  override def awsAccountId: Option[String] = parameters.get("accountId").map(_.toString)
+  override def sessionName: Option[String] = parameters.get("session").map(_.toString)
+  override def awsPartition: Option[String] = parameters.get("partition").map(_.toString)
+  override def externalId: Option[String] = parameters.get("externalId").map(_.toString)
+  override def duration: Option[String] = parameters.get("duration").map(_.toString)
 }
 
 class AWSCloudWatchCredential(override val parameters: Map[String, Any]) extends AWSCredential {
   override def name: String = "AWSCloudWatchCredential"
-  override def awsAccessKey: Option[String] = parameters.get("cloudWatchAccessKeyId").asInstanceOf[Option[String]]
-  override def awsAccessSecret: Option[String] = parameters.get("cloudWatchSecretAccessKey").asInstanceOf[Option[String]]
-  override def awsRole: Option[String] = parameters.get("cloudWatchRole").asInstanceOf[Option[String]]
-  override def awsAccountId: Option[String] = parameters.get("cloudWatchAccountId").asInstanceOf[Option[String]]
-  override def sessionName: Option[String] = parameters.get("cloudWatchSession").asInstanceOf[Option[String]]
-  override def awsPartition: Option[String] = parameters.get("cloudWatchPartition").asInstanceOf[Option[String]]
-  override def externalId: Option[String] = parameters.get("cloudWatchExternalId").asInstanceOf[Option[String]]
+  override def awsAccessKey: Option[String] = parameters.get("cloudWatchAccessKeyId").map(_.toString)
+  override def awsAccessSecret: Option[String] = parameters.get("cloudWatchSecretAccessKey").map(_.toString)
+  override def awsRole: Option[String] = parameters.get("cloudWatchRole").map(_.toString)
+  override def awsAccountId: Option[String] = parameters.get("cloudWatchAccountId").map(_.toString)
+  override def sessionName: Option[String] = parameters.get("cloudWatchSession").map(_.toString)
+  override def awsPartition: Option[String] = parameters.get("cloudWatchPartition").map(_.toString)
+  override def externalId: Option[String] = parameters.get("cloudWatchExternalId").map(_.toString)
+  override def duration: Option[String] = parameters.get("cloudWatchDuration").map(_.toString)
 }
 
 class AWSDynamoDBCredential(override val parameters: Map[String, Any]) extends AWSCredential {
   override def name: String = "AWSDynamoDBCredential"
-  override def awsAccessKey: Option[String] = parameters.get("dynamoDBAccessKeyId").asInstanceOf[Option[String]]
-  override def awsAccessSecret: Option[String] = parameters.get("dynamoDBSecretAccessKey").asInstanceOf[Option[String]]
-  override def awsRole: Option[String] = parameters.get("dynamoDBRole").asInstanceOf[Option[String]]
-  override def awsAccountId: Option[String] = parameters.get("dynamoDBAccountId").asInstanceOf[Option[String]]
-  override def sessionName: Option[String] = parameters.get("dynamoDBSession").asInstanceOf[Option[String]]
-  override def awsPartition: Option[String] = parameters.get("dynamoDBPartition").asInstanceOf[Option[String]]
-  override def externalId: Option[String] = parameters.get("dynamoDBExternalId").asInstanceOf[Option[String]]
+  override def awsAccessKey: Option[String] = parameters.get("dynamoDBAccessKeyId").map(_.toString)
+  override def awsAccessSecret: Option[String] = parameters.get("dynamoDBSecretAccessKey").map(_.toString)
+  override def awsRole: Option[String] = parameters.get("dynamoDBRole").map(_.toString)
+  override def awsAccountId: Option[String] = parameters.get("dynamoDBAccountId").map(_.toString)
+  override def sessionName: Option[String] = parameters.get("dynamoDBSession").map(_.toString)
+  override def awsPartition: Option[String] = parameters.get("dynamoDBPartition").map(_.toString)
+  override def externalId: Option[String] = parameters.get("dynamoDBExternalId").map(_.toString)
+  override def duration: Option[String] = parameters.get("dynamoDBDuration").map(_.toString)
 }

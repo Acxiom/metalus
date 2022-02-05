@@ -1,5 +1,6 @@
 package com.acxiom.gcp.fs
 
+import com.acxiom.pipeline.Constants
 import com.acxiom.pipeline.fs.{FileInfo, FileManager}
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.storage.{BlobId, BlobInfo, Storage, StorageOptions}
@@ -19,18 +20,22 @@ object GCSFileManager {
     * @return A raw path with no protocol information
     */
   def prepareGCSFilePath(path: String, bucket: Option[String] = None): String = {
-    if (path.startsWith("/")) {
+    val newPath = if (path.startsWith("/")) {
       path.substring(1)
-    } else if (path.startsWith("gs:")) {
+    } else if (path.startsWith(s"gs:") && bucket.isDefined && path.contains(bucket.get)) {
+      path.substring(path.indexOf(s"${bucket.get}/") + bucket.get.length + 1)
+    } else if (path.startsWith(s"gs:") && bucket.isDefined) {
+      path.substring(Constants.FIVE)
+    } else if (path.startsWith(s"gs:")) {
       new URI(path).normalize().toString
     } else {
       path
     }
+    newPath
   }
 }
 
 class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
-
   def this(projectId: String, bucket: String, jsonAuth: Option[String]) = {
     this(
       (if (jsonAuth.isDefined) {
@@ -60,7 +65,7 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
     * @return True if the path exists, otherwise false.
     */
   override def exists(path: String): Boolean = {
-    val blob = storage.get(bucket, GCSFileManager.prepareGCSFilePath(path))
+    val blob = storage.get(bucket, GCSFileManager.prepareGCSFilePath(path, Some(bucket)))
     Option(blob).isDefined && blob.exists()
   }
 
@@ -73,7 +78,7 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
     */
   override def getInputStream(path: String, bufferSize: Int): InputStream = {
     new BufferedInputStream(
-      Channels.newInputStream(storage.get(bucket, GCSFileManager.prepareGCSFilePath(path)).reader()), bufferSize)
+      Channels.newInputStream(storage.get(bucket, GCSFileManager.prepareGCSFilePath(path, Some(bucket))).reader()), bufferSize)
   }
 
   /**
@@ -85,7 +90,7 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
     * @return
     */
   override def getOutputStream(path: String, append: Boolean, bufferSize: Int): OutputStream = {
-    val cleanPath = GCSFileManager.prepareGCSFilePath(path)
+    val cleanPath = GCSFileManager.prepareGCSFilePath(path, Some(bucket))
     val blob = storage.get(bucket, cleanPath)
     if (Option(blob).isEmpty || !blob.exists()) {
       val newBlob = storage.create(BlobInfo.newBuilder(BlobId.of(bucket, cleanPath)).build())
@@ -103,7 +108,7 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
     * @return True if the path could be renamed.
     */
   override def rename(path: String, destPath: String): Boolean = {
-    val cleanPath = GCSFileManager.prepareGCSFilePath(path)
+    val cleanPath = GCSFileManager.prepareGCSFilePath(path, Some(bucket))
     val blob = storage.get(bucket, cleanPath)
     val copyWriter = blob.copyTo(bucket, destPath)
     copyWriter.getResult
@@ -117,7 +122,7 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
     * @return True if the path could be deleted.
     */
   override def deleteFile(path: String): Boolean = {
-    storage.get(bucket, GCSFileManager.prepareGCSFilePath(path)).delete()
+    storage.get(bucket, GCSFileManager.prepareGCSFilePath(path, Some(bucket))).delete()
   }
 
   /**
@@ -127,7 +132,7 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
     * @return size of the given file.
     */
   override def getSize(path: String): Long = {
-    storage.get(bucket, GCSFileManager.prepareGCSFilePath(path)).getSize
+    storage.get(bucket, GCSFileManager.prepareGCSFilePath(path, Some(bucket))).getSize
   }
 
   /**
@@ -140,14 +145,14 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
   override def getFileListing(path: String, recursive: Boolean = true): List[FileInfo] = {
     if (!recursive) {
       storage.list(bucket, Storage.BlobListOption.delimiter("/"),
-        Storage.BlobListOption.prefix(GCSFileManager.prepareGCSFilePath(path)))
+        Storage.BlobListOption.prefix(GCSFileManager.prepareGCSFilePath(path, Some(bucket))))
         .iterateAll().iterator().asScala.foldLeft(List[FileInfo]())((list, blob) => {
-        list :+ FileInfo(blob.getName, blob.getSize, blob.isDirectory, Some("gs://bucket"))
+        list :+ FileInfo(blob.getName, blob.getSize, blob.isDirectory, Some(s"gs://$bucket"))
       }).filterNot(_.directory)
     } else {
-      val page = storage.list(bucket, Storage.BlobListOption.prefix(GCSFileManager.prepareGCSFilePath(path)))
+      val page = storage.list(bucket, Storage.BlobListOption.prefix(GCSFileManager.prepareGCSFilePath(path, Some(bucket))))
       page.iterateAll().iterator().asScala.foldLeft(List[FileInfo]())((list, blob) => {
-        list :+ FileInfo(blob.getName, blob.getSize, blob.isDirectory, Some("gs://bucket"))
+        list :+ FileInfo(blob.getName, blob.getSize, blob.isDirectory, Some(s"gs://$bucket"))
       })
     }
   }
@@ -159,7 +164,7 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
     * @return A list of directories at the given path.
     */
   override def getDirectoryListing(path: String): List[FileInfo] = {
-    this.getFileListing(GCSFileManager.prepareGCSFilePath(path)).foldLeft(List[FileInfo]())((list, file) => {
+    this.getFileListing(GCSFileManager.prepareGCSFilePath(path, Some(bucket))).foldLeft(List[FileInfo]())((list, file) => {
       val index = file.fileName.lastIndexOf("/")
       if (index != -1) {
         val dirName = file.fileName.substring(0, index)

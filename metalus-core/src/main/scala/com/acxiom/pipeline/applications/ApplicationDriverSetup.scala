@@ -121,7 +121,16 @@ trait ApplicationDriverSetup extends DriverSetup {
     * @return The credential provider.
     */
   override def credentialProvider: CredentialProvider = {
-    DriverUtils.getCredentialProvider(application.globals.getOrElse(Map()) ++ parameters)
+    try {
+      logger.debug("Instantiating CredentialProvider")
+      val cp = DriverUtils.getCredentialProvider(application.globals.getOrElse(Map()) ++ parameters)
+      logger.debug("CredentialProvider instantiated")
+      cp
+    } catch {
+      case t: Throwable =>
+        logger.error(s"Error attempting to instantiate the CredentialProvider", t)
+        throw t
+    }
   }
 }
 

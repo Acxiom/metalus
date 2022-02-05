@@ -23,3 +23,8 @@ required parameters and loading/parsing JSON into executable objects.
 * [Execution Audits](../docs/executionaudits.md) - Provides a way to audit executions at runtime.
 * [Http Rest Client](../docs/httprestclient.md) - Provides a basic rest client for communicating with rest APIs. Custom 
 _Authorization_ implementations may be provided.
+
+## Step Classes
+* [JavascriptSteps](docs/javascriptsteps.md)
+* [ScalaSteps](docs/scalascriptsteps.md)
+* [ExceptionSteps](docs/exceptionsteps.md)

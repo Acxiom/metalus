@@ -42,7 +42,8 @@ case class S3DataConnector(override val name: String,
     if (finalCredential.isDefined) {
       S3Utilities.setS3Authorization(path,
         finalCredential.get.awsAccessKey, finalCredential.get.awsAccessSecret,
-        finalCredential.get.awsAccountId, finalCredential.get.awsRole, finalCredential.get.awsPartition, pipelineContext)
+        finalCredential.get.awsAccountId, finalCredential.get.awsRole, finalCredential.get.awsPartition,
+        finalCredential.get.duration, pipelineContext)
     }
   }
 }

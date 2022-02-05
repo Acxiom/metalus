@@ -141,6 +141,8 @@ trait PipelineFlow {
             pipelineProgress = Some(PipelineExecutionInfo(Some(m.stepId), Some(m.pipelineId))))
         case PipelineStepMessageType.warn =>
           logger.warn(s"Step ${m.stepId} in pipeline ${pipelineLookup(m.pipelineId)} issued a warning: ${m.message}")
+        case PipelineStepMessageType.skip =>
+          throw SkipExecutionPipelineStepException(context = Some(pipelineContext))
         case _ =>
       })
     }
@@ -191,7 +193,8 @@ trait PipelineFlow {
       val sfContext = PipelineFlow.handleEvent(newPipelineContext, "pipelineStepFinished", List(pipeline, step, newPipelineContext))
       (nextStepId, sfContext.removeGlobal("stepRetryCount"))
     } catch {
-      case _: Throwable if step.retryLimit.getOrElse(-1) > 0 && stepRetryCount < step.retryLimit.getOrElse(-1) =>
+      case t: Throwable if step.retryLimit.getOrElse(-1) > 0 && stepRetryCount < step.retryLimit.getOrElse(-1) =>
+        logger.warn(s"Retrying step ${step.id.getOrElse("")}", t)
         // Backoff timer
         Thread.sleep(stepRetryCount * 1000)
         processStepWithRetry(step, pipeline, ssContext, pipelineContext, stepRetryCount + 1)
@@ -302,7 +305,7 @@ trait PipelineFlow {
           entry._1 match {
             case e if e.startsWith("$globals.") =>
               val keyName = entry._1.substring(Constants.NINE)
-              PipelineFlow.updateGlobals(step.displayName.get, pipelineId, context, entry._2, keyName)
+              PipelineFlow.updateGlobals(step.displayName.getOrElse(step.id.getOrElse("")), pipelineId, context, entry._2, keyName)
             case e if e.startsWith("$metrics.") =>
               val keyName = entry._1.substring(Constants.NINE)
               context.setStepMetric(pipelineId, step.id.getOrElse(""), None, keyName, entry._2)
@@ -310,6 +313,24 @@ trait PipelineFlow {
           }
         })
       case _ => updatedCtx
+    }
+  }
+
+  def gatherGlobalUpdates(pipelineParams: Option[PipelineParameter], step: PipelineStep, pipelineId: String): List[GlobalUpdates] = {
+    if (pipelineParams.isDefined &&
+      pipelineParams.get.parameters.contains(step.id.getOrElse("")) &&
+      pipelineParams.get.parameters(step.id.getOrElse("")).isInstanceOf[PipelineStepResponse] &&
+      pipelineParams.get.parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse].namedReturns.isDefined) {
+      pipelineParams.get.parameters(step.id.getOrElse("")).asInstanceOf[PipelineStepResponse]
+        .namedReturns.get.foldLeft(List[GlobalUpdates]())((list, entry) => {
+        if (entry._1.startsWith("$globals.")) {
+          list :+ GlobalUpdates(step.displayName.get, pipelineId, entry._1.substring(Constants.NINE), entry._2)
+        } else {
+          list
+        }
+      })
+    } else {
+      List()
     }
   }
 }
@@ -320,3 +341,5 @@ case class PipelineStepFlow(pipeline: Pipeline,
                        initialContext: PipelineContext,
                        pipelineLookup: Map[String, String],
                        executingPipelines: List[Pipeline]) extends PipelineFlow
+
+case class GlobalUpdates(stepName: String, pipelineId: String, globalName: String, global: Any)

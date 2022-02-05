@@ -2,10 +2,15 @@ package com.acxiom.pipeline.steps
 
 import com.acxiom.pipeline.steps.TransformationSteps.cleanColumnName
 import org.apache.spark.sql.types._
+import org.json4s.jackson.Serialization
 
-case class Attribute(name: String, dataType: AttributeType) {
+case class Attribute(name: String, dataType: AttributeType, nullable: Option[Boolean], metadata: Option[Map[String, Any]]) {
   def toStructField(transforms: Option[Transformations] = None): StructField = {
-    StructField(this.name, dataType.toDataType(transforms))
+    StructField(this.name, dataType.toDataType(transforms), nullable.getOrElse(true), buildMetadata)
+  }
+
+  private def buildMetadata: Metadata = {
+    if (metadata.getOrElse(Map()).isEmpty) Metadata.empty else Metadata.fromJson(Serialization.write(metadata)(org.json4s.DefaultFormats))
   }
 }
 
@@ -14,7 +19,13 @@ object Attribute {
     Attribute(field.name, AttributeType.fromDataType(field.dataType))
   }
 
-  def apply(name: String, dataType: String): Attribute = new Attribute(name, AttributeType(dataType))
+  def apply(name: String, dataType: AttributeType): Attribute = Attribute(name, dataType, None, None)
+
+  def apply(name: String, dataType: String): Attribute = Attribute(name, AttributeType(dataType), None, None)
+
+  def apply(name: String, dataType: String, nullable: Option[Boolean]): Attribute = Attribute(name, AttributeType(dataType), nullable, None)
+
+  def apply(name: String, dataType: AttributeType, nullable: Option[Boolean]): Attribute = Attribute(name, dataType, nullable, None)
 }
 
 case class AttributeType(baseType: String, valueType: Option[AttributeType] = None, nameType: Option[AttributeType] = None, schema: Option[Schema] = None) {

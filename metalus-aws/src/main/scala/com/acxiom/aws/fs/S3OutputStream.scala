@@ -3,8 +3,8 @@ package com.acxiom.aws.fs
 import com.acxiom.aws.utils.S3Utilities
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.{CompleteMultipartUploadRequest, InitiateMultipartUploadRequest, PartETag, UploadPartRequest}
-
 import java.io.{ByteArrayInputStream, OutputStream}
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -20,11 +20,11 @@ class S3OutputStream(s3Client: AmazonS3, bucket: String, key: String, bufferLeng
   private var position = 0
 
   override def write(b: Int): Unit = {
-    if (buffer.length >= position) {
-      writeBuffer()
-    }
     buffer(position) = b.toByte
     position += 1
+    if (position >= buffer.length) {
+      writeBuffer()
+    }
   }
 
   override def write(b: Array[Byte]): Unit = {
@@ -52,7 +52,7 @@ class S3OutputStream(s3Client: AmazonS3, bucket: String, key: String, bufferLeng
   }
 
   override def close(): Unit = {
-    if (buffer.nonEmpty || position > 0) {
+    if (partNumber == 1 || position > 0) {
       writeBuffer()
     }
     s3Client.completeMultipartUpload(new CompleteMultipartUploadRequest(bucket, key, request.getUploadId, etags.toList.asJava))

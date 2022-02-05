@@ -966,6 +966,7 @@ The first step is the [fork](fork-join.md) step used to iterate over the list pr
 inline [scalascript](step-templates.md#scala-script-parameters) is used to generate a list of tuples that will be used 
 for iteration. The _forkMethod_ is set to parallel to allow Metalus to attempt to process each DataFrame at the same time.
 ```json
+{
   "pipelines": [
     {
       "id": "470ffe46-5162-43e0-9ae9-ea9205efe256",
@@ -985,7 +986,7 @@ for iteration. The _forkMethod_ is set to parallel to allow Metalus to attempt t
             {
               "type": "text",
               "name": "forkMethod",
-              "value": "parallel"
+              "value": "serial"
             }
           ]
         },
@@ -994,31 +995,32 @@ for iteration. The _forkMethod_ is set to parallel to allow Metalus to attempt t
           "type": "Pipeline",
           "params": [
             {
-              "type": "string",
+              "type": "text",
               "name": "dataFrame",
               "required": true,
               "value": "@FORKSTEP._2"
             },
             {
-              "type": "string",
-              "name": "uri",
+              "type": "text",
+              "name": "connector",
               "required": true,
-              "value": "!mongoURI"
+              "value": "!mongoConnector"
             },
             {
               "type": "string",
-              "name": "collectionName",
+              "name": "destination",
               "required": true,
               "value": "@FORKSTEP._1"
             }
           ],
           "engineMeta": {
-            "spark": "MongoSteps.writeDataFrameToMongo"
+            "spark": "DataConnectorSteps.writeDataFrame"
           }
         }
       ]
     }
   ]
+}
 ```
 The [scalascript](step-templates.md#scala-script-parameters) mapping was added to demonstrate the ability to dynamically 
 build mappings. This prevents the need for unnecessary steps to massage data into a format that a step requires. A script
@@ -1032,6 +1034,22 @@ be used except embedded _scalascript_.
 
 This simple mapping could have been accomplished with a map.
 
+The save step uses the [MongoDataConnector](dataconnectors.md#mongodataconnector) to handle the save action. The connector
+is reused for each collection allowing each fork to specify the collection name. The following should e added to the globals:
+
+```json
+"mongoConnector": {
+  "mapEmbeddedVariables": true,
+  "className": "com.acxiom.metalus.pipeline.connectors.MongoDataConnector",
+  "object": {
+    "name": "MongoConnector",
+    "uri": "!mongoURI"
+  }
+}
+```
+Notice the _uri_ attribute is set to _!mongoURI_. This will allow the command line parameter to be mapped to the connector 
+when the application loads. The object uses the [mapEmbeddedVariables](applications.md#objects) attribute which indicates 
+that this object should have embedded variables mapped.
 ### Final Execution JSON
 ```json
 {

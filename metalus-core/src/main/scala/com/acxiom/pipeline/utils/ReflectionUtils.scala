@@ -22,6 +22,7 @@ object ReflectionUtils {
    * @return An instantiated class.
    */
   def loadClass(className: String, parameters: Option[Map[String, Any]] = None, validateParameterTypes: Boolean = false): Any = {
+    logger.debug(s"Preparing to instantiate class $className")
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     val moduleClass = mirror.staticClass(className)
     val module = mirror.staticModule(className)

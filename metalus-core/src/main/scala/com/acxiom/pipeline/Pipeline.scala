@@ -1,5 +1,6 @@
 package com.acxiom.pipeline
 
+import com.acxiom.pipeline.ExecutionEvaluationResult.ExecutionEvaluationResult
 import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
@@ -376,8 +377,18 @@ case class PipelineParameters(parameters: List[PipelineParameter] = List()) {
   * @param success         Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
   * @param paused          Flag indicating whether the "failure" was actually a pause
   * @param exception       The original exception
+  * @param runStatus       Status indicating whether the calling execution should continue execution.
   */
-case class PipelineExecutionResult(pipelineContext: PipelineContext, success: Boolean, paused: Boolean, exception: Option[Throwable])
+case class PipelineExecutionResult(pipelineContext: PipelineContext,
+                                   success: Boolean,
+                                   paused: Boolean,
+                                   exception: Option[Throwable],
+                                   runStatus: ExecutionEvaluationResult = ExecutionEvaluationResult.RUN)
+
+object ExecutionEvaluationResult extends Enumeration {
+  type ExecutionEvaluationResult = Value
+  val RUN, SKIP, STOP = Value
+}
 
 /**
   * Contains the current pipeline and step information

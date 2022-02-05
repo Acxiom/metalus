@@ -1,10 +1,8 @@
-name: Build
+name: Release
 
 on:
   push:
-    branches: [ develop, master ]
-  pull_request_target:
-    branches: [ develop, master ]
+    branches: [ master ]
 
 jobs:
   build:
@@ -191,5 +189,5 @@ jobs:
           prerelease: true
           title: "Metalus Pipeline Library ${{ env.METALUS_VERSION }}"
           files: |
-            *.tar.gz
-            *.jar
+            **/*.tar.gz
+            **/*.jar

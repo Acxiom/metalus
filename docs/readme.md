@@ -23,6 +23,11 @@
     * [Error Handling](error-handling.md)
     * [Logging](logging.md)
 * [Step Libraries](step-libraries.md)
+    * [Metalus Core](../metalus-core/readme.md)
+        * Steps
+            * [JavascriptSteps](../metalus-core/docs/javascriptsteps.md)
+            * [ScalaSteps](../metalus-core/docs/scalascriptsteps.md)
+            * [ExceptionSteps](../metalus-core/docs/exceptionsteps.md)
     * [Metalus Common](../metalus-common/readme.md)
         * Steps
             * [ApiSteps](../metalus-common/docs/apisteps.md)
@@ -33,12 +38,10 @@
             * [FlowUtilsSteps](../metalus-common/docs/flowutilssteps.md)
             * [HDFSSteps](../metalus-common/docs/hdfssteps.md)
             * [HiveSteps](../metalus-common/docs/hivesteps.md)
-            * [JavascriptSteps](../metalus-common/docs/javascriptsteps.md)
             * [JDBCSteps](../metalus-common/docs/jdbcsteps.md)
             * [JSONSteps](../metalus-common/docs/jsonsteps.md)
             * [LoggingSteps](../metalus-common/docs/loggingsteps.md)
             * [QuerySteps](../metalus-common/docs/querysteps.md)
-            * [ScalaSteps](../metalus-common/docs/scalascriptsteps.md)
             * [SFTPSteps](../metalus-common/docs/sftpsteps.md)
             * [StringSteps](../metalus-common/docs/stringsteps.md)
             * [TransformationSteps](../metalus-common/docs/transformationsteps.md)
@@ -66,6 +69,7 @@
             * [AWS Secrets Manager Credential Provider](../metalus-aws/docs/awssecretsmanager-credentialprovider.md)
     * [Metalus GCP](../metalus-gcp/readme.md)
         * Steps
+            * [BigQuerySteps](../metalus-gcp/docs/bigquerysteps.md)
             * [GCSSteps](../metalus-gcp/docs/gcssteps.md)
             * [PubSubSteps](../metalus-gcp/docs/pubsubsteps.md)
         * Extensions

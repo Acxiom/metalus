@@ -114,6 +114,14 @@
           }
         ]
       }
+    },
+    "mongoConnector": {
+      "mapEmbeddedVariables": true,
+      "className": "com.acxiom.metalus.pipeline.connectors.MongoDataConnector",
+      "object": {
+        "name": "MongoConnector",
+        "uri": "!mongoURI"
+      }
     }
   },
   "pipelines": [
@@ -150,20 +158,20 @@
               "value": "@FORKSTEP._2"
             },
             {
-              "type": "string",
-              "name": "uri",
+              "type": "text",
+              "name": "connector",
               "required": true,
-              "value": "!mongoURI"
+              "value": "!mongoConnector"
             },
             {
               "type": "string",
-              "name": "collectionName",
+              "name": "destination",
               "required": true,
               "value": "@FORKSTEP._1"
             }
           ],
           "engineMeta": {
-            "spark": "MongoSteps.writeDataFrameToMongo"
+            "spark": "DataConnectorSteps.writeDataFrame"
           }
         }
       ]

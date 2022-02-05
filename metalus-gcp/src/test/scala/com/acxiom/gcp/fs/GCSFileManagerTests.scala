@@ -1,12 +1,11 @@
 package com.acxiom.gcp.fs
 
-import java.io.{OutputStreamWriter, PrintWriter}
-
 import com.acxiom.pipeline.fs.FileManager
 import com.google.cloud.storage.contrib.nio.testing.LocalStorageHelper
 import com.google.cloud.storage.{BlobId, BlobInfo}
 import org.scalatest.{FunSpec, Suite}
 
+import java.io.{OutputStreamWriter, PrintWriter}
 import scala.io.Source
 
 class GCSFileManagerTests extends FunSpec with Suite {
@@ -103,6 +102,14 @@ class GCSFileManagerTests extends FunSpec with Suite {
       val listing = fileManager.getFileListing(s"$root/dir1/", recursive = false)
       assert(listing.size == 1)
       assert(listing.head.fileName == "recursive/dir1/f2.txt")
+    }
+
+    it("Should prepare the GCS path") {
+      assert(GCSFileManager.prepareGCSFilePath("gs://bucket-name/path/file.csv", Some("bucket-name")) == "path/file.csv")
+      assert(GCSFileManager.prepareGCSFilePath("gs://path/file.csv", Some("bucket-name")) == "path/file.csv")
+      assert(GCSFileManager.prepareGCSFilePath("/path/file.csv", Some("bucket-name")) == "path/file.csv")
+      assert(GCSFileManager.prepareGCSFilePath("path/file.csv", Some("bucket-name")) == "path/file.csv")
+      assert(GCSFileManager.prepareGCSFilePath("gs://bucket-name/path/file.csv") == "gs://bucket-name/path/file.csv")
     }
   }
 }

@@ -1,6 +1,7 @@
 package com.acxiom.pipeline.drivers
 
 import com.acxiom.pipeline.utils.{CommonParameters, DriverUtils, ReflectionUtils}
+import org.apache.log4j.Logger
 
 import scala.annotation.tailrec
 
@@ -11,6 +12,8 @@ import scala.annotation.tailrec
   * creating the PipelineContext.
   */
 object DefaultPipelineDriver {
+  val logger: Logger = Logger.getLogger(getClass)
+
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("driverSetupClass")))
     val commonParameters = DriverUtils.parseCommonParameters(parameters)
@@ -19,7 +22,13 @@ object DefaultPipelineDriver {
     if (driverSetup.executionPlan.isEmpty) {
       throw new IllegalStateException(s"Unable to obtain valid execution plan. Please check the DriverSetup class: ${commonParameters.initializationClass}")
     }
-    process(driverSetup, commonParameters)
+    try {
+      process(driverSetup, commonParameters)
+    } catch {
+      case t: Throwable =>
+        logger.error(s"Error while attempting to run application!", t)
+        throw t
+    }
   }
 
   @tailrec

@@ -10,6 +10,7 @@ import javax.script.SimpleBindings
 @StepObject
 object JavascriptSteps {
   private val logger = Logger.getLogger(getClass)
+
   @StepFunction("5e0358a0-d567-5508-af61-c35a69286e4e",
     "Javascript Step",
     "Executes a script and returns the result",
@@ -51,11 +52,11 @@ object JavascriptSteps {
     "values" -> StepParameter(None, Some(true), None, None, None, None, Some("Map of name/value pairs to bind to the script")),
     "unwrapOptions" -> StepParameter(None, Some(false), None, None, None, None, Some("Flag to control option unwrapping behavior"))))
   def processScriptWithValues(@StepParameter(Some("script"), Some(true), None, Some("javascript"), None, None) script: String,
-                             values: Map[String, Any], unwrapOptions: Option[Boolean] = None, pipelineContext: PipelineContext): PipelineStepResponse = {
+                              values: Map[String, Any], unwrapOptions: Option[Boolean] = None, pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new JavaScriptEngine
     val bindings = new SimpleBindings()
     bindings.put("logger", logger)
-    values.foreach{
+    values.foreach {
       case (name, value) =>
         val unwrapped = value match {
           case s: Some[_] if unwrapOptions.getOrElse(true) => s.get

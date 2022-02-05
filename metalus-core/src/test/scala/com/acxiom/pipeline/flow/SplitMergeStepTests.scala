@@ -19,7 +19,7 @@ class SplitMergeStepTests extends FunSpec with BeforeAndAfterAll with Suite {
     DriverUtils.parsePipelineJson(
       Source.fromInputStream(getClass.getResourceAsStream("/metadata/pipelines/complex_split_flow.json")).mkString).get.head
 
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
     Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
@@ -38,7 +38,7 @@ class SplitMergeStepTests extends FunSpec with BeforeAndAfterAll with Suite {
     FileUtils.deleteDirectory(new File("user-warehouse"))
   }
 
-  override def afterAll() {
+  override def afterAll(): Unit = {
     SparkTestHelper.sparkSession.stop()
     Logger.getRootLogger.setLevel(Level.INFO)
 
@@ -123,11 +123,13 @@ class SplitMergeStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(parameters.get.parameters("FORMAT_STRING_PART_2").asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
       assert(parameters.get.parameters("FORMAT_STRING_PART_2").asInstanceOf[PipelineStepResponse]
         .primaryReturn.get.asInstanceOf[String] == "List has a sum of 3")
+      // Verify that the globals got updated
+      assert(executionResult.pipelineContext.getGlobalString("mockGlobal").getOrElse("") == "split_global")
       // Verify audits
       val rootAudit = executionResult.pipelineContext.rootAudit
       assert(rootAudit.children.isDefined && rootAudit.children.get.length == 1)
       val pipelineAudit = rootAudit.children.get.head
-      assert(pipelineAudit.children.isDefined && pipelineAudit.children.get.length == 9)
+      assert(pipelineAudit.children.isDefined && pipelineAudit.children.get.length == 10)
       val childAudits = pipelineAudit.children.get
       assert(childAudits.exists(_.id == "SPLIT"))
       assert(childAudits.exists(_.id == "MERGE"))
@@ -138,6 +140,7 @@ class SplitMergeStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(childAudits.exists(_.id == "SUM_VALUES"))
       assert(childAudits.exists(_.id == "SUM_VALUES_NOT_MERGED"))
       assert(childAudits.exists(_.id == "BRANCH"))
+      assert(childAudits.exists(_.id == "GLOBAL_VALUES"))
     }
   }
 

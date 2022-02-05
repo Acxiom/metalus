@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.acxiom</groupId>
         <artifactId>metalus</artifactId>
-        <version>1.8.4-SNAPSHOT</version>
+        <version>1.8.5-SNAPSHOT</version>
     </parent>
 
     <dependencyManagement>
@@ -46,6 +46,11 @@
         </dependency>
         <!-- Google Libraries -->
         <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-netty</artifactId>
+            <version>1.31.1</version>
+        </dependency>
+        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>28.2-jre</version>
@@ -64,7 +69,7 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-core</artifactId>
-            <version>1.28.1</version>
+            <version>1.31.1</version>
         </dependency>
         <dependency>
             <groupId>io.opencensus</groupId>
@@ -85,6 +90,12 @@
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-pubsub</artifactId>
             <version>1.104.1</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-netty-shaded</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.google.cloud.bigdataoss</groupId>
@@ -100,7 +111,13 @@
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-secretmanager</artifactId>
-            <version>1.4.0</version>
+            <version>1.1.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-netty-shaded</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.google.cloud</groupId>
@@ -163,6 +180,10 @@
                                 <relocation>
                                     <pattern>com.google</pattern>
                                     <shadedPattern>metalus.com.google</shadedPattern>
+                                    <excludes>
+                                        <exclude>com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem</exclude>
+                                        <exclude>com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS</exclude>
+                                    </excludes>
                                 </relocation>
                             </relocations>
                         </configuration>
