@@ -1,5 +1,6 @@
 package com.acxiom.pipeline
 
+import com.acxiom.pipeline.applications.ApplicationUtils
 import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, ScalaScriptEngine}
 import org.apache.log4j.Logger
 import org.json4s.Formats
@@ -267,8 +268,9 @@ trait PipelineStepMapper {
                                  parameter: Parameter,
                                  pipelineContext: PipelineContext): Option[Any] = {
     val workingMap = map.asInstanceOf[Map[String, Any]]
+    implicit val formats: Formats = parameter.json4sSerializers.map(js => ApplicationUtils.getJson4sFormats(Some(js)))
+      .getOrElse(pipelineContext.getJson4sFormats)
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
-      implicit val formats: Formats = pipelineContext.getJson4sFormats
       // Skip the embedded variable mapping if this is a step-group pipeline parameter
       if (workingMap.getOrElse("category", "pipeline").asInstanceOf[String] == "step-group") {
         DriverUtils.parseJson(Serialization.write(workingMap), parameter.className.get)
@@ -291,8 +293,9 @@ trait PipelineStepMapper {
     */
   private def handleListParameter(list: List[_], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
     val dropNone = pipelineContext.getGlobalAs[Boolean]("dropNoneFromLists").getOrElse(true)
+    implicit val formats: Formats = parameter.json4sSerializers.map(js => ApplicationUtils.getJson4sFormats(Some(js)))
+      .getOrElse(pipelineContext.getJson4sFormats)
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
-      implicit val formats: Formats = pipelineContext.getJson4sFormats
       list.map(value =>
         DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get))
     } else if (list.nonEmpty && list.head.isInstanceOf[Map[_, _]]) {
@@ -325,8 +328,7 @@ trait PipelineStepMapper {
     * @param pipelineContext The pipelineContext
     * @return A map with substituted values
     */
-  private[pipeline] def mapEmbeddedVariables(classMap: Map[String, Any], pipelineContext: PipelineContext): Map[String, Any] = {
-    implicit val formats: Formats = pipelineContext.getJson4sFormats
+  private[pipeline] def mapEmbeddedVariables(classMap: Map[String, Any], pipelineContext: PipelineContext)(implicit formats: Formats): Map[String, Any] = {
     classMap.foldLeft(classMap)((map, entry) => {
       entry._2 match {
         case s: String if containsSpecialCharacters(s) =>
@@ -592,7 +594,6 @@ trait PipelineStepMapper {
   }
 
   private def mapByValue(value: Option[String], parameter: Parameter, pipelineContext: PipelineContext): Any = {
-    implicit val formats: Formats = pipelineContext.getJson4sFormats
     if (value.isDefined) {
       value.get
     } else if (parameter.defaultValue.isDefined) {
