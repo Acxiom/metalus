@@ -1,8 +1,9 @@
 package com.acxiom.pipeline
 
 import com.acxiom.pipeline.PipelineStepMessageType.PipelineStepMessageType
-
 import java.util.Date
+
+import com.acxiom.pipeline.applications.Json4sSerializers
 
 /**
   * Metadata about the next step in the pipeline process.
@@ -51,7 +52,8 @@ case class Parameter(`type`: Option[String] = None,
                      value: Option[Any] = None,
                      className: Option[String] = None,
                      parameterType: Option[String] = None,
-                     description: String = "")
+                     description: String = "",
+                     json4sSerializers: Option[Json4sSerializers] = None)
 
 /**
   * This class contains the execution information for a Step
