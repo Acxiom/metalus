@@ -15,7 +15,7 @@ object DataConnectorSteps {
     "Pipeline",
     "Connectors")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to write")),
-    "connector" -> StepParameter(None, Some(true), None, None, None, None, Some("The data connector to use when writing")),
+    "connector" -> StepParameter(Some("object"), Some(true), None, None, None, None, Some("The data connector to use when writing")),
     "source" -> StepParameter(None, Some(false), None, None, None, None, Some("The source path to load data")),
     "readOptions" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional options to use while reading the data"))))
   def loadDataFrame(connector: DataConnector,
@@ -30,7 +30,7 @@ object DataConnectorSteps {
     "Pipeline",
     "Connectors")
   @StepParameters(Map("dataFrame" -> StepParameter(None, Some(true), None, None, None, None, Some("The DataFrame to write")),
-    "connector" -> StepParameter(None, Some(true), None, None, None, None, Some("The data connector to use when writing")),
+    "connector" -> StepParameter(Some("object"), Some(true), None, None, None, None, Some("The data connector to use when writing")),
     "destination" -> StepParameter(None, Some(false), None, None, None, None, Some("The destination path to write data")),
     "writeOptions" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional DataFrame options to use while writing"))))
   def writeDataFrame(dataFrame: DataFrame,
