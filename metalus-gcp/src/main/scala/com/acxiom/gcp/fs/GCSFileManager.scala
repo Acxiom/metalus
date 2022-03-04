@@ -6,7 +6,6 @@ import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.storage.{BlobId, BlobInfo, Storage, StorageOptions}
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization
-
 import java.io._
 import java.net.URI
 import java.nio.channels.Channels
@@ -65,8 +64,7 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
     * @return True if the path exists, otherwise false.
     */
   override def exists(path: String): Boolean = {
-    val blob = storage.get(bucket, GCSFileManager.prepareGCSFilePath(path, Some(bucket)))
-    Option(blob).isDefined && blob.exists()
+    fileExists(path) || directoryExists(path)
   }
 
   /**
@@ -169,7 +167,7 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
       if (index != -1) {
         val dirName = file.fileName.substring(0, index)
         if (!list.exists(_.fileName == dirName)) {
-          list :+ FileInfo(dirName, 0L, directory = true, Some("gs://bucket"))
+          list :+ FileInfo(dirName, 0L, directory = true, Some(s"gs://$bucket"))
         } else {
           list
         }
@@ -177,6 +175,38 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
         list
       }
     })
+  }
+
+  /**
+   * Returns a FileInfo objects for the given path
+   * @param path The path to get a status of.
+   * @return A FileInfo object for the path given.
+   */
+  override def getStatus(path: String): FileInfo = {
+    val finalPath = GCSFileManager.prepareGCSFilePath(path, Some(bucket))
+    if (fileExists(path)) {
+      val blob = storage.get(bucket, finalPath)
+      FileInfo(blob.getName, blob.getSize, blob.isDirectory, Some(s"gs://$bucket"))
+    } else if (directoryExists(path)) {
+      FileInfo(finalPath, 0, directory = true, Some(s"gs://$bucket"))
+    } else {
+      throw new FileNotFoundException(s"File not found when attempting to get size,inputPath=$path")
+    }
+  }
+
+  private def directoryExists(path: String): Boolean = {
+    val finalPath = GCSFileManager.prepareGCSFilePath(path, Some(bucket))
+    storage.list(
+      bucket,
+      Storage.BlobListOption.delimiter("/"),
+      Storage.BlobListOption.prefix(finalPath),
+      Storage.BlobListOption.pageSize(1)
+    ).getValues.iterator().hasNext
+  }
+
+  private def fileExists(path: String): Boolean = {
+    val blob = storage.get(bucket, GCSFileManager.prepareGCSFilePath(path, Some(bucket)))
+    Option(blob).isDefined && blob.exists()
   }
 
   /**

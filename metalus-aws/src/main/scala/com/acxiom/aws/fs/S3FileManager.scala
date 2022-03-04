@@ -50,7 +50,8 @@ class S3FileManager(s3Client: AmazonS3, bucket: String) extends FileManager {
     * @return True if the path exists, otherwise false.
     */
   override def exists(path: String): Boolean = {
-    s3Client.doesObjectExist(bucket, S3Utilities.prepareS3FilePath(path, Some(bucket)))
+    val finalPath = S3Utilities.prepareS3FilePath(path, Some(bucket))
+    s3Client.doesObjectExist(bucket, finalPath) || directoryExists(finalPath)
   }
 
   /**
@@ -127,9 +128,10 @@ class S3FileManager(s3Client: AmazonS3, bucket: String) extends FileManager {
     * @return size of the given file
     */
   override def getSize(path: String): Long = {
-    if (exists(path)) {
+    val finalPath = S3Utilities.prepareS3FilePath(path, Some(bucket))
+    if (s3Client.doesObjectExist(bucket, finalPath)) {
       // get a list of all objects with this prefix (in case path is a folder)
-      val s3ObjectList = s3Client.listObjects(bucket, S3Utilities.prepareS3FilePath(path, Some(bucket))).getObjectSummaries
+      val s3ObjectList = s3Client.listObjects(bucket, finalPath).getObjectSummaries
 
       // convert to Scala list and sum the size of all objects with the prefix
       s3ObjectList.asScala.map(_.getSize).sum
@@ -157,6 +159,23 @@ class S3FileManager(s3Client: AmazonS3, bucket: String) extends FileManager {
       s3Client.listObjects(req)
     }
     nextObjectBatch(s3Client, objListing).map(_.copy(path = Some(s"s3://$bucket")))
+  }
+
+  /**
+   * Returns a FileInfo objects for the given path
+   * @param path The path to get a status of.
+   * @return A FileInfo object for the path given.
+   */
+  override def getStatus(path: String): FileInfo = {
+    val finalPath = S3Utilities.prepareS3FilePath(path, Some(bucket))
+    if (s3Client.doesObjectExist(bucket, finalPath)) {
+      val fs = s3Client.getObjectMetadata(bucket, finalPath)
+      FileInfo(finalPath, fs.getContentLength, directory = false, Some(s"s3://$bucket"))
+    } else if (directoryExists(finalPath)){
+      FileInfo(finalPath, 0, directory = true, Some(s"s3://$bucket"))
+    } else {
+      throw new FileNotFoundException(s"File not found when attempting to get size,inputPath=$path")
+    }
   }
 
   /**
@@ -197,6 +216,16 @@ class S3FileManager(s3Client: AmazonS3, bucket: String) extends FileManager {
     } else {
       etags :+ new PartETag(part.getPartNumber, part.getETag)
     }
+  }
+
+  private def directoryExists(path: String): Boolean = {
+    val finalPath = S3Utilities.prepareS3FilePath(path, Some(bucket))
+    val req = new ListObjectsV2Request()
+      .withBucketName(bucket)
+      .withDelimiter("/")
+      .withPrefix(if (!finalPath.endsWith("/")) finalPath + "/" else finalPath)
+      .withMaxKeys(1)
+    !s3Client.listObjectsV2(req).getObjectSummaries.isEmpty
   }
 }
 

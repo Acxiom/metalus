@@ -97,6 +97,16 @@ case class HDFSFileManager(conf: SparkConf) extends FileManager {
     }
   }
 
+  /**
+   * Returns a FileInfo objects for the given path
+   * @param path The path to get a status of.
+   * @return A FileInfo object for the path given.
+   */
+  override def getStatus(path: String): FileInfo = {
+    val fs = fileSystem.getFileStatus(new Path(path))
+    FileInfo(fs.getPath.getName, fs.getLen, fs.isDirectory, Option(fs.getPath.getParent).map(_.toString))
+  }
+
   @tailrec
   private def iterateRemoteIterator(iterator: RemoteIterator[LocatedFileStatus], list: List[FileInfo]): List[FileInfo] = {
     if (iterator.hasNext) {

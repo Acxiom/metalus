@@ -1,11 +1,11 @@
 package com.acxiom.gcp.fs
 
-import com.acxiom.pipeline.fs.FileManager
+import com.acxiom.pipeline.fs.{FileInfo, FileManager}
 import com.google.cloud.storage.contrib.nio.testing.LocalStorageHelper
 import com.google.cloud.storage.{BlobId, BlobInfo}
 import org.scalatest.{FunSpec, Suite}
+import java.io.{FileNotFoundException, OutputStreamWriter, PrintWriter}
 
-import java.io.{OutputStreamWriter, PrintWriter}
 import scala.io.Source
 
 class GCSFileManagerTests extends FunSpec with Suite {
@@ -102,6 +102,26 @@ class GCSFileManagerTests extends FunSpec with Suite {
       val listing = fileManager.getFileListing(s"$root/dir1/", recursive = false)
       assert(listing.size == 1)
       assert(listing.head.fileName == "recursive/dir1/f2.txt")
+    }
+
+    it("should get a file status") {
+      val fileManager: FileManager = new GCSFileManager(localStorage, MAIN_BUCKET_NAME)
+      val root = s"/status"
+      val f1 = new PrintWriter(fileManager.getOutputStream(s"$root/f1.txt"))
+      val content = "file1"
+      f1.print(content)
+      f1.close()
+      val fileInfo = fileManager.getStatus(s"$root/f1.txt")
+      assert(fileInfo == FileInfo("status/f1.txt", content.length, directory = false, Some(s"gs://$MAIN_BUCKET_NAME")))
+      val directoryInfo = fileManager.getStatus(root)
+      assert(directoryInfo == FileInfo("status", 0, directory = true, Some(s"gs://$MAIN_BUCKET_NAME")))
+
+      val thrown = intercept[FileNotFoundException] {
+        fileManager.getStatus(s"$root/bad.txt")
+      }
+      val expected = s"File not found when attempting to get size,inputPath=$root/bad.txt"
+      assert(thrown.isInstanceOf[FileNotFoundException])
+      assert(thrown.getMessage == expected)
     }
 
     it("Should prepare the GCS path") {
