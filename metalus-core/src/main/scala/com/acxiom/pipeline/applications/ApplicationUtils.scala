@@ -294,7 +294,7 @@ object ApplicationUtils {
                               defaultGlobals: Option[Map[String, Any]],
                               pipelineContext: PipelineContext,
                               merge: Boolean = false)(implicit formats: Formats): Option[Map[String, Any]] = {
-    globals.map{ baseGlobals =>
+    globals.map { baseGlobals =>
       val result = baseGlobals.foldLeft(rootGlobals)((rootMap, entry) => parseValue(rootMap, entry._1, entry._2, Some(pipelineContext)))
       if (merge) {
         defaultGlobals.getOrElse(Map[String, Any]()) ++ result
@@ -309,7 +309,17 @@ object ApplicationUtils {
       .foldLeft(Map[String, Any]("credentialProvider" -> credentialProvider))((rootMap, entry) => parseValue(rootMap, entry._1, entry._2))
   }
 
-  private def parseValue(rootMap: Map[String, Any], key: String, value: Any, ctx: Option[PipelineContext] = None)(implicit formats: Formats) = {
+  /**
+    * This function will parse the provided value and add the result to the provided rootMap using the provided key.
+    *
+    * @param rootMap The map to store the newly formed object.
+    * @param key     The key to use when adding teh result to the rootMap
+    * @param value   The value to be parsed
+    * @param ctx     The PipelineContext that will provide the mapper
+    * @param formats Implicit formats used for JSON conversion
+    * @return A map containing the converted value
+    */
+  def parseValue(rootMap: Map[String, Any], key: String, value: Any, ctx: Option[PipelineContext] = None)(implicit formats: Formats): Map[String, Any] = {
     value match {
       case map: Map[String, Any] if map.contains("className") =>
         val mapEmbedded = map.get("mapEmbeddedVariables").exists(_.toString.toBoolean) && ctx.isDefined

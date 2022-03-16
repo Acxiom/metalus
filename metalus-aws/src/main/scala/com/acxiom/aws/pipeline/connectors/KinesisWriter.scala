@@ -1,6 +1,7 @@
 package com.acxiom.aws.pipeline.connectors
 
 import com.acxiom.aws.utils.{AWSCredential, KinesisUtilities}
+import com.acxiom.pipeline.connectors.ConnectorWriter
 import com.amazonaws.services.kinesis.AmazonKinesis
 import com.amazonaws.services.kinesis.model.{PutRecordsRequest, PutRecordsRequestEntry}
 import org.apache.spark.sql.{ForeachWriter, Row}
@@ -18,7 +19,7 @@ import scala.collection.mutable.ArrayBuffer
   * separator The field separator to use when formatting the row data
   * credential An optional credential to use to authenticate to Kinesis
   */
-trait KinesisWriter {
+trait KinesisWriter extends ConnectorWriter {
   // Kinesis Client Limits
   val maxBufferSize: Int = 500 * 1024
   val maxRecords = 500

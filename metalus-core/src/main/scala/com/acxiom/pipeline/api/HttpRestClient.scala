@@ -1,14 +1,14 @@
 package com.acxiom.pipeline.api
 
+import com.acxiom.pipeline.Constants
+import org.apache.log4j.Logger
+import org.json4s.{DefaultFormats, Formats}
+
 import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, OutputStream}
 import java.net.{HttpURLConnection, URL}
 import java.security.cert.X509Certificate
 import java.util.Date
-
-import com.acxiom.pipeline.Constants
 import javax.net.ssl._
-import org.json4s.{DefaultFormats, Formats}
-
 import scala.collection.JavaConverters._
 import scala.io.Source
 
@@ -56,6 +56,7 @@ object HttpRestClient {
 }
 
 class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allowSelfSignedCertificates: Boolean) {
+  private val logger = Logger.getLogger(HttpRestClient.getClass)
   def this(hostUrl: String) = {
     this(hostUrl, None, false)
   }
@@ -414,15 +415,21 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
     // Apply the custom headers
     applyHeaders(headers.getOrElse(Map[String, String]()), connection)
     connection.setRequestMethod(method)
-    val output = connection.getOutputStream
-    output.write(body.getBytes, 0, body.length)
-    output.flush()
-    output.close()
-    val input = connection.getInputStream
-    val content = Source.fromInputStream(input).mkString
-    input.close()
-    connection.disconnect()
-    content
+    try {
+      val output = connection.getOutputStream
+      output.write(body.getBytes, 0, body.length)
+      output.flush()
+      output.close()
+      val input = connection.getInputStream
+      val content = Source.fromInputStream(input).mkString
+      input.close()
+      connection.disconnect()
+      content
+    } catch {
+      case t: Throwable =>
+        logger.error(Source.fromInputStream(connection.getErrorStream).mkString, t)
+        throw t
+    }
   }
 }
 

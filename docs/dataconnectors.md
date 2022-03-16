@@ -136,6 +136,61 @@ val connector = JDBCDataConnector("jdbc:derby:memory:test", "table_name", "my-co
   }
 }
 ```
+###JSONAoiDataConnector (Experimental)
+This connector provides the ability to interact with data in an API. The ApiHandler trait is used to allow extensibility.
+In addition to the standard parameters, the following parameters are available:
+* **apiHandler** - The _ApiHandler_ is used to handle parsing/writing the data to/from DataFrames
+* **hostUrl** - The url that is hosting data. This doesn't have to include the path since that can be passed in the _load/write_ functions
+* **authorizationClass** - This is the fully qualified class name to use when authenticating to the API
+* **allowSelfSignedCertificates** - Flag indicating whether self-signed certificates should be accepted from the API
+#### ApiHandler
+The _ApiHandler_ is used to handle parsing/writing the data to/from DataFrames. There are two ways to parse data from the JSON,
+as a list of maps and as a list of list.
+#### Scala
+```scala
+val connector = JSONApiDataConnector(apiHandler, "my-connector", Some("my-credential-name-for-secrets-manager"), None)
+```
+#### Globals JSON
+```json
+{
+  "jsonApiConnector": {
+    "className": "com.acxiom.pipeline.connectors.JSONApiDataConnector",
+    "object": {
+      "apiHandler": {
+        "jsonDocumentPath": "location.within.json.to.fetch.rows",
+        "useRowArray": true,
+        "hostUrl": "https://localhost:8080/",
+        "authorizationClass": "com.acxiom.pipeline.api.BasicAuthorization",
+        "allowSelfSignedCertificates": true,
+        "schema": {
+          "attributes": [
+            {
+              "name": "column1",
+              "dataType": {
+                "baseType": "string"
+              }
+            },
+            {
+              "name": "column2",
+              "dataType": {
+                "baseType": "integer"
+              }
+            },
+            {
+              "name": "column3",
+              "dataType": {
+                "baseType": "string"
+              }
+            }
+          ]
+        }
+      },
+      "name": "my-connector",
+      "credentialName": "my-credential-name-for-secrets-manager"
+    }
+  }
+}
+```
 ## Streaming
 Streaming connectors offer a way to use pipelines with [Spark Structured Streaming](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html) without 
 the need to write new [drivers](pipeline-drivers.md). When designing pipelines for streaming, care must be taken to not

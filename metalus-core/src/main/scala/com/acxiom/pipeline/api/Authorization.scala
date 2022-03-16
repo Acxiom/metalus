@@ -6,7 +6,7 @@ import java.util.Base64
 /**
   * Provides a basic mechanism for authorizing a single URLConnection.
   */
-trait Authorization {
+trait Authorization extends Serializable {
   /**
     * Performs authorization against the provided URLConnection.
     * @param urlConnection The URLConnection to authorize.
