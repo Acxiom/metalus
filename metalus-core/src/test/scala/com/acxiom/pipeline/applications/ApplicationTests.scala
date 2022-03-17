@@ -38,7 +38,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
   private val TWELVE = 12
   private val THIRTEEN = 13
 
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
     Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
@@ -232,7 +232,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
       wireMockServer.start()
 
       wireMockServer.addStubMapping(get(urlPathEqualTo("/applications/12345"))
-          .withBasicAuth("cli-user", "cli-password")
+        .withBasicAuth("cli-user", "cli-password")
         .willReturn(aResponse()
           .withStatus(HttpURLConnection.HTTP_OK)
           .withHeader("content-type", "application/json")
@@ -345,6 +345,71 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     }
   }
 
+  describe("ApplicationUtils - Json4s Formats") {
+    it("Should parse formats") {
+      val jsonString =
+        """{
+          |  "customSerializers": [
+          |    {
+          |      "className": "com.acxiom.pipeline.applications.ChickenSerializer"
+          |    }
+          |  ],
+          |  "enumNameSerializers": [
+          |    {
+          |      "className": "com.acxiom.pipeline.applications.Color"
+          |    }
+          |  ],
+          |  "shortHintSerializers": [
+          |    {
+          |      "className": "com.acxiom.pipeline.applications.Child1"
+          |    },
+          |    {
+          |      "className": "com.acxiom.pipeline.applications.Child2"
+          |    }
+          |  ]
+          |}""".stripMargin
+      val serializers = DriverUtils.parseJson(jsonString, "com.acxiom.pipeline.applications.Json4sSerializers")(DefaultFormats).asInstanceOf[Json4sSerializers]
+      assert(Option(serializers).isDefined)
+      assert(serializers.customSerializers.isDefined)
+      assert(serializers.customSerializers.get.nonEmpty)
+      assert(serializers.enumNameSerializers.isDefined)
+      assert(serializers.enumNameSerializers.get.nonEmpty)
+      val jsonDoc =
+        """[
+          |    {
+          |      "breed": "silkie",
+          |      "color": "BUFF"
+          |    },
+          |    {
+          |      "breed": "polish",
+          |      "color": "BLACK"
+          |    }
+          |  ]""".stripMargin
+      implicit val formats: Formats = ApplicationUtils.getJson4sFormats(Some(serializers))
+      val chickenList = parse(jsonDoc).extract[List[Chicken]]
+      assert(Option(chickenList).isDefined)
+      assert(chickenList.nonEmpty)
+      assert(chickenList.head.isInstanceOf[Silkie])
+      assert(chickenList(1).isInstanceOf[Polish])
+
+      val roots =
+        """{
+          |"child1": {
+          |    "jsonClass": "com.acxiom.pipeline.applications.Child1",
+          |    "name": "child1"
+          |  },
+          |  "child2": {
+          |    "jsonClass": "com.acxiom.pipeline.applications.Child2",
+          |    "name": "child2"
+          |  }
+          |}""".stripMargin
+      val rootMap = parse(roots).extract[Map[String, Any]]
+      assert(rootMap.nonEmpty)
+      assert(rootMap("child1").isInstanceOf[Child1])
+      assert(rootMap("child2").isInstanceOf[Child2])
+    }
+  }
+
   private def verifyDriverSetup(driverSetup: DriverSetup): Unit = {
     assert(driverSetup.executionPlan.isDefined)
     assert(driverSetup.pipelines == List())
@@ -407,7 +472,11 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution4.parents.isEmpty)
     // Verify the globals object was properly merged
     val globals = ctx3.globals.get
-    val globalCount = if (globals.contains("authorization.class")) { THIRTEEN } else { TEN }
+    val globalCount = if (globals.contains("authorization.class")) {
+      THIRTEEN
+    } else {
+      TEN
+    }
     assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
@@ -460,7 +529,11 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution3.parents.isEmpty)
     // Verify the globals object was properly constructed
     val globals = ctx3.globals.get
-    val globalCount = if (globals.contains("authorization.class")) { NINE } else { SIX }
+    val globalCount = if (globals.contains("authorization.class")) {
+      NINE
+    } else {
+      SIX
+    }
     assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
@@ -500,7 +573,11 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution2.parents.isDefined)
     assert(execution2.parents.get.head == "0")
     val globals1 = ctx2.globals.get
-    val globalCount = if (globals1.contains("authorization.class")) { TWELVE } else { NINE }
+    val globalCount = if (globals1.contains("authorization.class")) {
+      TWELVE
+    } else {
+      NINE
+    }
     assert(globals1.size == globalCount)
     assert(globals1.contains("rootLogLevel"))
     assert(globals1.contains("rootLogLevel"))
@@ -573,7 +650,11 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(execution1.parents.isEmpty)
     // Verify the globals object was properly constructed
     val globals = ctx1.globals.get
-    val globalCount = if (globals.contains("authorization.class")) { TEN } else { SEVEN }
+    val globalCount = if (globals.contains("authorization.class")) {
+      TEN
+    } else {
+      SEVEN
+    }
     assert(globals.size == globalCount)
     assert(globals.contains("rootLogLevel"))
     assert(globals.contains("rootLogLevel"))
@@ -601,7 +682,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(ctx1.parameters.getParametersByPipelineId("Pipeline1").get.parameters("fred").asInstanceOf[String] == "johnson")
   }
 
-  def verifyUDF(spark: SparkSession): Unit ={
+  def verifyUDF(spark: SparkSession): Unit = {
     val df = spark.sql("select chicken() as chicken")
     assert(df.columns.length == 1)
     assert(df.collect().head.getString(0) == "moo")
@@ -642,7 +723,7 @@ case class TestSubGlobalObject(name: Option[String])
 
 class TestUDF(name: String) extends PipelineUDF {
   override def register(sparkSession: SparkSession, globals: Map[String, Any]): UserDefinedFunction = {
-    val func: () =>String = {() => s"${globals.getOrElse(name, "moo")}"}
+    val func: () => String = { () => s"${globals.getOrElse(name, "moo")}" }
     sparkSession.udf.register(name, func)
   }
 }
@@ -670,7 +751,7 @@ case class Coop(name: String, chickens: List[Chicken], color: Color)
 class ChickenSerializer extends CustomSerializer[Chicken](f => ( {
   case json: JObject =>
     implicit val formats: Formats = DefaultFormats + new EnumNameSerializer(Color) + new ChickenSerializer
-    if((json \ "breed") == JString("silkie")) {
+    if ((json \ "breed") == JString("silkie")) {
       json.extract[Silkie]
     } else {
       json.extract[Polish]
@@ -679,3 +760,11 @@ class ChickenSerializer extends CustomSerializer[Chicken](f => ( {
   case chicken: Chicken =>
     parse(s"""{"breed":"${chicken.breed},"color":"${chicken.color.toString}"}""")
 }))
+
+trait Root {
+  def name: String
+}
+
+case class Child1(override val name: String) extends Root {}
+
+case class Child2(override val name: String) extends Root {}

@@ -9,7 +9,7 @@ import org.apache.spark.scheduler.SparkListener
 import org.apache.spark.sql.SparkSession
 import org.json4s.ext.{EnumNameSerializer, EnumSerializer}
 import org.json4s.native.Serialization
-import org.json4s.{CustomSerializer, DefaultFormats, Formats}
+import org.json4s.{CustomSerializer, DefaultFormats, Formats, FullTypeHints}
 
 /**
  * Provides a set of utility functions for working with Application metadata
@@ -49,7 +49,13 @@ object ApplicationUtils {
       val customSerializers = j.customSerializers.map(_.map { ci =>
         ReflectionUtils.loadClass(ci.className.getOrElse(""), ci.parameters).asInstanceOf[CustomSerializer[_]]
       }).getOrElse(List())
-      (customSerializers ++ enumNames ++ enumIds).foldLeft(DefaultFormats: Formats) { (formats, custom) =>
+      val baseFormats: Formats = if (j.hintSerializers.isDefined && j.hintSerializers.get.nonEmpty) {
+        Serialization.formats(FullTypeHints(
+          j.hintSerializers.map(_.map { hint => Class.forName(hint.className.getOrElse("")) }).get))
+      } else {
+        DefaultFormats
+      }
+      (customSerializers ++ enumNames ++ enumIds).foldLeft(baseFormats: Formats) { (formats, custom) =>
         formats + custom
       }
     }.getOrElse(DefaultFormats)

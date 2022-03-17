@@ -136,7 +136,7 @@ val connector = JDBCDataConnector("jdbc:derby:memory:test", "table_name", "my-co
   }
 }
 ```
-###JSONAoiDataConnector (Experimental)
+### JSONApiDataConnector (Experimental)
 This connector provides the ability to interact with data in an API. The ApiHandler trait is used to allow extensibility.
 In addition to the standard parameters, the following parameters are available:
 * **apiHandler** - The _ApiHandler_ is used to handle parsing/writing the data to/from DataFrames

@@ -103,4 +103,5 @@ case class ApplicationTriggers(enableHiveSupport: Boolean = false,
 
 case class Json4sSerializers(customSerializers: Option[List[ClassInfo]] = None,
                              enumIdSerializers: Option[List[ClassInfo]] = None,
-                             enumNameSerializers: Option[List[ClassInfo]] = None)
+                             enumNameSerializers: Option[List[ClassInfo]] = None,
+                             hintSerializers: Option[List[ClassInfo]] = None)
