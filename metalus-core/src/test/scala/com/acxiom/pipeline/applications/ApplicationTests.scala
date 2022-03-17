@@ -38,7 +38,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
   private val TWELVE = 12
   private val THIRTEEN = 13
 
-  override def beforeAll(): Unit = {
+  override def beforeAll() {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
     Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
@@ -359,7 +359,7 @@ class ApplicationTests extends FunSpec with BeforeAndAfterAll with Suite {
           |      "className": "com.acxiom.pipeline.applications.Color"
           |    }
           |  ],
-          |  "shortHintSerializers": [
+          |  "hintSerializers": [
           |    {
           |      "className": "com.acxiom.pipeline.applications.Child1"
           |    },
