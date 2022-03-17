@@ -12,6 +12,20 @@ The following parameters are available to all data connectors:
 * **credentialName** - The optional credential name to use to authenticate
 * **credential** - The optional credential to use to authenticate
 
+
+[Batch](#batch)
+* [HDFSDataConnector](#hdfsdataconnector)
+* [S3DataConnector](#s3dataconnector)
+* [GCSDataConnector](#gcsdataconnector)
+* [BigQueryDataConnector](#bigquerydataconnector)
+* [MongoDataConnector](#mongodataconnector)
+* [JDBCDataConnector](#jdbcdataconnector)
+* [JSONApiDataConnector](#jsonapidataconnector)
+* 
+[Streaming](#streaming)
+* [KinesisDataConnector](#kinesisdataconnector)
+* [KafkaDataConnector](#kafkadataconnector)
+
 ## Batch
 Connectors that are designed to load and write data for batch processing will extend the _BatchDataConnector_. These
 are very straightforward and offer the most reusable components.
