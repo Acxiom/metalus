@@ -20,8 +20,7 @@ The following parameters are available to all data connectors:
 * [BigQueryDataConnector](./dataconnectors.md#bigquerydataconnector)
 * [MongoDataConnector](./dataconnectors.md#mongodataconnector)
 * [JDBCDataConnector](./dataconnectors.md#jdbcdataconnector)
-* [JSONApiDataConnector](./dataconnectors.md#jsonapidataconnector)
-* 
+* [JSONApiDataConnector](./dataconnectors.md#jsonapidataconnector-experimental)
 [Streaming](./dataconnectors.md#streaming)
 * [KinesisDataConnector](./dataconnectors.md#kinesisdataconnector)
 * [KafkaDataConnector](./dataconnectors.md#kafkadataconnector)
@@ -127,7 +126,7 @@ val connector = MongoDataConnector("mongodb://127.0.0.1/test", "my-connector", S
   }
 }
 ```
-###JDBCDataConnector
+### JDBCDataConnector
 This connector provides access to JDBC. Security is handled using the uri or a _UserNameCredential_. In addition to
 the standard parameters, the following parameters are available:
 
