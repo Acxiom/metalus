@@ -31,6 +31,24 @@ trait ApiHandler extends Serializable {
   def allowSelfSignedCertificates: Option[Boolean]
   def toDataFrame(path: String, credential: Option[Credential]): DataFrame
   def createConnectorWriter(path: String, credential: Option[Credential]): ConnectorWriter
+
+  protected def getJson(path: String, credential: Option[Credential]): Option[Map[String, Any]] = {
+    implicit val f: Formats = DefaultFormats
+    val client = new HttpRestClient(hostUrl, getAuthorization(credential), allowSelfSignedCertificates.getOrElse(false))
+    val json = client.getStringContent(path, Some(Map[String, String](Constants.CONTENT_TYPE_HEADER -> Constants.JSON_CONTENT_TYPE)))
+    parse(json).extractOpt[Map[String, Any]]
+  }
+
+  protected def getAuthorization(credential: Option[Credential]): Option[Authorization] = {
+    implicit val f: Formats = DefaultFormats
+    if (credential.isDefined) {
+      val map = parse(Serialization.write(credential.get)).extract[Map[String, Any]]
+      Some(ReflectionUtils.loadClass(authorizationClass, Some(map("parameters")
+        .asInstanceOf[Map[String, Any]])).asInstanceOf[Authorization])
+    } else {
+      None
+    }
+  }
 }
 
 case class DefaultApiHandler(override val jsonDocumentPath: String,
@@ -67,24 +85,6 @@ case class DefaultApiHandler(override val jsonDocumentPath: String,
         getAuthorization(credential), allowSelfSignedCertificates, Constants.ONE_HUNDRED, useRowArray = true)
     } else {
       JSONApiWriter(jsonDocumentPath, schema, hostUrl, path, getAuthorization(credential), allowSelfSignedCertificates)
-    }
-  }
-
-  private def getJson(path: String, credential: Option[Credential]): Option[Map[String, Any]] = {
-    implicit val f: Formats = DefaultFormats
-    val client = new HttpRestClient(hostUrl, getAuthorization(credential), allowSelfSignedCertificates.getOrElse(false))
-    val json = client.getStringContent(path, Some(Map[String, String](Constants.CONTENT_TYPE_HEADER -> Constants.JSON_CONTENT_TYPE)))
-    parse(json).extractOpt[Map[String, Any]]
-  }
-
-  protected def getAuthorization(credential: Option[Credential]): Option[Authorization] = {
-    implicit val f: Formats = DefaultFormats
-    if (credential.isDefined) {
-      val map = parse(Serialization.write(credential.get)).extract[Map[String, Any]]
-      Some(ReflectionUtils.loadClass(authorizationClass, Some(map("parameters")
-        .asInstanceOf[Map[String, Any]])).asInstanceOf[Authorization])
-    } else {
-      None
     }
   }
 }
