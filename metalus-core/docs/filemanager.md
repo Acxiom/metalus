@@ -17,6 +17,7 @@ used to indicate whether the file should be overwritten or appended.
 * **disconnect()** - Disconnects from the remote file system and releases any resources.
 * **copy(input, output, copyBufferSize)** - Copies the contents from the input to the output. This function
 does not close the stream.
+* **getStatus(path)** - Returns a FileInfo object containing the name, size, parent, and directory flag.
 
 ## Implementations
 

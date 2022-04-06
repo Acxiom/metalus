@@ -149,6 +149,18 @@ class SFTPFileManager(hostName: String,
   }
 
   /**
+   * Returns a FileInfo objects for the given path
+   * @param path The path to get a status of.
+   * @return A FileInfo object for the path given.
+   */
+  override def getStatus(path: String): FileInfo = {
+    val fs = channel.stat(path)
+    val index = path.stripSuffix("/").lastIndexOf('/') + 1
+    val (parent, name) = path.stripSuffix("/").splitAt(index)
+    FileInfo(name, fs.getSize, fs.isDir, Some(parent))
+  }
+
+  /**
    * Disconnect from the file system
    */
   override def disconnect(): Unit = {

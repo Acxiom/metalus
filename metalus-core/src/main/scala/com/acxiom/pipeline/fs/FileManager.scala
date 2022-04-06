@@ -89,6 +89,13 @@ trait FileManager {
     getFileListing(path).filter(_.directory)
 
   /**
+   * Returns a FileInfo objects for the given path
+   * @param path The path to get a status of.
+   * @return A FileInfo object for the path given.
+   */
+  def getStatus(path: String): FileInfo
+
+  /**
     * Disconnect from the file system
     */
   def disconnect(): Unit
@@ -197,6 +204,16 @@ class LocalFileManager extends FileManager {
           FileInfo(file.getName, file.length(), file.isDirectory, Option(file.getParent)) :: list
         }
     }
+  }
+
+  /**
+   * Returns a FileInfo objects for the given path
+   * @param path The path to get a status of.
+   * @return A FileInfo object for the path given.
+   */
+  override def getStatus(path: String): FileInfo = {
+    val file = new File(path)
+    FileInfo(file.getName, file.length(), file.isDirectory, Option(file.getParent))
   }
 
   /**
