@@ -365,7 +365,7 @@
         "pkg": "com.acxiom.pipeline.steps"
       },
       "nextStepId": "AddStaticPartitionColumn",
-      "stepId": "37e10488-02c1-5c85-b47a-efecf681fdd4"
+      "stepId": "80583aa9-41b7-4906-8357-cc2d3670d970"
     },
     {
       "id": "AddStaticPartitionColumn",
