@@ -16,7 +16,7 @@ import scala.io.Source
 
 class DataConnectorStepsTests extends FunSpec with BeforeAndAfterAll {
   val MASTER = "local[2]"
-  val APPNAME = "hdfs-steps-spark"
+  val APPNAME = "data-connector-steps-spark"
   var sparkConf: SparkConf = _
   var sparkSession: SparkSession = _
   var pipelineContext: PipelineContext = _
@@ -68,7 +68,7 @@ class DataConnectorStepsTests extends FunSpec with BeforeAndAfterAll {
     FileUtils.deleteDirectory(sparkLocalDir.toFile)
   }
 
-  describe("HDFS Steps - Basic Writing") {
+  describe("Data Connector Steps - Basic Writing") {
     val chickens = Seq(
       ("1", "silkie"),
       ("2", "polish"),
@@ -98,6 +98,7 @@ class DataConnectorStepsTests extends FunSpec with BeforeAndAfterAll {
 
       assert(writtenData == chickens)
     }
+
     it("should respect options") {
       val spark = this.sparkSession
       import spark.implicits._
@@ -144,7 +145,7 @@ class DataConnectorStepsTests extends FunSpec with BeforeAndAfterAll {
     }
   }
 
-  describe("HDFS Steps - Basic Reading") {
+  describe("Data Connector Steps - Basic Reading") {
     val chickens = Seq(
       ("1", "silkie"),
       ("2", "polish"),
