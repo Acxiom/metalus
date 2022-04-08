@@ -23,6 +23,7 @@ object Constants {
   val SPARK_METRICS: String = "SparkMetrics"
   val SPARK_SETTINGS: String = "SparkSettings"
 
+  val ACCEPT_HEADER: String = "Accept"
   val CONTENT_TYPE_HEADER: String = "Content-Type"
   val JSON_CONTENT_TYPE: String = "application/json"
 

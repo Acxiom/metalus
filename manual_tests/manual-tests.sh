@@ -49,7 +49,7 @@ mvn -B versions:set -DremoveSnapshot
 if [[ "${buildVersion}" == "2.4" || "${buildVersion}" == "all" ]]
 then
   echo "Testing Spark 2.4"
-  mvn clean install
+  mvn -P spark_2.4,scala_2.11 clean install
   validateResult ${?} "Failed to build project"
   manual_tests/spark-test.sh
   validateResult ${?} "Failed Spark Test"

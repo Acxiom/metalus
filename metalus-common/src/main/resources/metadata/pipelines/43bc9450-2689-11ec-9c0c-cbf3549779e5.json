@@ -2,55 +2,65 @@
   "id": "43bc9450-2689-11ec-9c0c-cbf3549779e5",
   "name": "CopyFile",
   "category": "pipeline",
+  "description": "Copies a file from the provided source location to thee specified destination. After the copy is complete, the results are verified. If the copy failed, then it will be retried 5 times.",
   "layout": {
     "GETSOURCE": {
       "x": 493,
-      "y": 64
+      "y": 32
     },
     "GETDESTINATION": {
       "x": 493,
-      "y": 178
+      "y": 146
     },
     "COPY": {
       "x": 493,
-      "y": 292
+      "y": 260
     },
     "VERIFY": {
-      "x": 426,
-      "y": 406
+      "x": 362,
+      "y": 375
     },
     "TO_STRING": {
-      "x": 426,
-      "y": 520
+      "x": 394,
+      "y": 488
     },
     "CHECKRESULTS": {
-      "x": 426,
-      "y": 634
+      "x": 394,
+      "y": 602
     },
     "CLOSESOURCE": {
-      "x": 551,
-      "y": 886
+      "x": 503,
+      "y": 944
     },
     "CLOSEDESTINATION": {
-      "x": 567,
-      "y": 1006
+      "x": 503,
+      "y": 1058
     },
     "DELETEDESTINATION": {
-      "x": 548,
-      "y": 698
+      "x": 503,
+      "y": 716
     },
     "RETRY": {
-      "x": 713,
-      "y": 760
+      "x": 552.5,
+      "y": 830
     }
   },
   "steps": [
     {
       "id": "GETSOURCE",
-      "category": "Connectors",
-      "creationDate": "2021-10-06T09:34:28.738Z",
-      "description": "Creates a FileManager using the provided FileConnector",
       "displayName": "Create a FileManager",
+      "description": "Creates a FileManager that represents the source.",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "fileConnector",
+          "required": true,
+          "value": "!sourceConnector",
+          "parameterType": "com.acxiom.pipeline.connectors.FileConnector",
+          "description": "Maps the value from the sourceConnector global."
+        }
+      ],
       "engineMeta": {
         "spark": "FileManagerSteps.getFileManager",
         "pkg": "com.acxiom.pipeline.steps",
@@ -58,30 +68,24 @@
           "primaryType": "com.acxiom.pipeline.fs.FileManager"
         }
       },
-      "modifiedDate": "2021-10-06T09:34:28.738Z",
-      "params": [
-        {
-          "type": "text",
-          "name": "fileConnector",
-          "required": true,
-          "parameterType": "com.acxiom.pipeline.connectors.FileConnector",
-          "description": "The FileConnector to use to create the FileManager implementation",
-          "value": "!sourceConnector"
-        }
-      ],
-      "tags": [
-        "metalus-common_2.11-spark_2.4-1.8.3-SNAPSHOT.jar"
-      ],
-      "type": "Pipeline",
-      "stepId": "259a880a-3e12-4843-9f02-2cfc2a05f576",
-      "nextStepId": "GETDESTINATION"
+      "nextStepId": "GETDESTINATION",
+      "stepId": "259a880a-3e12-4843-9f02-2cfc2a05f576"
     },
     {
       "id": "GETDESTINATION",
-      "category": "Connectors",
-      "creationDate": "2021-10-06T09:34:28.738Z",
-      "description": "Creates a FileManager using the provided FileConnector",
       "displayName": "Create a FileManager",
+      "description": "Creates a FileManager that represents the destination.",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "fileConnector",
+          "required": true,
+          "value": "!destinationConnector",
+          "parameterType": "com.acxiom.pipeline.connectors.FileConnector",
+          "description": "Maps the value from the destinationConnector global."
+        }
+      ],
       "engineMeta": {
         "spark": "FileManagerSteps.getFileManager",
         "pkg": "com.acxiom.pipeline.steps",
@@ -89,31 +93,48 @@
           "primaryType": "com.acxiom.pipeline.fs.FileManager"
         }
       },
-      "modifiedDate": "2021-10-06T09:34:28.738Z",
-      "params": [
-        {
-          "type": "text",
-          "name": "fileConnector",
-          "required": true,
-          "parameterType": "com.acxiom.pipeline.connectors.FileConnector",
-          "description": "The FileConnector to use to create the FileManager implementation",
-          "value": "!destinationConnector"
-        }
-      ],
-      "tags": [
-        "metalus-common_2.11-spark_2.4-1.8.3-SNAPSHOT.jar"
-      ],
-      "type": "Pipeline",
-      "stepId": "259a880a-3e12-4843-9f02-2cfc2a05f576",
-      "nextStepId": "COPY"
+      "nextStepId": "COPY",
+      "stepId": "259a880a-3e12-4843-9f02-2cfc2a05f576"
     },
     {
       "id": "COPY",
-      "category": "FileManager",
-      "creationDate": "2021-10-06T09:34:28.428Z",
-      "description": "Copy the contents of the source path to the destination path. This function will call connect on both FileManagers.",
       "displayName": "Copy (auto buffering)",
-      "retryLimit": 5,
+      "description": "Copies the data from the source to the destination.",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "srcFS",
+          "required": true,
+          "value": "@GETSOURCE",
+          "parameterType": "com.acxiom.pipeline.fs.FileManager",
+          "description": "The source FileManager"
+        },
+        {
+          "type": "text",
+          "name": "srcPath",
+          "required": true,
+          "value": "!sourceCopyPath",
+          "parameterType": "String",
+          "description": "Maps the value from the sourceCopyPath global."
+        },
+        {
+          "type": "text",
+          "name": "destFS",
+          "required": true,
+          "value": "@GETDESTINATION",
+          "parameterType": "com.acxiom.pipeline.fs.FileManager",
+          "description": "The destination FileManager"
+        },
+        {
+          "type": "text",
+          "name": "destPath",
+          "required": true,
+          "value": "!destinationCopyPath",
+          "parameterType": "String",
+          "description": "Maps the value from the destinationCopyPath global."
+        }
+      ],
       "engineMeta": {
         "spark": "FileManagerSteps.copy",
         "pkg": "com.acxiom.pipeline.steps",
@@ -121,55 +142,49 @@
           "primaryType": "com.acxiom.pipeline.steps.CopyResults"
         }
       },
-      "modifiedDate": "2021-10-06T10:12:54.804Z",
+      "nextStepId": "VERIFY",
+      "stepId": "0342654c-2722-56fe-ba22-e342169545af",
+      "nextStepOnError": "DELETEDESTINATION"
+    },
+    {
+      "id": "VERIFY",
+      "displayName": "Compare File Sizes",
+      "description": "Verifies that the data was copied.",
+      "type": "Pipeline",
       "params": [
         {
           "type": "text",
           "name": "srcFS",
           "required": true,
+          "value": "@GETSOURCE",
           "parameterType": "com.acxiom.pipeline.fs.FileManager",
-          "description": "The source FileManager",
-          "value": "@GETSOURCE"
+          "description": "The source FileManager"
         },
         {
           "type": "text",
           "name": "srcPath",
           "required": true,
+          "value": "!sourceCopyPath",
           "parameterType": "String",
-          "description": "The path to copy from",
-          "value": "!sourceCopyPath"
+          "description": "Maps the value from the sourceCopyPath global."
         },
         {
           "type": "text",
           "name": "destFS",
           "required": true,
+          "value": "@GETDESTINATION",
           "parameterType": "com.acxiom.pipeline.fs.FileManager",
-          "description": "The destination FileManager",
-          "value": "@GETDESTINATION"
+          "description": "The destination FileManager"
         },
         {
           "type": "text",
           "name": "destPath",
           "required": true,
+          "value": "!destinationCopyPath",
           "parameterType": "String",
-          "description": "The path to copy to",
-          "value": "!destinationCopyPath"
+          "description": "Maps the value from the destinationCopyPath global."
         }
       ],
-      "tags": [
-        "metalus-common_2.11-spark_2.4-1.8.3-SNAPSHOT.jar"
-      ],
-      "type": "Pipeline",
-      "stepId": "0342654c-2722-56fe-ba22-e342169545af",
-      "nextStepId": "VERIFY",
-      "nextStepOnError": "DELETEDESTINATION"
-    },
-    {
-      "id": "VERIFY",
-      "category": "FileManager",
-      "creationDate": "2021-10-06T11:05:25.493Z",
-      "description": "Compare the file sizes of the source and destination paths",
-      "displayName": "Compare File Sizes",
       "engineMeta": {
         "spark": "FileManagerSteps.compareFileSizes",
         "pkg": "com.acxiom.pipeline.steps",
@@ -177,54 +192,32 @@
           "primaryType": "Int"
         }
       },
-      "modifiedDate": "2021-10-06T11:05:25.493Z",
-      "params": [
-        {
-          "type": "text",
-          "name": "srcFS",
-          "required": true,
-          "parameterType": "com.acxiom.pipeline.fs.FileManager",
-          "description": "The source FileManager",
-          "value": "@GETSOURCE"
-        },
-        {
-          "type": "text",
-          "name": "srcPath",
-          "required": true,
-          "parameterType": "String",
-          "description": "The path to the source",
-          "value": "!sourceCopyPath"
-        },
-        {
-          "type": "text",
-          "name": "destFS",
-          "required": true,
-          "parameterType": "com.acxiom.pipeline.fs.FileManager",
-          "description": "The destination FileManager",
-          "value": "@GETDESTINATION"
-        },
-        {
-          "type": "text",
-          "name": "destPath",
-          "required": true,
-          "parameterType": "String",
-          "description": "The path to th destination",
-          "value": "!destinationCopyPath"
-        }
-      ],
-      "tags": [
-        "metalus-common_2.11-spark_2.4-1.8.3-SNAPSHOT.jar"
-      ],
-      "type": "Pipeline",
-      "stepId": "1af68ab5-a3fe-4afb-b5fa-34e52f7c77f5",
-      "nextStepId": "TO_STRING"
+      "nextStepId": "TO_STRING",
+      "stepId": "1af68ab5-a3fe-4afb-b5fa-34e52f7c77f5"
     },
     {
       "id": "TO_STRING",
-      "category": "String",
-      "creationDate": "2021-10-06T09:34:26.365Z",
-      "description": "Returns the result of the toString method, can unwrap options",
       "displayName": "To String",
+      "description": "Converts the output of the VERIFY step to a string.",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "value",
+          "required": true,
+          "value": "@VERIFY",
+          "parameterType": "Any",
+          "description": "The output of the VERIFY step."
+        },
+        {
+          "type": "boolean",
+          "name": "unwrapOption",
+          "required": false,
+          "value": false,
+          "parameterType": "Boolean",
+          "description": "Boolean indicating whether to unwrap the value from an Option prior to calling toString"
+        }
+      ],
       "engineMeta": {
         "spark": "StringSteps.toString",
         "pkg": "com.acxiom.pipeline.steps",
@@ -232,38 +225,54 @@
           "primaryType": "String"
         }
       },
-      "modifiedDate": "2021-10-06T11:05:23.415Z",
-      "params": [
-        {
-          "type": "text",
-          "name": "value",
-          "required": true,
-          "parameterType": "Any",
-          "description": "The value to convert",
-          "value": "@VERIFY"
-        },
-        {
-          "type": "boolean",
-          "name": "unwrapOption",
-          "required": false,
-          "parameterType": "Boolean",
-          "description": "Boolean indicating whether to unwrap the value from an Option prior to calling toString",
-          "value": false
-        }
-      ],
-      "tags": [
-        "metalus-common_2.11-spark_2.4-1.8.3-SNAPSHOT.jar"
-      ],
-      "type": "Pipeline",
-      "stepId": "b5485d97-d4e8-41a6-8af7-9ce79a435140",
-      "nextStepId": "CHECKRESULTS"
+      "nextStepId": "CHECKRESULTS",
+      "stepId": "b5485d97-d4e8-41a6-8af7-9ce79a435140"
     },
     {
       "id": "CHECKRESULTS",
-      "category": "Decision",
-      "creationDate": "2021-10-06T09:34:26.833Z",
-      "description": "Return whether string1 equals string2",
       "displayName": "String Equals",
+      "description": "Return whether string1 equals string2",
+      "type": "branch",
+      "params": [
+        {
+          "type": "text",
+          "name": "string",
+          "required": true,
+          "value": "@TO_STRING",
+          "parameterType": "String",
+          "description": "Maps the output of the TO_STRING step."
+        },
+        {
+          "type": "text",
+          "name": "anotherString",
+          "required": true,
+          "value": "0",
+          "parameterType": "String",
+          "description": "Set to 0 indicating no difference."
+        },
+        {
+          "type": "boolean",
+          "name": "caseInsensitive",
+          "required": false,
+          "value": false,
+          "parameterType": "Boolean",
+          "description": "Set to ignore the case of the mapped value."
+        },
+        {
+          "type": "result",
+          "name": "true",
+          "required": false,
+          "value": "CLOSESOURCE",
+          "description": ""
+        },
+        {
+          "type": "result",
+          "name": "false",
+          "required": false,
+          "value": "DELETEDESTINATION",
+          "description": ""
+        }
+      ],
       "engineMeta": {
         "spark": "StringSteps.stringEquals",
         "pkg": "com.acxiom.pipeline.steps",
@@ -271,112 +280,74 @@
           "primaryType": "Boolean"
         }
       },
-      "modifiedDate": "2021-10-06T11:05:23.861Z",
-      "params": [
-        {
-          "type": "text",
-          "name": "string",
-          "required": true,
-          "parameterType": "String",
-          "description": "The string to compare",
-          "value": "@TO_STRING"
-        },
-        {
-          "type": "text",
-          "name": "anotherString",
-          "required": true,
-          "parameterType": "String",
-          "description": "The other string to compare",
-          "value": "0"
-        },
-        {
-          "type": "boolean",
-          "name": "caseInsensitive",
-          "required": false,
-          "parameterType": "Boolean",
-          "description": "Boolean flag to indicate case sensitive compare",
-          "value": false
-        },
-        {
-          "type": "result",
-          "name": "true",
-          "required": false,
-          "value": "CLOSESOURCE"
-        },
-        {
-          "type": "result",
-          "name": "false",
-          "required": false,
-          "value": "DELETEDESTINATION"
-        }
-      ],
-      "tags": [
-        "metalus-common_2.11-spark_2.4-1.8.3-SNAPSHOT.jar"
-      ],
-      "type": "branch",
       "stepId": "3fabf9ec-5383-4eb3-81af-6092ab7c370d"
     },
     {
       "id": "CLOSESOURCE",
-      "category": "FileManager",
-      "creationDate": "2021-10-06T09:34:28.672Z",
-      "description": "Disconnects a FileManager from the underlying file system",
       "displayName": "Disconnect a FileManager",
-      "engineMeta": {
-        "spark": "FileManagerSteps.disconnectFileManager",
-        "pkg": "com.acxiom.pipeline.steps"
-      },
-      "modifiedDate": "2021-10-06T10:12:55.046Z",
+      "description": "Disconnects the  FileManager from the GETSOURCE step.",
+      "type": "Pipeline",
       "params": [
         {
           "type": "text",
           "name": "fileManager",
           "required": true,
+          "value": "@GETSOURCE",
           "parameterType": "com.acxiom.pipeline.fs.FileManager",
-          "description": "The file manager to disconnect",
-          "value": "@GETSOURCE"
+          "description": "The file manager from the GETSOURCE step."
         }
       ],
-      "tags": [
-        "metalus-common_2.11-spark_2.4-1.8.3-SNAPSHOT.jar"
-      ],
-      "type": "Pipeline",
-      "stepId": "3d1e8519-690c-55f0-bd05-1e7b97fb6633",
-      "nextStepId": "CLOSEDESTINATION"
+      "engineMeta": {
+        "spark": "FileManagerSteps.disconnectFileManager",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "nextStepId": "CLOSEDESTINATION",
+      "stepId": "3d1e8519-690c-55f0-bd05-1e7b97fb6633"
     },
     {
       "id": "CLOSEDESTINATION",
-      "category": "FileManager",
-      "creationDate": "2021-10-06T09:34:28.672Z",
-      "description": "Disconnects a FileManager from the underlying file system",
       "displayName": "Disconnect a FileManager",
-      "engineMeta": {
-        "spark": "FileManagerSteps.disconnectFileManager",
-        "pkg": "com.acxiom.pipeline.steps"
-      },
-      "modifiedDate": "2021-10-06T10:12:55.046Z",
+      "description": "Disconnects a FileManager from the GETDESTINATION step.",
+      "type": "Pipeline",
       "params": [
         {
           "type": "text",
           "name": "fileManager",
           "required": true,
+          "value": "@GETDESTINATION",
           "parameterType": "com.acxiom.pipeline.fs.FileManager",
-          "description": "The file manager to disconnect",
-          "value": "@GETDESTINATION"
+          "description": "The file manager from the GETDESTINATION step."
         }
       ],
-      "tags": [
-        "metalus-common_2.11-spark_2.4-1.8.3-SNAPSHOT.jar"
-      ],
-      "type": "Pipeline",
+      "engineMeta": {
+        "spark": "FileManagerSteps.disconnectFileManager",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
       "stepId": "3d1e8519-690c-55f0-bd05-1e7b97fb6633"
     },
     {
       "id": "DELETEDESTINATION",
-      "category": "FileManager",
-      "creationDate": "2021-10-06T11:05:25.555Z",
-      "description": "Delete a file",
       "displayName": "Delete (file)",
+      "description": "Delete a file",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "fileManager",
+          "required": true,
+          "value": "@GETDESTINATION",
+          "parameterType": "com.acxiom.pipeline.fs.FileManager",
+          "description": "Uses the FileeManager from thee GETDESTINATION step."
+        },
+        {
+          "type": "text",
+          "name": "path",
+          "required": true,
+          "value": "!destinationCopyPath",
+          "parameterType": "String",
+          "description": "Maps the value from the destinationCopyPath global."
+        }
+      ],
       "engineMeta": {
         "spark": "FileManagerSteps.deleteFile",
         "pkg": "com.acxiom.pipeline.steps",
@@ -384,38 +355,46 @@
           "primaryType": "Boolean"
         }
       },
-      "modifiedDate": "2021-10-06T11:05:25.555Z",
-      "params": [
-        {
-          "type": "text",
-          "name": "fileManager",
-          "required": true,
-          "parameterType": "com.acxiom.pipeline.fs.FileManager",
-          "description": "The FileManager",
-          "value": "@GETDESTINATION"
-        },
-        {
-          "type": "text",
-          "name": "path",
-          "required": true,
-          "parameterType": "String",
-          "description": "The path to the file being deleted",
-          "value": "!destinationCopyPath"
-        }
-      ],
-      "tags": [
-        "metalus-common_2.11-spark_2.4-1.8.3-SNAPSHOT.jar"
-      ],
-      "type": "Pipeline",
-      "stepId": "bf2c4df8-a215-480b-87d8-586984e04189",
-      "nextStepId": "RETRY"
+      "nextStepId": "RETRY",
+      "stepId": "bf2c4df8-a215-480b-87d8-586984e04189"
     },
     {
       "id": "RETRY",
-      "category": "RetryLogic",
-      "creationDate": "2021-10-07T11:41:30.788Z",
-      "description": "Makes a decision to retry or stop based on a named counter",
       "displayName": "Retry (simple)",
+      "description": "Makes a decision to retry or stop based on a named counter",
+      "type": "branch",
+      "params": [
+        {
+          "type": "text",
+          "name": "counterName",
+          "required": true,
+          "value": "COPY_FILE_RETRY",
+          "parameterType": "String",
+          "description": "Sets the name of the tracking counter to COPY_FILE_RETRY."
+        },
+        {
+          "type": "integer",
+          "name": "maxRetries",
+          "required": true,
+          "value": 5,
+          "parameterType": "Int",
+          "description": "The maximum number of retries will be 5."
+        },
+        {
+          "type": "result",
+          "name": "retry",
+          "required": false,
+          "value": "COPY",
+          "description": ""
+        },
+        {
+          "type": "result",
+          "name": "stop",
+          "required": false,
+          "value": "CLOSESOURCE",
+          "description": ""
+        }
+      ],
       "engineMeta": {
         "spark": "FlowUtilsSteps.simpleRetry",
         "pkg": "com.acxiom.pipeline.steps",
@@ -423,41 +402,6 @@
           "primaryType": "com.acxiom.pipeline.PipelineStepResponse"
         }
       },
-      "modifiedDate": "2021-10-07T11:41:30.788Z",
-      "params": [
-        {
-          "type": "text",
-          "name": "counterName",
-          "required": true,
-          "parameterType": "String",
-          "description": "The name of the counter to use for tracking",
-          "value": "COPY_FILE_RETRY"
-        },
-        {
-          "type": "integer",
-          "name": "maxRetries",
-          "required": true,
-          "parameterType": "Int",
-          "description": "The maximum number of retries allowed",
-          "value": 5
-        },
-        {
-          "type": "result",
-          "name": "retry",
-          "required": false,
-          "value": "COPY"
-        },
-        {
-          "type": "result",
-          "name": "stop",
-          "required": false,
-          "value": "CLOSESOURCE"
-        }
-      ],
-      "tags": [
-        "metalus-common_2.11-spark_2.4-1.8.3-SNAPSHOT.jar"
-      ],
-      "type": "branch",
       "stepId": "6ed36f89-35d1-4280-a555-fbcd8dd76bf2"
     }
   ]

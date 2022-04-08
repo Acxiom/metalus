@@ -2,65 +2,66 @@
   "id": "a9f62840-2827-11ec-9c0c-cbf3549779e5",
   "name": "LoadToBronze",
   "category": "pipeline",
+  "description": "Loads data from thee provided source location, performs optional tasks such as standardizing column names, adding a unique record id, adding the file id and adding a partition column. This pipeline also supports streaming connectors and may be used as the final pipeline in a streaming query.",
   "layout": {
     "START_LOG": {
-      "x": 493,
-      "y": 64
+      "x": 491,
+      "y": 32
     },
     "Load": {
-      "x": 493,
-      "y": 178
+      "x": 491,
+      "y": 146
     },
     "ExecuteColumnCleanup": {
-      "x": 398,
-      "y": 281
+      "x": 441.5,
+      "y": 260
     },
     "StandardizeColumnNames": {
-      "x": 493,
-      "y": 406
+      "x": 491,
+      "y": 374
     },
     "AddRecordIdDecision": {
-      "x": 384,
-      "y": 529
+      "x": 441.5,
+      "y": 488
     },
     "AddRecordId": {
-      "x": 493,
-      "y": 634
+      "x": 491,
+      "y": 602
     },
     "AddFileIdDecision": {
-      "x": 379,
-      "y": 745
+      "x": 441.5,
+      "y": 716
     },
     "AddFileId": {
-      "x": 493,
-      "y": 862
+      "x": 491,
+      "y": 830
     },
     "AddStaticPartitionColumn": {
-      "x": 379,
-      "y": 973
+      "x": 441.5,
+      "y": 944
     },
     "AddPartitionColumn": {
-      "x": 493,
-      "y": 1090
+      "x": 491,
+      "y": 1058
     },
     "Write": {
-      "x": 383,
-      "y": 1196
+      "x": 441.5,
+      "y": 1172
     },
     "StreamingMonitor": {
-      "x": 493,
-      "y": 1318
+      "x": 491,
+      "y": 1286
     },
     "END_LOG": {
-      "x": 492,
-      "y": 1432
+      "x": 491,
+      "y": 1400
     }
   },
   "steps": [
     {
       "id": "START_LOG",
       "displayName": "Log Message",
-      "description": "Log a simple message",
+      "description": "Logs the start of the pipeline",
       "type": "Pipeline",
       "params": [
         {
@@ -69,7 +70,7 @@
           "required": true,
           "value": "Starting Load To Bronze",
           "parameterType": "String",
-          "description": "The message to log"
+          "description": "Indicates that the logging pipeline has started"
         },
         {
           "type": "text",
@@ -77,7 +78,7 @@
           "required": true,
           "value": "INFO",
           "parameterType": "String",
-          "description": "Log level at which to log. Should be a valid log4j level"
+          "description": "Setting the log to info."
         }
       ],
       "engineMeta": {
@@ -90,7 +91,7 @@
     {
       "id": "Load",
       "displayName": "Load",
-      "description": "This step will create a DataFrame using the given DataConnector",
+      "description": "Loads the data using the specified connector information",
       "type": "Pipeline",
       "params": [
         {
@@ -99,7 +100,7 @@
           "required": true,
           "value": "!sourceBronzeConnector",
           "parameterType": "com.acxiom.pipeline.connectors.DataConnector",
-          "description": "The data connector to use when writing"
+          "description": "Maps the connector using the sourceBronzeConnector global"
         },
         {
           "type": "text",
@@ -107,7 +108,7 @@
           "required": false,
           "value": "!sourceBronzePath",
           "parameterType": "String",
-          "description": "The source path to load data"
+          "description": "Maps the path using the sourceBronzePath global"
         },
         {
           "type": "object",
@@ -116,7 +117,7 @@
           "value": "!sourceBronzeReadOptions",
           "className": "com.acxiom.pipeline.steps.DataFrameReaderOptions",
           "parameterType": "com.acxiom.pipeline.steps.DataFrameReaderOptions",
-          "description": "The optional options to use while reading the data"
+          "description": "Maps the read options from the sourceBronzeReadOptions global"
         }
       ],
       "engineMeta": {
@@ -132,7 +133,7 @@
     {
       "id": "ExecuteColumnCleanup",
       "displayName": "String Equals",
-      "description": "Return whether string1 equals string2",
+      "description": "Determines whether column names should be standardized",
       "type": "branch",
       "params": [
         {
@@ -140,21 +141,21 @@
           "name": "string",
           "required": true,
           "value": "!executeColumnCleanup || true",
-          "description": "The string to compare"
+          "description": "Uses the value from the executeColumnCleanup global. A value of true is required to run the cleanup. Default is true,"
         },
         {
           "type": "text",
           "name": "anotherString",
           "required": true,
           "value": "true",
-          "description": "The other string to compare"
+          "description": "This value (true) is compared against the mapped value."
         },
         {
           "type": "boolean",
           "name": "caseInsensitive",
           "required": false,
           "value": true,
-          "description": "Boolean flag to indicate case sensitive compare"
+          "description": "Set to ignore the case of the mapped value."
         },
         {
           "type": "result",
@@ -191,7 +192,7 @@
           "name": "dataFrame",
           "required": false,
           "value": "@Load",
-          "description": ""
+          "description": "The data from the Load step."
         }
       ],
       "engineMeta": {
@@ -204,29 +205,29 @@
     {
       "id": "AddRecordIdDecision",
       "displayName": "String Equals",
-      "description": "Return whether string1 equals string2",
+      "description": "Determines whether a record id should be added to each row",
       "type": "branch",
       "params": [
         {
           "type": "text",
           "name": "string",
           "required": true,
-          "value": "!addRecordId || true",
-          "description": "The string to compare"
+          "value": "!addRecordId || $useRecordId || true",
+          "description": "Maps the value from the addRecordId global or useRecordId runtime parameter to determine whether to add a record id to the data"
         },
         {
           "type": "text",
           "name": "anotherString",
           "required": true,
           "value": "true",
-          "description": "The other string to compare"
+          "description": "This value (true) is compared against the mapped value."
         },
         {
           "type": "boolean",
           "name": "caseInsensitive",
           "required": false,
           "value": true,
-          "description": "Boolean flag to indicate case sensitive compare"
+          "description": "Set to ignore the case of the mapped value."
         },
         {
           "type": "result",
@@ -263,14 +264,14 @@
           "name": "idColumnName",
           "required": false,
           "value": "metalus_record_id",
-          "description": ""
+          "description": "The name of the column that will contain the new column. The column will be named metalus_record_id."
         },
         {
           "type": "text",
           "name": "dataFrame",
           "required": false,
           "value": "@StandardizeColumnNames || @LoadDataFrame",
-          "description": ""
+          "description": "The current data set"
         }
       ],
       "engineMeta": {
@@ -283,7 +284,7 @@
     {
       "id": "AddFileIdDecision",
       "displayName": "String Equals",
-      "description": "Return whether string1 equals string2",
+      "description": "Determines whether the file id should be added to each record",
       "type": "branch",
       "params": [
         {
@@ -291,21 +292,21 @@
           "name": "string",
           "required": true,
           "value": "!addFileId || true",
-          "description": "The string to compare"
+          "description": "Maps the value from the addFileId global. Default is true."
         },
         {
           "type": "text",
           "name": "anotherString",
           "required": true,
           "value": "true",
-          "description": "The other string to compare"
+          "description": "This value (true) is compared against the mapped value."
         },
         {
           "type": "boolean",
           "name": "caseInsensitive",
           "required": false,
           "value": true,
-          "description": "Boolean flag to indicate case sensitive compare"
+          "description": "Set to ignore the case of the mapped value."
         },
         {
           "type": "result",
@@ -342,21 +343,21 @@
           "name": "dataFrame",
           "required": false,
           "value": "@AddRecordId || @StandardizeColumnNames || @LoadDataFrame",
-          "description": ""
+          "description": "The current data set"
         },
         {
           "type": "text",
           "name": "columnName",
           "required": false,
           "value": "metalus_file_id",
-          "description": ""
+          "description": "Sets the column name to metalus_file_id."
         },
         {
           "type": "text",
           "name": "columnValue",
           "required": false,
           "value": "!fileId",
-          "description": ""
+          "description": "Maps the value from the fileId global"
         }
       ],
       "engineMeta": {
@@ -369,7 +370,7 @@
     {
       "id": "AddStaticPartitionColumn",
       "displayName": "String Equals",
-      "description": "Return whether string1 equals string2",
+      "description": "Determines whether a column should be added to each record that can be used for partitioning the data",
       "type": "branch",
       "params": [
         {
@@ -378,7 +379,7 @@
           "required": true,
           "value": "!AddPartitionColumn",
           "parameterType": "String",
-          "description": "The string to compare"
+          "description": "Maps the value from the AddPartitionColumn global"
         },
         {
           "type": "text",
@@ -386,7 +387,7 @@
           "required": true,
           "value": "true",
           "parameterType": "String",
-          "description": "The other string to compare"
+          "description": "This value (true) is compared against the mapped value."
         },
         {
           "type": "boolean",
@@ -394,7 +395,7 @@
           "required": false,
           "value": true,
           "parameterType": "Boolean",
-          "description": "Boolean flag to indicate case sensitive compare"
+          "description": "Set to ignore the case of the mapped value."
         },
         {
           "type": "result",
@@ -432,7 +433,7 @@
           "required": true,
           "value": "@AddFileId || @AddRecordId || @StandardizeColumnNames || @Load",
           "parameterType": "org.apache.spark.sql.Dataset[_]",
-          "description": "The data frame to add the column"
+          "description": "The current data set"
         },
         {
           "type": "text",
@@ -440,7 +441,7 @@
           "required": true,
           "value": "!partitionColumnNameBronze || partition_column",
           "parameterType": "String",
-          "description": "The name to provide the id column"
+          "description": "Maps the value of the partitionColumnNameBronze global or defaults to partition_column."
         },
         {
           "type": "text",
@@ -448,7 +449,7 @@
           "required": true,
           "value": "!PARTITION_VALUE",
           "parameterType": "Any",
-          "description": "The name of the new column"
+          "description": "Maps the value of the PARTITION_VALUE global."
         },
         {
           "type": "boolean",
@@ -457,7 +458,7 @@
           "defaultValue": "true",
           "value": false,
           "parameterType": "Boolean",
-          "description": "The value to add"
+          "description": "Set to false so the mapped value is used as is."
         }
       ],
       "engineMeta": {
@@ -482,7 +483,7 @@
           "required": true,
           "value": "@AddPartitionColumn || @AddFileId || @AddRecordId || @StandardizeColumnNames || @Load",
           "parameterType": "org.apache.spark.sql.DataFrame",
-          "description": "The DataFrame to write"
+          "description": "The current data set."
         },
         {
           "type": "text",
@@ -490,7 +491,7 @@
           "required": true,
           "value": "!destinationBronzeConnector",
           "parameterType": "com.acxiom.pipeline.connectors.DataConnector",
-          "description": "The data connector to use when writing"
+          "description": "Maps the value from the destinationBronzeConnector global."
         },
         {
           "type": "text",
@@ -498,7 +499,7 @@
           "required": false,
           "value": "!destinationBronzePath",
           "parameterType": "String",
-          "description": "The destination path to write data"
+          "description": "Maps the value from the destinationBronzePath global."
         },
         {
           "type": "object",
@@ -507,7 +508,7 @@
           "value": "!destinationBronzeWriteOptions",
           "className": "com.acxiom.pipeline.steps.DataFrameWriterOptions",
           "parameterType": "com.acxiom.pipeline.steps.DataFrameWriterOptions",
-          "description": "The optional DataFrame options to use while writing"
+          "description": "Maps the value from the destinationBronzeWriteOptions global."
         }
       ],
       "engineMeta": {
@@ -532,7 +533,7 @@
           "required": false,
           "value": "@Write",
           "parameterType": "org.apache.spark.sql.streaming.StreamingQuery",
-          "description": "The streaming query to monitor"
+          "description": "The streaming query from the Write step if a streaming connector was used."
         },
         {
           "type": "text",
@@ -540,7 +541,7 @@
           "required": false,
           "value": "!STREAMING_MONITOR_CLASS_NAME || com.acxiom.pipeline.streaming.BaseStreamingQueryMonitor",
           "parameterType": "String",
-          "description": "Fully qualified classname of the monitor class"
+          "description": "Maps the value from the STREAMING_MONITOR_CLASS_NAME global. The default class used is com.acxiom.pipeline.streaming.BaseStreamingQueryMonitor which will continue running."
         },
         {
           "type": "result",
@@ -578,7 +579,7 @@
           "required": true,
           "value": "Finished Load To Bronze Pipeline. Streaming was not used.",
           "parameterType": "String",
-          "description": "The message to log"
+          "description": "Adds a log message that the pipeline has completed."
         },
         {
           "type": "text",
@@ -586,7 +587,7 @@
           "required": true,
           "value": "INFO",
           "parameterType": "String",
-          "description": "Log level at which to log. Should be a valid log4j level"
+          "description": "Setting the log to info."
         }
       ],
       "engineMeta": {
