@@ -178,7 +178,7 @@
                 <!-- see http://davidb.github.com/scala-maven-plugin -->
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <version>4.4.0</version>
+                <version>4.6.1</version>
                 <configuration>
                     <scalaCompatVersion>${scala.compat.version}</scalaCompatVersion>
                     <scalaVersion>${scala.version}</scalaVersion>
@@ -353,7 +353,7 @@
         <profile>
             <id>spark_2.4</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
                 <scala.version>2.11.12</scala.version>
@@ -387,6 +387,9 @@
         </profile>
         <profile>
             <id>spark_3.1</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <properties>
                 <spark.compat.version>3.1</spark.compat.version>
                 <spark.version>3.1.3</spark.version>
