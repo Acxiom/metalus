@@ -61,7 +61,7 @@ jobs:
         env:
           SPARK_LOCAL_IP: 127.0.0.1
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
-        run: mvn -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 -B -DrepoToken=${{ secrets.COVERALLS_REPO_TOKEN }} scoverage:report coveralls:report
+        run: mvn -P spark_3.1 -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 -B -DrepoToken=${{ secrets.COVERALLS_REPO_TOKEN }} scoverage:report coveralls:report
   release_pom:
     if: ${{ github.repository == 'Acxiom/metalus' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
     name: Release POM
