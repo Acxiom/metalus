@@ -207,7 +207,7 @@
             <plugin>
                 <groupId>org.scoverage</groupId>
                 <artifactId>scoverage-maven-plugin</artifactId>
-                <version>1.2.0</version>
+                <version>1.4.11</version>
                 <configuration>
                     <scalaVersion>${scala.version}</scalaVersion>
                     <highlighting>true</highlighting>
@@ -285,7 +285,10 @@
             <plugin>
                 <groupId>org.scoverage</groupId>
                 <artifactId>scoverage-maven-plugin</artifactId>
-                <version>1.2.0</version>
+                <version>1.4.11</version>
+                <configuration>
+                    <scalaVersion>${scala.version}</scalaVersion>
+                </configuration>
                 <reportSets>
                     <reportSet>
                         <reports>
