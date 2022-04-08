@@ -42,7 +42,7 @@ jobs:
         with:
           java-version: 1.8
       - name: Build with Maven
-        run: mvn -B -DskipTests=true clean install
+        run: mvn -P spark_3.1 -B -DskipTests=true clean install
       - name: Coverage Report
         env:
           SPARK_LOCAL_IP: 127.0.0.1

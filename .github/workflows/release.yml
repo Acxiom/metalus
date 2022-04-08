@@ -56,7 +56,7 @@ jobs:
           path: ~/.m2
           key: metalus-build-${{ env.cache-name }}
       - name: Build with Maven
-        run: mvn -B -DskipTests=true clean install
+        run: mvn -P spark_3.1 -B -DskipTests=true clean install
       - name: Coverage Report
         env:
           SPARK_LOCAL_IP: 127.0.0.1
@@ -140,7 +140,7 @@ jobs:
       - name: Set Metalus Version
         run: |
           echo 'METALUS_VERSION<<EOF' >> $GITHUB_ENV
-          mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec >> $GITHUB_ENV
+          mvn -P spark_3.1 -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
       - name: Display Metalus Application Target Directory
         run: |
@@ -175,11 +175,11 @@ jobs:
           path: ~/.m2
           key: metalus-build-${{ env.cache-name }}
       - name: Remove SNAPSHOT
-        run: mvn -B versions:set -DremoveSnapshot
+        run:  -P spark_3.1-B versions:set -DremoveSnapshot
       - name: Set Metalus Version
         run: |
           echo 'METALUS_VERSION<<EOF' >> $GITHUB_ENV
-          mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec >> $GITHUB_ENV
+          mvn -P spark_3.1 -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
       - name: Download Artifacts
         uses: actions/download-artifact@v2
