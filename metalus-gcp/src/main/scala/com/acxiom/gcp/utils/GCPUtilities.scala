@@ -33,7 +33,7 @@ object GCPUtilities {
     .setTotalTimeout(Duration.ofMinutes(Constants.TWO)).build
 
   /**
-    * Given a credential map, this function will set the appropriate properties required for Spark access.
+    * Given a credential map, this function will set the appropriate properties required for GCS access from Spark.
     *
     * @param credentials     The GCP auth map
     * @param pipelineContext The current pipeline context
@@ -42,6 +42,16 @@ object GCPUtilities {
     val sc = pipelineContext.sparkSession.get.sparkContext
     sc.hadoopConfiguration.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
     sc.hadoopConfiguration.set("fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS")
+    setGCPSecurity(credentials, pipelineContext)
+  }
+
+  /**
+    * Given a credential map, this function will set the security properties required for Spark access.
+    * @param credentials     The GCP auth map
+    * @param pipelineContext The current pipeline context
+    */
+  def setGCPSecurity(credentials: Map[String, String], pipelineContext: PipelineContext): Unit = {
+    val sc = pipelineContext.sparkSession.get.sparkContext
     // Private Key
     sc.hadoopConfiguration.set("fs.gs.project.id", credentials("project_id"))
     sc.hadoopConfiguration.set("fs.gs.auth.service.account.enable", "true")
@@ -52,6 +62,7 @@ object GCPUtilities {
 
   /**
     * Retrieve the credentials needed to interact with GCP services.
+    *
     * @param credentialProvider The credential provider
     * @param credentialName The name of the credential
     * @return An optional GoogleCredentials object

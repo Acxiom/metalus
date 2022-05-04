@@ -52,9 +52,11 @@ case class BigQueryDataConnector(tempWriteBucket: String,
   }
 
   private def setBigQueryAuthentication(credentials: GCPCredential,
-                                        options: Option[Map[String, String]]): Option[Map[String, String]] = {
+                                        options: Option[Map[String, String]],
+                                        pipelineContext: PipelineContext): Option[Map[String, String]] = {
     val creds = GCPUtilities.generateCredentialsByteArray(Some(credentials.authKey))
     if (creds.isDefined) {
+      GCPUtilities.setGCPSecurity(credentials.authKey, pipelineContext)
       val encodedCredential = Base64.getEncoder.encodeToString(creds.get)
       if (options.isDefined) {
         Some(options.get + ("credentials" -> encodedCredential))
