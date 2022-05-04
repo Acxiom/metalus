@@ -3,8 +3,6 @@ package com.acxiom.pipeline.applications
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.DriverUtils
 import com.acxiom.pipeline.{CredentialProvider, DependencyResult, PipelineContext, PipelineExecution}
-import org.apache.hadoop.io.LongWritable
-import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
 
@@ -56,7 +54,7 @@ trait ApplicationDriverSetup extends DriverSetup {
     val kryoClasses: Array[Class[_]] = if (sparkConfOptions.contains("kryoClasses")) {
       sparkConfOptions("kryoClasses").asInstanceOf[List[String]].map(c => Class.forName(c)).toArray
     } else {
-      Array[Class[_]](classOf[LongWritable], classOf[UrlEncodedFormEntity])
+      DriverUtils.DEFAULT_KRYO_CLASSES
     }
     val initialSparkConf: SparkConf = DriverUtils.createSparkConf(kryoClasses)
     val sparkConf: SparkConf = if (sparkConfOptions.contains("setOptions")) {

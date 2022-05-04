@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.acxiom</groupId>
     <artifactId>metalus</artifactId>
-    <version>1.8.6-SNAPSHOT</version>
+    <version>1.9.0-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <packaging>pom</packaging>
     <description>Metalus Pipeline Library</description>
@@ -55,6 +55,7 @@
         <sonar.scala.coverage.reportPaths>${project.build.directory}/scoverage.xml</sonar.scala.coverage.reportPaths>
         <sonar.scala.scalastyle.reportPaths>${basedir}/target/checkstyle-result.xml</sonar.scala.scalastyle.reportPaths>
         <sonar.exclusions>src/test/scala/**</sonar.exclusions>
+        <hadoop.minicluster.version>3.3.0</hadoop.minicluster.version>
     </properties>
 
     <modules>
@@ -152,7 +153,7 @@
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-minicluster</artifactId>
-            <version>3.3.0</version>
+            <version>${hadoop.minicluster.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -354,25 +355,6 @@
             </build>
         </profile>
         <profile>
-            <id>spark_2.4</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <scala.version>2.11.12</scala.version>
-                <scala.compat.version>2.11</scala.compat.version>
-                <spark.compat.version>2.4</spark.compat.version>
-                <spark.version>2.4.6</spark.version>
-                <json4s.version>3.5.3</json4s.version>
-                <mongo.version>2.4.2</mongo.version>
-                <kinesis.client.version>1.12.0</kinesis.client.version>
-                <jackson.core.version>2.9.7</jackson.core.version>
-                <aws-sdk-version>1.11.595</aws-sdk-version>
-                <hadoop-aws-version>2.7.7</hadoop-aws-version>
-                <delta-lake-version>0.6.1</delta-lake-version>
-            </properties>
-        </profile>
-        <profile>
             <id>spark_3.0</id>
             <properties>
                 <spark.compat.version>3.0</spark.compat.version>
@@ -404,7 +386,7 @@
                 <kinesis.client.version>1.12.0</kinesis.client.version>
                 <aws-sdk-version>1.11.655</aws-sdk-version>
                 <hadoop-aws-version>2.7.7</hadoop-aws-version>
-                <delta-lake-version>1.0.0</delta-lake-version>
+                <delta-lake-version>1.0.1</delta-lake-version>
             </properties>
             <dependencies>
                 <dependency>
@@ -416,18 +398,38 @@
             </dependencies>
         </profile>
         <profile>
-            <id>scala_2.11</id>
+            <id>spark_3.2</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
             <properties>
-                <scala.version>2.11.12</scala.version>
-                <scala.compat.version>2.11</scala.compat.version>
-            </properties>
-        </profile>
-        <profile>
-            <id>scala_2.12</id>
-            <properties>
+                <spark.compat.version>3.2</spark.compat.version>
+                <spark.version>3.2.1</spark.version>
+                <json4s.version>3.6.6</json4s.version>
+                <mongo.version>3.0.0</mongo.version>
                 <scala.compat.version>2.12</scala.compat.version>
                 <scala.version>2.12.13</scala.version>
+                <jackson.core.version>2.12.0</jackson.core.version>
+                <kinesis.client.version>1.12.0</kinesis.client.version>
+                <aws-sdk-version>1.11.655</aws-sdk-version>
+                <hadoop-aws-version>2.7.7</hadoop-aws-version>
+                <delta-lake-version>1.2.1</delta-lake-version>
+                <hadoop.minicluster.version>3.3.1</hadoop.minicluster.version>
             </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-client-minicluster</artifactId>
+                    <version>${hadoop.minicluster.version}</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-hdfs-client</artifactId>
+                    <version>3.3.1</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
         </profile>
     </profiles>
 

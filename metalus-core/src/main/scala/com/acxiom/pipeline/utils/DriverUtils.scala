@@ -6,7 +6,6 @@ import com.acxiom.pipeline.audits.AuditType
 import com.acxiom.pipeline.drivers.{DriverSetup, ResultSummary}
 import com.acxiom.pipeline.fs.FileManager
 import org.apache.hadoop.io.LongWritable
-import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.Dataset
@@ -23,7 +22,14 @@ object DriverUtils {
 
   private val logger = Logger.getLogger(getClass)
 
-  val DEFAULT_KRYO_CLASSES: Array[Class[_ >: LongWritable with UrlEncodedFormEntity <: Object]] = Array(classOf[LongWritable], classOf[UrlEncodedFormEntity])
+  val DEFAULT_KRYO_CLASSES: Array[Class[_]] = {
+    try {
+      val c = Class.forName("org.apache.http.client.entity.UrlEncodedFormEntity")
+      Array[Class[_]](classOf[LongWritable], c)
+    } catch {
+      case _: Throwable => Array[Class[_]](classOf[LongWritable])
+    }
+  }
 
   private val SPARK_MASTER = "spark.master"
 
