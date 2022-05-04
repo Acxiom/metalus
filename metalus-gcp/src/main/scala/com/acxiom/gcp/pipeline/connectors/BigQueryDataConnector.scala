@@ -22,7 +22,7 @@ case class BigQueryDataConnector(tempWriteBucket: String,
     // Setup authentication
     val finalCredential = getCredential(pipelineContext).asInstanceOf[Option[GCPCredential]]
     val finalOptions = if (finalCredential.isDefined) {
-      readerOptions.copy(options = setBigQueryAuthentication(finalCredential.get, readerOptions.options))
+      readerOptions.copy(options = setBigQueryAuthentication(finalCredential.get, readerOptions.options, pipelineContext))
     } else {
       readerOptions
     }
@@ -37,7 +37,7 @@ case class BigQueryDataConnector(tempWriteBucket: String,
     val writerOptions = writeOptions.copy(format = "bigquery", options = Some(Map("temporaryGcsBucket" -> tempWriteBucket)))
     val finalCredential = getCredential(pipelineContext).asInstanceOf[Option[GCPCredential]]
     val finalOptions = if (finalCredential.isDefined) {
-      writerOptions.copy(options = setBigQueryAuthentication(finalCredential.get, writerOptions.options))
+      writerOptions.copy(options = setBigQueryAuthentication(finalCredential.get, writerOptions.options, pipelineContext))
     } else {
       writerOptions
     }
