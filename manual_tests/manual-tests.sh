@@ -12,7 +12,7 @@ validateResult() {
 usage() {
   echo "manual-tests.sh [OPTIONS]"
   echo "--save-metadata          -> When true, all metadata generated during the test will be saved to the metadata_templates directory"
-  echo "--version                 -> The specific version to test. Allowed versions are: 2.4, 2.4_2.12, 3.0 and 3.1. Defaults to 'all'"
+  echo "--version                 -> The specific version to test. Allowed versions are: 3.0, 3.1 and 3.2. Defaults to 'all'"
 }
 
 buildVersion="all"
@@ -43,29 +43,7 @@ dir=$(dirname "${bindir}")
 cd "$dir" || exit
 echo "Executing from ${dir}"
 # Remove snapshot so the metadata uses clean tags
-mvn -B versions:set -DremoveSnapshot
-
-# 2.4
-if [[ "${buildVersion}" == "2.4" || "${buildVersion}" == "all" ]]
-then
-  echo "Testing Spark 2.4"
-  mvn -P spark_2.4,scala_2.11 clean install
-  validateResult ${?} "Failed to build project"
-  manual_tests/spark-test.sh
-  validateResult ${?} "Failed Spark Test"
-  manual_tests/metadata-extractor-test.sh $storeMetadata
-  validateResult ${?} "Failed Metadata Extractor Test"
-fi
-
-# 2.4 Scala 2.12
-if [[ "${buildVersion}" == "2.4_2.12" || "${buildVersion}" == "all" ]]
-then
-  echo "Testing Spark 2.4 Scala 2.12"
-  mvn -P spark_2.4,scala_2.12 clean install
-  validateResult ${?} "Failed to build project"
-  manual_tests/metadata-extractor-test.sh $storeMetadata
-  validateResult ${?} "Failed Metadata Extractor Test"
-fi
+mvn -P spark_3.1 -B versions:set -DremoveSnapshot
 
 # 3.0
 if [[ "${buildVersion}" == "3.0" || "${buildVersion}" == "all" ]]
@@ -91,6 +69,18 @@ then
   validateResult ${?} "Failed Metadata Extractor Test"
 fi
 
+# 3.2
+if [[ "${buildVersion}" == "3.2" || "${buildVersion}" == "all" ]]
+then
+  echo "Testing Spark 3.2"
+  mvn -P spark_3.2 clean install
+  validateResult ${?} "Failed to build project"
+  manual_tests/spark-test.sh
+  validateResult ${?} "Failed Spark Test"
+  manual_tests/metadata-extractor-test.sh $storeMetadata
+  validateResult ${?} "Failed Metadata Extractor Test"
+fi
+
 # Set the version back to the original
-version=`mvn -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec`
-mvn versions:set -DnewVersion="${version}-SNAPSHOT"
+version=`mvn -P spark_3.1 -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec`
+mvn -P spark_3.1 versions:set -DnewVersion="${version}-SNAPSHOT"

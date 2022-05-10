@@ -151,12 +151,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-minicluster</artifactId>
-            <version>${hadoop.minicluster.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>27.0.1-jre</version>
@@ -358,7 +352,7 @@
             <id>spark_3.0</id>
             <properties>
                 <spark.compat.version>3.0</spark.compat.version>
-                <spark.version>3.0.2</spark.version>
+                <spark.version>3.0.3</spark.version>
                 <json4s.version>3.6.6</json4s.version>
                 <mongo.version>3.0.0</mongo.version>
                 <scala.compat.version>2.12</scala.compat.version>
@@ -369,6 +363,14 @@
                 <hadoop-aws-version>2.7.7</hadoop-aws-version>
                 <delta-lake-version>0.8.0</delta-lake-version>
             </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-minicluster</artifactId>
+                    <version>${hadoop.minicluster.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
         </profile>
         <profile>
             <id>spark_3.1</id>
@@ -379,7 +381,7 @@
                 <spark.compat.version>3.1</spark.compat.version>
                 <spark.version>3.1.3</spark.version>
                 <json4s.version>3.6.6</json4s.version>
-                <mongo.version>3.0.0</mongo.version>
+                <mongo.version>3.0.1</mongo.version>
                 <scala.compat.version>2.12</scala.compat.version>
                 <scala.version>2.12.13</scala.version>
                 <jackson.core.version>2.11.1</jackson.core.version>
@@ -391,8 +393,14 @@
             <dependencies>
                 <dependency>
                     <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-minicluster</artifactId>
+                    <version>${hadoop.minicluster.version}</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-hdfs-client</artifactId>
-                    <version>3.3.0</version>
+                    <version>${hadoop.minicluster.version}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -405,8 +413,8 @@
             <properties>
                 <spark.compat.version>3.2</spark.compat.version>
                 <spark.version>3.2.1</spark.version>
-                <json4s.version>3.6.6</json4s.version>
-                <mongo.version>3.0.0</mongo.version>
+                <json4s.version>3.7.0-M11</json4s.version>
+                <mongo.version>3.0.2</mongo.version>
                 <scala.compat.version>2.12</scala.compat.version>
                 <scala.version>2.12.13</scala.version>
                 <jackson.core.version>2.12.0</jackson.core.version>
@@ -418,15 +426,46 @@
             </properties>
             <dependencies>
                 <dependency>
+                    <groupId>org.json4s</groupId>
+                    <artifactId>json4s-ast_${scala.compat.version}</artifactId>
+                    <version>${json4s.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-minicluster</artifactId>
+                    <version>${hadoop.minicluster.version}</version>
+                    <scope>test</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.apache.hadoop</groupId>
+                            <artifactId>hadoop-hdfs</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.hadoop</groupId>
+                            <artifactId>hadoop-hdfs-client</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+                <dependency>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-client-minicluster</artifactId>
                     <version>${hadoop.minicluster.version}</version>
                     <scope>test</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.apache.hadoop</groupId>
+                            <artifactId>hadoop-hdfs</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.hadoop</groupId>
+                            <artifactId>hadoop-hdfs-client</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-hdfs-client</artifactId>
-                    <version>3.3.1</version>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-all</artifactId>
+                    <version>4.1.68.Final</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
