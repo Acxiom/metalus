@@ -18,7 +18,7 @@ case class BigQueryDataConnector(tempWriteBucket: String,
                     pipelineContext: PipelineContext,
                     readOptions: DataFrameReaderOptions = DataFrameReaderOptions()): DataFrame = {
     val table = source.getOrElse("")
-    val readerOptions = readOptions.copy(format = "bigquery")
+    val readerOptions = readOptions.copy(format = "com.google.cloud.spark.bigquery.DefaultSource")
     // Setup authentication
     val finalCredential = getCredential(pipelineContext).asInstanceOf[Option[GCPCredential]]
     val finalOptions = if (finalCredential.isDefined) {
@@ -34,7 +34,8 @@ case class BigQueryDataConnector(tempWriteBucket: String,
                      writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery] = {
     val table = destination.getOrElse("")
     // Setup format for BigQuery
-    val writerOptions = writeOptions.copy(format = "bigquery", options = Some(Map("temporaryGcsBucket" -> tempWriteBucket)))
+    val writerOptions = writeOptions.copy(format = "com.google.cloud.spark.bigquery.DefaultSource",
+      options = Some(Map("temporaryGcsBucket" -> tempWriteBucket)))
     val finalCredential = getCredential(pipelineContext).asInstanceOf[Option[GCPCredential]]
     val finalOptions = if (finalCredential.isDefined) {
       writerOptions.copy(options = setBigQueryAuthentication(finalCredential.get, writerOptions.options, pipelineContext))
@@ -56,10 +57,11 @@ case class BigQueryDataConnector(tempWriteBucket: String,
                                         pipelineContext: PipelineContext): Option[Map[String, String]] = {
     val creds = GCPUtilities.generateCredentialsByteArray(Some(credentials.authKey))
     if (creds.isDefined) {
-      GCPUtilities.setGCPSecurity(credentials.authKey, pipelineContext)
+      GCPUtilities.setGCSAuthorization(credentials.authKey, pipelineContext)
       val encodedCredential = Base64.getEncoder.encodeToString(creds.get)
       if (options.isDefined) {
-        Some(options.get + ("credentials" -> encodedCredential))
+        Some(options.get + ("credentials" -> encodedCredential,
+          "parentProject" -> credentials.authKey.getOrElse("parent_project_id", credentials.authKey("project_id"))))
       } else {
         Some(Map("credentials" -> encodedCredential))
       }

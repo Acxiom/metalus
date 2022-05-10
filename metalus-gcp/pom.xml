@@ -183,6 +183,7 @@
                                     <excludes>
                                         <exclude>com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem</exclude>
                                         <exclude>com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS</exclude>
+                                        <exclude>com.google.cloud.spark.bigquery.DefaultSource</exclude>
                                     </excludes>
                                 </relocation>
                             </relocations>
