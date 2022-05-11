@@ -25,6 +25,7 @@ using Spark.
 ## Pipelines/Step Groups
 * [Copy File](docs/copyfile.md)  * _Uses new connectors api_
 * [Load To Bronze](docs/loadtobronze.md)  * _Uses new connectors api_
+* [Streaming Monitor](docs/streamingmonitor.md)
 
 ### Deprecated
 * [SFTP to HDFS](docs/sftp2hdfs.md)

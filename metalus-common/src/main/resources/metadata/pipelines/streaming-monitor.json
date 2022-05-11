@@ -1,0 +1,100 @@
+{
+  "id": "streaming-monitor",
+  "name": "Streaming Monitor",
+  "category": "pipeline",
+  "description": "Provides a simple pipeline to monitor streaming queries",
+  "layout": {
+    "Monitor": {
+      "x": 493,
+      "y": 32
+    },
+    "LOG_STOP": {
+      "x": 428,
+      "y": 199
+    }
+  },
+  "steps": [
+    {
+      "id": "Monitor",
+      "category": "Streaming",
+      "creationDate": "2022-04-26T18:35:47.891Z",
+      "description": "Given a StreamingQuery, this step will invoke the monitor thread and wait while records are processed. The monitor class will be used to stop the query and determine if further processing should occur.",
+      "displayName": "Streaming Monitor",
+      "engineMeta": {
+        "spark": "FlowUtilsSteps.monitorStreamingQuery",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "com.acxiom.pipeline.PipelineStepResponse"
+        }
+      },
+      "modifiedDate": "2022-04-26T18:35:47.891Z",
+      "params": [
+        {
+          "type": "object",
+          "name": "query",
+          "required": false,
+          "parameterType": "org.apache.spark.sql.streaming.StreamingQuery",
+          "description": "Pulls the DataFrame from the global STREAMING_DATAFRAME",
+          "value": "!STREAMING_DATAFRAME",
+          "className": "org.apache.spark.sql.streaming.StreamingQuery"
+        },
+        {
+          "type": "text",
+          "name": "streamingMonitorClassName",
+          "required": false,
+          "description": "Maps the value from the STREAMING_MONITOR_CLASS_NAME global. The default class used is com.acxiom.pipeline.streaming.BaseStreamingQueryMonitor which will continue running.",
+          "value": "!STREAMING_MONITOR_CLASS_NAME || com.acxiom.pipeline.streaming.BaseStreamingQueryMonitor"
+        },
+        {
+          "type": "result",
+          "name": "continue",
+          "required": false
+        },
+        {
+          "type": "result",
+          "name": "stop",
+          "required": false,
+          "value": "LOG_STOP"
+        }
+      ],
+      "tags": [
+        "metalus-common_2.12-spark_3.1-1.8.5.jar"
+      ],
+      "type": "branch",
+      "stepId": "64c983e2-5eac-4fb6-87b2-024b69aa0ded"
+    },
+    {
+      "id": "LOG_STOP",
+      "category": "Logging",
+      "creationDate": "2022-04-26T18:35:46.868Z",
+      "description": "Log a simple message",
+      "displayName": "Log Message",
+      "engineMeta": {
+        "spark": "LoggingSteps.logMessage",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "modifiedDate": "2022-04-26T18:35:46.868Z",
+      "params": [
+        {
+          "type": "text",
+          "name": "message",
+          "required": true,
+          "description": "The message to log",
+          "value": "End of streaming query"
+        },
+        {
+          "type": "text",
+          "name": "level",
+          "required": true,
+          "description": "Log level at which to log. Should be a valid log4j level",
+          "value": "INFO"
+        }
+      ],
+      "tags": [
+        "metalus-common_2.12-spark_3.1-1.8.5.jar"
+      ],
+      "type": "Pipeline",
+      "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090"
+    }
+  ]
+}
