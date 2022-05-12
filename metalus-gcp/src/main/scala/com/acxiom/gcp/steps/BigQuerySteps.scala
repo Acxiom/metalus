@@ -1,7 +1,7 @@
 package com.acxiom.gcp.steps
 
-import com.acxiom.gcp.pipeline.BasicGCPCredential
 import com.acxiom.gcp.pipeline.connectors.BigQueryDataConnector
+import com.acxiom.gcp.utils.GCPUtilities
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
@@ -28,12 +28,7 @@ object BigQuerySteps {
     } else {
       DataFrameReaderOptions()
     }
-    val creds = if (credentials.isDefined) {
-      Some(new BasicGCPCredential(credentials.get))
-    } else {
-      None
-    }
-    val connector = BigQueryDataConnector("", "readFromTable", None, creds)
+    val connector = BigQueryDataConnector("", "readFromTable", None,  GCPUtilities.convertMapToCredential(credentials))
     connector.load(Some(table), pipelineContext, readerOptions)
   }
 
@@ -59,12 +54,7 @@ object BigQuerySteps {
     } else {
       DataFrameWriterOptions()
     }
-    val creds = if (credentials.isDefined) {
-      Some(new BasicGCPCredential(credentials.get))
-    } else {
-      None
-    }
-    val connector = BigQueryDataConnector(tempBucket, "writeToTable", None, creds)
+    val connector = BigQueryDataConnector(tempBucket, "writeToTable", None,  GCPUtilities.convertMapToCredential(credentials))
     connector.write(dataFrame, Some(table), pipelineContext, writerOptions)
   }
 }
