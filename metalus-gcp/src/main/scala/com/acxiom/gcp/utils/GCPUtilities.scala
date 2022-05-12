@@ -39,9 +39,11 @@ object GCPUtilities {
     * @param pipelineContext The current pipeline context
     */
   def setGCSAuthorization(credentials: Map[String, String], pipelineContext: PipelineContext): Unit = {
-    val sc = pipelineContext.sparkSession.get.sparkContext
-    sc.hadoopConfiguration.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
-    sc.hadoopConfiguration.set("fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS")
+    if (!pipelineContext.getGlobalString("skipGCSFS").getOrElse("false").toBoolean) {
+      val sc = pipelineContext.sparkSession.get.sparkContext
+      sc.hadoopConfiguration.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
+      sc.hadoopConfiguration.set("fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS")
+    }
     setGCPSecurity(credentials, pipelineContext)
   }
 
