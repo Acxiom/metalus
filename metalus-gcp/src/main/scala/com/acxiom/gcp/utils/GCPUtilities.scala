@@ -1,6 +1,6 @@
 package com.acxiom.gcp.utils
 
-import com.acxiom.gcp.pipeline.GCPCredential
+import com.acxiom.gcp.pipeline.{BasicGCPCredential, GCPCredential}
 import com.acxiom.pipeline.{Constants, CredentialProvider, PipelineContext}
 import com.google.api.gax.batching.BatchingSettings
 import com.google.api.gax.core.FixedCredentialsProvider
@@ -60,6 +60,20 @@ object GCPUtilities {
     sc.hadoopConfiguration.set("fs.gs.auth.service.account.email", credentials("client_email"))
     sc.hadoopConfiguration.set("fs.gs.auth.service.account.private.key.id", credentials("private_key_id"))
     sc.hadoopConfiguration.set("fs.gs.auth.service.account.private.key", credentials("private_key"))
+  }
+
+  /**
+    * Given a credential map, convert to a BasicGCPCredential.
+    *
+    * @param credentials The map containing the json based credentials
+    * @return A BasicGCPCredential that can be passed to connector code.
+    */
+  def convertMapToCredential(credentials: Option[Map[String, String]]): Option[BasicGCPCredential] = {
+    if (credentials.isDefined) {
+      Some(new BasicGCPCredential(credentials.get))
+    } else {
+      None
+    }
   }
 
   /**
