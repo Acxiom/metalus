@@ -54,20 +54,27 @@ object PipelineFlow {
 
   /**
     * Updates the PipelineContext globals with the provided "global".
-    * @param stepName The name of the step that updated the value
+    *
+    * @param stepName   The name of the step that updated the value
     * @param pipelineId The id of the pipeline containing the step
-    * @param context The context to be updated
-    * @param global The global value to use
-    * @param keyName The name of the global value
+    * @param context    The context to be updated
+    * @param global     The global value to use
+    * @param keyName    The name of the global value
+    * @param isLink     Boolean indicating if this is a global link
     * @return An updated PipelineContext
     */
-  def updateGlobals(stepName: String, pipelineId: String, context: PipelineContext, global: Any, keyName: String): PipelineContext = {
+  def updateGlobals(stepName: String, pipelineId: String, context: PipelineContext, global: Any, keyName: String, isLink: Boolean = false): PipelineContext = {
+    val globalString = if (isLink) "global link" else "global"
     if (context.globals.get.contains(keyName)) {
-      logger.warn(s"Overwriting global named $keyName with value provided by step $stepName in pipeline $pipelineId")
+      logger.warn(s"Overwriting $globalString named $keyName with value provided by step $stepName in pipeline $pipelineId")
     } else {
-      logger.info(s"Adding global named $keyName with value provided by step $stepName in pipeline $pipelineId")
+      logger.info(s"Adding $globalString named $keyName with value provided by step $stepName in pipeline $pipelineId")
     }
-    context.setGlobal(keyName, global)
+    if (isLink) {
+      context.setGlobalLink(keyName, global.toString)
+    } else {
+      context.setGlobal(keyName, global)
+    }
   }
 
   /**
@@ -309,6 +316,9 @@ trait PipelineFlow {
             case e if e.startsWith("$metrics.") =>
               val keyName = entry._1.substring(Constants.NINE)
               context.setStepMetric(pipelineId, step.id.getOrElse(""), None, keyName, entry._2)
+            case e if e.startsWith("$globalLink.") =>
+              val keyName = entry._1.substring(Constants.TWELVE)
+              PipelineFlow.updateGlobals(step.displayName.getOrElse(step.id.getOrElse("")), pipelineId, context, entry._2, keyName, true)
             case _ => context
           }
         })
@@ -325,6 +335,8 @@ trait PipelineFlow {
         .namedReturns.get.foldLeft(List[GlobalUpdates]())((list, entry) => {
         if (entry._1.startsWith("$globals.")) {
           list :+ GlobalUpdates(step.displayName.get, pipelineId, entry._1.substring(Constants.NINE), entry._2)
+        } else if (entry._1.startsWith("$globalLink.")) {
+          list :+ GlobalUpdates(step.displayName.get, pipelineId, entry._1.substring(Constants.TWELVE), entry._2, true)
         } else {
           list
         }
@@ -342,4 +354,4 @@ case class PipelineStepFlow(pipeline: Pipeline,
                        pipelineLookup: Map[String, String],
                        executingPipelines: List[Pipeline]) extends PipelineFlow
 
-case class GlobalUpdates(stepName: String, pipelineId: String, globalName: String, global: Any)
+case class GlobalUpdates(stepName: String, pipelineId: String, globalName: String, global: Any, isLink: Boolean = false)
