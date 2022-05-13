@@ -43,7 +43,7 @@ dir=$(dirname "${bindir}")
 cd "$dir" || exit
 echo "Executing from ${dir}"
 # Remove snapshot so the metadata uses clean tags
-mvn -B versions:set -DremoveSnapshot
+mvn -P spark_3.1 -B versions:set -DremoveSnapshot
 
 # 2.4
 if [[ "${buildVersion}" == "2.4" || "${buildVersion}" == "all" ]]
@@ -92,5 +92,5 @@ then
 fi
 
 # Set the version back to the original
-version=`mvn -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec`
-mvn versions:set -DnewVersion="${version}-SNAPSHOT"
+version=`mvn -P spark_3.1 -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec`
+mvn -P spark_3.1 versions:set -DnewVersion="${version}-SNAPSHOT"
