@@ -22,7 +22,7 @@ case class StepGroupFlow(pipeline: Pipeline,
       .setGlobal("stepId", step.nextStepId)
     val finalCtx = if (groupResult.globalUpdates.nonEmpty) {
       groupResult.globalUpdates.foldLeft(updatedCtx)((ctx, update) => {
-        PipelineFlow.updateGlobals(update.stepName, update.pipelineId, ctx, update.global, update.globalName)
+        PipelineFlow.updateGlobals(update.stepName, update.pipelineId, ctx, update.global, update.globalName, update.isLink)
       })
     } else {
       updatedCtx

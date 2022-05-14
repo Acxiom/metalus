@@ -66,7 +66,6 @@ and an empty *executions* array.
   ],
   "globals": {
     "GlobalLinks": {
-      "inputFileDataFrame": "!ROOT.pipelineParameters.f2dc5894-fe7d-4134-b0da-e5a3b8763a6e.LOADFILESTEP.primaryReturn",
       "productDataFrame": "!PROD.pipelineParameters.b3171af2-618a-471e-937f-e1b4971e56cd.GROUPDATASTEP.primaryReturn",
       "customerDataFrame": "!CUST.pipelineParameters.53155d7a-6295-4e6c-83f4-d52ef3eabc5e.GROUPDATASTEP.primaryReturn",
       "creditCardDataFrame": "!CC.pipelineParameters.197b5aa0-3c87-481e-b335-8979f565b4b4.GROUPDATASTEP.primaryReturn",
@@ -162,11 +161,15 @@ Lastly, add the following annotations to the new function:
       pipelineContext.sparkSession.get.read.format(format)
     }
 
-    if (schema.isEmpty) {
+    val finalDF = if (schema.isEmpty) {
       dfr.load(url)
     } else {
       dfr.schema(schema.get).load(url)
     }
+
+    PipelineStepResponse(Some(finalDF),
+      Some(Map("$globalLink.inputFileDataFrame" ->
+        "!ROOT.pipelineParameters.f2dc5894-fe7d-4134-b0da-e5a3b8763a6e.LOADFILESTEP.primaryReturn")))
 ```
 
 Lastly, add the following annotations to the new function:

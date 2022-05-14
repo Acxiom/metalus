@@ -14,6 +14,7 @@ object Constants {
   val EIGHT: Int = 8
   val NINE = 9
   val TEN: Int = 10
+  val TWELVE: Int = 12
   val FIFTEEN: Int = 15
   val TWENTY: Int = 20
   val SIXTY: Int = 60
@@ -21,10 +22,11 @@ object Constants {
   val ONE_THOUSAND: Int = 1000
   val NINE_THOUSAND: Int = 9000
   val SPARK_METRICS: String = "SparkMetrics"
-  val SPARK_SETTINGS: String = "SparkSettings"
 
+  val SPARK_SETTINGS: String = "SparkSettings"
   val ACCEPT_HEADER: String = "Accept"
   val CONTENT_TYPE_HEADER: String = "Content-Type"
+
   val JSON_CONTENT_TYPE: String = "application/json"
 
   val FILE_APPEND_DATE_FORMAT =new SimpleDateFormat("yyyy_dd_MM_HH_mm_ss_SSS")

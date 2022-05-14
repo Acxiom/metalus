@@ -62,7 +62,7 @@ case class SplitStepFlow(pipeline: Pipeline,
     } else {
       val finalCtx = if (finalResult.globalUpdates.isDefined && finalResult.globalUpdates.get.nonEmpty) {
         finalResult.globalUpdates.get.foldLeft(finalResult.result.getOrElse(initialContext))((ctx, update) => {
-          PipelineFlow.updateGlobals(update.stepName, update.pipelineId, ctx, update.global, update.globalName)
+          PipelineFlow.updateGlobals(update.stepName, update.pipelineId, ctx, update.global, update.globalName, update.isLink)
         })
       } else {
         finalResult.result.getOrElse(initialContext)
