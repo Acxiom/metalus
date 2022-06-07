@@ -13,6 +13,17 @@ import java.util.Date
 object FlowUtilsSteps {
   val logger: Logger = Logger.getLogger(getClass)
 
+  @StepFunction("cc8d44ad-5049-460f-87c4-e250b9fa53f1",
+    "Empty Check",
+    "Determines if the provided value is defined. Returns true if the value is not defined.",
+    "branch", "Utilities")
+  def isEmpty(value: Any): Boolean = {
+    value match {
+      case o: Option[_] => o.isEmpty
+      case _ => Option(value).isEmpty
+    }
+  }
+
   @StepFunction("6ed36f89-35d1-4280-a555-fbcd8dd76bf2",
     "Retry (simple)",
     "Makes a decision to retry or stop based on a named counter",

@@ -36,6 +36,8 @@ trait KinesisWriter extends ConnectorWriter {
   def partitionKeyIndex: Option[Int]
   def separator: String
 
+  private val defaultPartitionKey = java.util.UUID.randomUUID().toString
+
   def open(): Unit = {
     kinesisClient = KinesisUtilities.buildKinesisClient(region, credential)
   }
@@ -53,14 +55,24 @@ trait KinesisWriter extends ConnectorWriter {
       flush()
     }
     val putRecordRequest = new PutRecordsRequestEntry()
-    buffer += (if (partitionKey.isDefined) {
-      putRecordRequest.withPartitionKey(partitionKey.get)
-    } else if (partitionKeyIndex.isDefined) {
-      putRecordRequest.withPartitionKey(value.getAs[Any](partitionKeyIndex.get).toString)
-    } else {
-      putRecordRequest
-    }).withData(ByteBuffer.wrap(data))
+    buffer += putRecordRequest.withPartitionKey(getPartitionKey(value)).withData(ByteBuffer.wrap(data))
     bufferSize += data.length
+  }
+
+  private def getPartitionKey(value: Row): String = {
+    val key = if (partitionKey.isDefined) {
+      partitionKey.get
+    } else if (partitionKeyIndex.isDefined) {
+      value.getAs[Any](partitionKeyIndex.get).toString
+    } else {
+      defaultPartitionKey
+    }
+
+    if (Option(key).isEmpty || key.isEmpty) {
+      defaultPartitionKey
+    } else {
+      key
+    }
   }
 
   private def flush(): Unit = {
