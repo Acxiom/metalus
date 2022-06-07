@@ -1,16 +1,16 @@
 {
   "id": "streaming-monitor",
   "name": "Streaming Monitor",
-  "category": "pipeline",
-  "description": "Provides a simple pipeline to monitor streaming queries",
+  "category": "step-group",
+  "description": "Provides a simple pipeline to monitor streaming queries. This pipeline is designed to be chained to other pipelines/executions and provide a log when the streaming query stops. There is no behavior to continue one the query stops.",
   "layout": {
     "Monitor": {
-      "x": 493,
+      "x": 491,
       "y": 32
     },
     "LOG_STOP": {
-      "x": 428,
-      "y": 199
+      "x": 419,
+      "y": 216
     }
   },
   "steps": [
@@ -30,12 +30,12 @@
       "modifiedDate": "2022-04-26T18:35:47.891Z",
       "params": [
         {
-          "type": "object",
+          "type": "text",
           "name": "query",
           "required": false,
           "parameterType": "org.apache.spark.sql.streaming.StreamingQuery",
-          "description": "Pulls the DataFrame from the global STREAMING_DATAFRAME",
-          "value": "!STREAMING_DATAFRAME",
+          "description": "Pulls the Streaming Query from the global STREAMING_QUERY",
+          "value": "!STREAMING_QUERY",
           "className": "org.apache.spark.sql.streaming.StreamingQuery"
         },
         {
@@ -56,9 +56,6 @@
           "required": false,
           "value": "LOG_STOP"
         }
-      ],
-      "tags": [
-        "metalus-common_2.12-spark_3.1-1.8.5.jar"
       ],
       "type": "branch",
       "stepId": "64c983e2-5eac-4fb6-87b2-024b69aa0ded"
@@ -89,9 +86,6 @@
           "description": "Log level at which to log. Should be a valid log4j level",
           "value": "INFO"
         }
-      ],
-      "tags": [
-        "metalus-common_2.12-spark_3.1-1.8.5.jar"
       ],
       "type": "Pipeline",
       "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090"
