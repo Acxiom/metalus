@@ -17,6 +17,7 @@ object FlowUtilsSteps {
     "Empty Check",
     "Determines if the provided value is defined. Returns true if the value is not defined.",
     "branch", "Utilities")
+  @BranchResults(List("true", "false"))
   def isEmpty(value: Any): Boolean = {
     value match {
       case o: Option[_] => o.isEmpty
