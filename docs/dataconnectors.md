@@ -12,6 +12,20 @@ The following parameters are available to all data connectors:
 * **credentialName** - The optional credential name to use to authenticate
 * **credential** - The optional credential to use to authenticate
 
+
+[Batch](./dataconnectors.md#batch)
+* [HDFSDataConnector](./dataconnectors.md#hdfsdataconnector)
+* [S3DataConnector](./dataconnectors.md#s3dataconnector)
+* [GCSDataConnector](./dataconnectors.md#gcsdataconnector)
+* [BigQueryDataConnector](./dataconnectors.md#bigquerydataconnector)
+* [MongoDataConnector](./dataconnectors.md#mongodataconnector)
+* [JDBCDataConnector](./dataconnectors.md#jdbcdataconnector)
+* [JSONApiDataConnector](./dataconnectors.md#jsonapidataconnector-experimental)
+
+[Streaming](./dataconnectors.md#streaming)
+* [KinesisDataConnector](./dataconnectors.md#kinesisdataconnector)
+* [KafkaDataConnector](./dataconnectors.md#kafkadataconnector)
+
 ## Batch
 Connectors that are designed to load and write data for batch processing will extend the _BatchDataConnector_. These
 are very straightforward and offer the most reusable components.
@@ -54,7 +68,8 @@ val connector = S3DataConnector("my-connector", Some("my-credential-name-for-sec
 }
 ```
 ### GCSDataConnector
-This connector provides access to GCS. Below is an example setup that expects a secrets manager credential provider:
+This connector provides access to GCS. The _source_ parameter of the load function can take multiple paths by providing
+a comma separated string. Below is an example setup that expects a secrets manager credential provider:
 #### Scala
 ```scala
 val connector = GCSDataConnector("my-connector", Some("my-credential-name-for-secrets-manager"), None)
@@ -113,7 +128,7 @@ val connector = MongoDataConnector("mongodb://127.0.0.1/test", "my-connector", S
   }
 }
 ```
-###JDBCDataConnector
+### JDBCDataConnector
 This connector provides access to JDBC. Security is handled using the uri or a _UserNameCredential_. In addition to
 the standard parameters, the following parameters are available:
 
@@ -132,6 +147,61 @@ val connector = JDBCDataConnector("jdbc:derby:memory:test", "table_name", "my-co
       "name": "my-jdbc-connector",
       "credentialName": "my-credential-name-for-secrets-manager",
       "url": "jdbc:derby:memory:test"
+    }
+  }
+}
+```
+### JSONApiDataConnector (Experimental)
+This connector provides the ability to interact with data in an API. The ApiHandler trait is used to allow extensibility.
+In addition to the standard parameters, the following parameters are available:
+* **apiHandler** - The _ApiHandler_ is used to handle parsing/writing the data to/from DataFrames
+* **hostUrl** - The url that is hosting data. This doesn't have to include the path since that can be passed in the _load/write_ functions
+* **authorizationClass** - This is the fully qualified class name to use when authenticating to the API
+* **allowSelfSignedCertificates** - Flag indicating whether self-signed certificates should be accepted from the API
+#### ApiHandler
+The _ApiHandler_ is used to handle parsing/writing the data to/from DataFrames. There are two ways to parse data from the JSON,
+as a list of maps and as a list of list.
+#### Scala
+```scala
+val connector = JSONApiDataConnector(apiHandler, "my-connector", Some("my-credential-name-for-secrets-manager"), None)
+```
+#### Globals JSON
+```json
+{
+  "jsonApiConnector": {
+    "className": "com.acxiom.pipeline.connectors.JSONApiDataConnector",
+    "object": {
+      "apiHandler": {
+        "jsonDocumentPath": "location.within.json.to.fetch.rows",
+        "useRowArray": true,
+        "hostUrl": "https://localhost:8080/",
+        "authorizationClass": "com.acxiom.pipeline.api.BasicAuthorization",
+        "allowSelfSignedCertificates": true,
+        "schema": {
+          "attributes": [
+            {
+              "name": "column1",
+              "dataType": {
+                "baseType": "string"
+              }
+            },
+            {
+              "name": "column2",
+              "dataType": {
+                "baseType": "integer"
+              }
+            },
+            {
+              "name": "column3",
+              "dataType": {
+                "baseType": "string"
+              }
+            }
+          ]
+        }
+      },
+      "name": "my-connector",
+      "credentialName": "my-credential-name-for-secrets-manager"
     }
   }
 }

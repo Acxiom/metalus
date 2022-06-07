@@ -56,7 +56,7 @@ object S3Utilities {
     val roleBased = role.isDefined && accountId.isDefined
     val useBucketPermissions = pipelineContext.getGlobal("s3bucketPermissionsEnabled")
       .exists(_.toString == "true")
-    val bucket = if (useBucketPermissions) s".${S3Utilities.deriveBucket(path)}" else ""
+    val bucket = if (useBucketPermissions) s".bucket.${S3Utilities.deriveBucket(path)}" else ""
     if (keyAndSecret || roleBased) {
       logger.debug(s"Setting up S3 authorization for $path")
       val protocol = S3Utilities.deriveProtocol(path)

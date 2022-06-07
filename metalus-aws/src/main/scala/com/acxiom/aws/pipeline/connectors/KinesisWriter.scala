@@ -1,6 +1,7 @@
 package com.acxiom.aws.pipeline.connectors
 
 import com.acxiom.aws.utils.{AWSCredential, KinesisUtilities}
+import com.acxiom.pipeline.connectors.ConnectorWriter
 import com.amazonaws.services.kinesis.AmazonKinesis
 import com.amazonaws.services.kinesis.model.{PutRecordsRequest, PutRecordsRequestEntry}
 import org.apache.spark.sql.{ForeachWriter, Row}
@@ -18,7 +19,7 @@ import scala.collection.mutable.ArrayBuffer
   * separator The field separator to use when formatting the row data
   * credential An optional credential to use to authenticate to Kinesis
   */
-trait KinesisWriter {
+trait KinesisWriter extends ConnectorWriter {
   // Kinesis Client Limits
   val maxBufferSize: Int = 500 * 1024
   val maxRecords = 500
@@ -34,6 +35,8 @@ trait KinesisWriter {
   def partitionKey: Option[String]
   def partitionKeyIndex: Option[Int]
   def separator: String
+
+  private lazy val defaultPartitionKey = java.util.UUID.randomUUID().toString
 
   def open(): Unit = {
     kinesisClient = KinesisUtilities.buildKinesisClient(region, credential)
@@ -52,15 +55,14 @@ trait KinesisWriter {
       flush()
     }
     val putRecordRequest = new PutRecordsRequestEntry()
-    buffer += (if (partitionKey.isDefined) {
-      putRecordRequest.withPartitionKey(partitionKey.get)
-    } else if (partitionKeyIndex.isDefined) {
-      putRecordRequest.withPartitionKey(value.getAs[Any](partitionKeyIndex.get).toString)
-    } else {
-      putRecordRequest
-    }).withData(ByteBuffer.wrap(data))
+    buffer += putRecordRequest.withPartitionKey(getPartitionKey(value)).withData(ByteBuffer.wrap(data))
     bufferSize += data.length
   }
+
+  private def getPartitionKey(value: Row): String = partitionKey
+      .orElse(partitionKeyIndex.map(i => value.get(i).toString))
+      .filter(s => Option(s).nonEmpty && s.nonEmpty)
+      .getOrElse(defaultPartitionKey)
 
   private def flush(): Unit = {
     val recordRequest = new PutRecordsRequest()

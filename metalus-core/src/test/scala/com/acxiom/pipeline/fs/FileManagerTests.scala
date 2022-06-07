@@ -41,6 +41,11 @@ class FileManagerTests extends FunSpec with Suite {
       // Verify the file exists
       assert(file.exists())
       assert(fileManager.exists(file.getAbsolutePath))
+      val fileInfo = fileManager.getStatus(file.getAbsolutePath)
+      val expectedSize = 34
+      assert(fileInfo.fileName == "data.txt")
+      assert(fileInfo.size == expectedSize)
+      assert(!fileInfo.directory)
 
       // Get a fie listing
       val fileList = fileManager.getFileListing(file.getParentFile.getAbsolutePath)
@@ -154,6 +159,11 @@ class FileManagerTests extends FunSpec with Suite {
       // Verify the file exists
       assert(fs.exists(file))
       assert(fileManager.exists(file.toUri.toString))
+      val fileInfo = fileManager.getStatus(file.toUri.toString)
+      val expectedSize = 34
+      assert(fileInfo.fileName == "data.txt")
+      assert(fileInfo.size == expectedSize)
+      assert(!fileInfo.directory)
 
       // Catch an error for trying to open a directory for reading
       val inputException = intercept[IllegalArgumentException] {
@@ -397,6 +407,25 @@ class FileManagerTests extends FunSpec with Suite {
       sftp.copy(sftp.getInputStream("/chicken6.txt"), sftp.getOutputStream("/chicken7.txt"))
       assert(Source.fromInputStream(new FileInputStream(s"${server.getBaseDirectory}/chicken7.txt")).getLines().mkString == "moo")
       server.stop()
+    }
+
+    it("should get a file status") {
+      val server = new MockSftpServer(PORT)
+      val dir = new File(s"${server.getBaseDirectory}/chicken_status")
+      dir.mkdir()
+      writeRemoteFile(s"${server.getBaseDirectory}/chicken_status/data.txt", "moo")
+      val sftp = new SFTPFileManager("localhost", Some(PORT), Some("tester"), Some("testing"), None,
+        config = Some(Map[String, String]("StrictHostKeyChecking" -> "no")))
+      sftp.connect()
+      val fileInfo = sftp.getStatus("/chicken_status/data.txt")
+      assert(fileInfo == FileInfo("data.txt", 3, directory = false, Some("/chicken_status/")))
+      val directoryInfo = sftp.getStatus("/chicken_status")
+      assert(directoryInfo == FileInfo("chicken_status", 0, directory = true, Some("/")))
+      val thrown = intercept[SftpException] {
+        sftp.getStatus("/chicken_status/bad.txt")
+      }
+      val expectedMessage = "java.io.FileNotFoundException: /chicken_status/bad.txt"
+      assert(thrown.getMessage == expectedMessage)
     }
   }
 

@@ -15,10 +15,10 @@ case class GCSDataConnector(override val name: String,
   override def load(source: Option[String],
                     pipelineContext: PipelineContext,
                     readOptions: DataFrameReaderOptions = DataFrameReaderOptions()): DataFrame = {
-    val path = source.getOrElse("")
+    val paths = source.getOrElse("").split(",")
     setSecurity(pipelineContext)
     DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession.get, readOptions)
-      .load(GCSFileManager.prepareGCSFilePath(path))
+      .load(paths.map(GCSFileManager.prepareGCSFilePath(_)): _*)
   }
 
   override def write(dataFrame: DataFrame,

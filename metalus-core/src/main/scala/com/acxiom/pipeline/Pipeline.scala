@@ -26,6 +26,7 @@ trait Pipeline {
   def category: Option[String] = Some("pipeline")
   def tags: Option[List[String]] = None
   def stepGroupResult: Option[Any] = None
+  def description: Option[String] = None
 }
 
 /**
@@ -38,13 +39,15 @@ trait Pipeline {
   * @param tags            A list of tags to use to help describe the pipeline
   * @param stepGroupResult A mapping used to provide a single result after a step-group has executed instead of
   *                        the default map of step results.
+  * @param description     An optional description of this pipeline.
   */
 case class DefaultPipeline(override val id: Option[String] = None,
                            override val name: Option[String] = None,
                            override val steps: Option[List[PipelineStep]] = None,
                            override val category: Option[String] = Some("pipeline"),
                            override val tags: Option[List[String]] = None,
-                           override val stepGroupResult: Option[Any] = None) extends Pipeline
+                           override val stepGroupResult: Option[Any] = None,
+                           override val description: Option[String] = None) extends Pipeline
 
 /**
   * Global object that may be passed to step functions.
@@ -165,6 +168,23 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     */
   def setGlobals(globals: Map[String, Any]): PipelineContext =
     this.copy(globals = Some(if(this.globals.isDefined) this.globals.get ++ globals else globals))
+
+  /**
+    * This function will add or update a single GlobalLink.
+    *
+    * @param name The name of the GlobalLink
+    * @param path Thee path to be evaluated
+    * @return A new PipelineContext with an updated GlobalLinks map.
+    */
+  def setGlobalLink(name: String, path: String): PipelineContext = {
+    val links = getGlobalAs[Map[String, Any]]("GlobalLinks").getOrElse(Map()) + (name -> path)
+    val newGlobals: Map[String, Any] = if(this.globals.isDefined) {
+      this.globals.get + ("GlobalLinks" -> links)
+    } else {
+      Map("GlobalLinks" -> links)
+    }
+    this.copy(globals = Some(newGlobals))
+  }
 
   /**
     * This function will remove a single entry on the globals map.

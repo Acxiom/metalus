@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.acxiom</groupId>
         <artifactId>metalus</artifactId>
-        <version>1.8.5-SNAPSHOT</version>
+        <version>1.8.6-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -63,6 +63,22 @@
                                 </relocation>
                             </relocations>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest-maven-plugin</artifactId>
+                <version>2.0.0</version>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

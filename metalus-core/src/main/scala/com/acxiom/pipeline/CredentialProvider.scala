@@ -25,6 +25,7 @@ trait Credential extends Serializable {
   */
 case class UserNameCredential(override val parameters: Map[String, Any]) extends Credential {
   override def name: String = parameters("username").asInstanceOf[String]
+  def username: String = parameters("username").asInstanceOf[String]
   def password: String = parameters("password").asInstanceOf[String]
 }
 
@@ -35,7 +36,7 @@ trait CredentialParser extends Serializable {
   /**
     * Given a map of parameters, parse any credentials.
     * @param parameters Map containing credentials parameters
-    * @return A list of crednetials
+    * @return A list of credentials
     */
   def parseCredentials(parameters: Map[String, Any]): List[Credential]
 }

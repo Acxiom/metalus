@@ -1,10 +1,10 @@
 package com.acxiom.gcp.steps
 
 import com.acxiom.gcp.fs.GCSFileManager
+import com.acxiom.gcp.pipeline.connectors.GCSDataConnector
 import com.acxiom.gcp.utils.GCPUtilities
 import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations._
-import com.acxiom.pipeline.connectors.DataConnectorUtilities
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
 import org.apache.spark.sql.DataFrame
 import org.json4s.native.Serialization
@@ -44,11 +44,8 @@ object GCSSteps {
                     credentials: Option[Map[String, String]],
                     options: Option[DataFrameReaderOptions] = None,
                     pipelineContext: PipelineContext): DataFrame = {
-    if (credentials.isDefined) {
-      GCPUtilities.setGCSAuthorization(credentials.get, pipelineContext)
-    }
-    DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession.get, options.getOrElse(DataFrameReaderOptions()))
-      .load(paths.map(GCSFileManager.prepareGCSFilePath(_)): _*)
+    GCSDataConnector("GCSSteps readFromPaths connector", None,  GCPUtilities.convertMapToCredential(credentials))
+      .load(Some(paths.mkString(",")), pipelineContext, options.getOrElse(DataFrameReaderOptions()))
   }
 
   @StepFunction("1d1ff5ad-379f-4dfa-9403-019a0eb0032c",
@@ -65,11 +62,8 @@ object GCSSteps {
                   credentials: Option[Map[String, String]],
                   options: Option[DataFrameWriterOptions] = None,
                   pipelineContext: PipelineContext): Unit = {
-    if (credentials.isDefined) {
-      GCPUtilities.setGCSAuthorization(credentials.get, pipelineContext)
-    }
-    DataConnectorUtilities.buildDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions()))
-      .save(GCSFileManager.prepareGCSFilePath(path))
+    GCSDataConnector("GCSSteps readFromPaths connector", None, GCPUtilities.convertMapToCredential(credentials))
+      .write(dataFrame, Some(GCSFileManager.prepareGCSFilePath(path)), pipelineContext, options.getOrElse(DataFrameWriterOptions()))
   }
 
   /**

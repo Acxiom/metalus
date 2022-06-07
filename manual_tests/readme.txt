@@ -25,3 +25,8 @@ command to save the extracted metadata:
 command to save the extracted metadata for a single version:
 
 ./manual-tests.sh --save-metadata true --version 3.1
+
+
+Metalus Test Applications
+The test_applications directory provides several application json files that can be used to verify functionality using
+different clouds and technologies.

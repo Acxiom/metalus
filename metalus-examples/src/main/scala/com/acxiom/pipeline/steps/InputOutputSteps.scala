@@ -1,12 +1,11 @@
 package com.acxiom.pipeline.steps
 
-import java.io.FileInputStream
-
-import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.pipeline.{PipelineContext, PipelineStepResponse}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 
+import java.io.FileInputStream
 import scala.io.Source
 
 @StepObject
@@ -17,7 +16,7 @@ object InputOutputSteps {
     "Pipeline",
     "Example")
   def loadFile(url: String, format: String, separator: Option[String], pipelineContext: PipelineContext): DataFrame = {
-    loadFileWithSchema(url, format, separator, None, pipelineContext)
+    loadFileWithSchema(url, format, separator, None, pipelineContext).primaryReturn.asInstanceOf[Option[DataFrame]].get
   }
 
   @StepFunction("cba8a6d8-88b6-50ef-a073-afa6cba7ca1e",
@@ -30,18 +29,22 @@ object InputOutputSteps {
     "separator" -> StepParameter(None, Some(false), None, None, description = Some("The column separator")),
     "schema" -> StepParameter(None, Some(false), None, None, description = Some("The optional schema to use"))))
   def loadFileWithSchema(url: String, format: String, separator: Option[String], schema: Option[StructType] = None,
-                         pipelineContext: PipelineContext): DataFrame = {
+                         pipelineContext: PipelineContext): PipelineStepResponse = {
     val dfr = if (separator.isDefined) {
       pipelineContext.sparkSession.get.read.format(format).option("sep", separator.get.toCharArray.head.toString)
     } else {
       pipelineContext.sparkSession.get.read.format(format)
     }
 
-    if (schema.isEmpty) {
+    val finalDF = if (schema.isEmpty) {
       dfr.load(url)
     } else {
       dfr.schema(schema.get).load(url)
     }
+
+    PipelineStepResponse(Some(finalDF),
+      Some(Map("$globalLink.inputFileDataFrame" ->
+        "!ROOT.pipelineParameters.f2dc5894-fe7d-4134-b0da-e5a3b8763a6e.LOADFILESTEP.primaryReturn")))
   }
 
   @StepFunction("e81e3f51-2d6b-5350-a853-80114f104f19",

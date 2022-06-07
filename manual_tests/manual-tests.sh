@@ -43,13 +43,13 @@ dir=$(dirname "${bindir}")
 cd "$dir" || exit
 echo "Executing from ${dir}"
 # Remove snapshot so the metadata uses clean tags
-mvn -B versions:set -DremoveSnapshot
+mvn -P spark_3.1 -B versions:set -DremoveSnapshot
 
 # 2.4
 if [[ "${buildVersion}" == "2.4" || "${buildVersion}" == "all" ]]
 then
   echo "Testing Spark 2.4"
-  mvn clean install
+  mvn -P spark_2.4,scala_2.11 clean install
   validateResult ${?} "Failed to build project"
   manual_tests/spark-test.sh
   validateResult ${?} "Failed Spark Test"
@@ -92,5 +92,5 @@ then
 fi
 
 # Set the version back to the original
-version=`mvn -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec`
-mvn versions:set -DnewVersion="${version}-SNAPSHOT"
+version=`mvn -P spark_3.1 -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec`
+mvn -P spark_3.1 versions:set -DnewVersion="${version}-SNAPSHOT"

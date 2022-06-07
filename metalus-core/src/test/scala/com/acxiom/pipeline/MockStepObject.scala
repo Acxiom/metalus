@@ -14,7 +14,8 @@ object MockStepObject {
   def mockStepGlobalsUpdateFunction(string: String, boolean: Boolean, global: Option[String]): PipelineStepResponse = {
     val secondaryMap = if (global.isDefined) {
       Map[String, Any]("boolean" -> boolean, "string" -> string,
-        "$globals.mockGlobal" -> global.get)
+        "$globals.mockGlobal" -> global.get,
+        "$globalLink.mockGlobalLink" -> "!some global link")
     } else {
       Map[String, Any]("boolean" -> boolean, "string" -> string)
     }

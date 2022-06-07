@@ -356,9 +356,9 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       assert(ctx.globals.isDefined)
       assert(ctx.globals.get.isEmpty)
       val map = Map[String, Any]("one" -> 1, "two" -> "two")
-      val updatedCtx = ctx.setGlobal("three", 3).setGlobals(map)
+      val updatedCtx = ctx.setGlobal("three", 3).setGlobals(map).setGlobalLink("testGL", "!some.path")
       assert(updatedCtx.globals.isDefined)
-      assert(updatedCtx.globals.get.size == 3)
+      assert(updatedCtx.globals.get.size == 4)
       assert(updatedCtx.getGlobalString("two").isDefined)
       assert(updatedCtx.getGlobalString("two").get == "two")
       assert(updatedCtx.getGlobal("one").isDefined)
@@ -366,6 +366,9 @@ class SparkSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
       assert(updatedCtx.getGlobal("three").isDefined)
       assert(updatedCtx.getGlobalAs[Int]("three").get == 3)
       assert(updatedCtx.getGlobalString("one").isEmpty)
+      assert(updatedCtx.isGlobalLink("testGL"))
+      assert(updatedCtx.getGlobal("testGL").isDefined)
+      assert(updatedCtx.getGlobal("testGL").get == "!some.path")
       assert(updatedCtx.getStepMessages.isEmpty)
     }
 

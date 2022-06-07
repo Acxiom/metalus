@@ -35,4 +35,5 @@ jobs:
       - name: Build with Maven
         env:
           SPARK_LOCAL_IP: 127.0.0.1
+          JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
         run: mvn -B -P spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }} clean install

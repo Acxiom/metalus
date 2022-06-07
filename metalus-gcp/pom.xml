@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.acxiom</groupId>
         <artifactId>metalus</artifactId>
-        <version>1.8.5-SNAPSHOT</version>
+        <version>1.8.6-SNAPSHOT</version>
     </parent>
 
     <dependencyManagement>
@@ -183,6 +183,7 @@
                                     <excludes>
                                         <exclude>com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem</exclude>
                                         <exclude>com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS</exclude>
+                                        <exclude>com.google.cloud.spark.bigquery.DefaultSource</exclude>
                                     </excludes>
                                 </relocation>
                             </relocations>
