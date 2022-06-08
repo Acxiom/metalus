@@ -82,7 +82,7 @@ jobs:
           path: ~/.m2
           key: metalus-build-${{ env.cache-name }}
       - name: Remove SNAPSHOT
-        run: mvn -B -P spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }} versions:set -DremoveSnapshot
+        run: mvn -B -P spark_3.1 versions:set -DremoveSnapshot
       - name: Setup Signing Key
         run: |
           sudo apt-get -y install gnupg1
