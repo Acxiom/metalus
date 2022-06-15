@@ -146,8 +146,9 @@ object PipelineDependencyExecutor {
               DependencyResult(execution, None,
                 Some(new IllegalArgumentException(s"fork execution ${execution.id} forkByValues ${execution.forkByValue.get} does not point to a valid list")))
             } else {
-              val forkedProcesses = forkValues.asInstanceOf[List[Any]].map(forkValue => {
-                val ctx = execution.pipelineContext.setGlobal("executionForkValue", forkValue)
+              val forkedProcesses = forkValues.asInstanceOf[List[Any]].zipWithIndex.map(forkValue => {
+                val ctx = execution.pipelineContext.setGlobal("executionForkValue", forkValue._1)
+                  .setGlobal("executionForkValueIndex", forkValue._2)
                 Future {
                   processFutures(List(startExecution(execution.asInstanceOf[DefaultPipelineExecution].copy(pipelineContext = ctx))),
                     Map[String, DependencyResult](), executionGraph)

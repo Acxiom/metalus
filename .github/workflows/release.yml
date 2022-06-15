@@ -175,7 +175,7 @@ jobs:
           path: ~/.m2
           key: metalus-build-${{ env.cache-name }}
       - name: Remove SNAPSHOT
-        run:  -P spark_3.1-B versions:set -DremoveSnapshot
+        run:  mvn -P spark_3.1 -B versions:set -DremoveSnapshot
       - name: Set Metalus Version
         run: |
           echo 'METALUS_VERSION<<EOF' >> $GITHUB_ENV
