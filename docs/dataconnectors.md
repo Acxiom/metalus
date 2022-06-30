@@ -68,7 +68,8 @@ val connector = S3DataConnector("my-connector", Some("my-credential-name-for-sec
 }
 ```
 ### GCSDataConnector
-This connector provides access to GCS. Below is an example setup that expects a secrets manager credential provider:
+This connector provides access to GCS. The _source_ parameter of the load function can take multiple paths by providing
+a comma separated string. Below is an example setup that expects a secrets manager credential provider:
 #### Scala
 ```scala
 val connector = GCSDataConnector("my-connector", Some("my-credential-name-for-secrets-manager"), None)

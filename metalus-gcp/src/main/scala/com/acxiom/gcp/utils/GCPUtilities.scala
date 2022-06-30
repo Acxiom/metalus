@@ -1,6 +1,6 @@
 package com.acxiom.gcp.utils
 
-import com.acxiom.gcp.pipeline.GCPCredential
+import com.acxiom.gcp.pipeline.{BasicGCPCredential, GCPCredential}
 import com.acxiom.pipeline.{Constants, CredentialProvider, PipelineContext}
 import com.google.api.gax.batching.BatchingSettings
 import com.google.api.gax.core.FixedCredentialsProvider
@@ -39,9 +39,12 @@ object GCPUtilities {
     * @param pipelineContext The current pipeline context
     */
   def setGCSAuthorization(credentials: Map[String, String], pipelineContext: PipelineContext): Unit = {
-    val sc = pipelineContext.sparkSession.get.sparkContext
-    sc.hadoopConfiguration.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
-    sc.hadoopConfiguration.set("fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS")
+    val skipGCSFS = pipelineContext.getGlobalAs[Boolean]("skipGCSFS")
+    if (!skipGCSFS.getOrElse(false)) {
+      val sc = pipelineContext.sparkSession.get.sparkContext
+      sc.hadoopConfiguration.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
+      sc.hadoopConfiguration.set("fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS")
+    }
     setGCPSecurity(credentials, pipelineContext)
   }
 
@@ -58,6 +61,20 @@ object GCPUtilities {
     sc.hadoopConfiguration.set("fs.gs.auth.service.account.email", credentials("client_email"))
     sc.hadoopConfiguration.set("fs.gs.auth.service.account.private.key.id", credentials("private_key_id"))
     sc.hadoopConfiguration.set("fs.gs.auth.service.account.private.key", credentials("private_key"))
+  }
+
+  /**
+    * Given a credential map, convert to a BasicGCPCredential.
+    *
+    * @param credentials The map containing the json based credentials
+    * @return A BasicGCPCredential that can be passed to connector code.
+    */
+  def convertMapToCredential(credentials: Option[Map[String, String]]): Option[BasicGCPCredential] = {
+    if (credentials.isDefined) {
+      Some(new BasicGCPCredential(credentials.get))
+    } else {
+      None
+    }
   }
 
   /**

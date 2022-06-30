@@ -241,6 +241,7 @@ class StepGroupStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(response.namedReturns.isDefined)
       assert(ctx.getGlobalString("updatedGlobal").getOrElse("") == "")
       assert(ctx.getGlobalString("mockGlobal").getOrElse("") == "This global has been updated")
+      assert(ctx.getGlobalString("mockGlobalLink").getOrElse("") == "!some global link")
     }
 
     it ("Should detect result script") {

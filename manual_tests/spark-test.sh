@@ -41,7 +41,7 @@ if [[ "${sparkCompat}" == "3.1" ]]
 then
   if [[ ! -f $serversDir/spark-3.1.3-bin-hadoop2.7.tgz ]]
   then
-    echo "Downloading 3.2 Spark"
+    echo "Downloading 3.1 Spark"
     curl -L https://downloads.apache.org/spark/spark-3.1.3/spark-3.1.3-bin-hadoop2.7.tgz > $serversDir/spark-3.1.3-bin-hadoop2.7.tgz
     curl -L https://repo1.maven.org/maven2/org/mongodb/spark/mongo-spark-connector_2.12/3.0.1/mongo-spark-connector_2.12-3.0.1.jar > $serversDir/mongo-spark-connector_2.12-3.0.1.jar
     curl -L https://repo1.maven.org/maven2/org/mongodb/mongodb-driver-core/4.0.5/mongodb-driver-core-4.0.5.jar > $serversDir/mongodb-driver-core-4.0.5.jar

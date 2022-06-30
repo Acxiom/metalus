@@ -170,6 +170,23 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     this.copy(globals = Some(if(this.globals.isDefined) this.globals.get ++ globals else globals))
 
   /**
+    * This function will add or update a single GlobalLink.
+    *
+    * @param name The name of the GlobalLink
+    * @param path Thee path to be evaluated
+    * @return A new PipelineContext with an updated GlobalLinks map.
+    */
+  def setGlobalLink(name: String, path: String): PipelineContext = {
+    val links = getGlobalAs[Map[String, Any]]("GlobalLinks").getOrElse(Map()) + (name -> path)
+    val newGlobals: Map[String, Any] = if(this.globals.isDefined) {
+      this.globals.get + ("GlobalLinks" -> links)
+    } else {
+      Map("GlobalLinks" -> links)
+    }
+    this.copy(globals = Some(newGlobals))
+  }
+
+  /**
     * This function will remove a single entry on the globals map.
     *
     * @param globalName The name of the global property to remove.
