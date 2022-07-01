@@ -21,6 +21,20 @@ sparkCompat=${BASH_REMATCH[2]}
 # Download/Unpack Spark
 jarFiles=""
 echo "Testing Spark ${sparkCompat} Scala ${scalaCompat}"
+if [[ "${sparkCompat}" == "2.4" ]]
+then
+  if [[ ! -f $serversDir/spark-2.4.8-bin-hadoop2.7.tgz ]]
+  then
+    echo "Downloading 2.4 Spark"
+    curl -L https://downloads.apache.org/spark/spark-2.4.8/spark-2.4.8-bin-hadoop2.7.tgz > $serversDir/spark-2.4.8-bin-hadoop2.7.tgz
+    curl -L https://repo1.maven.org/maven2/org/mongodb/spark/mongo-spark-connector_2.11/2.4.2/mongo-spark-connector_2.11-2.4.2.jar > $serversDir/mongo-spark-connector_2.11-2.4.2.jar
+    curl -L https://repo1.maven.org/maven2/org/mongodb/mongo-java-driver/3.12.7/mongo-java-driver-3.12.7.jar > $serversDir/mongo-java-driver-3.12.7.jar
+    tar xf $serversDir/spark-2.4.8-bin-hadoop2.7.tgz --directory $serversDir
+  fi
+  sparkDir="${serversDir}/spark-2.4.8-bin-hadoop2.7"
+  SPARK_HOME=$sparkDir
+  jarFiles="${serversDir}/mongo-spark-connector_2.11-2.4.2.jar,${serversDir}/mongo-java-driver-3.12.7.jar,"
+fi
 if [[ "${sparkCompat}" == "3.0" ]]
 then
   if [[ ! -f $serversDir/spark-3.0.2-bin-hadoop2.7.tgz ]]

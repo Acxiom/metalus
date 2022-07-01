@@ -12,7 +12,7 @@ validateResult() {
 usage() {
   echo "manual-tests.sh [OPTIONS]"
   echo "--save-metadata          -> When true, all metadata generated during the test will be saved to the metadata_templates directory"
-  echo "--version                 -> The specific version to test. Allowed versions are: 3.0, 3.1 and 3.2. Defaults to 'all'"
+  echo "--version                 -> The specific version to test. Allowed versions are: 2.4, 2.4_2.12, 3.0, 3.1, 3.2 and 3.2_2.13. Defaults to 'all'"
 }
 
 buildVersion="all"
@@ -44,6 +44,28 @@ cd "$dir" || exit
 echo "Executing from ${dir}"
 # Remove snapshot so the metadata uses clean tags
 mvn -P spark_3.1 -B versions:set -DremoveSnapshot
+
+# 2.4
+if [[ "${buildVersion}" == "2.4" || "${buildVersion}" == "all" ]]
+then
+  echo "Testing Spark 2.4"
+  mvn -P spark_2.4,scala_2.11 clean install
+  validateResult ${?} "Failed to build project"
+  manual_tests/spark-test.sh
+  validateResult ${?} "Failed Spark Test"
+  manual_tests/metadata-extractor-test.sh $storeMetadata
+  validateResult ${?} "Failed Metadata Extractor Test"
+fi
+
+# 2.4 Scala 2.12
+if [[ "${buildVersion}" == "2.4_2.12" || "${buildVersion}" == "all" ]]
+then
+  echo "Testing Spark 2.4 Scala 2.12"
+  mvn -P spark_2.4,scala_2.12 clean install
+  validateResult ${?} "Failed to build project"
+  manual_tests/metadata-extractor-test.sh $storeMetadata
+  validateResult ${?} "Failed Metadata Extractor Test"
+fi
 
 # 3.0
 if [[ "${buildVersion}" == "3.0" || "${buildVersion}" == "all" ]]
@@ -80,6 +102,18 @@ then
   manual_tests/metadata-extractor-test.sh $storeMetadata
   validateResult ${?} "Failed Metadata Extractor Test"
 fi
+
+# 3.2  Scala 2.13 TODO Some libraries do not support scala 2.13 like scalamock
+#if [[ "${buildVersion}" == "3.2_2.13" || "${buildVersion}" == "all" ]]
+#then
+#  echo "Testing Spark 3.2"
+#  mvn -P spark_3.2,scala_2.13 clean install
+#  validateResult ${?} "Failed to build project"
+#  manual_tests/spark-test.sh
+#  validateResult ${?} "Failed Spark Test"
+#  manual_tests/metadata-extractor-test.sh $storeMetadata
+#  validateResult ${?} "Failed Metadata Extractor Test"
+#fi
 
 # Set the version back to the original
 version=`mvn -P spark_3.1 -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec`
