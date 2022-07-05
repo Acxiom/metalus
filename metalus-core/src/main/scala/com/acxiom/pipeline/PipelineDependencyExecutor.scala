@@ -146,13 +146,14 @@ object PipelineDependencyExecutor {
               DependencyResult(execution, None,
                 Some(new IllegalArgumentException(s"fork execution ${execution.id} forkByValues ${execution.forkByValue.get} does not point to a valid list")))
             } else {
-              val forkedProcesses = forkValues.asInstanceOf[List[Any]].map(forkValue => {
+              val forkedProcesses = forkValues.asInstanceOf[List[Any]].zipWithIndex.map{ case (forkValue, forkIndex) =>
                 val ctx = execution.pipelineContext.setGlobal("executionForkValue", forkValue)
+                  .setGlobal("executionForkValueIndex", forkIndex)
                 Future {
                   processFutures(List(startExecution(execution.asInstanceOf[DefaultPipelineExecution].copy(pipelineContext = ctx))),
                     Map[String, DependencyResult](), executionGraph)
                 }
-              })
+              }
               // Wait for the forks to complete
               Await.ready(Future.sequence(forkedProcesses), Duration.Inf)
               val finalFutureMap = forkedProcesses.foldLeft(FutureMap(List(), Map[String, DependencyResult]()))((futureMap, f) => {
@@ -169,10 +170,11 @@ object PipelineDependencyExecutor {
               })
               // Execute the join
               val joinExecution = findJoinExecution(execution, executionGraph, execution).get
-              DependencyResult(PipelineExecution(joinExecution.id, joinExecution.pipelines, joinExecution.initialPipelineId,
-                prepareExecutionContext(joinExecution, finalFutureMap.resultMap), joinExecution.parents, None, None, "join"),
-                Some(PipelineExecutor.executePipelines(execution.pipelines, execution.initialPipelineId,
-                  execution.pipelineContext.setGlobal("executionId", execution.id))), None, Some(finalFutureMap))
+              val joinWithResults = PipelineExecution(joinExecution.id, joinExecution.pipelines, joinExecution.initialPipelineId,
+                prepareExecutionContext(joinExecution, finalFutureMap.resultMap), joinExecution.parents, None, None, "join")
+              DependencyResult(joinWithResults,
+                Some(PipelineExecutor.executePipelines(joinWithResults.pipelines, joinWithResults.initialPipelineId,
+                  joinWithResults.pipelineContext.setGlobal("executionId", joinWithResults.id))), None, Some(finalFutureMap))
             }
           } catch {
             case t: Throwable => DependencyResult(execution, None, Some(t))
