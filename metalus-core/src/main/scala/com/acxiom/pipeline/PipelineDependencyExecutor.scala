@@ -169,10 +169,12 @@ object PipelineDependencyExecutor {
               })
               // Execute the join
               val joinExecution = findJoinExecution(execution, executionGraph, execution).get
-              DependencyResult(PipelineExecution(joinExecution.id, joinExecution.pipelines, joinExecution.initialPipelineId,
-                prepareExecutionContext(joinExecution, finalFutureMap.resultMap), joinExecution.parents, None, None, "join"),
-                Some(PipelineExecutor.executePipelines(execution.pipelines, execution.initialPipelineId,
-                  execution.pipelineContext.setGlobal("executionId", execution.id))), None, Some(finalFutureMap))
+              val joinWithResults = PipelineExecution(joinExecution.id, joinExecution.pipelines, joinExecution.initialPipelineId,
+                prepareExecutionContext(joinExecution, finalFutureMap.resultMap), joinExecution.parents, None, None, "join")
+              DependencyResult(joinWithResults,
+                Some(PipelineExecutor.executePipelines(joinWithResults.pipelines, joinWithResults.initialPipelineId,
+                  joinWithResults.pipelineContext.setGlobal("executionId", joinWithResults.id))), None,
+                Some(finalFutureMap))
             }
           } catch {
             case t: Throwable => DependencyResult(execution, None, Some(t))
