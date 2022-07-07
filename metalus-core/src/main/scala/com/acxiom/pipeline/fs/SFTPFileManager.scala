@@ -1,9 +1,9 @@
 package com.acxiom.pipeline.fs
 
-import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, OutputStream}
-
-import scala.collection.JavaConversions.{collectionAsScalaIterable, mapAsJavaMap}
 import com.jcraft.jsch.{ChannelSftp, JSch, SftpException}
+
+import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, OutputStream}
+import scala.jdk.CollectionConverters._
 
 object SFTPFileManager {
   val DEFAULT_PORT = 22
@@ -45,7 +45,7 @@ class SFTPFileManager(hostName: String,
       ses.setPassword(password.get)
     }
     if (config.isDefined) {
-      ses.setConfig(new java.util.Hashtable[String, String](config.get))
+      ses.setConfig(new java.util.Hashtable[String, String](config.get.asJava))
     }
     ses.setTimeout(timeout.getOrElse(SFTPFileManager.DEFAULT_TIMEOUT))
     ses
@@ -139,7 +139,7 @@ class SFTPFileManager(hostName: String,
    * @return A list of files at the given path
    */
   override def getFileListing(path: String, recursive: Boolean = false): List[FileInfo] = {
-    channel.ls(path).map(_.asInstanceOf[channel.LsEntry]).flatMap {
+    channel.ls(path).asScala.map(_.asInstanceOf[channel.LsEntry]).flatMap {
       case e if recursive && SFTPFileManager.IGNORED_DIRECTORIES.contains(e.getFilename) => List.empty[FileInfo]
       case e if recursive && e.getAttrs.isDir && !SFTPFileManager.IGNORED_DIRECTORIES.contains(e.getFilename) =>
         getFileListing(s"${path.stripSuffix("/")}/${e.getFilename}", recursive)

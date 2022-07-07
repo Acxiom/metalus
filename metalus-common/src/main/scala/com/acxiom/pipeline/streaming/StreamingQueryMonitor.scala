@@ -23,8 +23,8 @@ class BaseStreamingQueryMonitor(override val query: StreamingQuery, override val
 abstract class BatchWriteStreamingQueryMonitor(override val query: StreamingQuery, override val pipelineContext: PipelineContext)
   extends BaseStreamingQueryMonitor(query, pipelineContext) {
   protected val monitorType: String = pipelineContext.getGlobalAs[String]("STREAMING_BATCH_MONITOR_TYPE").getOrElse("duration").toLowerCase
-  protected val duration: Int = pipelineContext.getGlobalAs[Int]("STREAMING_BATCH_MONITOR_DURATION").getOrElse(Constants.ONE_THOUSAND * Constants.SIXTY)
-  protected val approximateRows: Int = pipelineContext.getGlobalAs[Int]("STREAMING_BATCH_MONITOR_COUNT").getOrElse(Constants.ZERO)
+  protected val duration: Int = pipelineContext.getGlobal("STREAMING_BATCH_MONITOR_DURATION").getOrElse("60000").toString.toInt
+  protected val approximateRows: Int = pipelineContext.getGlobal("STREAMING_BATCH_MONITOR_COUNT").getOrElse("0").toString.toInt
   protected val sleepDuration: Long =
     if (monitorType == "duration") {
       // Set the sleep for the duration specified
@@ -51,9 +51,9 @@ abstract class BatchWriteStreamingQueryMonitor(override val query: StreamingQuer
     processing = if ((monitorType == "duration" && currentDuration >= sleepDuration) ||
       (rowCount >= approximateRows)) {
       logger.info("Streaming threshold met")
-//      startTime = System.currentTimeMillis()
-//      currentDuration = 0L
-//      rowCount = 0
+      startTime = System.currentTimeMillis()
+      currentDuration = 0L
+      rowCount = 0
       false
     } else {
       true

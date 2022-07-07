@@ -15,5 +15,4 @@ on the command line or as a global.
 
 ## Extensions
 * [GCSFileManager](docs/gcsfilemanager.md)
-* [PubSub Pipeline Driver](docs/pubsubpipelinedriver.md)
 * [GCP Secrets Manager Credential Provider](docs/gcpsecretsmanager-credentialprovider.md)

@@ -9,8 +9,8 @@ import org.json4s.{DefaultFormats, Formats}
 import java.io.{File, FileWriter}
 import java.net.URI
 import java.util.jar.JarFile
-import scala.collection.JavaConversions._
 import scala.io.Source
+import scala.jdk.CollectionConverters._
 
 object MetadataExtractor {
   private val DEFAULT_EXTRACTORS = List[String](
@@ -65,7 +65,7 @@ trait Extractor {
 
   private[metalus] def parseJsonMaps(path: String, jarFiles: List[JarFile], addFileName: Boolean = false) = {
     jarFiles.foldLeft(List[Map[String, Any]]())((maps, file) => {
-      file.entries().toList
+      file.entries().asScala.toList
         .filter(f => f.getName.startsWith(path) && f.getName.endsWith(".json"))
         .foldLeft(maps)((mapList, json) => {
           val map = parse(Source.fromInputStream(file.getInputStream(json)).mkString).extract[Map[String, Any]]

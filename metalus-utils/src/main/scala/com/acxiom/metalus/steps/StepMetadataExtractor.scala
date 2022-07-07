@@ -8,7 +8,7 @@ import org.json4s.native.Serialization
 
 import java.io.{File, FileWriter}
 import java.util.jar.JarFile
-import scala.collection.JavaConversions._
+import scala.jdk.CollectionConverters._
 import scala.reflect.ScalaSignature
 import scala.reflect.internal.pickling.ByteCodecs
 import scala.reflect.runtime.{universe => ru}
@@ -21,7 +21,7 @@ class StepMetadataExtractor extends Extractor {
 
   override def extractMetadata(jarFiles: List[JarFile]): Metadata = {
     val stepMappings = jarFiles.foldLeft((List[StepDefinition](), Set[String]()))((stepDefinitions, file) => {
-      file.entries().toList.filter(f => f.getName.endsWith(".class")).foldLeft(stepDefinitions)((definitions, cf) => {
+      file.entries().asScala.toList.filter(f => f.getName.endsWith(".class")).foldLeft(stepDefinitions)((definitions, cf) => {
         val stepPath = s"${cf.getName.substring(0, cf.getName.indexOf(".")).replaceAll("/", "\\.")}"
         if (!stepPath.contains("$") && isStepObject(stepPath)) {
           val stepsAndClasses = findStepDefinitions(stepPath, file.getName.substring(file.getName.lastIndexOf('/') + 1))

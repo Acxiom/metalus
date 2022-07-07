@@ -42,7 +42,7 @@ trait ApplicationDriverSetup extends DriverSetup {
     case "enableHiveSupport" => false
     case "dfs-cluster" => false
     case _ => true
-  }
+  }.toMap
 
   private lazy val application: Application = loadAndValidateApplication
 

@@ -3,10 +3,10 @@ package com.acxiom.aws.fs
 import com.acxiom.aws.utils.S3Utilities
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.{CompleteMultipartUploadRequest, InitiateMultipartUploadRequest, PartETag, UploadPartRequest}
-import java.io.{ByteArrayInputStream, OutputStream}
 
-import scala.collection.JavaConverters._
+import java.io.{ByteArrayInputStream, OutputStream}
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 class S3OutputStream(s3Client: AmazonS3, bucket: String, key: String, bufferLength: Option[Int] = None) extends OutputStream {
   private val bufferSize = bufferLength.getOrElse(S3Utilities.MULTIPART_UPLOAD_SIZE)

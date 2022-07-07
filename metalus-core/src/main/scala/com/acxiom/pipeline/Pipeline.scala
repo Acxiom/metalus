@@ -7,7 +7,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.util.CollectionAccumulator
 import org.json4s.{DefaultFormats, Formats}
 
-import scala.collection.JavaConversions._
+import scala.jdk.CollectionConverters._
 
 /**
   * This object provides an easy way to create a new Pipeline.
@@ -116,7 +116,7 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
 
   def isGlobalLink(globalName: String): Boolean = {
     val links = getGlobalAs[Map[String, Any]]("GlobalLinks")
-    links.getOrElse(Map[String, Any]()).containsKey(globalName)
+    links.getOrElse(Map[String, Any]()).asJava.containsKey(globalName)
   }
 
   /**
@@ -211,7 +211,7 @@ case class PipelineContext(sparkConf: Option[SparkConf] = None,
     */
   def getStepMessages: Option[List[PipelineStepMessage]] = {
     if (stepMessages.isDefined) {
-      Some(stepMessages.get.value.toList)
+      Some(stepMessages.get.value.asScala.toList)
     } else {
       None
     }

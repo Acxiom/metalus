@@ -91,6 +91,12 @@
             <version>${scala.version}</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Scala Compatability -->
+        <dependency>
+            <groupId>org.scala-lang.modules</groupId>
+            <artifactId>scala-collection-compat_${scala.compat.version}</artifactId>
+            <version>2.1.6</version>
+        </dependency>
         <!-- JSON Library -->
         <dependency>
             <groupId>org.json4s</groupId>
@@ -503,6 +509,7 @@
             <properties>
                 <scala.compat.version>2.13</scala.compat.version>
                 <scala.version>2.13.8</scala.version>
+                <kafka.version>2.4.1</kafka.version>
             </properties>
         </profile>
     </profiles>
