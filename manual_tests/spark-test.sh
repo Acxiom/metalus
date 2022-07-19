@@ -82,7 +82,8 @@ then
   sparkDir="${serversDir}/spark-3.2.1-bin-hadoop2.7"
   SPARK_HOME=$sparkDir
   jarFiles="${serversDir}/mongo-spark-connector_2.12-3.0.2.jar,${serversDir}/mongodb-driver-sync-4.0.5.jar,${serversDir}/mongodb-driver-core-4.0.5.jar,${serversDir}/bson-4.0.5.jar,"
-fiif [[ "${sparkCompat}" == "3.3" ]]
+fi
+if [[ "${sparkCompat}" == "3.3" ]]
 then
   if [[ ! -f $serversDir/spark-3.3.0-bin-hadoop2.tgz ]]
   then
