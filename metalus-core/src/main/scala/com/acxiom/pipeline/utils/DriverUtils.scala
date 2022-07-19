@@ -238,9 +238,11 @@ object DriverUtils {
                            maxAttempts: Int = Constants.FIVE,
                            streamingJob: Boolean = false,
                            rootExecutions: List[String] = List()): Unit = {
-    val plan = if (dataFrame.isDefined || streamingJob) {
+    val plan = if (dataFrame.isDefined) {
       DriverUtils.addInitialDataFrameToExecutionPlan(
         driverSetup.refreshExecutionPlan(executionPlan, resultMap("results")), dataFrame.get)
+    } else if (streamingJob) {
+      driverSetup.refreshExecutionPlan(executionPlan, resultMap("results"))
     } else {
       executionPlan
     }
