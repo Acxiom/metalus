@@ -1,8 +1,9 @@
 package org.apache.spark
 
-import org.apache.spark.scheduler.{SparkListener, SparkListenerInterface}
+import org.apache.spark.scheduler.SparkListenerInterface
 import org.apache.spark.sql.SparkSession
-import scala.collection.JavaConverters._
+
+import scala.jdk.CollectionConverters._
 
 object PackagePrivateSparkTestHelper {
 

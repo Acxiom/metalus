@@ -1,9 +1,8 @@
 package com.acxiom.pipeline.utils
 
 import com.acxiom.pipeline._
-import com.acxiom.pipeline.drivers.{DriverSetup, ResultSummary, StreamingDataParser}
+import com.acxiom.pipeline.drivers.{DriverSetup, ResultSummary}
 import org.apache.spark.SparkConf
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.streaming.{Milliseconds, Minutes, Seconds}
@@ -11,7 +10,7 @@ import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.{BeforeAndAfterAll, FunSpec}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
 
@@ -121,29 +120,11 @@ class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
       assert(resultMap("TWO").result.get.success)
     }
 
-    it("Should load StreamingDataParsers") {
-      val parameters = Map[String, Any]("streaming-parsers" -> "com.acxiom.pipeline.utils.TestStreamingDataParser")
-      val parsers = StreamingUtils.generateStreamingDataParsers(parameters, Some(List[StreamingDataParser[List[String]]]()))
-      assert(parsers.nonEmpty)
-      assert(parsers.length == 1)
-      assert(parsers.head.isInstanceOf[TestStreamingDataParser])
-      val parser = StreamingUtils.getStreamingParser(sparkSession.sparkContext.emptyRDD, parsers)
-      assert(parser.isDefined)
-      assert(parser.get.isInstanceOf[TestStreamingDataParser])
-      assert(StreamingUtils.generateStreamingDataParsers(Map[String, Any]()).isEmpty)
-    }
-
     it("Should get duration") {
       assert(StreamingUtils.getDuration(Some("minutes"), Some("5")) == Minutes(Constants.FIVE))
       assert(StreamingUtils.getDuration(Some("milliseconds"), Some("15")) == Milliseconds(Constants.FIFTEEN))
       assert(StreamingUtils.getDuration(None, None) == Seconds(Constants.TEN))
       assert(StreamingUtils.getDuration(Some("monkey"), None) == Seconds(Constants.TEN))
-    }
-
-    it("Should parse common streaming parameters") {
-      assert(!StreamingUtils.parseCommonStreamingParameters(Map()).processEmptyRDD)
-      assert(!StreamingUtils.parseCommonStreamingParameters(Map("processEmptyRDD" -> false)).processEmptyRDD)
-      assert(StreamingUtils.parseCommonStreamingParameters(Map("processEmptyRDD" -> true)).processEmptyRDD)
     }
   }
 
@@ -184,14 +165,6 @@ class DriverUtilsTests extends FunSpec with BeforeAndAfterAll {
           Some(PipelineExecutionResult(context, success = false, paused = true, None)), None))))
       assert(result.success)
     }
-  }
-}
-
-class TestStreamingDataParser extends StreamingDataParser[List[String]] {
-  override def canParse(rdd: RDD[List[String]]): Boolean = true
-
-  override def parseRDD(rdd: RDD[List[String]], sparkSession: SparkSession): DataFrame = {
-    None.orNull
   }
 }
 

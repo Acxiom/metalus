@@ -5,6 +5,3 @@ The Metalus Kafka is a step library with specific steps and utilities for workin
 
 ## Step Classes
 * [KafkaSteps](docs/kafkasteps.md)
-
-## Extensions
-* [Kafka Pipeline Driver](docs/kafkapipelinedriver.md)

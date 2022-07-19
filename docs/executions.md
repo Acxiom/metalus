@@ -68,7 +68,8 @@ An execution may process a list of values in parallel by changing the _execution
 attribute. The behavior is similar to [fork steps](fork-join.md) within pipelines with the exception that the fork and 
 join executions will run the provided pipelines. The _forkByValue_ is a mapping string will be applied to the execution 
 globals in an effort to locate the list which is used to spin up parallel processes. Within the _fork_ execution, the 
-individual fork value will be assigned to a global named _executionForkValue_. All child executions of the fork will process
+individual fork value will be assigned to a global named _executionForkValue_. A second global named _executionForkValueIndex_
+will be set which contains the index of the value in the original list. All child executions of the fork will process
 in parallel until a join execution (executionType will be join) is reached. The join execution will be executed once and
 the output (pipelineParameters and globals) of the parallel executions will be merged into a list. A join execution is
 required.

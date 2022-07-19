@@ -1,18 +1,18 @@
 package com.acxiom.kafka
 
-import com.acxiom.kafka.drivers.KafkaPipelineDriver
 import com.acxiom.kafka.pipeline.KafkaPipelineListener
+import com.acxiom.kafka.pipeline.connectors.KafkaDataConnector
 import com.acxiom.kafka.steps.KafkaSteps
 import com.acxiom.pipeline._
-import com.acxiom.pipeline.drivers.{DriverSetup, StreamingDataParser}
+import com.acxiom.pipeline.drivers.{DefaultPipelineDriver, DriverSetup}
 import kafka.server.{KafkaConfig, KafkaServerStartable}
 import org.apache.commons.io.FileUtils
 import org.apache.curator.test.TestingServer
-import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
+import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
+import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.json4s.native.JsonMethods
 import org.json4s.{DefaultFormats, Formats}
@@ -22,11 +22,11 @@ import java.nio.file.{Files, Path}
 import java.time.Duration
 import java.util.Properties
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
   implicit val formats: Formats = DefaultFormats
-  val expectedEvents = List(("executionStarted", 1), ("executionFinished", 1), ("pipelineStarted", 1),
+  private val expectedEvents = List(("executionStarted", 1), ("executionFinished", 1), ("pipelineStarted", 1),
     ("pipelineFinished", 1), ("pipelineStepStarted", 1), ("pipelineStepFinished", 1),
     ("registerStepException", 1), ("executionStopped", 1))
   val kafkaLogs: Path = Files.createTempDirectory("kafkaLogs")
@@ -41,7 +41,7 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
   kafkaProperties.put("offsets.topic.replication.factor", "1")
   kafkaProperties.put(KafkaConfig.LogDirsProp, kafkaLogs.toFile.getAbsolutePath)
   val server = new KafkaServerStartable(new KafkaConfig(kafkaProperties))
-  val dataRows = List(List("1", "2", "3", "4", "5"),
+  private val dataRows = List(List("1", "2", "3", "4", "5"),
     List("6", "7", "8", "9", "10"),
     List("11", "12", "13", "14", "15"),
     List("16", "17", "18", "19", "20"),
@@ -75,7 +75,7 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
     SparkTestHelper.sparkConf = new SparkConf()
       .setMaster(SparkTestHelper.MASTER)
       .setAppName(SparkTestHelper.APPNAME)
-        .set("spark.local.dir", sparkLocalDir.toFile.getAbsolutePath)
+      .set("spark.local.dir", sparkLocalDir.toFile.getAbsolutePath)
     SparkTestHelper.sparkConf.set("spark.hadoop.io.compression.codecs",
       ",org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
         "org.apache.hadoop.io.compress.GzipCodec,org.apache." +
@@ -114,11 +114,13 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
           assert(params.isDefined)
           assert(params.get.parameters.contains("PROCESS_KAFKA_DATA"))
           assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-          assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse]
-            .primaryReturn.getOrElse(false).asInstanceOf[Boolean])
+          // TODO Switched return from boolean to StreamingQuery
+          //          assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse]
+          //            .primaryReturn.getOrElse(false).asInstanceOf[Boolean])
           executionComplete = true
           None
         }
+
         override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
             case t: Throwable => fail(s"Pipeline Failed to run: ${t.getMessage}")
@@ -131,178 +133,21 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
 
       And("the kafka spark listener is running")
       val args = List("--driverSetupClass", "com.acxiom.kafka.SparkTestDriverSetup", "--pipeline", "basic",
-        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", KAFKA_NODES,
-        "--terminationPeriod", "3000", "--fieldDelimiter", "|", "--duration-type", "seconds",
-        "--duration", "1", "--expectedCount", "5", "--expectedAttrCount", "5")
-      KafkaPipelineDriver.main(args.toArray)
+        "--globalInput", "global-input-value", "--topics", "TEST", "--kafkaNodes", KAFKA_NODES,
+        "--fieldDelimiter", "|", "--expectedCount", "5", "--expectedAttrCount", "5",
+        "--STREAMING_QUERY_TIMEOUT_MS", "3000")
+      DefaultPipelineDriver.main(args.toArray)
       Then("5 records should be processed")
       assert(executionComplete)
       // Verify that Kafka received the messages
       val consumer = new KafkaConsumer[String, String](kafkaConsumerProperties)
       // Subscribe to the topic.
       consumer.subscribe(List("status").asJavaCollection)
-      pollConsumer(consumer, Constants.SIX)
+      pollConsumer(consumer, Constants.TEN)
       consumer.close(Duration.ofMillis(500))
     }
 
-    it("Should process records using alternate data parsers") {
-      When("5 kafka messages are posted with comma delimiter")
-      val topic = sendKafkaMessages(",", None, usePostMessage = true)
-      var executionComplete = false
-      SparkTestHelper.pipelineListener = new PipelineListener {
-        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-          assert(pipelines.lengthCompare(1) == 0)
-          val params = pipelineContext.parameters.getParametersByPipelineId("1")
-          assert(params.isDefined)
-          assert(params.get.parameters.contains("PROCESS_KAFKA_DATA"))
-          assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-          assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse]
-            .primaryReturn.getOrElse(false).asInstanceOf[Boolean])
-          executionComplete = true
-          None
-        }
-        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
-          exception match {
-            case t: Throwable => fail(s"Pipeline Failed to run: ${t.getMessage}")
-          }
-        }
-      }
-
-      And("the kafka spark listener is running expecting either comma or pipe delimiter")
-      val args = List("--driverSetupClass", "com.acxiom.kafka.SparkTestDriverSetup", "--pipeline", "parser",
-        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", KAFKA_NODES,
-        "--terminationPeriod", "3000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "1",
-        "--streaming-parsers", "com.acxiom.kafka.TestKafkaStreamingDataParserPipe,com.acxiom.kafka.TestKafkaStreamingDataParserComma",
-        "--expectedCount", "5", "--expectedAttrCount", "5")
-      KafkaPipelineDriver.main(args.toArray)
-      Then("5 records should be processed")
-      assert(executionComplete)
-    }
-
-    it("Should process records using default data parser") {
-      When("5 kafka messages are posted with other delimiter")
-      val topic = sendKafkaMessages(":", Some("col1"))
-      var executionComplete = false
-      SparkTestHelper.pipelineListener = new PipelineListener {
-        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-          assert(pipelines.lengthCompare(1) == 0)
-          val params = pipelineContext.parameters.getParametersByPipelineId("1")
-          assert(params.isDefined)
-          assert(params.get.parameters.contains("PROCESS_KAFKA_DATA"))
-          assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-          assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse]
-            .primaryReturn.getOrElse(false).asInstanceOf[Boolean])
-          executionComplete = true
-          None
-        }
-        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
-          exception match {
-            case t: Throwable => fail(s"Pipeline Failed to run: ${t.getMessage}")
-          }
-        }
-      }
-
-      And("the kafka spark listener is running expecting either comma or pipe delimiter")
-      val args = List("--driverSetupClass", "com.acxiom.kafka.SparkTestDriverSetup", "--pipeline", "parser",
-        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", KAFKA_NODES,
-        "--terminationPeriod", "3000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "1",
-        "--streaming-parsers", "com.acxiom.kafka.TestKafkaStreamingDataParserPipe,com.acxiom.kafka.TestKafkaStreamingDataParserComma",
-        "--expectedCount", "5", "--expectedAttrCount", "3")
-      KafkaPipelineDriver.main(args.toArray)
-      Then("5 records should be processed with 3 attributes")
-      assert(executionComplete)
-    }
-
-    it("Should process simple records using custom data parser") {
-      When("5 kafka messages are posted")
-      val topic = sendKafkaMessages("|")
-      var executionComplete = false
-      SparkTestHelper.pipelineListener = new PipelineListener {
-        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-          assert(pipelines.lengthCompare(1) == 0)
-          val params = pipelineContext.parameters.getParametersByPipelineId("1")
-          assert(params.isDefined)
-          assert(params.get.parameters.contains("PROCESS_KAFKA_DATA"))
-          assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-          assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse]
-            .primaryReturn.getOrElse(false).asInstanceOf[Boolean])
-          executionComplete = true
-          None
-        }
-        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
-          exception match {
-            case t: Throwable => fail(s"Pipeline Failed to run: ${t.getMessage}")
-          }
-        }
-      }
-
-      And("the kafka spark listener is running")
-      val args = List("--driverSetupClass", "com.acxiom.kafka.SparkTestDriverSetup", "--pipeline", "parser",
-        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", KAFKA_NODES,
-        "--terminationPeriod", "3000", "--fieldDelimiter", "|", "--duration-type", "seconds", "--duration", "1", "--streaming-parsers",
-        "com.acxiom.kafka.TestKafkaStreamingDataParserPipe,com.acxiom.kafka.TestKafkaStreamingDataParserPipe",
-        "--expectedCount", "5", "--expectedAttrCount", "5")
-      KafkaPipelineDriver.main(args.toArray)
-      Then("5 records should be processed")
-      assert(executionComplete)
-    }
-
-    it("Should not commit offsets when the pipeline fails") {
-      When("5 kafka messages are posted")
-      val topic = sendKafkaMessages("|", Some("col1"))
-      var executionComplete = false
-      var testIteration = 0
-      val testListener = new PipelineListener {
-        override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-          assert(pipelines.lengthCompare(1) == 0)
-          val params = pipelineContext.parameters.getParametersByPipelineId("1")
-          assert(params.isDefined)
-          assert(params.get.parameters.contains("PROCESS_KAFKA_DATA"))
-          assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-          assert(params.get.parameters("PROCESS_KAFKA_DATA").asInstanceOf[PipelineStepResponse]
-            .primaryReturn.getOrElse(false).asInstanceOf[Boolean])
-          executionComplete = true
-          Some(pipelineContext)
-        }
-        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
-          exception match {
-            case t: Throwable if testIteration > 1 => fail(s"Pipeline Failed to run: ${t.getMessage}")
-            case _ =>
-          }
-        }
-
-        override def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext): Option[PipelineContext] = {
-          // Second execution should set a global that allows the pipeline to complete
-          testIteration += 1
-          if (testIteration == 2) {
-            Some(pipelineContext.setGlobal("passTest", true))
-          } else {
-            None
-          }
-        }
-      }
-
-      val kafkaListener = new KafkaPipelineListener("test-pipeline-messages", "", None.orNull,
-        "statusFails", KAFKA_NODES, "test-client-id")
-      SparkTestHelper.pipelineListener = CombinedPipelineListener(List[PipelineListener](testListener, kafkaListener))
-
-      And("the kafka spark listener is running")
-      val args = List("--driverSetupClass", "com.acxiom.kafka.SparkTestDriverSetup", "--pipeline", "errorTest",
-        "--globalInput", "global-input-value", "--topics", topic, "--kafkaNodes", KAFKA_NODES,
-        "--terminationPeriod", "3000", "--fieldDelimiter", "|", "--duration-type", "seconds",
-        "--duration", "1", "--expectedCount", "5", "--expectedAttrCount", "5", "--maxRetryAttempts", "2")
-      KafkaPipelineDriver.main(args.toArray)
-      Then("5 records should be processed")
-      assert(executionComplete)
-      // Verify that Kafka received the messages
-      val consumer = new KafkaConsumer[String, String](kafkaConsumerProperties)
-      // Subscribe to the topic.
-      consumer.subscribe(List("statusFails").asJavaCollection)
-      pollConsumer(consumer, Constants.FIFTEEN)
-      consumer.close(Duration.ofMillis(500))
-    }
-
-    it ("Should fail and not retry") {
+    it("Should fail and not retry") {
       val topic = sendKafkaMessages("|", Some("col1"))
       SparkTestHelper.pipelineListener = new PipelineListener {}
       val args = List("--driverSetupClass", "com.acxiom.kafka.SparkTestDriverSetup", "--pipeline", "errorTest",
@@ -310,7 +155,7 @@ class KafkaSuiteTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen 
         "--terminationPeriod", "500", "--fieldDelimiter", "|", "--duration-type", "seconds",
         "--duration", "1", "--expectedCount", "5", "--expectedAttrCount", "5", "--terminateAfterFailures", "true")
       val thrown = intercept[RuntimeException] {
-        KafkaPipelineDriver.main(args.toArray)
+        DefaultPipelineDriver.main(args.toArray)
       }
       assert(thrown.getMessage.startsWith("Failed to process execution plan after 1 attempts"))
     }
@@ -360,9 +205,16 @@ object SparkTestHelper {
   var sparkSession: SparkSession = _
   var pipelineListener: PipelineListener = _
 
+  val DATA_CONNECTOR_STEP: PipelineStep = PipelineStep(Some("LOAD_DATA_CONNECTOR"), Some("Load Data From Kafka"), None, Some("Pipeline"),
+    Some(List(Parameter(Some("text"), Some("connector"), Some(true), None, Some("!kafkaConnector")))),
+    Some(EngineMeta(Some("DataConnectorSteps.loadDataFrame"))), Some("PROCESS_KAFKA_DATA"))
   val MESSAGE_PROCESSING_STEP: PipelineStep = PipelineStep(Some("PROCESS_KAFKA_DATA"), Some("Parses Kafka data"), None, Some("Pipeline"),
-    Some(List(Parameter(Some("text"), Some("dataFrame"), Some(true), None, Some("!initialDataFrame")))),
+    Some(List(Parameter(Some("text"), Some("dataFrame"), Some(true), None, Some("@LOAD_DATA_CONNECTOR")))),
     Some(EngineMeta(Some("MockTestSteps.processIncomingData"))), None)
+  val STREAMING_MONITOR_STEP: PipelineStep = PipelineStep(Some("STREAMING_MONITOR"), Some("Monitors the streaming queries"), None, Some("Pipeline"),
+    Some(List(Parameter(Some("text"), Some("query"), Some(true), None, Some("@PROCESS_KAFKA_DATA")))),
+    Some(EngineMeta(Some("FlowUtilsSteps.monitorStreamingQuery"))), None)
+
   val COMPLEX_MESSAGE_PROCESSING_STEP: PipelineStep = PipelineStep(Some("PROCESS_KAFKA_DATA"), Some("Parses Kafka data"), None, Some("Pipeline"),
     Some(List(Parameter(Some("text"), Some("dataFrame"), Some(true), None, Some("!initialDataFrame")))),
     Some(EngineMeta(Some("MockTestSteps.processIncomingMessage"))), None)
@@ -373,44 +225,18 @@ object SparkTestHelper {
       Parameter(`type` = Some("result"), name = Some("true"), value = Some("PROCESS_KAFKA_DATA")),
       Parameter(`type` = Some("result"), name = Some("false"), value = Some("THROW_ERROR")))),
     Some(EngineMeta(Some("MockTestSteps.parrotStep"))), None)
-  val BASIC_PIPELINE = List(Pipeline(Some("1"), Some("Basic Pipeline"), Some(List(MESSAGE_PROCESSING_STEP))))
-  val PARSER_PIPELINE = List(Pipeline(Some("1"), Some("Parser Pipeline"), Some(List(COMPLEX_MESSAGE_PROCESSING_STEP))))
-  val ERROR_PIPELINE = List(Pipeline(Some("1"), Some("Error Pipeline"), Some(List(BRANCH_STEP,ERROR_STEP,MESSAGE_PROCESSING_STEP))))
-}
-
-class TestKafkaStreamingDataParserPipe extends StreamingDataParser[ConsumerRecord[String, String]] {
-  override def canParse(rdd: RDD[ConsumerRecord[String, String]]): Boolean = {
-    !rdd.map(r => r.value.contains("|")).collect.contains(false)
-  }
-
-  override def parseRDD(rdd: RDD[ConsumerRecord[String, String]], sparkSession: SparkSession): DataFrame = {
-    sparkSession.createDataFrame(rdd.map(r => Row(r.value().split('|'): _*)),
-      StructType(List(StructField("col1", StringType),
-        StructField("col2", StringType),
-        StructField("col3", StringType),
-        StructField("col4", StringType),
-        StructField("col5", StringType)))).toDF()
-  }
-}
-
-class TestKafkaStreamingDataParserComma extends StreamingDataParser[ConsumerRecord[String, String]] {
-  override def canParse(rdd: RDD[ConsumerRecord[String, String]]): Boolean = {
-    !rdd.map(r => r.value.contains(",")).collect.contains(false)
-  }
-
-  override def parseRDD(rdd: RDD[ConsumerRecord[String, String]], sparkSession: SparkSession): DataFrame = {
-    sparkSession.createDataFrame(rdd.map(r => Row(r.value().split(','): _*)),
-      StructType(List(StructField("col1", StringType),
-        StructField("col2", StringType),
-        StructField("col3", StringType),
-        StructField("col4", StringType),
-        StructField("col5", StringType)))).toDF()
-  }
+  val BASIC_PIPELINE: List[Pipeline] = List(Pipeline(Some("1"), Some("Basic Pipeline"),
+    Some(List(DATA_CONNECTOR_STEP, MESSAGE_PROCESSING_STEP.copy(nextStepId = Some("STREAMING_MONITOR")), STREAMING_MONITOR_STEP))))
+  val PARSER_PIPELINE: List[Pipeline] = List(Pipeline(Some("1"), Some("Parser Pipeline"), Some(List(COMPLEX_MESSAGE_PROCESSING_STEP))))
+  val ERROR_PIPELINE: List[Pipeline] = List(Pipeline(Some("1"), Some("Error Pipeline"), Some(List(BRANCH_STEP, ERROR_STEP, MESSAGE_PROCESSING_STEP))))
 }
 
 case class SparkTestDriverSetup(parameters: Map[String, Any]) extends DriverSetup {
 
-  val ctx: PipelineContext = PipelineContext(Some(SparkTestHelper.sparkConf), Some(SparkTestHelper.sparkSession), Some(parameters),
+  private val kafkaConnector = KafkaDataConnector(parameters("topics").asInstanceOf[String],
+    parameters("kafkaNodes").asInstanceOf[String], None, None, "KafaConnector", None, None)
+  val ctx: PipelineContext = PipelineContext(Some(SparkTestHelper.sparkConf), Some(SparkTestHelper.sparkSession),
+    Some(parameters + ("kafkaConnector" -> kafkaConnector)),
     PipelineSecurityManager(),
     PipelineParameters(List(PipelineParameter("0", Map[String, Any]()), PipelineParameter("1", Map[String, Any]()))),
     Some(if (parameters.contains("stepPackages")) {
@@ -453,26 +279,43 @@ object MockTestSteps {
     val stepId = pipelineContext.getGlobalString("stepId").getOrElse("")
     val pipelineId = pipelineContext.getGlobalString("pipelineId").getOrElse("")
     val expectedCount = pipelineContext.getGlobalString("expectedCount").getOrElse("0").toLong
-    val count = dataFrame.count()
-    if (count != expectedCount) {
-      pipelineContext.addStepMessage(PipelineStepMessage(s"Row count was wrong $count, expected=$expectedCount", stepId, pipelineId,
-        PipelineStepMessageType.error))
-    }
+    val topic = pipelineContext.getGlobalString("topics").getOrElse("")
+    var count = 0
 
     val fieldDelimiter = pipelineContext.getGlobalString("fieldDelimiter").getOrElse(",")
     val stepMessages = pipelineContext.stepMessages.get
     val expectedAttrCount = pipelineContext.getGlobalString("expectedAttrCount").getOrElse("0").toInt
-    dataFrame.foreach(row => {
-      val columns = row.getString(ONE).split(fieldDelimiter.toCharArray()(0))
-      if (columns.lengthCompare(expectedAttrCount) != ZERO) {
-        stepMessages.add(PipelineStepMessage(s"Column count was wrong,expected=$expectedAttrCount,actual=${columns.length}",
-          stepId, pipelineId, PipelineStepMessageType.error))
+    implicit val encoder: ExpressionEncoder[Row] = org.apache.spark.sql.catalyst.encoders.RowEncoder(StructType(Seq(
+      StructField("key", StringType),
+      StructField("value", StringType),
+      StructField("topic", StringType),
+      StructField("partition", IntegerType),
+      StructField("offset", LongType),
+      StructField("timestamp", TimestampType),
+      StructField("timestampType", IntegerType))))
+    val messages = pipelineContext.stepMessages.get
+    val df = dataFrame.mapPartitions(rows => {
+      rows.foreach(row => {
+        val columns = new String(row.get(ONE).asInstanceOf[Array[Byte]]).split(fieldDelimiter.toCharArray()(0))
+        assert(row.getString(Constants.TWO) == topic)
+        if (columns.lengthCompare(expectedAttrCount) != ZERO) {
+          stepMessages.add(PipelineStepMessage(s"Column count was wrong,expected=$expectedAttrCount,actual=${columns.length}",
+            stepId, pipelineId, PipelineStepMessageType.error))
+        }
+        count += 1
+      })
+      if (count != expectedCount) {
+        messages.add(PipelineStepMessage(s"Row count was wrong $count, expected=$expectedCount", stepId, pipelineId,
+          PipelineStepMessageType.error))
       }
+      rows
     })
 
-    assert(dataFrame.select("topic").distinct().collect()(0).getString(ZERO) == pipelineContext.globals.get("topics"))
-
-    PipelineStepResponse(Some(true), None)
+    // Start the Streaming Query here
+    PipelineStepResponse(Some(df.writeStream.format("memory")
+      .outputMode("update")
+      .queryName("test")
+      .option("truncate", "false").start()), None)
   }
 
   def processIncomingMessage(dataFrame: DataFrame, pipelineContext: PipelineContext): PipelineStepResponse = {

@@ -9,8 +9,8 @@ import java.net.{HttpURLConnection, URL}
 import java.security.cert.X509Certificate
 import java.util.Date
 import javax.net.ssl._
-import scala.collection.JavaConverters._
 import scala.io.Source
+import scala.jdk.CollectionConverters._
 
 object HttpRestClient {
   val DEFAULT_BUFFER_SIZE: Int = 65536

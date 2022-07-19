@@ -8,7 +8,7 @@ import org.apache.spark.sql.{DataFrame, Dataset}
 
 import java.sql.{Connection, DriverManager}
 import java.util.Properties
-import scala.collection.JavaConversions._
+import scala.jdk.CollectionConverters._
 
 @StepObject
 object JDBCSteps {
@@ -28,7 +28,7 @@ object JDBCSteps {
     secondaryTypes = None)
   def readWithJDBCOptions(jdbcOptions: JDBCOptions,
                           pipelineContext: PipelineContext): DataFrame = {
-    val options = DataFrameReaderOptions("jdbc", Some(jdbcOptions.asProperties.toMap))
+    val options = DataFrameReaderOptions("jdbc", Some(jdbcOptions.asProperties.asScala.toMap))
     val jdbc = JDBCDataConnector(jdbcOptions.url, None, "JDBCSteps_readWithJDBCOptions", None, None)
     jdbc.load(Some(jdbcOptions.tableOrQuery), pipelineContext, options)
   }
@@ -51,7 +51,7 @@ object JDBCSteps {
   def readWithStepOptions(jDBCStepsOptions: JDBCDataFrameReaderOptions,
                           pipelineContext: PipelineContext): DataFrame = {
     val properties = new Properties()
-    properties.putAll(jDBCStepsOptions.readerOptions.options.getOrElse(Map[String, String]()))
+    properties.putAll(jDBCStepsOptions.readerOptions.options.getOrElse(Map[String, String]()).asJava)
     val jdbc = JDBCDataConnector(jDBCStepsOptions.url, jDBCStepsOptions.predicates, "JDBCSteps_readWithStepOptions", None, None)
     jdbc.load(Some(jDBCStepsOptions.table), pipelineContext, jDBCStepsOptions.readerOptions)
   }
@@ -103,7 +103,7 @@ object JDBCSteps {
                            jdbcOptions: JDBCOptions,
                            saveMode: String = "Overwrite",
                            pipelineContext: PipelineContext): Unit = {
-    val options = DataFrameWriterOptions("jdbc", saveMode, Some(jdbcOptions.asProperties.toMap))
+    val options = DataFrameWriterOptions("jdbc", saveMode, Some(jdbcOptions.asProperties.asScala.toMap))
     val jdbc = JDBCDataConnector(jdbcOptions.url, None, "JDBCSteps_writeWithJDBCOptions", None, None)
     jdbc.write(dataFrame.asInstanceOf[DataFrame], Some(jdbcOptions.tableOrQuery), pipelineContext, options)
   }
@@ -168,7 +168,7 @@ object JDBCSteps {
     secondaryTypes = None)
   def getConnection(url: String, properties: Option[Map[String, String]] = None): Connection = {
     val prop = new Properties()
-    if (properties.isDefined) prop.putAll(properties.get)
+    if (properties.isDefined) prop.putAll(properties.get.asJava)
     DriverManager.getConnection(url, prop)
   }
 

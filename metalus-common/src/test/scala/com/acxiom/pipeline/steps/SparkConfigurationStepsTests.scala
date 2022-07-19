@@ -1,13 +1,14 @@
 package com.acxiom.pipeline.steps
 
-import java.nio.file.{Files, Path}
-
 import com.acxiom.pipeline._
 import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
+
+import java.nio.file.{Files, Path}
+import scala.language.postfixOps
 
 class SparkConfigurationStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
   private val MASTER = "local[2]"
@@ -91,15 +92,17 @@ class SparkConfigurationStepsTests extends FunSpec with BeforeAndAfterAll with G
   describe("SparkConfigurationSteps - Job Group") {
     it("should set a job group") {
       SparkConfigurationSteps.setJobGroup("group1", "test1", None, pipelineContext)
+      val initialGroupIds = sparkSession.sparkContext.statusTracker.getJobIdsForGroup("group1")
+      assert(initialGroupIds.isEmpty)
       val df = sparkSession.range(2)
       df.count()
       df.head()
       val group1Ids = sparkSession.sparkContext.statusTracker.getJobIdsForGroup("group1")
-      assert(group1Ids.length == 2)
+      assert(group1Ids.nonEmpty)
       SparkConfigurationSteps.setJobGroup("group2", "test2", None, pipelineContext)
       df.count()
       val group2Ids = sparkSession.sparkContext.statusTracker.getJobIdsForGroup("group2")
-      assert(group2Ids.length == 1)
+      assert(group2Ids.length < group1Ids.length)
     }
 
     it("should clear a job group") {
@@ -108,10 +111,10 @@ class SparkConfigurationStepsTests extends FunSpec with BeforeAndAfterAll with G
       df.count()
       df.head()
       val group1Ids = sparkSession.sparkContext.statusTracker.getJobIdsForGroup("clear1")
-      assert(group1Ids.length == 2)
+      assert(group1Ids.nonEmpty)
       SparkConfigurationSteps.clearJobGroup(pipelineContext)
       df.count()
-      assert(sparkSession.sparkContext.statusTracker.getJobIdsForGroup("clear1").length == 2)
+      assert(sparkSession.sparkContext.statusTracker.getJobIdsForGroup("clear1").length == group1Ids.length)
     }
   }
 

@@ -7,7 +7,7 @@ import org.json4s.native.JsonMethods.parse
 import org.json4s.{DefaultFormats, Formats}
 
 import java.util.Base64
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
   * An extension of DefaultCredentialProvider which will use the GCP secrets manager to attempt to
