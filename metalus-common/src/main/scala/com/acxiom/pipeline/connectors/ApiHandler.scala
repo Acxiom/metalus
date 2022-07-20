@@ -9,8 +9,8 @@ import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
+import scala.jdk.CollectionConverters._
 
 object ApiHandler {
   def apply(jsonDocumentPath: String,

@@ -25,6 +25,7 @@ case class KafkaDataConnector(topics: String,
       .format("kafka")
       .option("kafka.bootstrap.servers", kafkaNodes)
       .option("subscribe", topics)
+      .option("startingOffsets", "earliest")
       .options(readOptions.options.getOrElse(Map[String, String]()))
       .load()
   }

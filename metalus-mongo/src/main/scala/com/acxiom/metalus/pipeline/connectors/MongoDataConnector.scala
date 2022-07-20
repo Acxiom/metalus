@@ -10,8 +10,8 @@ import org.apache.spark.sql.streaming.StreamingQuery
 import org.apache.spark.sql.{DataFrame, ForeachWriter, Row, SparkSession}
 
 import java.net.URLEncoder
-import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
+import scala.jdk.CollectionConverters._
 
 case class MongoDataConnector(uri: String,
                               override val name: String,

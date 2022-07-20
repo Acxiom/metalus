@@ -6,10 +6,11 @@ import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.storage.{BlobId, BlobInfo, Storage, StorageOptions}
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization
+
 import java.io._
 import java.net.URI
 import java.nio.channels.Channels
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object GCSFileManager {
   /**

@@ -2,6 +2,7 @@ package com.acxiom.kafka.utils
 
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.apache.spark.sql.functions.{concat, lit}
+import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{Column, DataFrame}
 
 import java.util.Properties
@@ -61,7 +62,7 @@ object KafkaUtilities {
     })
     dataFrame.withColumn("topic", lit(topic))
       .withColumn("key", key)
-      .withColumn("value", concat(columns.dropRight(1): _*))
+      .withColumn("value", concat(columns.dropRight(1): _*).cast(StringType))
       .write
       .format("kafka")
       .option("kafka.bootstrap.servers", kafkaNodes)

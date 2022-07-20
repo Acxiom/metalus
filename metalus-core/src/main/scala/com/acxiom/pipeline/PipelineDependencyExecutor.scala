@@ -6,11 +6,11 @@ import org.apache.log4j.Logger
 
 import java.util.UUID
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
 import scala.collection.immutable.TreeSet
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
+import scala.jdk.CollectionConverters._
 
 object PipelineDependencyExecutor {
   val logger: Logger = Logger.getLogger(getClass)

@@ -1,15 +1,14 @@
 package com.acxiom.aws.fs
 
-import java.io.{FileNotFoundException, InputStream, OutputStream}
-
 import com.acxiom.aws.utils.S3Utilities
 import com.acxiom.pipeline.fs.{FileInfo, FileManager}
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials, BasicSessionCredentials}
 import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 
+import java.io.{FileNotFoundException, InputStream, OutputStream}
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class S3FileManager(s3Client: AmazonS3, bucket: String) extends FileManager {
 

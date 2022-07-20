@@ -12,7 +12,7 @@ validateResult() {
 usage() {
   echo "manual-tests.sh [OPTIONS]"
   echo "--save-metadata          -> When true, all metadata generated during the test will be saved to the metadata_templates directory"
-  echo "--version                 -> The specific version to test. Allowed versions are: 2.4, 2.4_2.12, 3.0 and 3.1. Defaults to 'all'"
+  echo "--version                 -> The specific version to test. Allowed versions are: 2.4, 2.4_2.12, 3.0, 3.1, 3.2 and 3.3. Defaults to 'all'"
 }
 
 buildVersion="all"
@@ -90,6 +90,42 @@ then
   manual_tests/metadata-extractor-test.sh $storeMetadata
   validateResult ${?} "Failed Metadata Extractor Test"
 fi
+
+# 3.2
+if [[ "${buildVersion}" == "3.2" || "${buildVersion}" == "all" ]]
+then
+  echo "Testing Spark 3.2"
+  mvn -P spark_3.2 clean install
+  validateResult ${?} "Failed to build project"
+  manual_tests/spark-test.sh
+  validateResult ${?} "Failed Spark Test"
+  manual_tests/metadata-extractor-test.sh $storeMetadata
+  validateResult ${?} "Failed Metadata Extractor Test"
+fi
+
+# 3.3 TODO Add || "${buildVersion}" == "all" once delta lake support Spark 3.3
+if [[ "${buildVersion}" == "3.3" ]]
+then
+  echo "Testing Spark 3.3"
+  mvn -P spark_3.2 clean install
+  validateResult ${?} "Failed to build project"
+  manual_tests/spark-test.sh
+  validateResult ${?} "Failed Spark Test"
+  manual_tests/metadata-extractor-test.sh $storeMetadata
+  validateResult ${?} "Failed Metadata Extractor Test"
+fi
+
+# 3.2  Scala 2.13 TODO Some libraries do not support scala 2.13 like scalamock
+#if [[ "${buildVersion}" == "3.2_2.13" || "${buildVersion}" == "all" ]]
+#then
+#  echo "Testing Spark 3.2"
+#  mvn -P spark_3.2,scala_2.13 clean install
+#  validateResult ${?} "Failed to build project"
+#  manual_tests/spark-test.sh
+#  validateResult ${?} "Failed Spark Test"
+#  manual_tests/metadata-extractor-test.sh $storeMetadata
+#  validateResult ${?} "Failed Metadata Extractor Test"
+#fi
 
 # Set the version back to the original
 version=`mvn -P spark_3.1 -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec`

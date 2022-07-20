@@ -6,8 +6,8 @@ import com.acxiom.pipeline.{DefaultPipeline, Pipeline}
 import org.json4s.native.Serialization
 
 import java.util.jar.JarFile
-import scala.collection.JavaConversions._
 import scala.io.Source
+import scala.jdk.CollectionConverters._
 
 class PipelineMetadataExtractor extends Extractor {
 
@@ -19,7 +19,7 @@ class PipelineMetadataExtractor extends Extractor {
   override def extractMetadata(jarFiles: List[JarFile]): Metadata = {
     val pipelineMetadata = jarFiles.foldLeft(List[Pipeline]())((pipelines, file) => {
       val tags = List(file.getName.substring(file.getName.lastIndexOf("/") + 1))
-      val updatedPipelines = file.entries().toList
+      val updatedPipelines = file.entries().asScala.toList
         .filter(f => f.getName.startsWith("metadata/pipelines") && f.getName.endsWith(".json"))
         .foldLeft(pipelines)((pipelineList, json) => {
           val extractedPipelines = DriverUtils.parsePipelineJson(Source.fromInputStream(file.getInputStream(file.getEntry(json.getName))).mkString)

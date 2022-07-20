@@ -10,7 +10,7 @@ trait DriverSetup {
   private val logger = Logger.getLogger(getClass)
   setLogLevel()
 
-  private val deprecationSuggestion = "use executionPlan"
+  private final val deprecationSuggestion = "use executionPlan"
 
   private lazy val provider = DriverUtils.getCredentialProvider(parameters)
 

@@ -6,7 +6,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.streaming.StreamingQuery
 
 import java.util.Properties
-import scala.collection.JavaConversions._
+import scala.jdk.CollectionConverters._
 
 case class JDBCDataConnector(url: String,
                              predicates: Option[List[String]],
@@ -15,7 +15,7 @@ case class JDBCDataConnector(url: String,
                              override val credential: Option[Credential]) extends BatchDataConnector {
   override def load(source: Option[String], pipelineContext: PipelineContext, readOptions: DataFrameReaderOptions): DataFrame = {
     val properties = new Properties()
-    properties.putAll(readOptions.options.getOrElse(Map[String, String]()))
+    properties.putAll(readOptions.options.getOrElse(Map[String, String]()).asJava)
     val reader = DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession.get, readOptions.copy("jdbc"))
       if (predicates.isDefined && predicates.get.nonEmpty) {
         reader.jdbc(url, source.getOrElse(""), predicates.get.toArray, properties)
@@ -28,7 +28,7 @@ case class JDBCDataConnector(url: String,
                      pipelineContext: PipelineContext,
                      writeOptions: DataFrameWriterOptions): Option[StreamingQuery] = {
     val properties = new Properties()
-    properties.putAll(writeOptions.options.getOrElse(Map[String, String]()))
+    properties.putAll(writeOptions.options.getOrElse(Map[String, String]()).asJava)
     if (dataFrame.isStreaming) {
       Some(dataFrame.writeStream.foreachBatch { (batchDF: DataFrame, batchId: Long) =>
         DataConnectorUtilities.buildDataFrameWriter(batchDF, writeOptions).jdbc(url, destination.getOrElse(""), properties)
