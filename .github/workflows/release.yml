@@ -100,7 +100,7 @@ jobs:
     needs: code_quality
     strategy:
       matrix:
-        spark: [ '2.4_2.11', '2.4_2.12', '3.0_2.12', '3.1_2.12' ]
+        spark: [ '2.4_2.11', '2.4_2.12', '3.0_2.12', '3.1_2.12', '3.2_2.12' ]
     runs-on: ubuntu-latest
     steps:
       - name: Source Checkout
