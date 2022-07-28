@@ -16,6 +16,7 @@ import org.apache.spark.sql.streaming.StreamingQuery
   * @param partitionKey      The optional static partition key to use
   * @param partitionKeyIndex The optional field index in the DataFrame row containing the value to use as the partition key
   * @param separator         The field separator to use when formatting the row data
+  * @param initialPosition   The starting point to begin reading data from the shard. Default is trim_horizon.
   * @param name              The name of the connector
   * @param credentialName    The optional name of the credential to use when authorizing to the Kinesis stream
   * @param credential        The optional credential to use when authorizing to the Kinesis stream
@@ -25,6 +26,7 @@ case class KinesisDataConnector(streamName: String,
                                 partitionKey: Option[String],
                                 partitionKeyIndex: Option[Int],
                                 separator: String = ",",
+                                initialPosition: String = "trim_horizon",
                                 override val name: String,
                                 override val credentialName: Option[String],
                                 override val credential: Option[Credential])
@@ -36,7 +38,7 @@ case class KinesisDataConnector(streamName: String,
       .format("kinesis")
       .option("streamName", streamName)
       .option("region", region)
-      .option("initialPosition", "TRIM_HORIZON")
+      .option("initialPosition", initialPosition)
       .options(readOptions.options.getOrElse(Map[String, String]()))
 
     val reader = if (readOptions.schema.isDefined) {
