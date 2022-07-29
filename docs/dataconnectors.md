@@ -222,11 +222,15 @@ available:
 * **partitionKey** - The optional static partition key to use
 * **partitionKeyIndex** - The optional field index in the DataFrame row containing the value to use as the partition key
 * **separator** - The field separator to use when formatting the row data
+* **initialPosition** - The starting point to begin reading data (trim_horizon, latest, at_timestamp) from the shard.
+                        *trim_horizon* and _latest_ can be passed as strings. *at_timestamp* needs to be a json object.
+                        An example is provided below. Default is *trim_horizon*
 
 Below is an example setup that expects a secrets manager credential provider:
 #### Scala
 ```scala
-val connector = KinesisDataConnector("stream-name", "us-east-1", None, Some(15), ",", "my-connector",
+val connector = KinesisDataConnector("stream-name", "us-east-1", None, Some(15), ",", 
+  "{\"at_timestamp\": \"06/25/2020 10:23:45 PDT\", \"format\": \"MM/dd/yyyy HH:mm:ss ZZZ\"}", "my-connector",
   Some("my-credential-name-for-secrets-manager"))
 ```
 #### Globals JSON
@@ -239,7 +243,8 @@ val connector = KinesisDataConnector("stream-name", "us-east-1", None, Some(15),
       "credentialName": "my-credential-name-for-secrets-manager",
       "streamName": "stream-name",
       "region": "us-east-1",
-      "separator": ","
+      "separator": ",",
+      "initialPosition": "{\"at_timestamp\": \"06/25/2020 10:23:45 PDT\", \"format\": \"MM/dd/yyyy HH:mm:ss ZZZ\"}"
     }
   }
 }
