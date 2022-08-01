@@ -49,7 +49,7 @@ case class BigQueryDataConnector(tempWriteBucket: String,
       } else {
         finalOptions
       } + ("table" -> table)
-      Some(DataConnectorUtilities.buildDataStreamWriter(dataFrame, writerOptions.copy(options = Some(streamingOptions), saveMode = "Append"), "").start())
+      Some(DataConnectorUtilities.buildDataStreamWriter(dataFrame, writerOptions.copy(options = Some(streamingOptions)), "").start())
     } else {
       DataConnectorUtilities.buildDataFrameWriter(dataFrame, writerOptions.copy(options = Some(finalOptions))).save(table)
       None
