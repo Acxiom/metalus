@@ -2,7 +2,7 @@ package com.acxiom.pipeline.connectors
 
 import com.acxiom.pipeline.Constants
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
-import org.apache.spark.sql.streaming.DataStreamWriter
+import org.apache.spark.sql.streaming.{DataStreamWriter, OutputMode}
 import org.apache.spark.sql.{DataFrameReader, DataFrameWriter, Dataset, SparkSession}
 
 import java.util.Date
@@ -73,7 +73,15 @@ object DataConnectorUtilities {
     } else {
       options
     }
-    val writer = dataFrame.writeStream.format(writeOptions.format).option("path", path).options(finalOptions)
+    val mode = writeOptions.saveMode.toLowerCase() match {
+      case "overwrite" | "complete" => OutputMode.Complete()
+      case "update" => OutputMode.Update()
+      case _ => OutputMode.Append()
+    }
+    val writer = dataFrame.writeStream
+      .format(writeOptions.format)
+      .outputMode(mode)
+      .option("path", path).options(finalOptions)
     addPartitionInformation(writer, writeOptions)
   }
 
