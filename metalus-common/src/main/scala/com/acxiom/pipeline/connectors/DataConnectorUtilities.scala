@@ -73,10 +73,11 @@ object DataConnectorUtilities {
     } else {
       options
     }
-    val mode = writeOptions.saveMode match {
-      case "Overwrite" => OutputMode.Complete()
-      case "Append" => OutputMode.Append()
-      case _ => OutputMode.Update()
+    val mode = writeOptions.saveMode.toLowerCase() match {
+      case "overwrite" => OutputMode.Complete()
+      case "complete" => OutputMode.Complete()
+      case "update" => OutputMode.Update()
+      case _ => OutputMode.Append()
     }
     val writer = dataFrame.writeStream
       .format(writeOptions.format)
