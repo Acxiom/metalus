@@ -33,21 +33,25 @@ case class BigQueryDataConnector(tempWriteBucket: String,
                      pipelineContext: PipelineContext,
                      writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery] = {
     val table = destination.getOrElse("")
+    val options = writeOptions.options.getOrElse(Map[String, String]()) + ("temporaryGcsBucket" -> tempWriteBucket)
     // Setup format for BigQuery
-    val writerOptions = writeOptions.copy(format = "com.google.cloud.spark.bigquery.DefaultSource",
-      options = Some(Map("temporaryGcsBucket" -> tempWriteBucket)))
+    val writerOptions = writeOptions.copy(format = "com.google.cloud.spark.bigquery.DefaultSource")
     val finalCredential = getCredential(pipelineContext).asInstanceOf[Option[GCPCredential]]
     val finalOptions = if (finalCredential.isDefined) {
-      writerOptions.copy(options = setBigQueryAuthentication(finalCredential.get, writerOptions.options, pipelineContext))
+      setBigQueryAuthentication(finalCredential.get, Some(options), pipelineContext).get
     } else {
-      writerOptions
+      options
     }
     if (dataFrame.isStreaming) {
-      Some(dataFrame.writeStream.foreachBatch { (batchDF: DataFrame, batchId: Long) =>
-        DataConnectorUtilities.buildDataFrameWriter(batchDF, finalOptions).save(table)
-      }.start())
+      // Use table name in checkpointLocation, but make it path safe
+      val streamingOptions = if (!finalOptions.contains("checkpointLocation")) {
+        finalOptions + ("checkpointLocation" -> s"$tempWriteBucket/streaming_checkpoints_${table.replaceAll("(?U)[^\\w\\._]+", "_")}")
+      } else {
+        finalOptions
+      } + ("table" -> table)
+      Some(DataConnectorUtilities.buildDataStreamWriter(dataFrame, writerOptions.copy(options = Some(streamingOptions), saveMode = "Append"), "").start())
     } else {
-      DataConnectorUtilities.buildDataFrameWriter(dataFrame, finalOptions).save(table)
+      DataConnectorUtilities.buildDataFrameWriter(dataFrame, writerOptions.copy(options = Some(finalOptions))).save(table)
       None
     }
   }
