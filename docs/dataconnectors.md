@@ -141,8 +141,9 @@ inject steps that are more batch oriented such as doing a file copy. When using 
 **streaming-job** should be set to true when invoking the [Default Pipeline Driver](pipeline-drivers.md#default-pipeline-driver).
 
 ### KinesisDataConnector
-This connector provides access to Kinesis. In addition to the standard parameters, the following parameters are
-available:
+This connector provides access to Kinesis. When using the connector to write a streaming DataFrame to Kinesis,
+the _checkpointLocation_ option is required since it cannot be derived. In addition to the standard parameters, the
+following parameters are available:
 
 * **streamName** - The name of the Kinesis stream.
 * **region** - The region containing the Kinesis stream
@@ -270,7 +271,11 @@ val connector = GCSDataConnector("my-connector", Some("my-credential-name-for-se
 }
 ```
 ### BigQueryDataConnector
-This connector provides access to BigQuery. Below is an example setup that expects a secrets manager credential provider:
+This connector provides access to BigQuery. When writing a streaming DataFrame, this connector will set the _saveMode_
+to _Append_. The _checkpointLocation_ is required when streaming and will default to the _tempWriteBucket_ with an
+object name of *streaming_checkpoints_${table.replaceAll("(?U)[^\\w\\._]+", "_")}*.
+
+Below is an example setup that expects a secrets manager credential provider:
 #### Scala
 ```scala
 val connector = BigQueryDataConnector("temp-bucket-name", "my-connector", Some("my-credential-name-for-secrets-manager"), None)
