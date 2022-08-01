@@ -2,9 +2,8 @@ package com.acxiom.pipeline.connectors
 
 import com.acxiom.pipeline.Constants
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
-import org.apache.spark.sql.streaming.DataStreamWriter
+import org.apache.spark.sql.streaming.{DataStreamReader, DataStreamWriter}
 import org.apache.spark.sql.{DataFrameReader, DataFrameWriter, Dataset, SparkSession}
-
 import java.util.Date
 
 object DataConnectorUtilities {
@@ -19,11 +18,7 @@ object DataConnectorUtilities {
       .format(options.format)
       .options(options.options.getOrElse(Map[String, String]()))
 
-    if (options.schema.isDefined) {
-      reader.schema(options.schema.get.toStructType())
-    } else {
-      reader
-    }
+    options.schema.map(s => reader.schema(s.toStructType())).getOrElse(reader)
   }
 
   /**
@@ -54,6 +49,19 @@ object DataConnectorUtilities {
     } else {
       w2
     }
+  }
+
+  /**
+   *
+   * @param sparkSession The current spark session to use.
+   * @param options      A DataFrameReaderOptions object for configuring the reader.
+   * @return A DataStreamReader based on the provided options.
+   */
+  def buildDataStreamReader(sparkSession: SparkSession, options: DataFrameReaderOptions): DataStreamReader = {
+    val reader = sparkSession.readStream
+      .format(options.format)
+      .options(options.options.getOrElse(Map[String, String]()))
+    options.schema.map(s => reader.schema(s.toStructType())).getOrElse(reader)
   }
 
   /**

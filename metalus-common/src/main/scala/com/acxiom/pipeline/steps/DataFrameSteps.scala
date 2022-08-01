@@ -183,7 +183,8 @@ object DataFrameSteps {
   */
 case class DataFrameReaderOptions(format: String = "parquet",
                                   options: Option[Map[String, String]] = None,
-                                  schema: Option[Schema] = None) {
+                                  schema: Option[Schema] = None,
+                                  streaming: Boolean = false) {
 
   def setSchema(schema: Schema): DataFrameReaderOptions = {
     val old = this.schema.getOrElse(Schema(Seq()))
