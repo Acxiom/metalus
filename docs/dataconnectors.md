@@ -14,10 +14,6 @@ The following parameters are available to all data connectors:
 
 
 [Batch](./dataconnectors.md#batch)
-* [HDFSDataConnector](./dataconnectors.md#hdfsdataconnector)
-* [S3DataConnector](./dataconnectors.md#s3dataconnector)
-* [GCSDataConnector](./dataconnectors.md#gcsdataconnector)
-* [BigQueryDataConnector](./dataconnectors.md#bigquerydataconnector)
 * [MongoDataConnector](./dataconnectors.md#mongodataconnector)
 * [JDBCDataConnector](./dataconnectors.md#jdbcdataconnector)
 * [JSONApiDataConnector](./dataconnectors.md#jsonapidataconnector-experimental)
@@ -26,85 +22,16 @@ The following parameters are available to all data connectors:
 * [KinesisDataConnector](./dataconnectors.md#kinesisdataconnector)
 * [KafkaDataConnector](./dataconnectors.md#kafkadataconnector)
 
+[Batch & Streaming](./dataconnectors.md#batch-&-streaming)
+* [HDFSDataConnector](./dataconnectors.md#hdfsdataconnector)
+* [S3DataConnector](./dataconnectors.md#s3dataconnector)
+* [GCSDataConnector](./dataconnectors.md#gcsdataconnector)
+* [BigQueryDataConnector](./dataconnectors.md#bigquerydataconnector)
+
 ## Batch
 Connectors that are designed to load and write data for batch processing will extend the _BatchDataConnector_. These
 are very straightforward and offer the most reusable components.
 
-### HDFSDataConnector
-This connector provides access to HDFS. The _credentialName_ and _credential_ parameters are not used in this implementation,
-instead relying on the permissions of the cluster. Below is an example setup:
-
-#### Scala
-```scala
-val connector = HDFSDataConnector("my-connector", None, None)
-```
-#### Globals JSON
-```json
-{
-  "myConnector": {
-    "className": "com.acxiom.pipeline.connectors.HDFSDataConnector",
-    "object": {
-      "name": "my-connector"
-    }
-  }
-}
-```
-### S3DataConnector
-This connector provides access to S3. Below is an example setup that expects a secrets manager credential provider:
-#### Scala
-```scala
-val connector = S3DataConnector("my-connector", Some("my-credential-name-for-secrets-manager"), None)
-```
-#### Globals JSON
-```json
-{
-  "myS3Connector": {
-    "className": "com.acxiom.aws.pipeline.connectors.S3DataConnector",
-    "object": {
-      "name": "my-connector",
-      "credentialName": "my-credential-name-for-secrets-manager"
-    }
-  }
-}
-```
-### GCSDataConnector
-This connector provides access to GCS. The _source_ parameter of the load function can take multiple paths by providing
-a comma separated string. Below is an example setup that expects a secrets manager credential provider:
-#### Scala
-```scala
-val connector = GCSDataConnector("my-connector", Some("my-credential-name-for-secrets-manager"), None)
-```
-#### Globals JSON
-```json
-{
-  "myGCSConnector": {
-    "className": "com.acxiom.gcp.pipeline.connectors.GCSDataConnector",
-    "object": {
-      "name": "my-connector",
-      "credentialName": "my-credential-name-for-secrets-manager"
-    }
-  }
-}
-```
-### BigQueryDataConnector
-This connector provides access to BigQuery. Below is an example setup that expects a secrets manager credential provider:
-#### Scala
-```scala
-val connector = BigQueryDataConnector("temp-bucket-name", "my-connector", Some("my-credential-name-for-secrets-manager"), None)
-```
-#### Globals JSON
-```json
-{
-  "bigQueryConnector": {
-    "className": "com.acxiom.gcp.pipeline.connectors.BigQueryDataConnector",
-    "object": {
-      "name": "my-connector",
-      "credentialName": "my-credential-name-for-secrets-manager",
-      "tempWriteBucket": "temp-bucket-name"
-    }
-  }
-}
-```
 ### MongoDataConnector
 This connector provides access to Mongo. Security is handled using the uri or a _UserNameCredential_. In addition to
 the standard parameters, the following parameters are available:
@@ -276,6 +203,87 @@ val connector = KafkaDataConnector("topic-name1,topic-name2", "host1:port1,host2
       "topics": "topic-name1,topic-name2",
       "kafkaNodes": "host1:port1,host2:port2",
       "key": "message-key"
+    }
+  }
+}
+```
+
+## Batch & Streaming
+These connectors support both batch and streaming Datasets. When reading, the _streaming_ parameter on the
+_DataFrameReaderOptions_ determines whether a streaming or batch Dataset is returned. For writing, the Dataset indicates
+whether it is a streaming Dataset or not, and the connector will adjust accordingly.
+
+### HDFSDataConnector
+This connector provides access to HDFS. The _credentialName_ and _credential_ parameters are not used in this implementation,
+instead relying on the permissions of the cluster. Below is an example setup:
+
+#### Scala
+```scala
+val connector = HDFSDataConnector("my-connector", None, None)
+```
+#### Globals JSON
+```json
+{
+  "myConnector": {
+    "className": "com.acxiom.pipeline.connectors.HDFSDataConnector",
+    "object": {
+      "name": "my-connector"
+    }
+  }
+}
+```
+### S3DataConnector
+This connector provides access to S3. Below is an example setup that expects a secrets manager credential provider:
+#### Scala
+```scala
+val connector = S3DataConnector("my-connector", Some("my-credential-name-for-secrets-manager"), None)
+```
+#### Globals JSON
+```json
+{
+  "myS3Connector": {
+    "className": "com.acxiom.aws.pipeline.connectors.S3DataConnector",
+    "object": {
+      "name": "my-connector",
+      "credentialName": "my-credential-name-for-secrets-manager"
+    }
+  }
+}
+```
+### GCSDataConnector
+This connector provides access to GCS. The _source_ parameter of the load function can take multiple paths by providing
+a comma separated string. Below is an example setup that expects a secrets manager credential provider:
+#### Scala
+```scala
+val connector = GCSDataConnector("my-connector", Some("my-credential-name-for-secrets-manager"), None)
+```
+#### Globals JSON
+```json
+{
+  "myGCSConnector": {
+    "className": "com.acxiom.gcp.pipeline.connectors.GCSDataConnector",
+    "object": {
+      "name": "my-connector",
+      "credentialName": "my-credential-name-for-secrets-manager"
+    }
+  }
+}
+```
+### BigQueryDataConnector
+This connector provides access to BigQuery. Below is an example setup that expects a secrets manager credential provider:
+#### Scala
+```scala
+val connector = BigQueryDataConnector("temp-bucket-name", "my-connector", Some("my-credential-name-for-secrets-manager"), None)
+```
+#### Globals JSON
+```json
+{
+  "bigQueryConnector": {
+    "className": "com.acxiom.gcp.pipeline.connectors.BigQueryDataConnector",
+    "object": {
+      "name": "my-connector",
+      "credentialName": "my-credential-name-for-secrets-manager",
+      "tempWriteBucket": "temp-bucket-name"
     }
   }
 }
