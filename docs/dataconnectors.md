@@ -18,12 +18,8 @@ The following parameters are available to all data connectors:
 * [MongoDataConnector](./dataconnectors.md#mongodataconnector)
 * [JDBCDataConnector](./dataconnectors.md#jdbcdataconnector)
 * [JSONApiDataConnector](./dataconnectors.md#jsonapidataconnector-experimental)
-
-[Streaming](./dataconnectors.md#streaming)
 * [KinesisDataConnector](./dataconnectors.md#kinesisdataconnector)
 * [KafkaDataConnector](./dataconnectors.md#kafkadataconnector)
-
-[Batch & Streaming](./dataconnectors.md#batch-&-streaming)
 * [HDFSDataConnector](./dataconnectors.md#hdfsdataconnector)
 * [S3DataConnector](./dataconnectors.md#s3dataconnector)
 * [GCSDataConnector](./dataconnectors.md#gcsdataconnector)
