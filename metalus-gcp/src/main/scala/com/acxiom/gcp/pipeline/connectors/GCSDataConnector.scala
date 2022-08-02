@@ -16,20 +16,18 @@ case class GCSDataConnector(override val name: String,
                     pipelineContext: PipelineContext,
                     readOptions: DataFrameReaderOptions = DataFrameReaderOptions()): DataFrame = {
     setSecurity(pipelineContext)
-    if (readOptions.streaming) {
-      super.load(source.map(GCSFileManager.prepareGCSFilePath(_)), pipelineContext, readOptions)
-    } else {
-      DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession.get, readOptions)
-        .load(source.getOrElse("").split(",").map(GCSFileManager.prepareGCSFilePath(_)): _*)
-    }
+    super.load(source, pipelineContext, readOptions)
   }
+
+  override protected def preparePaths(paths: String): List[String] = super.preparePaths(paths)
+    .map(GCSFileManager.prepareGCSFilePath(_))
 
   override def write(dataFrame: DataFrame,
                      destination: Option[String],
                      pipelineContext: PipelineContext,
                      writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery] = {
     setSecurity(pipelineContext)
-    super.write(dataFrame, destination.map(GCSFileManager.prepareGCSFilePath(_)), pipelineContext, writeOptions)
+    super.write(dataFrame, destination, pipelineContext, writeOptions)
   }
 
   private def setSecurity(pipelineContext: PipelineContext): Unit = {

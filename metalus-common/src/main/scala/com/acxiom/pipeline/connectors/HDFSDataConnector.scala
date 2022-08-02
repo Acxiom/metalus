@@ -1,9 +1,6 @@
 package com.acxiom.pipeline.connectors
 
-import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
-import com.acxiom.pipeline.{Credential, PipelineContext}
-import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.streaming.StreamingQuery
+import com.acxiom.pipeline.Credential
 
 case class HDFSDataConnector(override val name: String,
                              override val credentialName: Option[String],
