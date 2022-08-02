@@ -10,6 +10,7 @@ This object represents options that will be translated into Spark settings at re
 * *format* - The file format to use. Defaulted to _parquet_.
 * *schema* - An optional _com.acxiom.pipeline.steps.Schema_ which will be applied to the DataFrame.
 * *options* - Optional map of settings to pass to the underlying Spark data source.
+* *streaming* - Boolean that indicates if this object should build a streaming DataFrame. Default is false.
 Example:
 ```json
 {
