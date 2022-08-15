@@ -136,7 +136,7 @@
                             <exclude>jmock:*</exclude>
                             <exclude>*:xml-apis</exclude>
                             <exclude>com.thoughtworks.paranamer:*:jar:</exclude>
-                            <exclude>com.fasterxml:*:jar:</exclude>
+                            <exclude>com.fasterxml.jackson.core:*:*:</exclude>
                             <exclude>org.apache.maven:lib:tests</exclude>
                             <exclude>org.apache.kafka:*:jar:</exclude>
                             <exclude>org.joda:*:jar:</exclude>

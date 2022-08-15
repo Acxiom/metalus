@@ -2,7 +2,7 @@ package com.acxiom.aws.pipeline.connectors
 
 import com.acxiom.aws.utils.{AWSCredential, KinesisUtilities}
 import com.acxiom.pipeline.connectors.StreamingDataConnector
-import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
+import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions, StreamingTriggerOptions}
 import com.acxiom.pipeline.{Credential, PipelineContext}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.streaming.StreamingQuery
@@ -83,6 +83,7 @@ case class KinesisDataConnector(streamName: String,
         .writeStream
         .format(writeOptions.format)
         .options(writeOptions.options.getOrElse(Map[String, String]()))
+        .trigger(writeOptions.triggerOptions.getOrElse(StreamingTriggerOptions()).getTrigger)
         .foreach(new StructuredStreamingKinesisSink(streamName, region, partitionKey, partitionKeyIndex, separator, finalCredential))
         .start())
     } else {

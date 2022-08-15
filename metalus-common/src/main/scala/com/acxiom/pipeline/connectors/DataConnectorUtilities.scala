@@ -1,9 +1,10 @@
 package com.acxiom.pipeline.connectors
 
 import com.acxiom.pipeline.Constants
-import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
+import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions, StreamingTriggerOptions}
 import org.apache.spark.sql.streaming.{DataStreamReader, DataStreamWriter, OutputMode}
 import org.apache.spark.sql.{DataFrameReader, DataFrameWriter, Dataset, SparkSession}
+
 import java.util.Date
 
 object DataConnectorUtilities {
@@ -90,6 +91,7 @@ object DataConnectorUtilities {
       .format(writeOptions.format)
       .outputMode(mode)
       .option("path", path).options(finalOptions)
+      .trigger(writeOptions.triggerOptions.getOrElse(StreamingTriggerOptions()).getTrigger)
     addPartitionInformation(writer, writeOptions)
   }
 
