@@ -1,15 +1,15 @@
 package com.acxiom.metalus.pipeline.connectors
 
 import com.acxiom.pipeline.connectors.{BatchDataConnector, DataConnectorUtilities, StreamingDataConnector}
-import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
+import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions, StreamingTriggerOptions}
 import com.acxiom.pipeline.{Credential, PipelineContext, UserNameCredential}
 import com.mongodb.ConnectionString
 import com.mongodb.spark.config.{ReadConfig, WriteConfig}
 import com.mongodb.spark.{MongoConnector, MongoSpark}
 import org.apache.spark.sql.streaming.StreamingQuery
 import org.apache.spark.sql.{DataFrame, ForeachWriter, Row, SparkSession}
-import java.net.URLEncoder
 
+import java.net.URLEncoder
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters._
 
@@ -46,6 +46,7 @@ case class MongoDataConnector(uri: String,
         .writeStream
         .format(writeOptions.format)
         .options(writeOptions.options.getOrElse(Map[String, String]()))
+        .trigger(writeOptions.triggerOptions.getOrElse(StreamingTriggerOptions()).getTrigger)
         .foreach(new StructuredStreamingMongoSink(writeConfig, pipelineContext.sparkSession.get)), writeOptions)
         .start())
     } else {
