@@ -245,7 +245,7 @@ case class BucketingOptions(numBuckets: Int, columns: List[String])
 /**
   * Creates a representation of a streaming query trigger.
   * @param continuous If true, the streaming query will continuously process the stream, else the default processing time trigger will be used.
-  * @param intervalInMs The number o ms to wait between checking the stream for new data
+  * @param intervalInMs The number of ms to wait between checking the stream for new data
   * @param once Creates a batch trigger that will run once and then stop the streaming query. This overrides the other two parameters.
   */
 case class StreamingTriggerOptions(continuous: Boolean = false, intervalInMs: Long = 0, once: Boolean = false) {
