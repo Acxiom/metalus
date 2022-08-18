@@ -4,6 +4,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.streaming.Trigger
 import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
 
 import java.nio.file.{Files, Path}
@@ -79,6 +80,12 @@ class DataFrameStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenT
       assert(sf.metadata.contains("key") && sf.metadata.getString("key") == "value")
       assert(options1.schema.get.attributes(1).name == "col2")
       assert(options1.schema.get.attributes(2).name == "col3")
+    }
+
+    it ("Validate streaming trigger options") {
+      assert(StreamingTriggerOptions(continuous = true, 5L).getTrigger == Trigger.Continuous(5L))
+      assert(StreamingTriggerOptions(continuous = false, 15L).getTrigger == Trigger.ProcessingTime(15L))
+      assert(StreamingTriggerOptions(once = true).getTrigger == Trigger.Once())
     }
   }
 

@@ -16,7 +16,7 @@ object FlowUtilsSteps {
   @StepFunction("cc8d44ad-5049-460f-87c4-e250b9fa53f1",
     "Empty Check",
     "Determines if the provided value is defined. Returns true if the value is not defined.",
-    "branch", "Utilities")
+    "branch", "Utilities", List[String]("batch", "streaming"))
   @BranchResults(List("true", "false"))
   def isEmpty(value: Any): Boolean = {
     value match {
@@ -28,7 +28,7 @@ object FlowUtilsSteps {
   @StepFunction("6ed36f89-35d1-4280-a555-fbcd8dd76bf2",
     "Retry (simple)",
     "Makes a decision to retry or stop based on a named counter",
-    "branch", "RetryLogic")
+    "branch", "RetryLogic", List[String]("batch", "streaming"))
   @BranchResults(List("retry", "stop"))
   @StepParameters(Map("counterName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the counter to use for tracking")),
     "maxRetries" -> StepParameter(None, Some(true), None, None, None, None, Some("The maximum number of retries allowed"))))
@@ -51,7 +51,7 @@ object FlowUtilsSteps {
   @StepFunction("64c983e2-5eac-4fb6-87b2-024b69aa0ded",
     "Streaming Monitor",
     "Given a StreamingQuery, this step will invoke the monitor thread and wait while records are processed. The monitor class will be used to stop the query and determine if further processing should occur.",
-    "branch", "Streaming")
+    "branch", "Streaming", List[String]("streaming"))
   @BranchResults(List("continue", "stop"))
   @StepParameters(Map("query" -> StepParameter(None, Some(false), None, None, None, None, Some("The streaming query to monitor")),
     "streamingMonitorClassName" -> StepParameter(None, Some(false), None, None, None, None, Some("Fully qualified classname of the monitor class"))))
