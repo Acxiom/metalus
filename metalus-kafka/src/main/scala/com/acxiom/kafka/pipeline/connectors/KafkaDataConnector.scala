@@ -2,7 +2,7 @@ package com.acxiom.kafka.pipeline.connectors
 
 import com.acxiom.kafka.utils.KafkaUtilities
 import com.acxiom.pipeline.connectors.StreamingDataConnector
-import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
+import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions, StreamingTriggerOptions}
 import com.acxiom.pipeline.{Credential, PipelineContext}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.lit
@@ -41,6 +41,7 @@ case class KafkaDataConnector(topics: String,
         .option("kafka.bootstrap.servers", kafkaNodes)
         .option("subscribe", topics)
         .options(writeOptions.options.getOrElse(Map[String, String]()))
+        .trigger(writeOptions.triggerOptions.getOrElse(StreamingTriggerOptions()).getTrigger)
         .start())
     } else {
       val col = if (keyField.isDefined && dataFrame.schema.fields.exists(_.name == keyField.get)) {

@@ -229,6 +229,15 @@ class StepMetadataExtractor extends Extractor {
         })
       } else { (List[StepFunctionParameter](), caseClasses) }
       val returnType = getReturnType(symbol.asMethod)
+      val stepTagString = ann.get.tree.children.tail(Constants.FIVE).toString().replaceAll("\"", "")
+      val stepTags = if (stepTagString.startsWith("scala.collection.immutable.List.apply[String]")) {
+        "\\(([^\\)]+)\\)".r.findAllIn(stepTagString).toList.head
+          .replaceAll("\\(", "")
+          .replaceAll("\\)", "")
+          .split(",").map(_.trim()).toList
+      } else {
+        List("batch")
+      }
       val newSteps = steps :+ StepDefinition(
         ann.get.tree.children.tail.head.toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(1).toString().replaceAll("\"", ""),
@@ -237,7 +246,7 @@ class StepMetadataExtractor extends Extractor {
         ann.get.tree.children.tail(Constants.FOUR).toString().replaceAll("\"", ""),
         getBranchResults(parameters._1, symbol),
         EngineMeta(Some(s"${im.symbol.name.toString}.${symbol.name.toString}"), Some(packageName), returnType),
-        List(jarName))
+        stepTags :+ jarName)
       (newSteps, parameters._2)
     } else { (steps, caseClasses) }
   }

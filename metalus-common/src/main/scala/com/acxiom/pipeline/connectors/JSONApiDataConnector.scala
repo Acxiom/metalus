@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.connectors
 
-import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
+import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions, StreamingTriggerOptions}
 import com.acxiom.pipeline.{Credential, PipelineContext}
 import org.apache.spark.sql.streaming.StreamingQuery
 import org.apache.spark.sql.{DataFrame, ForeachWriter, Row}
@@ -22,6 +22,7 @@ case class JSONApiDataConnector(apiHandler: ApiHandler,
         .writeStream
         .format(writeOptions.format)
         .options(writeOptions.options.getOrElse(Map[String, String]()))
+        .trigger(writeOptions.triggerOptions.getOrElse(StreamingTriggerOptions()).getTrigger)
         .foreach(apiHandler
           .createConnectorWriter(destination.getOrElse(""), finalCredential)
           .asInstanceOf[ForeachWriter[Row]])

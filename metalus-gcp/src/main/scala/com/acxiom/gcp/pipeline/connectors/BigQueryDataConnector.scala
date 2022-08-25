@@ -2,7 +2,7 @@ package com.acxiom.gcp.pipeline.connectors
 
 import com.acxiom.gcp.pipeline.GCPCredential
 import com.acxiom.gcp.utils.GCPUtilities
-import com.acxiom.pipeline.connectors.{BatchDataConnector, DataConnectorUtilities}
+import com.acxiom.pipeline.connectors.{BatchDataConnector, DataConnectorUtilities, StreamingDataConnector}
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
 import com.acxiom.pipeline.{Credential, PipelineContext}
 import org.apache.spark.sql.DataFrame
@@ -13,7 +13,8 @@ import java.util.Base64
 case class BigQueryDataConnector(tempWriteBucket: String,
                                  override val name: String,
                                  override val credentialName: Option[String],
-                                 override val credential: Option[Credential]) extends BatchDataConnector {
+                                 override val credential: Option[Credential])
+  extends BatchDataConnector with StreamingDataConnector {
   override def load(source: Option[String],
                     pipelineContext: PipelineContext,
                     readOptions: DataFrameReaderOptions = DataFrameReaderOptions()): DataFrame = {
@@ -33,21 +34,25 @@ case class BigQueryDataConnector(tempWriteBucket: String,
                      pipelineContext: PipelineContext,
                      writeOptions: DataFrameWriterOptions = DataFrameWriterOptions()): Option[StreamingQuery] = {
     val table = destination.getOrElse("")
+    val options = writeOptions.options.getOrElse(Map[String, String]()) + ("temporaryGcsBucket" -> tempWriteBucket)
     // Setup format for BigQuery
-    val writerOptions = writeOptions.copy(format = "com.google.cloud.spark.bigquery.DefaultSource",
-      options = Some(Map("temporaryGcsBucket" -> tempWriteBucket)))
+    val writerOptions = writeOptions.copy(format = "com.google.cloud.spark.bigquery.DefaultSource")
     val finalCredential = getCredential(pipelineContext).asInstanceOf[Option[GCPCredential]]
     val finalOptions = if (finalCredential.isDefined) {
-      writerOptions.copy(options = setBigQueryAuthentication(finalCredential.get, writerOptions.options, pipelineContext))
+      setBigQueryAuthentication(finalCredential.get, Some(options), pipelineContext).get
     } else {
-      writerOptions
+      options
     }
     if (dataFrame.isStreaming) {
-      Some(dataFrame.writeStream.foreachBatch { (batchDF: DataFrame, batchId: Long) =>
-        DataConnectorUtilities.buildDataFrameWriter(batchDF, finalOptions).save(table)
-      }.start())
+      // Use table name in checkpointLocation, but make it path safe
+      val streamingOptions = if (!finalOptions.contains("checkpointLocation")) {
+        finalOptions + ("checkpointLocation" -> s"$tempWriteBucket/streaming_checkpoints_${table.replaceAll("(?U)[^\\w\\._]+", "_")}")
+      } else {
+        finalOptions
+      } + ("table" -> table)
+      Some(DataConnectorUtilities.buildDataStreamWriter(dataFrame, writerOptions.copy(options = Some(streamingOptions)), "").start())
     } else {
-      DataConnectorUtilities.buildDataFrameWriter(dataFrame, finalOptions).save(table)
+      DataConnectorUtilities.buildDataFrameWriter(dataFrame, writerOptions.copy(options = Some(finalOptions))).save(table)
       None
     }
   }

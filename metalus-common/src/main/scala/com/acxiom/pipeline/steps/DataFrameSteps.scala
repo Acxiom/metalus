@@ -5,6 +5,7 @@ import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.connectors.DataConnectorUtilities
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions.expr
+import org.apache.spark.sql.streaming.Trigger
 import org.apache.spark.storage.StorageLevel
 
 @StepObject
@@ -183,7 +184,8 @@ object DataFrameSteps {
   */
 case class DataFrameReaderOptions(format: String = "parquet",
                                   options: Option[Map[String, String]] = None,
-                                  schema: Option[Schema] = None) {
+                                  schema: Option[Schema] = None,
+                                  streaming: Boolean = false) {
 
   def setSchema(schema: Schema): DataFrameReaderOptions = {
     val old = this.schema.getOrElse(Schema(Seq()))
@@ -207,13 +209,15 @@ case class DataFrameReaderOptions(format: String = "parquet",
   * @param bucketingOptions Optional BucketingOptions object for configuring Bucketing
   * @param partitionBy      Optional list of columns for partitioning.
   * @param sortBy           Optional list of columns for sorting.
+  * @param triggerOptions   Optional streaming trigger options.
   */
 case class DataFrameWriterOptions(format: String = "parquet",
                                   saveMode: String = "Overwrite",
                                   options: Option[Map[String, String]] = None,
                                   bucketingOptions: Option[BucketingOptions] = None,
                                   partitionBy: Option[List[String]] = None,
-                                  sortBy: Option[List[String]] = None) {
+                                  sortBy: Option[List[String]] = None,
+                                  triggerOptions: Option[StreamingTriggerOptions] = Some(StreamingTriggerOptions())) {
 
   def setPartitions(cols: List[String]): DataFrameWriterOptions = {
     this.copy(partitionBy = Some(partitionBy.getOrElse(List[String]()).filter(c => !cols.contains(c)) ++ cols))
@@ -237,3 +241,21 @@ case class DataFrameWriterOptions(format: String = "parquet",
 }
 
 case class BucketingOptions(numBuckets: Int, columns: List[String])
+
+/**
+  * Creates a representation of a streaming query trigger.
+  * @param continuous If true, the streaming query will continuously process the stream, else the default processing time trigger will be used.
+  * @param intervalInMs The number of ms to wait between checking the stream for new data
+  * @param once Creates a batch trigger that will run once and then stop the streaming query. This overrides the other two parameters.
+  */
+case class StreamingTriggerOptions(continuous: Boolean = false, intervalInMs: Long = 0, once: Boolean = false) {
+  def getTrigger: Trigger = {
+    if (once) {
+      Trigger.Once()
+    } else if (continuous) {
+      Trigger.Continuous(intervalInMs)
+    } else {
+      Trigger.ProcessingTime(intervalInMs)
+    }
+  }
+}

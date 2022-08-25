@@ -1,6 +1,6 @@
 package com.acxiom.pipeline.connectors
 
-import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
+import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions, StreamingTriggerOptions}
 import com.acxiom.pipeline.{Credential, PipelineContext}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.streaming.StreamingQuery
@@ -12,7 +12,8 @@ case class JDBCDataConnector(url: String,
                              predicates: Option[List[String]],
                              override val name: String,
                              override val credentialName: Option[String],
-                             override val credential: Option[Credential]) extends BatchDataConnector {
+                             override val credential: Option[Credential])
+  extends BatchDataConnector with StreamingDataConnector {
   override def load(source: Option[String], pipelineContext: PipelineContext, readOptions: DataFrameReaderOptions): DataFrame = {
     val properties = new Properties()
     properties.putAll(readOptions.options.getOrElse(Map[String, String]()).asJava)
@@ -30,7 +31,8 @@ case class JDBCDataConnector(url: String,
     val properties = new Properties()
     properties.putAll(writeOptions.options.getOrElse(Map[String, String]()).asJava)
     if (dataFrame.isStreaming) {
-      Some(dataFrame.writeStream.foreachBatch { (batchDF: DataFrame, batchId: Long) =>
+      Some(dataFrame.writeStream.trigger(writeOptions.triggerOptions.getOrElse(StreamingTriggerOptions()).getTrigger)
+        .options(writeOptions.options.getOrElse(Map())).foreachBatch { (batchDF: DataFrame, batchId: Long) =>
         DataConnectorUtilities.buildDataFrameWriter(batchDF, writeOptions).jdbc(url, destination.getOrElse(""), properties)
       }.start())
     } else {

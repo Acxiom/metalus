@@ -12,6 +12,7 @@ object S3Utilities {
   private val logger = Logger.getLogger(getClass)
   val MULTIPART_UPLOAD_SIZE = 52428800
   val MULTIPART_COPY_SIZE = 5368709120L
+  val MAX_SESSION_LENGTH = 64
 
   /**
     * Given a path, this function will attempt to derive the protocol. If the protocol cannot be determined, then it
@@ -135,7 +136,7 @@ object S3Utilities {
       .build()
     val roleRequest = new AssumeRoleRequest()
       .withRoleArn(arn)
-      .withRoleSessionName(sessionName)
+      .withRoleSessionName(sessionName.take(MAX_SESSION_LENGTH))
     val withExternalId = externalId.filter(_.trim.nonEmpty).map(roleRequest.withExternalId).getOrElse(roleRequest)
     val withDuration = duration.map(withExternalId.withDurationSeconds).getOrElse(withExternalId)
     s3Client.assumeRole(withDuration)

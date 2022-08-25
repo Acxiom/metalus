@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.acxiom</groupId>
         <artifactId>metalus</artifactId>
-        <version>1.9.1-SNAPSHOT</version>
+        <version>1.9.2-SNAPSHOT</version>
     </parent>
 
     <dependencyManagement>
@@ -118,7 +118,7 @@
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-nio</artifactId>
             <version>0.121.0</version>
-            <scope>test</scope>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
@@ -136,7 +136,7 @@
                             <exclude>jmock:*</exclude>
                             <exclude>*:xml-apis</exclude>
                             <exclude>com.thoughtworks.paranamer:*:jar:</exclude>
-                            <exclude>com.fasterxml:*:jar:</exclude>
+                            <exclude>com.fasterxml.jackson.core:*:*:</exclude>
                             <exclude>org.apache.maven:lib:tests</exclude>
                             <exclude>org.apache.kafka:*:jar:</exclude>
                             <exclude>org.joda:*:jar:</exclude>

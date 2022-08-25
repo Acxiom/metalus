@@ -1,7 +1,7 @@
 package com.acxiom.metalus.pipeline.connectors
 
-import com.acxiom.pipeline.connectors.{BatchDataConnector, DataConnectorUtilities}
-import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
+import com.acxiom.pipeline.connectors.{BatchDataConnector, DataConnectorUtilities, StreamingDataConnector}
+import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions, StreamingTriggerOptions}
 import com.acxiom.pipeline.{Credential, PipelineContext, UserNameCredential}
 import com.mongodb.ConnectionString
 import com.mongodb.spark.config.{ReadConfig, WriteConfig}
@@ -16,7 +16,7 @@ import scala.jdk.CollectionConverters._
 case class MongoDataConnector(uri: String,
                               override val name: String,
                               override val credentialName: Option[String],
-                              override val credential: Option[Credential]) extends BatchDataConnector {
+                              override val credential: Option[Credential]) extends BatchDataConnector with StreamingDataConnector {
 
   private val passwordTest = "[@#?\\/\\[\\]:]".r
   private val connectionString = new ConnectionString(uri)
@@ -46,6 +46,7 @@ case class MongoDataConnector(uri: String,
         .writeStream
         .format(writeOptions.format)
         .options(writeOptions.options.getOrElse(Map[String, String]()))
+        .trigger(writeOptions.triggerOptions.getOrElse(StreamingTriggerOptions()).getTrigger)
         .foreach(new StructuredStreamingMongoSink(writeConfig, pipelineContext.sparkSession.get)), writeOptions)
         .start())
     } else {

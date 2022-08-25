@@ -1,8 +1,8 @@
 package com.acxiom.pipeline.connectors
 
 import com.acxiom.pipeline.Constants
-import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
-import org.apache.spark.sql.streaming.DataStreamWriter
+import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions, StreamingTriggerOptions}
+import org.apache.spark.sql.streaming.{DataStreamReader, DataStreamWriter, OutputMode}
 import org.apache.spark.sql.{DataFrameReader, DataFrameWriter, Dataset, SparkSession}
 
 import java.util.Date
@@ -19,11 +19,7 @@ object DataConnectorUtilities {
       .format(options.format)
       .options(options.options.getOrElse(Map[String, String]()))
 
-    if (options.schema.isDefined) {
-      reader.schema(options.schema.get.toStructType())
-    } else {
-      reader
-    }
+    options.schema.map(s => reader.schema(s.toStructType())).getOrElse(reader)
   }
 
   /**
@@ -57,6 +53,19 @@ object DataConnectorUtilities {
   }
 
   /**
+   *
+   * @param sparkSession The current spark session to use.
+   * @param options      A DataFrameReaderOptions object for configuring the reader.
+   * @return A DataStreamReader based on the provided options.
+   */
+  def buildDataStreamReader(sparkSession: SparkSession, options: DataFrameReaderOptions): DataStreamReader = {
+    val reader = sparkSession.readStream
+      .format(options.format)
+      .options(options.options.getOrElse(Map[String, String]()))
+    options.schema.map(s => reader.schema(s.toStructType())).getOrElse(reader)
+  }
+
+  /**
     * Build a DataStreamWriter that automattically adds the checkpointLocation if not provided and applies partition
     * information.
     *
@@ -73,7 +82,16 @@ object DataConnectorUtilities {
     } else {
       options
     }
-    val writer = dataFrame.writeStream.format(writeOptions.format).option("path", path).options(finalOptions)
+    val mode = writeOptions.saveMode.toLowerCase() match {
+      case "overwrite" | "complete" => OutputMode.Complete()
+      case "update" => OutputMode.Update()
+      case _ => OutputMode.Append()
+    }
+    val writer = dataFrame.writeStream
+      .format(writeOptions.format)
+      .outputMode(mode)
+      .option("path", path).options(finalOptions)
+      .trigger(writeOptions.triggerOptions.getOrElse(StreamingTriggerOptions()).getTrigger)
     addPartitionInformation(writer, writeOptions)
   }
 

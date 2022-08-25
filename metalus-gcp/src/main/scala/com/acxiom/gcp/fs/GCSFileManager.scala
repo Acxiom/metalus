@@ -35,7 +35,7 @@ object GCSFileManager {
   }
 }
 
-class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
+class GCSFileManager private[gcp] (storage: Storage, bucket: String) extends FileManager {
   def this(projectId: String, bucket: String, jsonAuth: Option[String]) = {
     this(
       (if (jsonAuth.isDefined) {
@@ -217,3 +217,11 @@ class GCSFileManager(storage: Storage, bucket: String) extends FileManager {
     // Not used by GCS
   }
 }
+
+/**
+ * A GCSFileManager class that uses the LocalStorage help to simulate the file system.
+ * Meant to be used for testing.
+ * @param bucket the bucket to simulate
+ */
+class LocalGCSFileManager(bucket: String)
+  extends GCSFileManager(com.google.cloud.storage.contrib.nio.testing.LocalStorageHelper.getOptions.getService, bucket)
