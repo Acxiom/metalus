@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Compile and Test
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        spark: [ '2.4_2.11', '2.4_2.12', '3.0_2.12', '3.1_2.12', '3.2_2.12' ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Source Checkout
+        uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Cache Maven Jars
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-maven-jars
+        with:
+          path: ~/.m2
+          key: metalus-build-${{ env.cache-name }}
+      - id: get-versions
+        run: |
+          spark=$(echo ${{matrix.spark}} | cut -d_ -f1)
+          scala=$(echo ${{matrix.spark}} | cut -d_ -f2)
+          echo "::set-output name=spark::$spark"
+          echo "::set-output name=scala::$scala"
+      - name: Remove SNAPSHOT
+        run: mvn -B -P spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }} versions:set -DremoveSnapshot
+      - name: Build with Maven
+        env:
+          SPARK_LOCAL_IP: 127.0.0.1
+          JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+        run: mvn -B -P spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }} clean install
+      - name: Display Metalus Application Target Directory
+        run: |
+          pwd
+          ls -l metalus-application/target
+      - name: Upload Application Jar
+        uses: actions/upload-artifact@v2
+        with:
+          name: metalus-application_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.jar
+          path: metalus-application/target/metalus-application_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.jar
+      - name: Upload Application Utils
+        uses: actions/upload-artifact@v2
+        with:
+          name: metalus-utils_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.tar.gz
+          path: metalus-utils/target/metalus-utils_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.tar.gz
+  code_quality:
+    name: Code Quality
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Source Checkout
+        uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Cache Maven Jars
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-maven-jars
+        with:
+          path: ~/.m2
+          key: metalus-build-${{ env.cache-name }}
+      - name: Build with Maven
+        run: mvn -P spark_3.1 -B -DskipTests=true clean install
+      - name: Coverage Report
+        env:
+          SPARK_LOCAL_IP: 127.0.0.1
+          JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+        run: mvn -P spark_3.1 -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 -B -DrepoToken=${{ secrets.COVERALLS_REPO_TOKEN }} scoverage:report coveralls:report
+  release_github:
+    name: Github Release
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Source Checkout
+        uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Cache Maven Jars
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-maven-jars
+        with:
+          path: ~/.m2
+          key: metalus-build-${{ env.cache-name }}
+      - name: Remove SNAPSHOT
+        run:  mvn -P spark_3.1 -B versions:set -DremoveSnapshot
+      - name: Set Metalus Version
+        run: |
+          echo 'METALUS_VERSION<<EOF' >> $GITHUB_ENV
+          mvn -P spark_3.1 -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+      - name: Create Github Release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "${{ env.METALUS_VERSION }}"
+          prerelease: true
+          title: "Metalus Pipeline Library ${{ env.METALUS_VERSION }}"
+          files: |
+            **/*.tar.gz
+            **/*.jar

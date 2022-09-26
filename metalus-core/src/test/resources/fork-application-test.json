@@ -73,10 +73,7 @@
       "id": "E2",
       "pipelineIds": ["Pipeline1"],
       "globals": {
-        "executionName": "E2 Execution",
-        "GlobalLinks": {
-          "executionForkValue": "!Fork1.globals.executionForkValue"
-        }
+        "executionName": "E2 Execution"
       },
       "parents": ["Fork1"]
     },
@@ -84,10 +81,7 @@
       "id": "E4",
       "pipelineIds": ["Pipeline1"],
       "globals": {
-        "executionName": "E4 Execution",
-        "GlobalLinks": {
-          "executionForkValue": "!Fork1.globals.executionForkValue"
-        }
+        "executionName": "E4 Execution"
       },
       "parents": ["E2"]
     },
@@ -106,10 +100,7 @@
       "id": "E3",
       "pipelineIds": ["Pipeline1"],
       "globals": {
-        "executionName": "E3 Execution",
-        "GlobalLinks": {
-          "executionForkValue": "!Fork2.globals.executionForkValue"
-        }
+        "executionName": "E3 Execution"
       },
       "parents": ["Fork2"]
     },
