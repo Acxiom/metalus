@@ -125,7 +125,7 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
       results.validate()
     }
 
-    it("Should execute athe second execution") {
+    it("Should execute a second execution") {
       val results = new ListenerValidations
       val listener = new SparkPipelineListener {
         override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
@@ -437,14 +437,20 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
       assert(Option(e2).isDefined)
       assert(e2.result.isDefined)
       assert(e2.result.get.success)
+      assert(e2.result.get.pipelineContext.getGlobal("executionForkValueIndex").isDefined)
+      assert(e2.result.get.pipelineContext.getGlobal("executionForkValue").isDefined)
       val e3 = resultMap.get("E3")
       assert(Option(e3).isDefined)
       assert(e3.result.isDefined)
       assert(e3.result.get.success)
+      assert(e3.result.get.pipelineContext.getGlobal("executionForkValueIndex").isDefined)
+      assert(e3.result.get.pipelineContext.getGlobal("executionForkValue").isDefined)
       val e4 = resultMap.get("E4")
       assert(Option(e4).isDefined)
       assert(e4.result.isDefined)
       assert(e4.result.get.success)
+      assert(e4.result.get.pipelineContext.getGlobal("executionForkValueIndex").isDefined)
+      assert(e4.result.get.pipelineContext.getGlobal("executionForkValue").isDefined)
       val e5 = resultMap.get("E5")
       assert(Option(e5).isDefined)
       assert(e5.result.isDefined)
@@ -463,10 +469,14 @@ class PipelineDependencyExecutorTests extends FunSpec with BeforeAndAfterAll wit
       assert(Option(join1).isDefined)
       assert(join1.result.isDefined)
       assert(join1.result.get.success)
+      assert(join1.result.get.pipelineContext.getGlobal("executionForkValueIndex").isEmpty)
+      assert(join1.result.get.pipelineContext.getGlobal("executionForkValue").isEmpty)
       val join2 = resultMap.get("Join2")
       assert(Option(join2).isDefined)
       assert(join2.result.isDefined)
       assert(join2.result.get.success)
+      assert(join2.result.get.pipelineContext.getGlobal("executionForkValueIndex").isEmpty)
+      assert(join2.result.get.pipelineContext.getGlobal("executionForkValue").isEmpty)
     }
 
     it ("Should fail when a valid join cannot be found") {

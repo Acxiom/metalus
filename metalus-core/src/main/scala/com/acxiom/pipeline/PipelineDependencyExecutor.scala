@@ -146,7 +146,7 @@ object PipelineDependencyExecutor {
               DependencyResult(execution, None,
                 Some(new IllegalArgumentException(s"fork execution ${execution.id} forkByValues ${execution.forkByValue.get} does not point to a valid list")))
             } else {
-              val forkedProcesses = forkValues.asInstanceOf[List[Any]].zipWithIndex.map{ case (forkValue, forkIndex) =>
+              val forkedProcesses = forkValues.asInstanceOf[List[Any]].zipWithIndex.map { case (forkValue, forkIndex) =>
                 val ctx = execution.pipelineContext.setGlobal("executionForkValue", forkValue)
                   .setGlobal("executionForkValueIndex", forkIndex)
                 Future {
@@ -302,7 +302,14 @@ object PipelineDependencyExecutor {
       // merge current broadcast globals with parent broadcast globals (keeping current over parent if conflicts)
       val bGlobalsFinal = parentContext.globals.get.getOrElse("GlobalLinks", Map()).asInstanceOf[Map[String, Any]] ++
         execution.pipelineContext.globals.get.getOrElse("GlobalLinks", Map()).asInstanceOf[Map[String, Any]]
-      context.setGlobal("GlobalLinks", bGlobalsFinal)
+      if (execution.executionType != "fork" && execution.executionType != "join" &&
+        parentContext.getGlobal("executionForkValue").isDefined &&
+        !parentContext.isGlobalLink("executionForkValue")) {
+        context.setGlobal("executionForkValue", parentContext.getGlobal("executionForkValue").get)
+          .setGlobal("executionForkValueIndex", parentContext.getGlobal("executionForkValueIndex").get)
+      } else {
+        context
+      }.setGlobal("GlobalLinks", bGlobalsFinal)
         .setGlobal(parentId, Map[String, Any]("pipelineParameters" -> params, "globals" -> parentContext.globals.get))
     })
     ctx
