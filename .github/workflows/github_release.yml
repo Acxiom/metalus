@@ -80,7 +80,7 @@ jobs:
         run: mvn -P spark_3.1 -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 -B -DrepoToken=${{ secrets.COVERALLS_REPO_TOKEN }} scoverage:report coveralls:report
   release_github:
     name: Github Release
-    needs: release
+    needs: code_quality
     runs-on: ubuntu-latest
     steps:
       - name: Source Checkout
