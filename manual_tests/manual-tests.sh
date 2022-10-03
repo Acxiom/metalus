@@ -53,8 +53,8 @@ then
   validateResult ${?} "Failed to build project"
   manual_tests/spark-test.sh
   validateResult ${?} "Failed Spark Test"
-  manual_tests/metadata-extractor-test.sh $storeMetadata
-  validateResult ${?} "Failed Metadata Extractor Test"
+#  manual_tests/metadata-extractor-test.sh $storeMetadata
+#  validateResult ${?} "Failed Metadata Extractor Test"
 fi
 
 # 2.4 Scala 2.12
@@ -63,8 +63,8 @@ then
   echo "Testing Spark 2.4 Scala 2.12"
   mvn -P spark_2.4,scala_2.12 clean install
   validateResult ${?} "Failed to build project"
-  manual_tests/metadata-extractor-test.sh $storeMetadata
-  validateResult ${?} "Failed Metadata Extractor Test"
+#  manual_tests/metadata-extractor-test.sh $storeMetadata
+#  validateResult ${?} "Failed Metadata Extractor Test"
 fi
 
 # 3.0
@@ -75,8 +75,8 @@ then
   validateResult ${?} "Failed to build project"
   manual_tests/spark-test.sh
   validateResult ${?} "Failed Spark Test"
-  manual_tests/metadata-extractor-test.sh $storeMetadata
-  validateResult ${?} "Failed Metadata Extractor Test"
+#  manual_tests/metadata-extractor-test.sh $storeMetadata
+#  validateResult ${?} "Failed Metadata Extractor Test"
 fi
 
 # 3.1
@@ -87,8 +87,8 @@ then
   validateResult ${?} "Failed to build project"
   manual_tests/spark-test.sh
   validateResult ${?} "Failed Spark Test"
-  manual_tests/metadata-extractor-test.sh $storeMetadata
-  validateResult ${?} "Failed Metadata Extractor Test"
+#  manual_tests/metadata-extractor-test.sh $storeMetadata
+#  validateResult ${?} "Failed Metadata Extractor Test"
 fi
 
 # 3.2
@@ -99,20 +99,20 @@ then
   validateResult ${?} "Failed to build project"
   manual_tests/spark-test.sh
   validateResult ${?} "Failed Spark Test"
-  manual_tests/metadata-extractor-test.sh $storeMetadata
-  validateResult ${?} "Failed Metadata Extractor Test"
+#  manual_tests/metadata-extractor-test.sh $storeMetadata
+#  validateResult ${?} "Failed Metadata Extractor Test"
 fi
 
-# 3.3 TODO Add || "${buildVersion}" == "all" once delta lake support Spark 3.3
-if [[ "${buildVersion}" == "3.3" ]]
+# 3.3
+if [[ "${buildVersion}" == "3.3" || "${buildVersion}" == "all" ]]
 then
   echo "Testing Spark 3.3"
   mvn -P spark_3.2 clean install
   validateResult ${?} "Failed to build project"
   manual_tests/spark-test.sh
   validateResult ${?} "Failed Spark Test"
-  manual_tests/metadata-extractor-test.sh $storeMetadata
-  validateResult ${?} "Failed Metadata Extractor Test"
+#  manual_tests/metadata-extractor-test.sh $storeMetadata
+#  validateResult ${?} "Failed Metadata Extractor Test"
 fi
 
 # 3.2  Scala 2.13 TODO Some libraries do not support scala 2.13 like scalamock
