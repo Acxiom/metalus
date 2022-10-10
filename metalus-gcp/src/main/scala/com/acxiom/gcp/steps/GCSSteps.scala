@@ -7,7 +7,6 @@ import com.acxiom.pipeline.PipelineContext
 import com.acxiom.pipeline.annotations._
 import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions}
 import org.apache.spark.sql.DataFrame
-import org.json4s.native.Serialization
 import org.json4s.{DefaultFormats, Formats}
 
 @StepObject
@@ -86,5 +85,5 @@ object GCSSteps {
   @StepResults(primaryType = "com.acxiom.pipeline.fs.FileManager",
     secondaryTypes = None)
   def createFileManager(projectId: String, bucket: String, credentials: Map[String, String]): Option[GCSFileManager] =
-    Some(new GCSFileManager(projectId, bucket, Some(Serialization.write(credentials))))
+    Some(new GCSFileManager(projectId, bucket, credentials))
 }
