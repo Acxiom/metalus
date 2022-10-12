@@ -23,7 +23,7 @@ CredentialProvider in the PipelineContext. Full parameter descriptions listed be
 *Optional Parameters:*
 * **separator** - An optional separator character to use when formatting rows into a message
 
-## Write message  to Pub/Sub
+## Write message to Pub/Sub
 This function will write a message to the provided topic. Full parameter descriptions are listed below:
 
 * **message** - The message to post
@@ -31,6 +31,7 @@ This function will write a message to the provided topic. Full parameter descrip
 
 *Optional Parameters:*
 * **credentials** - The GCP credentials to use when connecting
+* **attributes** - The message attributes to set when posting
 
 ## Write to Pub/Sub using Global Credentials
 This function will write a message to the provided topic. This version will attempt to pull credentials from the
@@ -38,3 +39,6 @@ CredentialProvider in the PipelineContext. Full parameter descriptions listed be
 
 * **message** - The message to post
 * **topicName** - The Pub/Sub topic where data will be written
+
+*Optional Parameters:*
+* **attributes** - The message attributes to set when posting
