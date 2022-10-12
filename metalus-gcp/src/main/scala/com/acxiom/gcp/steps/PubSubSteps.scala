@@ -48,15 +48,15 @@ object PubSubSteps {
 
   @StepFunction("2c937e74-8735-46d6-abfe-0c040ae8f435",
     "Write a single message to a PubSub Topic Using Provided Credentials",
-    "This step will write a DataFrame to a PubSub Topic using the providedt Credentials",
+    "This step will write a DataFrame to a PubSub Topic using the provided Credentials",
     "Pipeline",
     "GCP")
   @StepParameters(Map("message" -> StepParameter(None, Some(true), None, None, None, None, Some("The message to post to the Pub/Sub topic")),
     "topicName" -> StepParameter(None, Some(true), None, None, None, None, Some("The topic within the Pub/Sub")),
-    "credentials" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional credentials to use when posting"))))
-  def postMessage(message: String, topicName: String, credentials: Option[Map[String, String]] = None): Unit = {
-    val creds: Option[GoogleCredentials] = GCPUtilities.generateCredentials(credentials)
-    GCPUtilities.postMessage(topicName, creds, message)
+    "credentials" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional credentials to use when posting")),
+    "attributes" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional message attributes to set when posting"))))
+  def postMessage(message: String, topicName: String, credentials: Option[Map[String, String]], attributes: Option[Map[String, String]]): Unit = {
+    GCPUtilities.postMessage(topicName, message, attributes, credentials)
   }
 
   @StepFunction("b359130d-8e11-44e4-b552-9cef6150bc2b",
@@ -65,9 +65,10 @@ object PubSubSteps {
     "Pipeline",
     "GCP")
   @StepParameters(Map("message" -> StepParameter(None, Some(true), None, None, None, None, Some("The message to post to the Pub/Sub topic")),
-    "topicName" -> StepParameter(None, Some(true), None, None, None, None, Some("The topic within the Pub/Sub"))))
-  def postMessage(message: String, topicName: String, pipelineContext: PipelineContext): Unit = {
-    GCPUtilities.postMessage(topicName, GCPUtilities.getCredentialsFromPipelineContext(pipelineContext), message)
+    "topicName" -> StepParameter(None, Some(true), None, None, None, None, Some("The topic within the Pub/Sub")),
+    "attributes" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional message attributes to set when posting"))))
+  def postMessage(message: String, topicName: String, attributes: Option[Map[String, String]], pipelineContext: PipelineContext): Unit = {
+    GCPUtilities.postMessageInternal(topicName, GCPUtilities.getCredentialsFromPipelineContext(pipelineContext), message, attributes)
   }
 
   /**
