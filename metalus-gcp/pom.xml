@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.acxiom</groupId>
         <artifactId>metalus</artifactId>
-        <version>1.9.3-SNAPSHOT</version>
+        <version>1.9.4-SNAPSHOT</version>
     </parent>
 
     <dependencyManagement>
@@ -47,7 +47,7 @@
         <!-- Google Libraries -->
         <dependency>
             <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty</artifactId>
+            <artifactId>grpc-netty-shaded</artifactId>
             <version>1.31.1</version>
         </dependency>
         <dependency>
@@ -118,7 +118,6 @@
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-nio</artifactId>
             <version>0.121.0</version>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 

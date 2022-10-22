@@ -2,28 +2,32 @@ package com.acxiom.gcp.utils
 
 import com.acxiom.gcp.pipeline.{BasicGCPCredential, GCPCredential}
 import com.acxiom.pipeline.{Constants, CredentialProvider, PipelineContext}
+import com.google.api.core.{ApiFutureCallback, ApiFutures}
 import com.google.api.gax.batching.BatchingSettings
 import com.google.api.gax.core.FixedCredentialsProvider
 import com.google.api.gax.retrying.RetrySettings
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.pubsub.v1.Publisher
+import com.google.common.util.concurrent.MoreExecutors
 import com.google.protobuf.ByteString
-import com.google.pubsub.v1.PubsubMessage
-import org.json4s.DefaultFormats
-import org.json4s.native.Serialization
+import com.google.pubsub.v1.{ProjectTopicName, PubsubMessage}
 import org.threeten.bp.Duration
 
 import java.io.ByteArrayInputStream
 import java.util.concurrent.TimeUnit
+import scala.collection.JavaConverters._
+import scala.util.{Failure, Success, Try}
 
 object GCPUtilities {
+  type PubSubCallback = PartialFunction[Try[String], Unit]
+
   val requestBytesThreshold = 5000L
   val messageCountBatchSize = 100L
-  val batchingSettings: BatchingSettings = BatchingSettings.newBuilder
+  private[gcp] val batchingSettings: BatchingSettings = BatchingSettings.newBuilder
     .setElementCountThreshold(messageCountBatchSize)
     .setRequestByteThreshold(requestBytesThreshold)
     .setDelayThreshold(Duration.ofMillis(Constants.ONE_HUNDRED)).build
-  val retrySettings: RetrySettings = RetrySettings.newBuilder
+  private[gcp] val retrySettings: RetrySettings = RetrySettings.newBuilder
     .setInitialRetryDelay(Duration.ofMillis(Constants.ONE_HUNDRED))
     .setRetryDelayMultiplier(2.0)
     .setMaxRetryDelay(Duration.ofSeconds(Constants.TWO))
@@ -70,11 +74,7 @@ object GCPUtilities {
     * @return A BasicGCPCredential that can be passed to connector code.
     */
   def convertMapToCredential(credentials: Option[Map[String, String]]): Option[BasicGCPCredential] = {
-    if (credentials.isDefined) {
-      Some(new BasicGCPCredential(credentials.get))
-    } else {
-      None
-    }
+    credentials.map(new BasicGCPCredential(_))
   }
 
   /**
@@ -84,15 +84,11 @@ object GCPUtilities {
     * @param credentialName The name of the credential
     * @return An optional GoogleCredentials object
     */
-  def getCredentialsFromCredentialProvider(credentialProvider: CredentialProvider,
+  private[gcp] def getCredentialsFromCredentialProvider(credentialProvider: CredentialProvider,
                                            credentialName: String = "GCPCredential"): Option[GoogleCredentials] = {
     val gcpCredential = credentialProvider
       .getNamedCredential(credentialName).asInstanceOf[Option[GCPCredential]]
-    if (gcpCredential.isDefined) {
-      generateCredentials(Some(gcpCredential.get.authKey))
-    } else {
-      None
-    }
+    generateCredentials(gcpCredential.map(_.authKey))
   }
 
   /**
@@ -101,13 +97,9 @@ object GCPUtilities {
     * @param credentialName The name of the credential
     * @return An optional GoogleCredentials object
     */
-  def getCredentialsFromPipelineContext(pipelineContext: PipelineContext,
+  private[gcp] def getCredentialsFromPipelineContext(pipelineContext: PipelineContext,
                                         credentialName: String = "GCPCredential"): Option[GoogleCredentials] = {
-    if (pipelineContext.credentialProvider.isDefined) {
-      this.getCredentialsFromCredentialProvider(pipelineContext.credentialProvider.get, credentialName)
-    } else {
-      None
-    }
+    pipelineContext.credentialProvider.flatMap(getCredentialsFromCredentialProvider(_, credentialName))
   }
 
   /**
@@ -115,13 +107,10 @@ object GCPUtilities {
     * @param credentials TA map containing the Google credentials
     * @return An optional GoogleCredentials object
     */
-  def generateCredentials(credentials: Option[Map[String, String]]): Option[GoogleCredentials] = {
-    if (credentials.isDefined) {
-      Some(GoogleCredentials.fromStream(
-        new ByteArrayInputStream(Serialization.write(credentials.get)(DefaultFormats).getBytes))
-        .createScoped("https://www.googleapis.com/auth/cloud-platform"))
-    } else {
-      None
+  private[gcp] def generateCredentials(credentials: Option[Map[String, String]]): Option[GoogleCredentials] = {
+    generateCredentialsByteArray(credentials).map{ cred =>
+      GoogleCredentials.fromStream(new ByteArrayInputStream(cred))
+        .createScoped("https://www.googleapis.com/auth/cloud-platform")
     }
   }
 
@@ -131,11 +120,51 @@ object GCPUtilities {
     * @return A byte array or none
     */
   def generateCredentialsByteArray(credentials: Option[Map[String, String]]): Option[Array[Byte]] = {
-    if (credentials.isDefined) {
-      Some(Serialization.write(credentials.get)(DefaultFormats).getBytes)
-    } else {
-      None
+    // Don't use json4s to build the auth byte array, it can malform the private key.
+    credentials.map{ cred =>
+      s"{${cred.map{ case (k, v) => s""""$k": "$v""""}.mkString(",")}}".getBytes
     }
+  }
+
+  /**
+   * @param projectId The project id for this topic
+   * @param topicId   the topicId to use
+   * @return A string topic name for the projectId and topicId provided.
+   */
+  def getTopicName(projectId: String, topicId: String): String =
+    ProjectTopicName.of(projectId, topicId).toString
+
+  /**
+   * Write a single message to a PubSub Topic using the provided credentials
+   *
+   * @param topicName    The topic within the Pub/Sub
+   * @param message      The message to post to the Pub/Sub topic
+   * @param attributes   Optional map of attributes to add to the message
+   * @param credentials  The credentials needed to post the message
+   * @return A boolean indicating whether the message was published
+   */
+  def postMessage(topicName: String, message: String, attributes: Option[Map[String, String]] = None,
+                  credentials: Option[Map[String, String]] = None): Boolean = {
+    postMessageInternal(topicName, generateCredentials(credentials), message, attributes)
+  }
+
+  /**
+   * Write a single message to a PubSub Topic using the provided credentials,
+   * with the provided function used as a callback.
+   * callback can be a partial function, all unmatched values will be ignored.
+   *
+   * @param topicName    The topic within the Pub/Sub
+   * @param message      The message to post to the Pub/Sub topic
+   * @param attributes   Optional map of attributes to add to the message
+   * @param credentials  The credentials needed to post the message
+   * @param callback     a callback function that will be passed either a Success(messageId) or Failure(throwable)
+   *                     once the message is published.
+   * @return A boolean indicating whether the message was published
+   */
+  def postMessageWithCallback(topicName: String, message: String, attributes: Option[Map[String, String]] = None,
+                              credentials: Option[Map[String, String]] = None)
+                 (callback: PubSubCallback): Unit = {
+    postMessageInternal(topicName, generateCredentials(credentials), message, attributes, Some(callback))
   }
 
   /**
@@ -143,15 +172,44 @@ object GCPUtilities {
     * @param topicName The topic within the Pub/Sub
     * @param creds The credentials needed to post the message
     * @param message The message to post to the Pub/Sub topic
+    * @param attributes Optional map of attributes to add to the message
+    * @param callbackFunc Optional function that will be passed either a Success(messageId) or Failure(throwable)
+    *                     once the message is published.
     * @return A boolean indicating whether the message was published
     */
-  def postMessage(topicName: String, creds: Option[GoogleCredentials], message: String): Boolean = {
+  private[gcp] def postMessageInternal(topicName: String, creds: Option[GoogleCredentials], message: String,
+                                       attributes: Option[Map[String, String]] = None,
+                                       callbackFunc: Option[PubSubCallback] = None): Boolean = {
     val publisher = getPublisherBuilder(topicName, creds).setRetrySettings(retrySettings).build()
     val data = ByteString.copyFromUtf8(message)
-    val pubsubMessage = PubsubMessage.newBuilder.setData(data).build
-    publisher.publish(pubsubMessage)
-    publisher.shutdown()
-    publisher.awaitTermination(2, TimeUnit.MINUTES)
+    val builder = PubsubMessage.newBuilder.setData(data)
+    val pubsubMessage = attributes.map(_.asJava)
+      .map(builder.putAllAttributes)
+      .getOrElse(builder)
+      .setData(data)
+      .build()
+    val future = publisher.publish(pubsubMessage)
+    callbackFunc.map { func =>
+      ApiFutures.addCallback(future, new ApiFutureCallback[String]() {
+        override def onFailure(throwable: Throwable): Unit = {
+          try {
+            func.lift(Failure(throwable))
+          }
+          publisher.shutdown()
+        }
+
+        override def onSuccess(messageId: String): Unit = {
+          try {
+            func.lift(Success(messageId))
+          }
+          publisher.shutdown()
+        }
+      }, MoreExecutors.directExecutor)
+      true
+    } getOrElse {
+      publisher.shutdown()
+      publisher.awaitTermination(2, TimeUnit.MINUTES)
+    }
   }
 
   /**
@@ -160,7 +218,7 @@ object GCPUtilities {
     * @param creds The credentials needed to post the message
     * @return
     */
-  def getPublisherBuilder(topicName: String, creds: Option[GoogleCredentials]): Publisher.Builder = {
+  private[gcp] def getPublisherBuilder(topicName: String, creds: Option[GoogleCredentials]): Publisher.Builder = {
     if (creds.isDefined) {
       Publisher.newBuilder(topicName).setCredentialsProvider(FixedCredentialsProvider.create(creds.get))
     } else {

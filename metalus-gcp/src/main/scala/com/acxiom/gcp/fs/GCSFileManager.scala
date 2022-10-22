@@ -1,11 +1,10 @@
 package com.acxiom.gcp.fs
 
+import com.acxiom.gcp.utils.GCPUtilities.generateCredentialsByteArray
 import com.acxiom.pipeline.Constants
 import com.acxiom.pipeline.fs.{FileInfo, FileManager}
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.storage.{BlobId, BlobInfo, Storage, StorageOptions}
-import org.json4s.DefaultFormats
-import org.json4s.native.Serialization
 
 import java.io._
 import java.net.URI
@@ -47,8 +46,12 @@ class GCSFileManager private[gcp] (storage: Storage, bucket: String) extends Fil
       bucket)
   }
 
+  def this(projectId: String, bucket: String, credentials: Map[String, String]) = {
+    this(projectId, bucket, generateCredentialsByteArray(Some(credentials)).map(new String(_)))
+  }
+
   def this(bucket: String, credentials: Map[String, String]) = {
-    this(credentials("project_id"), bucket, Some(Serialization.write(credentials)(DefaultFormats)))
+    this(credentials("project_id"), bucket, credentials)
   }
 
   /**
@@ -219,9 +222,11 @@ class GCSFileManager private[gcp] (storage: Storage, bucket: String) extends Fil
 }
 
 /**
- * A GCSFileManager class that uses the LocalStorage help to simulate the file system.
+ * Returns a GCSFileManager with a LocalStorage object to simulate the file system.
  * Meant to be used for testing.
  * @param bucket the bucket to simulate
  */
-class LocalGCSFileManager(bucket: String)
-  extends GCSFileManager(com.google.cloud.storage.contrib.nio.testing.LocalStorageHelper.getOptions.getService, bucket)
+object LocalGCSFileManager {
+  def apply(bucket: String): GCSFileManager =
+    new GCSFileManager(com.google.cloud.storage.contrib.nio.testing.LocalStorageHelper.getOptions.getService, bucket)
+}

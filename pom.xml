@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.acxiom</groupId>
     <artifactId>metalus</artifactId>
-    <version>1.9.3-SNAPSHOT</version>
+    <version>1.9.4-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <packaging>pom</packaging>
     <description>Metalus Pipeline Library</description>
@@ -606,6 +606,7 @@
                 <scala.compat.version>2.13</scala.compat.version>
                 <scala.version>2.13.8</scala.version>
                 <kafka.version>2.4.1</kafka.version>
+                <delta-lake-version>2.1.0</delta-lake-version>
             </properties>
         </profile>
     </profiles>
