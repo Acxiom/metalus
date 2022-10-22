@@ -10,13 +10,13 @@ import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.pubsub.v1.Publisher
 import com.google.common.util.concurrent.MoreExecutors
 import com.google.protobuf.ByteString
-import com.google.pubsub.v1.PubsubMessage
+import com.google.pubsub.v1.{ProjectTopicName, PubsubMessage}
 import org.threeten.bp.Duration
 
 import java.io.ByteArrayInputStream
 import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success, Try}
 
 object GCPUtilities {
   type PubSubCallback = PartialFunction[Try[String], Unit]
@@ -125,6 +125,14 @@ object GCPUtilities {
       s"{${cred.map{ case (k, v) => s""""$k": "$v""""}.mkString(",")}}".getBytes
     }
   }
+
+  /**
+   * @param projectId The project id for this topic
+   * @param topicId   the topicId to use
+   * @return A string topic name for the projectId and topicId provided.
+   */
+  def getTopicName(projectId: String, topicId: String): String =
+    ProjectTopicName.of(projectId, topicId).toString
 
   /**
    * Write a single message to a PubSub Topic using the provided credentials
