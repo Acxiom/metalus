@@ -1,10 +1,10 @@
 package com.acxiom.pipeline.applications
 
+import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.pipeline.drivers.DriverSetup
 import com.acxiom.pipeline.utils.DriverUtils
-import com.acxiom.pipeline.{CredentialProvider, DependencyResult, PipelineContext, PipelineExecution}
+import com.acxiom.pipeline.{CredentialProvider, Pipeline, PipelineContext}
 import org.apache.log4j.Logger
-import org.apache.spark.SparkConf
 
 import scala.io.Source
 
@@ -30,7 +30,7 @@ trait ApplicationDriverSetup extends DriverSetup {
         " applicationConfigPath/applicationConfigurationLoader parameters must be provided!")
     }
     logger.debug(s"Loaded application json: $json")
-    ApplicationUtils.parseApplication(json)
+    JsonParser.parseApplication(json)
   }
 
   // Clean out the application properties from the parameters
@@ -44,51 +44,14 @@ trait ApplicationDriverSetup extends DriverSetup {
     case _ => true
   }.toMap
 
-  private lazy val application: Application = loadAndValidateApplication
+  private[applications] lazy val application: Application = loadAndValidateApplication
 
   private lazy val params: Map[String, Any] = cleanParams
 
-  private lazy val executions: List[PipelineExecution] = {
-    // Configure the SparkConf
-    val sparkConfOptions: Map[String, Any] = application.sparkConf.getOrElse(Map[String, Any]())
-    val kryoClasses: Array[Class[_]] = if (sparkConfOptions.contains("kryoClasses")) {
-      sparkConfOptions("kryoClasses").asInstanceOf[List[String]].map(c => Class.forName(c)).toArray
-    } else {
-      DriverUtils.DEFAULT_KRYO_CLASSES
-    }
-    val initialSparkConf: SparkConf = DriverUtils.createSparkConf(kryoClasses)
-    val sparkConf: SparkConf = if (sparkConfOptions.contains("setOptions")) {
-      sparkConfOptions("setOptions").asInstanceOf[List[Map[String, String]]].foldLeft(initialSparkConf)((conf, map) => {
-        conf.set(map("name"), map("value"))
-      })
-    } else {
-      initialSparkConf.set("spark.hadoop.io.compression.codecs",
-        "org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
-          "org.apache.hadoop.io.compress.GzipCodec,org.apache." +
-          "hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec")
-    }
-    val credsProvider = Some(credentialProvider)
-    ApplicationUtils.createExecutionPlan(
-      application = application,
-      globals = Some(params),
-      sparkConf = sparkConf,
-      applicationTriggers = ApplicationTriggers(
-      enableHiveSupport = parameters.getOrElse("enableHiveSupport", false).asInstanceOf[Boolean],
-      parquetDictionaryEnabled = parameters.getOrElse("parquetDictionaryEnabled", true).asInstanceOf[Boolean],
-      validateArgumentTypes = parameters.getOrElse("validateStepParameterTypes", false).asInstanceOf[Boolean]),
-      credentialProvider = credsProvider
-    )
-  }
+  override def pipeline: Option[Pipeline] = pipelineContext.pipelineManager.getPipeline(application.pipelineId.getOrElse(""))
 
-  /**
-    * This function will return the execution plan to be used for the driver.
-    *
-    * @since 1.1.0
-    * @return An execution plan or None if not implemented
-    */
-  override def executionPlan: Option[List[PipelineExecution]] = Some(executions)
-
-  override def pipelineContext: PipelineContext = executions.head.pipelineContext
+  override def pipelineContext: PipelineContext =
+    ApplicationUtils.createPipelineContext(application, Some(params), Some(parameters), credentialProvider = Some(credentialProvider))
 
   /**
     * This function allows the driver setup a chance to refresh the execution plan. This is useful in long running
@@ -98,13 +61,13 @@ trait ApplicationDriverSetup extends DriverSetup {
     * @since 1.1.0
     * @return An execution plan
     */
-  override def refreshExecutionPlan(executionPlan: List[PipelineExecution],
-                                    results: Option[Map[String, DependencyResult]] = None): List[PipelineExecution] = {
-    executionPlan.map(plan => {
-      val execution = application.executions.get.find(_.id.getOrElse("") == plan.id).get
-      ApplicationUtils.refreshPipelineExecution(application, Some(params), execution, plan)
-    })
-  }
+//  override def refreshExecutionPlan(executionPlan: List[PipelineExecution],
+//                                    results: Option[Map[String, DependencyResult]] = None): List[PipelineExecution] = {
+//    executionPlan.map(plan => {
+//      val execution = application.executions.get.find(_.id.getOrElse("") == plan.id).get
+//      ApplicationUtils.refreshPipelineExecution(application, Some(params), execution, plan)
+//    })
+//  }
 
   private def loadAndValidateApplication: Application = {
     val application = loadApplication

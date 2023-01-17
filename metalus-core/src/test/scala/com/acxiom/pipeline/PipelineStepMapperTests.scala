@@ -1,87 +1,62 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.audits.{AuditType, ExecutionAudit}
-import com.acxiom.pipeline.utils.DriverUtils
-import org.apache.commons.io.FileUtils
+import com.acxiom.metalus.parser.JsonParser
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.SparkConf
-import org.apache.spark.sql.SparkSession
 import org.json4s.{DefaultFormats, Formats}
-import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen, Suite}
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
 
-import java.io.File
-
-class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen with Suite {
-  private val FIVE = 5
-  override def beforeAll() {
-    Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
+class PipelineStepMapperTests extends AnyFunSpec with BeforeAndAfterAll with GivenWhenThen {
+  override def beforeAll(): Unit = {
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
     Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
-    SparkTestHelper.sparkConf = new SparkConf()
-      .setMaster(SparkTestHelper.MASTER)
-      .setAppName(SparkTestHelper.APPNAME)
-    SparkTestHelper.sparkConf.set("spark.hadoop.io.compression.codecs",
-      ",org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
-        "org.apache.hadoop.io.compress.GzipCodec,org.apache." +
-        "hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec")
-
-    SparkTestHelper.sparkSession = SparkSession.builder().config(SparkTestHelper.sparkConf).getOrCreate()
-
-    // cleanup spark-warehouse and user-warehouse directories
-    FileUtils.deleteDirectory(new File("spark-warehouse"))
-    FileUtils.deleteDirectory(new File("user-warehouse"))
   }
 
-  override def afterAll() {
-    SparkTestHelper.sparkSession.stop()
+  override def afterAll(): Unit = {
     Logger.getRootLogger.setLevel(Level.INFO)
-
-    // cleanup spark-warehouse and user-warehouse directories
-    FileUtils.deleteDirectory(new File("spark-warehouse"))
-    FileUtils.deleteDirectory(new File("user-warehouse"))
   }
 
   describe("PipelineMapperSteps - map parameter") {
     val classMap = Map[String, Any]("string" -> "fred", "num" -> 3)
     val globalTestObject = TestObject(1, "2", boolField=false, Map("globalTestKey1" -> "globalTestValue1"))
-    val pipelineParameters = PipelineParameters(List(
-      PipelineParameter("pipeline-id-1",
+    val pipelineParameters = List(
+      PipelineParameter(PipelineStateInfo("pipeline-id-1"),
         Map(
           "rawKey1" -> "rawValue1",
           "red" -> None,
-          "step1" -> PipelineStepResponse(
-            Some(Map("primaryKey1String" -> "primaryKey1Value", "primaryKey1Map" -> Map("childKey1Integer" -> 2))),
-            Some(Map("namedKey1String" -> "namedValue1", "namedKey1Boolean" -> true, "nameKey1List" -> List(0,1,2)))
-          ),
-          "step2" -> PipelineStepResponse(None, Some(
-            Map("namedKey2String" -> "namedKey2Value",
-              "namedKey2Map" -> Map(
-                "childKey2String" -> "childValue2",
-                "childKey2Integer" -> 2,
-                "childKey2Map" -> Map("grandChildKey1Boolean" -> true)
-              )
-            )
-          )),
-          "step3" -> PipelineStepResponse(Some("fred"), None),
           "nullValue" -> None.orNull,
           "recursiveTest" -> "$pipeline-id-1.rawKey1"
         )
       ),
-      PipelineParameter("pipeline-id-2", Map("rawInteger" -> 2, "rawDecimal" -> 15.65)),
-      PipelineParameter("pipeline-id-3", Map("rawInteger" -> 3, "step1" -> PipelineStepResponse(Some(List(1,2,3)),
-        Some(Map("namedKey" -> "namedValue"))), "step3" -> PipelineStepResponse(Some("fred_on_the_head"), None)))
-    ))
+      PipelineParameter(PipelineStateInfo("pipeline-id-2"), Map("rawInteger" -> 2, "rawDecimal" -> 15.65)),
+      PipelineParameter(PipelineStateInfo("pipeline-id-3"), Map("rawInteger" -> 3))
+    )
+
+    val stepResults = Map(
+      PipelineStateInfo("pipeline-id-1", Some("step1")) -> PipelineStepResponse(
+        Some(Map("primaryKey1String" -> "primaryKey1Value", "primaryKey1Map" -> Map("childKey1Integer" -> 2))),
+        Some(Map("namedKey1String" -> "namedValue1", "namedKey1Boolean" -> true, "nameKey1List" -> List(0, 1, 2)))),
+      PipelineStateInfo("pipeline-id-1", Some("step2")) -> PipelineStepResponse(None, Some(
+        Map("namedKey2String" -> "namedKey2Value",
+          "namedKey2Map" -> Map(
+            "childKey2String" -> "childValue2",
+            "childKey2Integer" -> 2,
+            "childKey2Map" -> Map("grandChildKey1Boolean" -> true))))),
+      PipelineStateInfo("pipeline-id-1", Some("step3")) -> PipelineStepResponse(Some("fred"), None),
+      PipelineStateInfo("pipeline-id-3", Some("step1")) -> PipelineStepResponse(Some(List(1, 2, 3)),
+        Some(Map("namedKey" -> "namedValue"))),
+      PipelineStateInfo("pipeline-id-3", Some("step3")) -> PipelineStepResponse(Some("fred_on_the_head"), None))
 
     val broadCastGlobal = Map[String, Any](
       "link1" -> "!{pipelineId}::!{globalBoolean}::#{pipeline-id-1.step2.namedKey2Map.childKey2Integer}::@{pipeline-id-1.step3}",
-      "link2" -> "@step1", "link3" -> "$step1.primaryReturn", "link4" -> "@pipeline-id-1.step1.primaryKey1String",
-      "link5" -> "$pipeline-id-1.step1.primaryReturn.primaryKey1String", "link6" -> "$pipeline-id-1.step2.namedReturns.namedKey2String",
+      "link2" -> "@step1", "link3" -> "@step1", "link4" -> "@pipeline-id-1.step1.primaryKey1String",
+      "link5" -> "@pipeline-id-1.step1.primaryKey1String", "link6" -> "#pipeline-id-1.step2.namedKey2String",
       "link7" -> "#pipeline-id-1.step2.namedKey2String", "link8" -> "embedded!{pipelineId}::concat_value", "link9" -> "link_override"
     )
-    val globalParameters = Map("pipelineId" -> "pipeline-id-3", "lastStepId" -> "step1", "globalString" -> "globalValue1", "globalInteger" -> FIVE,
+    val globalParameters = Map("pipelineId" -> "pipeline-id-3", "lastStepId" -> "step1", "globalString" -> "globalValue1", "globalInteger" -> Constants.FIVE,
       "globalBoolean" -> true, "globalTestObject" -> globalTestObject, "GlobalLinks" -> broadCastGlobal, "link9" -> "root_value",
       "extractMethodsEnabled" -> true,
-      "complexList" -> List(DefaultPipelineStepResponse(Some("moo")), DefaultPipelineStepResponse(Some("moo2"))),
+      "complexList" -> List(PipelineStepResponse(Some("moo")), PipelineStepResponse(Some("moo2"))),
       "optionsList" -> List(Some("1"), Some("2"), None, Some("3")),
       "numericString" -> "1", "bigIntGlobal" -> BigInt(1),
       "booleanString" -> "true",
@@ -105,10 +80,9 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       "credentialName" -> "testCredential",
       "credentialValue" -> "secretCredential"))
 
-    val pipelineContext = PipelineContext(
-      None, None, Some(globalParameters), PipelineSecurityManager(), pipelineParameters, None, PipelineStepMapper(), None, None,
-      ExecutionAudit("root", AuditType.EXECUTION, Map[String, Any](), System.currentTimeMillis()),
-      PipelineManager(List(subPipeline)), Some(credentialProvider))
+    val pipelineContext = PipelineContext(Some(globalParameters), pipelineParameters, None, PipelineStepMapper(), None, List(),
+      PipelineManager(List(subPipeline)), Some(credentialProvider), new ContextManager(Map(), Map()),
+      stepResults, Some(PipelineStateInfo("pipeline-id-3")))
 
     it("should pull the appropriate value for given parameters") {
       val tests = List(
@@ -137,7 +111,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("string from global", Parameter(value = Some("!globalString"), `type` = Some("string")), "globalValue1"),
         ("GlobalLink overrides root global", Parameter(value = Some("!link9"), `type` = Some("string")), "link_override"),
         ("boolean from global", Parameter(value = Some("!globalBoolean"), `type` = Some("boolean")), true),
-        ("integer from global", Parameter(value = Some("!globalInteger"), `type` = Some("integer")), FIVE),
+        ("integer from global", Parameter(value = Some("!globalInteger"), `type` = Some("integer")), Constants.FIVE),
         ("test object from global", Parameter(value = Some("!globalTestObject"), `type` = Some("text")), globalTestObject),
         ("child object from global", Parameter(value = Some("!globalTestObject.intField"), `type` = Some("integer")), globalTestObject.intField),
         ("non-step value from pipeline", Parameter(value = Some("$pipeline-id-1.rawKey1"), `type` = Some("string")), "rawValue1"),
@@ -149,17 +123,16 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
         ("decimal from specific pipeline", Parameter(value = Some("$pipeline-id-2.rawDecimal"), `type` = Some("decimal")), 15.65),
         ("primary from current pipeline using @", Parameter(value = Some("@step1"), `type` = Some("text")), List(1, 2, 3)),
         ("primary from current pipeline using @ in GlobalLink", Parameter(value = Some("!link2"), `type` = Some("text")), List(1, 2, 3)),
-        ("primary from current pipeline using $", Parameter(value = Some("$step1.primaryReturn"), `type` = Some("text")), List(1, 2, 3)),
-        ("primary from current pipeline using $ in GlobalLink", Parameter(value = Some("!link3"), `type` = Some("text")), List(1, 2, 3)),
+//        ("primary from current pipeline using $ in GlobalLink", Parameter(value = Some("!link3"), `type` = Some("text")), List(1, 2, 3)),
         ("primary from specific pipeline using @", Parameter(value = Some("@pipeline-id-1.step1.primaryKey1String"), `type` = Some("string")),
           "primaryKey1Value"),
         ("primary from specific pipeline using @ in GlobalLink", Parameter(value = Some("!link4"), `type` = Some("string")), "primaryKey1Value"),
-        ("primary from specific pipeline using $", Parameter(value = Some("$pipeline-id-1.step1.primaryReturn.primaryKey1String"), `type` = Some("string")),
-          "primaryKey1Value"),
+//        ("primary from specific pipeline using $", Parameter(value = Some("$pipeline-id-1.step1.primaryReturn.primaryKey1String"), `type` = Some("string")),
+//          "primaryKey1Value"),
         ("primary from specific pipeline using $ in GlobalLink", Parameter(value = Some("!link5"), `type` = Some("string")), "primaryKey1Value"),
-        ("namedReturns from specific pipeline using $", Parameter(value = Some("$pipeline-id-1.step2.namedReturns.namedKey2String"), `type` = Some("string")),
-          "namedKey2Value"),
-        ("namedReturns from specific pipeline using $ in GlobalLink", Parameter(value = Some("!link6"), `type` = Some("string")),
+//        ("namedReturns from specific pipeline using $", Parameter(value = Some("$pipeline-id-1.step2.namedReturns.namedKey2String"), `type` = Some("string")),
+//          "namedKey2Value"),
+        ("namedReturns from specific pipeline using # in GlobalLink", Parameter(value = Some("!link6"), `type` = Some("string")),
           "namedKey2Value"),
         ("namedReturns from specific pipeline using #", Parameter(value = Some("#pipeline-id-1.step2.namedKey2String"), `type` = Some("string")),
           "namedKey2Value"),
@@ -181,7 +154,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
           Parameter(value = Some(Map[String, Any]("list" -> List("!globalString"))), `type` = Some("text")), Map("list" -> List("globalValue1"))),
         ("script to map a list of step returns",
           Parameter(value = Some(
-            """(list: !complexList :Option[List[com.acxiom.pipeline.DefaultPipelineStepResponse]])
+            """(list: !complexList :Option[List[com.acxiom.pipeline.PipelineStepResponse]])
               |list.getOrElse(List()).map(r => r.primaryReturn.get)
               |""".stripMargin), `type` = Some("scalascript")), List("moo", "moo2")),
         ("simple script with tuple",
@@ -326,9 +299,10 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       val objectMap = Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger")
       val objectParameter = Parameter(value=Some(objectMap), className = Some("com.acxiom.pipeline.ParameterTest"))
       val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
-      assert(parameterValue == ParameterTest(Some("globalValue1"), Some(FIVE)))
+      assert(parameterValue == ParameterTest(Some("globalValue1"), Some(Constants.FIVE)))
 
       val ctx = pipelineContext.setGlobal("pipelineId", "pipeline-id-1")
+        .setCurrentStateInfo(PipelineStateInfo("pipeline-id-1"))
       val nestedObjectMap = Map[String, Any](
         "parameterTest" -> Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger"),
         "testObject" -> Map[String, Any](
@@ -341,7 +315,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       val nestedCaseClass = ctx.parameterMapper.mapParameter(
         Parameter(value=Some(nestedObjectMap),
           className = Some("com.acxiom.pipeline.NestedCaseClassTest")), ctx)
-      assert(nestedCaseClass == NestedCaseClassTest(ParameterTest(Some("globalValue1"), Some(FIVE)),
+      assert(nestedCaseClass == NestedCaseClassTest(ParameterTest(Some("globalValue1"), Some(Constants.FIVE)),
         TestObject(2, "namedValue1", boolField = true, Map("globalTestKey1" -> "rawValue1"))))
     }
 
@@ -350,57 +324,57 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       val objectParameter = Parameter(value=Some(objectMap))
       val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
       assert(parameterValue.asInstanceOf[Map[String, Any]]("string").asInstanceOf[Option[String]].contains("globalValue1"))
-      assert(parameterValue.asInstanceOf[Map[String, Any]]("num").asInstanceOf[Option[Int]].contains(FIVE))
+      assert(parameterValue.asInstanceOf[Map[String, Any]]("num").asInstanceOf[Option[Int]].contains(Constants.FIVE))
       assert(parameterValue.asInstanceOf[Map[String, Any]]("concatString").asInstanceOf[Option[String]].contains("global->globalValue1->value"))
     }
 
     it("Should create a list of objects") {
       val objects = List(Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger"),
-        Map[String, Any]("string" -> "secondObject", "num" -> (FIVE + FIVE)))
+        Map[String, Any]("string" -> "secondObject", "num" -> (Constants.TEN)))
       val objectParameter = Parameter(value=Some(objects), className = Some("com.acxiom.pipeline.ParameterTest"))
       val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
       val list = parameterValue.asInstanceOf[List[ParameterTest]]
       assert(list.length == 2)
-      assert(list.head == ParameterTest(Some("globalValue1"), Some(FIVE)))
-      assert(list(1) == ParameterTest(Some("secondObject"), Some(FIVE + FIVE)))
+      assert(list.head == ParameterTest(Some("globalValue1"), Some(Constants.FIVE)))
+      assert(list(1) == ParameterTest(Some("secondObject"), Some(Constants.TEN)))
     }
 
     it("Should create a list of maps") {
       val objects = List(Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger"),
-        Map[String, Any]("string" -> "secondObject", "num" -> (FIVE + FIVE)))
+        Map[String, Any]("string" -> "secondObject", "num" -> (Constants.TEN)))
       val objectParameter = Parameter(value=Some(objects))
       val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
       val list = parameterValue.asInstanceOf[List[Map[String, Any]]]
       assert(list.length == 2)
       assert(list.head("string").asInstanceOf[Option[String]].contains("globalValue1"))
-      assert(list.head("num").asInstanceOf[Option[Int]].contains(FIVE))
+      assert(list.head("num").asInstanceOf[Option[Int]].contains(Constants.FIVE))
       assert(list(1)("string").asInstanceOf[String] == "secondObject")
-      assert(list(1)("num").asInstanceOf[Int] == (FIVE + FIVE))
+      assert(list(1)("num").asInstanceOf[Int] == (Constants.TEN))
     }
 
     it("Should return a list of items") {
-      val objectParameter = Parameter(value=Some(List("string", FIVE, "global->!{globalString}->value")))
+      val objectParameter = Parameter(value=Some(List("string", Constants.FIVE, "global->!{globalString}->value")))
       val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
       val list = parameterValue.asInstanceOf[List[Any]]
       assert(list.length == 3)
       assert(list.head == "string")
-      assert(list(1) == FIVE)
+      assert(list(1) == Constants.FIVE)
       assert(list(2) == "global->globalValue1->value")
     }
 
     it("Should respect the dropNoneFromLists option") {
-      val objectParameter = Parameter(value=Some(List("string", FIVE, "!NotHere")))
+      val objectParameter = Parameter(value=Some(List("string", Constants.FIVE, "!NotHere")))
       val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
       val list = parameterValue.asInstanceOf[List[Any]]
       assert(list.length == 2)
       assert(list.head == "string")
-      assert(list(1) == FIVE)
+      assert(list(1) == Constants.FIVE)
       val contextWithOption = pipelineContext.setGlobal("dropNoneFromLists", false)
       val anotherValue = pipelineContext.parameterMapper.mapParameter(objectParameter, contextWithOption)
       val anotherList = anotherValue.asInstanceOf[List[Any]]
       assert(anotherList.length == 3)
       assert(anotherList.head == "string")
-      assert(anotherList(1) == FIVE)
+      assert(anotherList(1) == Constants.FIVE)
       assert(anotherList(2) == null)
     }
 
@@ -426,10 +400,12 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
 
       implicit val formats: Formats = DefaultFormats
       val params = org.json4s.native.JsonMethods.parse(mapJson).extract[Map[String, Any]]
-      val param = DriverUtils.parseJson(json, "com.acxiom.pipeline.Parameter").asInstanceOf[Parameter]
+      val param = JsonParser.parseJson(json, "com.acxiom.pipeline.Parameter").asInstanceOf[Parameter]
+      val key = PipelineStateInfo("test-pipeline")
+
       val ctx = params.foldLeft(pipelineContext)((context, entry) => {
-        context.setParameterByPipelineId("test-pipeline", entry._1, entry._2)
-      })
+        context.setPipelineParameterByKey(key, entry._1, entry._2)
+      }).setCurrentStateInfo(key)
         .setGlobal("pipelineId", "test-pipeline")
       assert(ctx.parameterMapper.mapParameter(param, ctx) == "default string")
       assert(ctx.parameterMapper.mapParameter(Parameter(value = Some("$string")), ctx) == "some string")
@@ -470,7 +446,7 @@ class PipelineStepMapperTests extends FunSpec with BeforeAndAfterAll with GivenW
       val objectParameter = Parameter(value=Some(objectMap))
       val parameterValue = pipelineContext.parameterMapper.mapParameter(objectParameter, pipelineContext)
       assert(parameterValue.asInstanceOf[Map[String, Any]]("string").asInstanceOf[Option[String]].contains("globalValue1"))
-      assert(parameterValue.asInstanceOf[Map[String, Any]]("num").asInstanceOf[Option[Int]].contains(FIVE))
+      assert(parameterValue.asInstanceOf[Map[String, Any]]("num").asInstanceOf[Option[Int]].contains(Constants.FIVE))
       assert(parameterValue.asInstanceOf[Map[String, Any]]("concatString").asInstanceOf[Option[String]].contains("global->globalValue1->value"))
 
       assert(parameterValue.asInstanceOf[Map[String, Any]]("embeddedMap").isInstanceOf[Map[String, Any]])

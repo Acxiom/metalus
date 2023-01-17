@@ -1,55 +1,35 @@
 package com.acxiom.pipeline.utils
 
-import java.io.File
+import com.acxiom.pipeline._
+import org.apache.log4j.{Level, Logger}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funspec.AnyFunSpec
+
+import java.math.BigInteger
 import java.util
 
-import com.acxiom.pipeline.{PipelineStepResponse, _}
-import org.apache.commons.io.FileUtils
-import org.apache.log4j.{Level, Logger}
-import org.apache.spark.SparkConf
-import org.apache.spark.sql.SparkSession
-import org.scalatest.{BeforeAndAfterAll, FunSpec}
+class ReflectionUtilsTests extends AnyFunSpec with BeforeAndAfterAll {
 
-class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
-  private val FIVE = 5
-
-  override def beforeAll() {
-    Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
-    Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
+  override def beforeAll(): Unit = {
     Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
-    SparkTestHelper.sparkConf = new SparkConf()
-      .setMaster(SparkTestHelper.MASTER)
-      .setAppName(SparkTestHelper.APPNAME)
-    SparkTestHelper.sparkConf.set("spark.hadoop.io.compression.codecs",
-      ",org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
-        "org.apache.hadoop.io.compress.GzipCodec,org.apache." +
-        "hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec")
-
-    SparkTestHelper.sparkSession = SparkSession.builder().config(SparkTestHelper.sparkConf).getOrCreate()
-
-    // cleanup spark-warehouse and user-warehouse directories
-    FileUtils.deleteDirectory(new File("spark-warehouse"))
-    FileUtils.deleteDirectory(new File("user-warehouse"))
   }
 
-  override def afterAll() {
-    SparkTestHelper.sparkSession.stop()
+  override def afterAll(): Unit = {
     Logger.getRootLogger.setLevel(Level.INFO)
-
-    // cleanup spark-warehouse and user-warehouse directories
-    FileUtils.deleteDirectory(new File("spark-warehouse"))
-    FileUtils.deleteDirectory(new File("user-warehouse"))
   }
 
   describe("ReflectionUtil - processStep") {
-    val pipeline = Pipeline(Some("TestPipeline"))
     val globals = Map[String, Any]("validateStepParameterTypes" -> true)
-    val pipelineContext = PipelineContext(None, None, Some(globals), PipelineSecurityManager(), PipelineParameters(),
-      Some(List("com.acxiom.pipeline", "com.acxiom.pipeline.steps")), PipelineStepMapper(), None, None)
+    val stateInfo = PipelineStateInfo("TestPipeline")
+    val pipelineContext = PipelineContext(Some(globals), List(),
+      Some(List("com.acxiom.pipeline", "com.acxiom.pipeline.steps")), PipelineStepMapper(),
+      contextManager = new ContextManager(Map(), Map()),
+      currentStateInfo = Some(stateInfo))
     it("Should process step function") {
-      val step = PipelineStep(None, None, None, None, None, Some(EngineMeta(Some("MockStepObject.mockStepFunction"))))
-      val response = ReflectionUtils.processStep(step, pipeline,
-        Map[String, Any]("string" -> "string", "boolean" -> true), pipelineContext)
+      val step = PipelineStep(Some("TestStep"), engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunction"))))
+      val response = ReflectionUtils.processStep(step,
+        Map[String, Any]("string" -> "string", "boolean" -> true),
+        pipelineContext.setCurrentStateInfo(stateInfo.copy(stepId = step.id)))
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.getOrElse("") == "string")
@@ -58,18 +38,16 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
     }
 
     it("Should process step function with non-PipelineStepResponse") {
-      val step = PipelineStep(None, None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepFunctionAnyResponse"), Some("com.acxiom.pipeline.steps"))))
-      val response = ReflectionUtils.processStep(step, pipeline, Map[String, Any]("string" -> "string"), pipelineContext)
+      val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionAnyResponse"), Some("com.acxiom.pipeline.steps"))))
+      val response = ReflectionUtils.processStep(step, Map[String, Any]("string" -> "string"), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.getOrElse("") == "string")
     }
 
     it("Should process step with Option") {
-      val step = PipelineStep(None, None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepFunction"))))
-      val response = ReflectionUtils.processStep(step, pipeline,
+      val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunction"))))
+      val response = ReflectionUtils.processStep(step,
         Map[String, Any]("string" -> "string", "boolean" -> Some(true), "opt" -> "Option"), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
@@ -81,9 +59,8 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
     }
 
     it("Should process step with default value") {
-      val step = PipelineStep(None, None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithDefaultValue"))))
-      val response = ReflectionUtils.processStep(step, pipeline,
+      val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithDefaultValue"))))
+      val response = ReflectionUtils.processStep(step,
         Map[String, Any]("string" -> "string"), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
@@ -91,9 +68,8 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
     }
 
     it("Should process step with default value no option") {
-      val step = PipelineStep(None, None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithDefaultValueNoOption"))))
-      val response = ReflectionUtils.processStep(step, pipeline,
+      val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithDefaultValueNoOption"))))
+      val response = ReflectionUtils.processStep(step,
         Map[String, Any]("string" -> "string", "default" -> None), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
@@ -101,9 +77,8 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
     }
 
     it("Should wrap values in a List, Seq, or Array if passing a single element to a collection") {
-      val step = PipelineStep(None, None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithListParams"))))
-      val response = ReflectionUtils.processStep(step, pipeline,
+      val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithListParams"))))
+      val response = ReflectionUtils.processStep(step,
         Map[String, Any]("list" -> "l1", "seq" -> 1, "arrayList" -> new util.ArrayList()), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
@@ -124,9 +99,8 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
     }
 
     it("Should unwrap an option passed to a non option param"){
-      val step = PipelineStep(None, None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepWithListOfOptions"))))
-      val response = ReflectionUtils.processStep(step, pipeline,
+      val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepWithListOfOptions"))))
+      val response = ReflectionUtils.processStep(step,
         Map[String, Any]("s" -> Some(List(Some("s1"), Some("s2")))), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
@@ -134,29 +108,27 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
     }
 
     it("Should return an informative error if a step function is not found") {
-      val step = PipelineStep(None, None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.typo"))))
+      val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.typo"))))
       val thrown = intercept[IllegalArgumentException] {
-        ReflectionUtils.processStep(step, pipeline, Map[String, Any](), pipelineContext)
+        ReflectionUtils.processStep(step, Map[String, Any](), pipelineContext)
       }
       assert(thrown.getMessage == "typo is not a valid function!")
     }
 
     it("Should respect the validateStepParameterTypes global") {
-      val step = PipelineStep(Some("chicken"), None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
+      val step = PipelineStep(Some("chicken"), engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
       val thrown = intercept[ClassCastException] {
-        ReflectionUtils.processStep(step, pipeline, Map[String, Any]("string" -> 1), pipelineContext.setGlobal("validateStepParameterTypes", false))
+        ReflectionUtils.processStep(step, Map[String, Any]("string" -> 1), pipelineContext.setGlobal("validateStepParameterTypes", false))
       }
       val message = "java.lang.Integer cannot be cast to java.lang.String"
       assert(thrown.getMessage == message)
     }
 
     it("Should return an informative error if the parameter types do not match function params") {
-      val step = PipelineStep(Some("chicken"), None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
+      val step = PipelineStep(Some("chicken"), engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
       val thrown = intercept[PipelineException] {
-        ReflectionUtils.processStep(step, pipeline, Map[String, Any]("string" -> 1), pipelineContext)
+        ReflectionUtils.processStep(step, Map[String, Any]("string" -> 1),
+          pipelineContext.setCurrentStateInfo(pipelineContext.currentStateInfo.get.copy(stepId = step.id)))
       }
       val message = "Failed to map value [Some(1)] of type [Some(Integer)] to paramName [string] of" +
         " type [Option[String]] for method [mockStepFunctionWithOptionalGenericParams] in step [chicken] in pipeline [TestPipeline]"
@@ -164,8 +136,7 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
     }
 
     it("should handle primitive types") {
-      val step = PipelineStep(None, None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithPrimitives"))))
+      val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithPrimitives"))))
       val map = Map[String, Any]("i" -> 1,
         "l" -> 1L,
         "s" -> 1.toShort.asInstanceOf[java.lang.Short],
@@ -175,15 +146,14 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
         "by" -> 1.toByte.asInstanceOf[java.lang.Byte],
         "a" -> "anyValue"
       )
-      val response = ReflectionUtils.processStep(step, pipeline, map, pipelineContext)
+      val response = ReflectionUtils.processStep(step, map, pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == 1)
     }
 
     it("should handle Boxed types") {
-      val step = PipelineStep(None, None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithBoxClasses"))))
+      val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithBoxClasses"))))
       val map = Map[String, Any]("i" -> "1".toInt,
         "l" -> 1L,
         "s" -> 1.toShort.asInstanceOf[java.lang.Short],
@@ -193,25 +163,23 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
         "by" -> 1.toByte.asInstanceOf[java.lang.Byte],
         "a" -> "anyValue"
       )
-      val response = ReflectionUtils.processStep(step, pipeline, map, pipelineContext)
+      val response = ReflectionUtils.processStep(step, map, pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == 1)
     }
 
     it("Should respect the pkg setting on EngineMeta") {
-      val step = PipelineStep(None, None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepFunctionAnyResponse"), Some("com.acxiom.pipeline.steps"))))
-      val response = ReflectionUtils.processStep(step, pipeline, Map[String, Any]("string" -> "string"), pipelineContext)
+      val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionAnyResponse"), Some("com.acxiom.pipeline.steps"))))
+      val response = ReflectionUtils.processStep(step, Map[String, Any]("string" -> "string"), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.getOrElse("") == "string")
     }
 
     it("Should inject None for missing parameters") {
-      val step = PipelineStep(None, None, None, None, None,
-        Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
-      val response = ReflectionUtils.processStep(step, pipeline, Map[String, Any](), pipelineContext)
+      val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
+      val response = ReflectionUtils.processStep(step, Map[String, Any](), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
       assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.getOrElse("") == "chicken")
@@ -231,7 +199,6 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
       val params = Map[String, Any]("parameters" -> Map[String, Any]("initialPipelineId" -> "pipelineId1"))
       val mockDriverSetup = ReflectionUtils.loadClass(className, Some(params))
       assert(mockDriverSetup.isInstanceOf[MockDriverSetup])
-      assert(mockDriverSetup.asInstanceOf[MockDriverSetup].initialPipelineId == "pipelineId1")
     }
 
     it("Should instantiate no param constructor") {
@@ -271,14 +238,12 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
 
   describe("ReflectionUtils - extractField") {
     it("Should return None when field name is invalid") {
-      assert(ReflectionUtils.extractField(MockObject("string", FIVE), "bob").asInstanceOf[Option[_]].isEmpty)
+      assert(ReflectionUtils.extractField(MockObject("string", Constants.FIVE), "bob").asInstanceOf[Option[_]].isEmpty)
     }
 
     it("Should execute methods without parameters") {
-      val spark = SparkTestHelper.sparkSession
-      import spark.implicits._
-      val df = Seq((1, "silkie"), (2, "polish"), (3, "buttercup")).toDF("id", "chicken")
-      assert(ReflectionUtils.extractField(df, "count", applyMethod = Some(true)) == 3)
+      val number = BigInt(3)
+      assert(ReflectionUtils.extractField(number, "bigInteger", applyMethod = Some(true)).isInstanceOf[BigInteger])
     }
 
     it("Should fail on methods if method extraction is disabled") {
@@ -296,7 +261,7 @@ class ReflectionUtilsTests extends FunSpec with BeforeAndAfterAll {
 
     it("Should return the option and not the value") {
       assert(ReflectionUtils.extractField(
-       Some(MockParent(MockObject("string", FIVE, Some("string")))),
+       Some(MockParent(MockObject("string", Constants.FIVE, Some("string")))),
         "mock.opt", extractFromOption = false).asInstanceOf[Option[String]].getOrElse("bad") == "string")
     }
 

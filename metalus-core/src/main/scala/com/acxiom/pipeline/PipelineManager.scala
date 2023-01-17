@@ -1,6 +1,6 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.utils.DriverUtils
+import com.acxiom.metalus.parser.JsonParser
 
 import scala.io.Source
 
@@ -12,7 +12,7 @@ trait PipelineManager {
   def getPipeline(id: String): Option[Pipeline] = {
     val input = getClass.getClassLoader.getResourceAsStream(s"metadata/pipelines/$id.json")
     if (Option(input).isDefined) {
-      val pipelineList = DriverUtils.parsePipelineJson(Source.fromInputStream(input).mkString)
+      val pipelineList = JsonParser.parsePipelineJson(Source.fromInputStream(input).mkString)
       if (pipelineList.isDefined && pipelineList.get.nonEmpty) {
         Some(pipelineList.get.head)
       } else {

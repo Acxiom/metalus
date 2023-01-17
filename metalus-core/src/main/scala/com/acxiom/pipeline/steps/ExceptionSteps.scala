@@ -27,8 +27,8 @@ object ExceptionSteps {
   "stepIdOverride" -> StepParameter(Some("stepIdOverride"), Some(false), None, None, None, None, Some("An optional stepId to use instead of the default"))))
   def throwPipelineException(message: String, cause: Option[Throwable] = None,
                              stepIdOverride: Option[String] = None, pipelineContext: PipelineContext): Unit = {
-    val progress = stepIdOverride.map(id => pipelineContext.getPipelineExecutionInfo.copy(stepId = Some(id)))
-      .getOrElse(pipelineContext.getPipelineExecutionInfo)
+    val progress = stepIdOverride.map(id => pipelineContext.currentStateInfo.get.copy(stepId = Some(id)))
+      .getOrElse(pipelineContext.currentStateInfo.get)
     throw PipelineException(message = Some(message), context = Some(pipelineContext),
       cause = cause.orNull, pipelineProgress = Some(progress))
   }

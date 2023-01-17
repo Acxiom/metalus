@@ -1,9 +1,8 @@
 package com.acxiom.pipeline.drivers
 
-import com.acxiom.pipeline.utils.{CommonParameters, DriverUtils, ReflectionUtils}
+import com.acxiom.pipeline.PipelineExecutor
+import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
 import org.apache.log4j.Logger
-
-import scala.annotation.tailrec
 
 /**
   * Provides a basic driver that will read in command line parameters and execute pipelines. The only required parameter
@@ -19,25 +18,17 @@ object DefaultPipelineDriver {
     val commonParameters = DriverUtils.parseCommonParameters(parameters)
     val driverSetup = ReflectionUtils.loadClass(commonParameters.initializationClass,
       Some(Map("parameters" -> parameters))).asInstanceOf[DriverSetup]
-    if (driverSetup.executionPlan.isEmpty) {
-      throw new IllegalStateException(s"Unable to obtain valid execution plan. Please check the DriverSetup class: ${commonParameters.initializationClass}")
+    if (driverSetup.pipeline.isEmpty) {
+      throw new IllegalStateException(s"Unable to obtain valid pipeline. Please check the DriverSetup class: ${commonParameters.initializationClass}")
     }
+    // TODO Determine how Spark streaming will work going forward.
     try {
-      process(driverSetup, commonParameters)
+      PipelineExecutor.executePipelines(driverSetup.pipeline.get, driverSetup.pipelineContext)
+      // TODO PipelineListener should be used to indicate when the application has stopped/completed so additional cleanup can be performed
     } catch {
       case t: Throwable =>
         logger.error(s"Error while attempting to run application!", t)
         throw t
-    }
-  }
-
-  @tailrec
-  def process(driverSetup: DriverSetup, commonParameters: CommonParameters): Unit = {
-    DriverUtils.processExecutionPlan(driverSetup, driverSetup.executionPlan.get, None, () => {},
-      commonParameters.terminateAfterFailures, 1, commonParameters.maxRetryAttempts,
-      commonParameters.streamingJob, commonParameters.rootExecutions)
-    if (commonParameters.streamingJob) {
-      process(driverSetup, commonParameters)
     }
   }
 }

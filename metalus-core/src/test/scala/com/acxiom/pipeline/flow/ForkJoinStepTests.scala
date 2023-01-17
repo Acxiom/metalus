@@ -1,41 +1,18 @@
 package com.acxiom.pipeline.flow
 
+import com.acxiom.metalus.TestHelper
 import com.acxiom.pipeline._
-import org.apache.commons.io.FileUtils
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.SparkConf
-import org.apache.spark.sql.SparkSession
-import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funspec.AnyFunSpec
 
-import java.io.File
-
-class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
-  override def beforeAll() {
-    Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
-    Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
+class ForkJoinStepTests extends AnyFunSpec with BeforeAndAfterAll {
+  override def beforeAll(): Unit = {
     Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
-    SparkTestHelper.sparkConf = new SparkConf()
-      .setMaster(SparkTestHelper.MASTER)
-      .setAppName(SparkTestHelper.APPNAME)
-    SparkTestHelper.sparkConf.set("spark.hadoop.io.compression.codecs",
-      ",org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
-        "org.apache.hadoop.io.compress.GzipCodec,org.apache." +
-        "hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec")
-
-    SparkTestHelper.sparkSession = SparkSession.builder().config(SparkTestHelper.sparkConf).getOrCreate()
-
-    // cleanup spark-warehouse and user-warehouse directories
-    FileUtils.deleteDirectory(new File("spark-warehouse"))
-    FileUtils.deleteDirectory(new File("user-warehouse"))
   }
 
-  override def afterAll() {
-    SparkTestHelper.sparkSession.stop()
+  override def afterAll(): Unit = {
     Logger.getRootLogger.setLevel(Level.INFO)
-
-    // cleanup spark-warehouse and user-warehouse directories
-    FileUtils.deleteDirectory(new File("spark-warehouse"))
-    FileUtils.deleteDirectory(new File("user-warehouse"))
   }
 
   private val simpleForkParallelStep = PipelineStep(Some("FORK_DATA"), None, None, Some("fork"),
@@ -59,7 +36,7 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
     engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunction"))))
   private val flattenListStep = PipelineStep(Some("FLATTEN_LIST"), None, None, Some("Pipeline"),
     Some(List(Parameter(Some("text"), Some("s"), value = Some("@PROCESS_VALUE")), Parameter(Some("boolean"), Some("boolean"), value = Some(true)))),
-    engineMeta = Some(EngineMeta(Some("MockStepObject.mockFlattenListOfOptions"))), Some("PROCESS_RAW_VALUE"))
+    engineMeta = Some(EngineMeta(Some("MockStepObject.mockFlattenListOfOptions"))), nextStepId = Some("PROCESS_RAW_VALUE"))
   private val simpleBranchStep = PipelineStep(Some("BRANCH_VALUE"), None, None, Some("branch"),
     Some(List(Parameter(Some("text"), Some("string"), value = Some("@PROCESS_VALUE")), Parameter(Some("boolean"), Some("boolean"), value = Some(true)),
       Parameter(Some("result"), Some("0"), value = Some("JOIN")),
@@ -84,24 +61,24 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
   describe("Fork Step Without Join") {
     it("Should process list and merge results using serial processing") {
       val pipeline = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(List(generateDataStep, simpleForkSerialStep, processValueStep)))
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), Some("SERIAL_FORK_TEST"), SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext())
       verifySimpleForkSteps(pipeline, executionResult)
     }
 
     it("Should process list and merge results using parallel processing") {
       val pipelineSteps = List(generateDataStep, simpleForkParallelStep, processValueStep)
       val pipeline = Pipeline(Some("PARALLEL_FORK_TEST"), Some("Parallel Fork Test"), Some(pipelineSteps))
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), Some("PARALLEL_FORK_TEST"), SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext())
       verifySimpleForkSteps(pipeline, executionResult)
     }
 
     it("Should process list and merge results using parallel processing with limit") {
       val pipelineSteps = List(generateDataStep, simpleForkParallelStepWithLimit, processValueStep)
       val pipeline = Pipeline(Some("PARALLEL_FORK_TEST"), Some("Parallel Fork Test"), Some(pipelineSteps))
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), Some("PARALLEL_FORK_TEST"), SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext())
       verifySimpleForkSteps(pipeline, executionResult)
     }
   }
@@ -111,8 +88,8 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       val pipelineSteps = List(generateDataStep, simpleForkSerialStep, processValueStep.copy(nextStepId = Some("BRANCH_VALUE")),
         simpleBranchStep, joinStep.copy(nextStepId = Some("PROCESS_RAW_VALUE")), simpleMockStep)
       val pipeline = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineSteps))
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext())
       verifySimpleForkSteps(pipeline, executionResult, extraStep = true)
     }
 
@@ -121,8 +98,8 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
         List(generateDataStep, simpleForkParallelStep, processValueStep.copy(nextStepId = Some("BRANCH_VALUE")),
           simpleBranchStep, joinStep.copy(nextStepId = Some("PROCESS_RAW_VALUE")), simpleMockStep)
       ))
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext())
       verifySimpleForkSteps(pipeline, executionResult, extraStep = true)
     }
 
@@ -131,8 +108,8 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
         List(generateDataStep, simpleForkParallelStepWithLimit, processValueStep.copy(nextStepId = Some("BRANCH_VALUE")),
           simpleBranchStep, joinStep.copy(nextStepId = Some("PROCESS_RAW_VALUE")), simpleMockStep)
       ))
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext())
       verifySimpleForkSteps(pipeline, executionResult, extraStep = true)
     }
   }
@@ -157,8 +134,8 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
         flattenListStep,
         simpleMockStep)
       val pipeline = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineSteps))
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext().setGlobal("validateStepParameterTypes", true))
       verifyEmbeddedForkResults(pipeline, executionResult)
     }
 
@@ -180,30 +157,25 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
         flattenListStep,
         simpleMockStep)
       val pipeline = Pipeline(Some("PARALLEL_FORK_TEST"), Some("Parallel Fork Test"), Some(pipelineSteps))
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext())
       verifyEmbeddedForkResults(pipeline, executionResult)
     }
 
     it ("Should run a complex embedded fork") {
       val pipeline = PipelineManager(List()).getPipeline("embedded_fork_pipeline")
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline.get), None, SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(pipeline.get, TestHelper.generatePipelineContext())
       assert(executionResult.success)
       val ctx = executionResult.pipelineContext
-      val parameters = ctx.parameters.getParametersByPipelineId(pipeline.get.id.get).get
-      val results = parameters.parameters("SUM_VALUES").asInstanceOf[PipelineStepResponse]
-      assert(results.primaryReturn.isDefined)
-      val primary = results.primaryReturn.get.asInstanceOf[Int]
+      val results = ctx.getStepResultByKey(PipelineStateInfo("embedded_fork_pipeline", Some("SUM_VALUES")).key)
+      assert(results.isDefined)
+      assert(results.get.primaryReturn.isDefined)
+      val primary = results.get.primaryReturn.get.asInstanceOf[Int]
       assert(primary == 10)
-      assert(ctx.rootAudit.children.isDefined)
-      assert(ctx.rootAudit.children.get.length == 1)
-      val pipelineAudit = ctx.rootAudit.children.get.head
-      assert(pipelineAudit.children.isDefined)
-      assert(pipelineAudit.children.get.length == 24)
-      val processValueAudits = pipelineAudit.children.get.filter(_.id == "PROCESS_VALUE")
-      assert(processValueAudits.length == 6)
-      assert(!processValueAudits.exists(_.groupId.isEmpty))
+      val processValueAudits = ctx.getPipelineAudits(PipelineStateInfo("embedded_fork_pipeline", Some("PROCESS_VALUE")))
+      assert(processValueAudits.isDefined)
+      assert(processValueAudits.get.length == 6)
     }
   }
 
@@ -212,8 +184,8 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       val pipelineSteps = List(generateDataStep, simpleForkSerialStep, processValueStep.copy(nextStepId = Some("BAD_FORK")),
         simpleForkParallelStep.copy(id = Some("BAD_FORK"), nextStepId = None))
       val pipeline = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineSteps))
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext())
       assert(!executionResult.success)
       assert(executionResult.exception.isDefined)
       assert(executionResult.exception.get.getMessage == "Fork step(s) (Some(FORK_DATA),Some(BAD_FORK)) must be closed by join when embedding other forks!")
@@ -223,8 +195,8 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       val pipelineSteps = List(generateDataStep, simpleForkParallelStep, processValueStep.copy(nextStepId = Some("BAD_FORK")),
         simpleForkParallelStep.copy(id = Some("BAD_FORK"), nextStepId = None))
       val pipeline = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineSteps))
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext())
       assert(!executionResult.success)
       assert(executionResult.exception.isDefined)
       assert(executionResult.exception.get.getMessage == "Fork step(s) (Some(FORK_DATA),Some(BAD_FORK)) must be closed by join when embedding other forks!")
@@ -237,8 +209,8 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
         processValueStep,
         joinStep)
       val pipelineWithoutForkMethod = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineStepsWithoutForkMethod))
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResultWithoutForkMethod = PipelineExecutor.executePipelines(List(pipelineWithoutForkMethod), None, SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResultWithoutForkMethod = PipelineExecutor.executePipelines(pipelineWithoutForkMethod, TestHelper.generatePipelineContext())
       assert(!executionResultWithoutForkMethod.success)
       val pipelineStepsWithTypo = List(
         generateDataStep,
@@ -247,8 +219,8 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
         processValueStep,
         joinStep)
       val pipelineWithTypo = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineStepsWithTypo))
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResultWithTypo = PipelineExecutor.executePipelines(List(pipelineWithTypo), None, SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResultWithTypo = PipelineExecutor.executePipelines(pipelineWithTypo, TestHelper.generatePipelineContext())
       assert(!executionResultWithTypo.success)
     }
 
@@ -259,8 +231,8 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
         processValueStep,
         joinStep)
       val pipelineWithoutForkMethod = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineStepsWithoutForkMethod))
-      SparkTestHelper.pipelineListener = PipelineListener()
-      val executionResultWithoutForkMethod = PipelineExecutor.executePipelines(List(pipelineWithoutForkMethod), None, SparkTestHelper.generatePipelineContext())
+      TestHelper.pipelineListener = PipelineListener()
+      val executionResultWithoutForkMethod = PipelineExecutor.executePipelines(pipelineWithoutForkMethod, TestHelper.generatePipelineContext())
       assert(!executionResultWithoutForkMethod.success)
     }
   }
@@ -276,8 +248,8 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
         errorBranchStep, errorValueStep.copy(nextStepId = Some("JOIN")), joinStep.copy(nextStepId = Some("PROCESS_RAW_VALUE")), simpleMockStep)
       val pipeline = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineSteps))
       val results = new ListenerValidations
-      SparkTestHelper.pipelineListener = new PipelineListener {
-        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+      TestHelper.pipelineListener = new PipelineListener {
+        override def registerStepException(pipelineKey: PipelineStateInfo, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
             case _ =>
               val e = Option(exception.getCause).getOrElse(exception)
@@ -287,7 +259,7 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
           }
         }
       }
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext())
       assert(!executionResult.success)
       results.validate()
     }
@@ -297,8 +269,8 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
         errorBranchStep, errorValueStep.copy(nextStepId = Some("JOIN")), joinStep.copy(nextStepId = Some("PROCESS_RAW_VALUE")), simpleMockStep)
       val pipeline = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineSteps))
       val results = new ListenerValidations
-      SparkTestHelper.pipelineListener = new PipelineListener {
-        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+      TestHelper.pipelineListener = new PipelineListener {
+        override def registerStepException(pipelineKey: PipelineStateInfo, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
             case _ =>
               val e = Option(exception.getCause).getOrElse(exception)
@@ -308,7 +280,7 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
           }
         }
       }
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext())
       assert(!executionResult.success)
       results.validate()
     }
@@ -324,8 +296,8 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
         joinStep.copy(nextStepId = Some("PROCESS_RAW_VALUE")), simpleMockStep)
       val pipeline = Pipeline(Some("ON_ERROR_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineSteps))
       val results = new ListenerValidations
-      SparkTestHelper.pipelineListener = new PipelineListener {
-        override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+      TestHelper.pipelineListener = new PipelineListener {
+        override def registerStepException(pipelineKey: PipelineStateInfo, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
             case _ =>
               val e = Option(exception.getCause).getOrElse(exception)
@@ -335,15 +307,14 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
           }
         }
       }
-      val executionResult = PipelineExecutor.executePipelines(List(pipeline), None, SparkTestHelper.generatePipelineContext())
+      val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext())
       assert(executionResult.success)
-      val parameters = executionResult.pipelineContext.parameters.getParametersByPipelineId("ON_ERROR_FORK_TEST")
-      assert(parameters.isDefined)
-      assert(parameters.get.parameters("ON_ERROR").isInstanceOf[PipelineStepResponse])
-      assert(parameters.get.parameters("ON_ERROR").asInstanceOf[PipelineStepResponse]
-        .primaryReturn.get.asInstanceOf[List[_]](1).asInstanceOf[Option[String]].get == "EXCEPTION")
-      assert(parameters.get.parameters("ON_ERROR").asInstanceOf[PipelineStepResponse]
-        .primaryReturn.get.asInstanceOf[List[_]](2).asInstanceOf[Option[String]].get == "EXCEPTION")
+      val result = executionResult.pipelineContext.getStepResultsByStateInfo(PipelineStateInfo("ON_ERROR_FORK_TEST", Some("ON_ERROR")))
+      assert(result.isDefined)
+      assert(result.get.length == Constants.TWO)
+      assert(result.get.isInstanceOf[List[PipelineStepResponse]])
+      assert(result.get.head.primaryReturn.get.toString.startsWith("ON_ERROR_FORK_TEST.EXCEPTION"))
+      assert(result.get(1).primaryReturn.get.toString.startsWith("ON_ERROR_FORK_TEST.EXCEPTION"))
     }
   }
 
@@ -351,38 +322,26 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
     assert(executionResult.success)
     val ctx = executionResult.pipelineContext
     assert(ctx.getGlobalString("groupId").isEmpty)
-    val parameters = ctx.parameters.getParametersByPipelineId(pipeline.id.get).get
-    assert(parameters.parameters.contains("GENERATE_DATA"))
-    assert(parameters.parameters.contains("PROCESS_VALUE"))
+    val stateKey = PipelineStateInfo(pipeline.id.getOrElse(""))
+    val generateDataResult = ctx.getStepResultByStateInfo(stateKey.copy(stepId = Some("GENERATE_DATA")))
+    val processValueResult = ctx.getStepResultsByStateInfo(stateKey.copy(stepId = Some("PROCESS_VALUE")))
+    assert(generateDataResult.isDefined)
+    assert(processValueResult.isDefined)
     // Verify that the results were merged properly for each step
-    val results = parameters.parameters("PROCESS_VALUE").asInstanceOf[PipelineStepResponse]
-    assert(results.primaryReturn.isDefined)
-    val primaryList = results.primaryReturn.get.asInstanceOf[List[Option[String]]]
-    assert(primaryList.length == 3)
-    assert(primaryList.head.getOrElse("wrong") == "0")
-    assert(primaryList(1).getOrElse("wrong") == "1")
-    assert(primaryList(2).getOrElse("wrong") == "2")
-    // Verify the namedReturns
-    assert(results.namedReturns.isDefined)
-    val namedReturns = results.namedReturns.get
-    assert(namedReturns.size == 2)
-    assert(namedReturns.contains("boolean"))
-    val booleanList = namedReturns("boolean").asInstanceOf[List[Option[Boolean]]]
-    assert(booleanList.length == 3)
-    assert(namedReturns.contains("string"))
-    val stringList = namedReturns("string").asInstanceOf[List[Option[String]]]
-    assert(stringList.length == 3)
-    assert(stringList.head.get == "0")
-    assert(stringList(1).get == "1")
-    assert(stringList(2).get == "2")
-    assert(ctx.rootAudit.children.isDefined)
-    assert(ctx.rootAudit.children.get.length == 1)
-    val pipelineAudit = ctx.rootAudit.children.get.head
-    assert(pipelineAudit.children.isDefined)
+    val results = processValueResult.get
+    assert(results.length == 3)
+    assert(results.head.namedReturns.isDefined)
+    assert(results.head.namedReturns.get.size == 2)
+    verifyForkResult(results.head, "0", "0")
+    verifyForkResult(results(1), "1", "1")
+    verifyForkResult(results(2), "2", "2")
 
+    val generateAudit = ctx.getPipelineAudit(stateKey.copy(stepId = Some("GENERATE_DATA")))
+    assert(generateAudit.isDefined)
     if (extraStep) {
-      assert(parameters.parameters.contains("PROCESS_RAW_VALUE"))
-      val raw =  parameters.parameters("PROCESS_RAW_VALUE").asInstanceOf[PipelineStepResponse]
+      val processRawValueResult = ctx.getStepResultByStateInfo(stateKey.copy(stepId = Some("PROCESS_RAW_VALUE")))
+      assert(processRawValueResult.isDefined)
+      val raw =  processRawValueResult.get
       assert(raw.primaryReturn.isDefined)
       assert(raw.primaryReturn.get.asInstanceOf[String] == "RAW_DATA")
       assert(raw.namedReturns.isDefined)
@@ -392,22 +351,40 @@ class ForkJoinStepTests extends FunSpec with BeforeAndAfterAll with Suite {
       assert(!rawNamedReturns("boolean").asInstanceOf[Boolean])
       assert(rawNamedReturns.contains("string"))
       assert(rawNamedReturns("string").asInstanceOf[String] == "RAW_DATA")
-      assert(pipelineAudit.children.get.length == 12)
+      assert(ctx.getPipelineAudit(stateKey.copy(stepId = Some("FORK_DATA"))).isDefined)
+      assert(ctx.getPipelineAudit(stateKey.copy(stepId = Some("PROCESS_RAW_VALUE"))).isDefined)
+      verifyForkAudits(ctx, stateKey.copy(stepId = Some("PROCESS_VALUE")))
+      verifyForkAudits(ctx, stateKey.copy(stepId = Some("BRANCH_VALUE")))
     } else {
-      assert(pipelineAudit.children.get.length == 5)
+      verifyForkAudits(ctx, stateKey)
     }
+  }
+
+  private def verifyForkResult(result: PipelineStepResponse, primary: String, stringValue: String) = {
+    assert(result.primaryReturn.getOrElse("wrong") == primary)
+    assert(result.namedReturns.get.contains("boolean"))
+    assert(result.namedReturns.get("boolean").isInstanceOf[Boolean])
+    assert(result.namedReturns.get.contains("string"))
+    assert(result.namedReturns.get("string") == stringValue)
+  }
+
+  private def verifyForkAudits(ctx: PipelineContext, stateKey: PipelineStateInfo) = {
+    val audits = ctx.getPipelineAudits(stateKey.copy(stepId = Some("PROCESS_VALUE")))
+    assert(audits.isDefined)
+    assert(audits.get.length == Constants.THREE)
   }
 
   private def verifyEmbeddedForkResults(pipeline: Pipeline, executionResult: PipelineExecutionResult) = {
     assert(executionResult.success)
     val ctx = executionResult.pipelineContext
-    val parameters = ctx.parameters.getParametersByPipelineId(pipeline.id.get).get
-    val results = parameters.parameters("FLATTEN_LIST").asInstanceOf[PipelineStepResponse]
+    val result = ctx.getStepResultByStateInfo(PipelineStateInfo(pipeline.id.getOrElse(""), Some("FLATTEN_LIST")))
+    assert(result.isDefined)
+    val results = result.get
     assert(results.primaryReturn.isDefined)
     val primaryList = results.primaryReturn.get.asInstanceOf[List[String]]
     assert(primaryList.length == 3)
-    assert(primaryList.head == "0")
-    assert(primaryList(1) == "1")
-    assert(primaryList(2) == "2")
+    assert(primaryList.contains("0"))
+    assert(primaryList.contains("1"))
+    assert(primaryList.contains("2"))
   }
 }

@@ -12,28 +12,22 @@
       "name": "Test Pipeline Listener"
     }
   },
-  "securityManager": {
-    "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
-    "parameters": {
-      "name": "Test Security Manager"
-    }
-  },
   "stepMapper": {
     "className": "com.acxiom.pipeline.applications.TestPipelineStepMapper",
     "parameters": {
       "name": "Test Step Mapper"
     }
   },
-  "pipelineParameters": {
-    "parameters":[
-      {
-        "pipelineId": "Pipeline1",
-        "parameters": {
-          "fred": "johnson"
-        }
+  "pipelineParameters": [
+    {
+      "pipelineKey": {
+        "pipelineId": "Pipeline1"
+      },
+      "parameters": {
+        "fred": "johnson"
       }
-    ]
-  },
+    }
+  ],
   "globals": {
     "number": 1,
     "float": 1.5,
@@ -52,38 +46,5 @@
         ]
       }
     }
-  },
-  "executions": [
-    {
-      "id": "0",
-      "securityManager": {
-        "className": "com.acxiom.pipeline.applications.TestPipelineSecurityManager",
-        "parameters": {
-          "name": "Sub Security Manager"
-        }
-      },
-      "globals": {
-        "number": 2,
-        "float": 3.5,
-        "string": "sub string",
-        "mappedObject": {
-          "className": "com.acxiom.pipeline.applications.TestGlobalObject",
-          "object": {
-            "name": "Execution Mapped Object",
-            "subObjects": [
-              {
-                "name": "Sub Object 1a"
-              },
-              {
-                "name": "Sub Object 2a"
-              },
-              {
-                "name": "Sub Object 3"
-              }
-            ]
-          }
-        }
-      }
-    }
-  ]
+  }
 }

@@ -9,9 +9,7 @@ import scala.concurrent.{Await, Future}
 
 case class SplitStepFlow(pipeline: Pipeline,
                          initialContext: PipelineContext,
-                         pipelineLookup: Map[String, String],
-                         executingPipelines: List[Pipeline],
-                         step: PipelineStep) extends PipelineFlow {
+                         step: FlowStep) extends PipelineFlow {
   private val BLANK_STEP = PipelineStep(id = Some("NONE"), `type` = Some("NONE"))
   private val flows = step.params.getOrElse(List()).filter(_.`type`.getOrElse("none") == "result").map(p => {
     val firstStep = stepLookup(p.value.getOrElse("").asInstanceOf[String])
@@ -22,16 +20,16 @@ case class SplitStepFlow(pipeline: Pipeline,
     if (flows.length < 2) {
       throw PipelineException(message = Some("At least two paths need to be defined to use a split step!"),
         context = Some(initialContext),
-        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
+        pipelineProgress = Some(initialContext.currentStateInfo.get.copy(stepId = step.id)))
     }
-    val flowSteps = flows.foldLeft(List[PipelineStep]())((list, flow) => {
+    val flowSteps = flows.foldLeft(List[FlowStep]())((list, flow) => {
       list ++ flow.steps.filter(_.id.get != flow.mergeStep.getOrElse(BLANK_STEP).id.get)
     })
     flowSteps.groupBy(_.id.get).foreach(step => {
       if (step._2.length > 1) {
         throw PipelineException(message = Some("Step Ids must be unique across split flows!"),
           context = Some(initialContext),
-          pipelineProgress = Some(PipelineExecutionInfo(Some(step._1), pipeline.id)))
+          pipelineProgress = Some(initialContext.currentStateInfo.get.copy(stepId = Some(step._1))))
       }
     })
     // Determine if there is a single merge for all flows and thread appropriately
@@ -53,21 +51,18 @@ case class SplitStepFlow(pipeline: Pipeline,
     } else {
       throw PipelineException(message = Some("Flows must either terminate at a single merge step or pipeline end!"),
         context = Some(initialContext),
-        pipelineProgress = Some(PipelineExecutionInfo(step.id, pipeline.id)))
+        pipelineProgress =  Some(initialContext.currentStateInfo.get.copy(stepId = step.id)))
     }
     // Merge results once threads complete
-    val finalResult = mergeResults(initialContext, pipeline.id.get, results)
+    val finalResult = mergeResults(initialContext, results)
     if (finalResult.error.isDefined) {
       throw finalResult.error.get
     } else {
-      val finalCtx = if (finalResult.globalUpdates.isDefined && finalResult.globalUpdates.get.nonEmpty) {
-        finalResult.globalUpdates.get.foldLeft(finalResult.result.getOrElse(initialContext))((ctx, update) => {
-          PipelineFlow.updateGlobals(update.stepName, update.pipelineId, ctx, update.global, update.globalName, update.isLink)
-        })
-      } else {
-        finalResult.result.getOrElse(initialContext)
-      }
-      FlowResult(finalCtx, nextStepId, Some(finalResult))
+      // Merge into PipelineContext
+//      val updateCtx = finalResult.globalUpdates.get.foldLeft(finalResult.result.getOrElse(initialContext))((ctx, update) => {
+//        PipelineFlow.updateGlobals(update.stepName, ctx, update.global, update.globalName, update.isLink)
+//      })
+      FlowResult(finalResult.result.getOrElse(initialContext), nextStepId, Some(finalResult))
     }
   }
 
@@ -94,15 +89,14 @@ case class SplitStepFlow(pipeline: Pipeline,
     Future {
       val mergeFutures = startSplitFlows(splitFlows)
       Await.ready(Future.sequence(mergeFutures), Duration.Inf)
-      val mergedResult = mergeResults(initialContext, pipeline.id.get, mergeFutures.map(_.value.get.get))
+      val mergedResult = mergeResults(initialContext, mergeFutures.map(_.value.get.get))
       val flowNextStepId = splitFlows.head.mergeStep.getOrElse(BLANK_STEP).nextStepId.getOrElse("")
       if (mergedResult.error.isEmpty && flowNextStepId.nonEmpty) {
         val nextStep = stepLookup(flowNextStepId)
         val mergedPipelineCtx = mergedResult.result.get
-        val auditCtx = setStepAudit(mergedPipelineCtx, Some(flowNextStepId), pipeline.id.get, None)
         try {
           SplitFlowExecutionResult(nextStep.id.getOrElse("NONE"),
-            Some(executeStep(nextStep, pipeline, stepLookup, auditCtx)), None)
+            Some(executeStep(nextStep, pipeline, stepLookup, mergedPipelineCtx)), None)
         } catch {
           case t: Throwable => SplitFlowExecutionResult(flowNextStepId, None, Some(t))
         }
@@ -112,7 +106,7 @@ case class SplitStepFlow(pipeline: Pipeline,
     }
   }
 
-  private def getSplitFlow(step: PipelineStep, splitFlow: SplitFlow): SplitFlow = {
+  private def getSplitFlow(step: FlowStep, splitFlow: SplitFlow): SplitFlow = {
     step.`type`.getOrElse("").toLowerCase match {
       case PipelineStepType.BRANCH =>
         step.params.get.foldLeft(splitFlow.conditionallyAddStepToList(step))((flow, param) => {
@@ -133,17 +127,16 @@ case class SplitStepFlow(pipeline: Pipeline,
                                       pipelineContext: PipelineContext): SplitFlowExecutionResult = {
     try {
       SplitFlowExecutionResult(flow.rootStep.id.getOrElse("NONE"), Some(executeStep(flow.rootStep, pipeline,
-        flow.steps.foldLeft(Map[String, PipelineStep]())((map, s) => map + (s.id.get -> s)),
-        PipelineFlow.createForkedPipelineContext(pipelineContext, None, flow.rootStep))), None)
+        flow.steps.foldLeft(Map[String, FlowStep]())((map, s) => map + (s.id.get -> s)),
+        PipelineFlow.createForkedPipelineContext(pipelineContext, flow.rootStep))), None)
     } catch {
       case t: Throwable => SplitFlowExecutionResult(flow.rootStep.id.getOrElse("NONE"), None, Some(t))
     }
   }
 
   private def mergeResults(pipelineContext: PipelineContext,
-                           pipelineId: String,
                            results: List[SplitFlowExecutionResult]): SplitFlowExecutionResult = {
-    results.foldLeft(SplitFlowExecutionResult("", Some(pipelineContext), None, None))((combinedResult, result) => {
+    results.foldLeft(SplitFlowExecutionResult("", Some(pipelineContext), None))((combinedResult, result) => {
       if (result.error.isDefined) {
         if (combinedResult.error.isDefined) {
           combinedResult.copy(error = Some(combinedResult.error.get.asInstanceOf[SplitStepException].addException(result.error.get, result.id)))
@@ -154,36 +147,7 @@ case class SplitStepFlow(pipeline: Pipeline,
               exceptions = Map(result.id -> result.error.get))))
         }
       } else {
-        val resultCtx = result.result.get
-        val ctx = combinedResult.result.get
-        val mergeAuditCtx = ctx.copy(rootAudit = ctx.rootAudit.merge(resultCtx.rootAudit))
-        val mergedResult = stepLookup.foldLeft(combinedResult.copy(result = Some(mergeAuditCtx)))((cresult, flowStep) => {
-          resultCtx.getParameterByPipelineId(pipelineId, flowStep._2.id.get)
-            .map { p =>
-              val ctx = cresult.result.get
-              cresult.copy(result =
-                Some(ctx.copy(parameters = ctx.parameters.setParameterByPipelineId(pipelineId, flowStep._2.id.get, p))))
-            }
-            .getOrElse(cresult)
-        })
-        // Pull together global updates
-        val pipelineParams = mergedResult.result.get.parameters.getParametersByPipelineId(pipelineId)
-        val updates = pipeline.steps.get
-          .filter { step =>
-            pipelineParams.isDefined && pipelineParams.get.parameters.get(step.id.getOrElse(""))
-              .exists(r => r.isInstanceOf[PipelineStepResponse] && r.asInstanceOf[PipelineStepResponse].namedReturns.isDefined)
-          }.foldLeft(List[GlobalUpdates]())((updates, step) => {
-          updates ++ gatherGlobalUpdates(pipelineParams, step, pipelineId)
-        })
-        if (updates.nonEmpty) {
-          if (mergedResult.globalUpdates.isDefined) {
-            mergedResult.copy(globalUpdates = Some(mergedResult.globalUpdates.get ++ updates))
-          } else {
-            mergedResult.copy(globalUpdates = Some(updates))
-          }
-        } else {
-          mergedResult
-        }
+        combinedResult.copy(result = Some(combinedResult.result.get.merge(result.result.get)))
       }
     })
   }
@@ -224,8 +188,8 @@ case class SplitStepException(errorType: Option[String] = Some("splitStepExcepti
 
 case class SplitFlowExecutionResult(id: String, result: Option[PipelineContext], error: Option[Throwable], globalUpdates: Option[List[GlobalUpdates]] = None)
 
-case class SplitFlow(rootStep: PipelineStep, mergeStep: Option[PipelineStep], steps: List[PipelineStep]) {
-  def conditionallyAddStepToList(step: PipelineStep): SplitFlow = {
+case class SplitFlow(rootStep: FlowStep, mergeStep: Option[FlowStep], steps: List[FlowStep]) {
+  def conditionallyAddStepToList(step: FlowStep): SplitFlow = {
     if (this.steps.exists(_.id.getOrElse("") == step.id.getOrElse("NONE"))) {
       this
     } else {

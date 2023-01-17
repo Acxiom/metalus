@@ -1,14 +1,39 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.PipelineStepMessageType.PipelineStepMessageType
+import com.acxiom.pipeline.applications.Json4sSerializers
+
 import java.util.Date
 
-import com.acxiom.pipeline.applications.Json4sSerializers
+/**
+  * Defines the minimal attributes required for a step template and pipeline step.
+  *
+  * @param id              The unique (to the pipeline) id of this step. This property is used to chain steps together.
+  * @param displayName     A name that can be displayed in logs and errors.
+  * @param description     A long description of this step.
+  * @param `type`          The type of step.
+  * @param params          The step parameters that are used during execution.
+  * @param engineMeta      Contains the instruction for invoking the step function.
+  */
+trait Step {
+  def id: Option[String]
+  def displayName: Option[String]
+  def description: Option[String]
+  def `type`: Option[String]
+  def params: Option[List[Parameter]]
+}
+
+trait FlowStep extends Step {
+  def nextStepId: Option[String]
+  def executeIfEmpty: Option[String]
+  def stepTemplateId: Option[String]
+  def nextStepOnError: Option[String]
+  def retryLimit: Option[Int]
+}
 
 /**
   * Metadata about the next step in the pipeline process.
   *
-  * @param id              The unique (to the pipeline) id of this step. This pproperty is used to chain steps together.
+  * @param id              The unique (to the pipeline) id of this step. This property is used to chain steps together.
   * @param displayName     A name that can be displayed in logs and errors.
   * @param description     A long description of this step.
   * @param `type`          The type of step.
@@ -16,34 +41,67 @@ import com.acxiom.pipeline.applications.Json4sSerializers
   * @param engineMeta      Contains the instruction for invoking the step function.
   * @param executeIfEmpty  This field allows a value to be passed in rather than executing the step.
   * @param nextStepId      The id of the next step to execute.
-  * @param stepId          The id of the step that provided the metadata.
+  * @param stepTemplateId          The id of the step that provided the metadata.
   * @param nextStepOnError The id of the step that should be called on error
   * @param retryLimit      The number of times that this step should be retried on error. Default is -1 indicating to
   *                        not retry. This parameter will be considered before nextStepOnError.
   */
-case class PipelineStep(id: Option[String] = None,
-                        displayName: Option[String] = None,
-                        description: Option[String] = None,
-                        `type`: Option[String] = None,
-                        params: Option[List[Parameter]] = None,
+final case class PipelineStep(override val id: Option[String] = None,
+                              override val displayName: Option[String] = None,
+                              override val description: Option[String] = None,
+                              override val `type`: Option[String] = None,
+                              override val params: Option[List[Parameter]] = None,
+                              override val nextStepId: Option[String] = None,
+                              override val executeIfEmpty: Option[String] = None,
+                              override val stepTemplateId: Option[String] = None,
+                              override val nextStepOnError: Option[String] = None,
+                              override val retryLimit: Option[Int] = Some(-1),
+                              engineMeta: Option[EngineMeta] = None) extends FlowStep
+
+final case class PipelineStepGroup(override val id: Option[String] = None,
+                                   override val displayName: Option[String] = None,
+                                   override val description: Option[String] = None,
+                                   override val `type`: Option[String] = None,
+                                   override val params: Option[List[Parameter]] = None,
+                                   override val nextStepId: Option[String] = None,
+                                   override val executeIfEmpty: Option[String] = None,
+                                   override val stepTemplateId: Option[String] = None,
+                                   override val nextStepOnError: Option[String] = None,
+                                   override val retryLimit: Option[Int] = Some(-1),
+                                   pipelineId: Option[String] = None) extends FlowStep
+// TODO [2.0 Review] Look into creating a PipelineForkStep which exposes the fork method and fork by values attributes
+
+/**
+  * Represents a template fora step to be used when creating a pipeline.
+  *
+  * @param id              The unique (to the pipeline) id of this step template. This property is used to reference this template within a pipeline step.
+  * @param displayName     A name that can be displayed in logs and errors.
+  * @param description     A long description of this step.
+  * @param `type`          The type of step.
+  * @param params          The step parameters that are used during execution.
+  * @param engineMeta      Contains the instruction for invoking the step function.
+  * @param restartable     Boolean flag indicating whether this step may be started in a flow restart
+  */
+case class StepTemplate(override val id: Option[String] = None,
+                        override val displayName: Option[String] = None,
+                        override val description: Option[String] = None,
+                        override val `type`: Option[String] = None,
+                        override val params: Option[List[Parameter]] = None,
                         engineMeta: Option[EngineMeta] = None,
-                        nextStepId: Option[String] = None,
-                        executeIfEmpty: Option[String] = None,
-                        stepId: Option[String] = None,
-                        nextStepOnError: Option[String] = None,
-                        retryLimit: Option[Int] = Some(-1))
+                        restartable: Option[Boolean] = Some(false)) extends Step
 
 /**
   * Represents a single parameter in a step.
   *
-  * @param `type`        The parameter type.
-  * @param name          The parameter name. This should match the parameter name of the function being called.
-  * @param required      Boolean indicating whether this parameter is required.
-  * @param defaultValue  The default value to pass if the value is not set.
-  * @param value         The value to be used for this parameter.
-  * @param className     An optional classname used to convert a map into an object
-  * @param parameterType Contains optional type information for each parameter
-  * @param description   Optional description of this parameter
+  * @param `type`            The parameter type.
+  * @param name              The parameter name. This should match the parameter name of the function being called.
+  * @param required          Boolean indicating whether this parameter is required.
+  * @param defaultValue      The default value to pass if the value is not set.
+  * @param value             The value to be used for this parameter.
+  * @param className         An optional classname used to convert a map into an object
+  * @param parameterType     Contains optional type information for each parameter
+  * @param description       Optional description of this parameter
+  * @param json4sSerializers Optional custom json serializers
   */
 case class Parameter(`type`: Option[String] = None,
                      name: Option[String] = None,
@@ -95,7 +153,7 @@ trait PipelineStepException extends Exception {
 case class PauseException(errorType: Option[String] = Some("pauseException"),
                           dateTime: Option[String] = Some(new Date().toString),
                           message: Option[String] = Some(""),
-                          pipelineProgress: Option[PipelineExecutionInfo],
+                          pipelineProgress: Option[PipelineStateInfo],
                           cause: Throwable = None.orNull,
                           context: Option[PipelineContext] = None)
   extends Exception(message.getOrElse(""), cause)
@@ -114,7 +172,7 @@ case class PauseException(errorType: Option[String] = Some("pauseException"),
 case class PipelineException(errorType: Option[String] = Some("pipelineException"),
                              dateTime: Option[String] = Some(new Date().toString),
                              message: Option[String] = Some(""),
-                             pipelineProgress: Option[PipelineExecutionInfo],
+                             pipelineProgress: Option[PipelineStateInfo],
                              cause: Throwable = None.orNull,
                              context: Option[PipelineContext] = None)
   extends Exception(message.getOrElse(""), cause)
@@ -153,7 +211,7 @@ case class ForkedPipelineStepException(errorType: Option[String] = Some("forkSte
 }
 
 /**
-  *
+  * TODO [2.0 Review] This may no longer be needed in the new model
   * @param errorType  The type of exception. The default is forkStepException
   * @param dateTime   The date and time of the exception
   * @param message    The base message to detailing the reason
@@ -165,47 +223,7 @@ case class SkipExecutionPipelineStepException(errorType: Option[String] = Some("
                                               context: Option[PipelineContext] = None) extends Exception(message.getOrElse(""))
   with PipelineStepException
 
-trait PipelineStepMessage {
-  val stepId: String
-  val pipelineId: String
-  val messageType: PipelineStepMessageType
-  val message: String
-}
-
-object PipelineStepMessageType extends Enumeration {
-  type PipelineStepMessageType = Value
-  val error, warn, pause, info, skip = Value
-}
-
-object PipelineStepMessage {
-  def apply(message: String, stepId: String, pipelineId: String, messageType: PipelineStepMessageType): PipelineStepMessage =
-    DefaultPipelineStepMessage(message: String, stepId, pipelineId, messageType)
-}
-
-case class DefaultPipelineStepMessage(message: String, stepId: String, pipelineId: String, messageType: PipelineStepMessageType)
-  extends PipelineStepMessage
-
-case class ForkedPipelineStepMessage(message: String,
-                                     stepId: String,
-                                     pipelineId: String,
-                                     messageType: PipelineStepMessageType,
-                                     executionId: Option[Int]) extends PipelineStepMessage
-
-/**
-  * Trait that defines the object that should be returned by a PipelineStep function.
-  */
-trait PipelineStepResponse {
-  val primaryReturn: Option[Any]
-  val namedReturns: Option[Map[String, Any]]
-}
-
-case class DefaultPipelineStepResponse(primaryReturn: Option[Any], namedReturns: Option[Map[String, Any]] = None)
-  extends PipelineStepResponse
-
-object PipelineStepResponse {
-  def apply(primaryReturn: Option[Any], namedReturns: Option[Map[String, Any]]): PipelineStepResponse =
-    DefaultPipelineStepResponse(primaryReturn, namedReturns)
-}
+case class PipelineStepResponse(primaryReturn: Option[Any], namedReturns: Option[Map[String, Any]] = None)
 
 object PipelineStepType {
   val BRANCH: String = "branch"

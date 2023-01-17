@@ -1,8 +1,8 @@
 package com.acxiom.pipeline
 
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 
-class CredentialProviderTests extends FunSpec {
+class CredentialProviderTests extends AnyFunSpec {
   describe("CredentialProvider - Default Implementation") {
     it("Should load default AuthorizationCredential") {
       val parameters = Map[String, Any](

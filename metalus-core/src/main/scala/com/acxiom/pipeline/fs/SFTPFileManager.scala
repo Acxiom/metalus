@@ -7,12 +7,12 @@ import scala.jdk.CollectionConverters._
 
 object SFTPFileManager {
   val DEFAULT_PORT = 22
-  val DEFAULT_BULK_REQUESTS = 128
-  val DEFAULT_TRANSFER_BUFFER = 32768
-  val DEFAULT_INPUT_BUFFER = 65536
-  val DEFAULT_OUTPUT_BUFFER = 65536
-  val DEFAULT_TIMEOUT = 0
-  val IGNORED_DIRECTORIES = List(".", "..")
+  private val DEFAULT_BULK_REQUESTS = 128
+  private val DEFAULT_TRANSFER_BUFFER = 32768
+  private val DEFAULT_INPUT_BUFFER = 65536
+  private val DEFAULT_OUTPUT_BUFFER = 65536
+  private val DEFAULT_TIMEOUT = 0
+  private val IGNORED_DIRECTORIES = List(".", "..")
 
   def apply(hostName: String,
             port: Option[Int] = None,
@@ -24,6 +24,82 @@ object SFTPFileManager {
             timeout: Option[Int] = None
            ): SFTPFileManager = new SFTPFileManager(hostName, port, user, password,
     knownHosts, bulkRequests, config, timeout)
+}
+
+case class SFTPFileResource(path: String, channel: ChannelSftp) extends FileResource {
+  private val index = path.stripSuffix("/").lastIndexOf('/') + 1
+  private val name = path.stripSuffix("/").splitAt(index)._2
+
+  /**
+   * The simple name of this file. Does not include the full path.
+   *
+   * @return The file name.
+   */
+  override def fileName: String = name
+
+  /**
+   * Returns the full name of this file including path.
+   *
+   * @return The full name.
+   */
+  override def fullName: String = path
+
+  /**
+   * True if this represents a directory.
+   *
+   * @return True if this represents a directory.
+   */
+  override def directory: Boolean = channel.stat(path).isDir
+
+  /**
+   * Will attempt to rename this file to the destination path.
+   *
+   * @param destPath The destination path.
+   * @return True if the path could be renamed.
+   */
+  override def rename(destPath: String): Boolean = wrapMethod(channel.rename(path, destPath))
+
+  /**
+   * Attempts to delete this file.
+   *
+   * @return True if the path could be deleted.
+   */
+  override def delete: Boolean = wrapMethod(channel.rm(path))
+
+  /**
+   * Get the size of this file.
+   *
+   * @return size of this file.
+   */
+  override def size: Long = channel.stat(path).getSize
+
+  /**
+   * Creates a buffered input stream for this file.
+   *
+   * @param bufferSize The buffer size to apply to the stream
+   * @return A buffered input stream
+   */
+  override def getInputStream(bufferSize: Int): InputStream = new BufferedInputStream(channel.get(path), bufferSize)
+
+  /**
+   * Creates a buffered output stream for this file.
+   *
+   * @param append     Boolean flag indicating whether data should be appended. Default is true
+   * @param bufferSize The buffer size to apply to the stream
+   * @return
+   */
+  override def getOutputStream(append: Boolean, bufferSize: Int): OutputStream =
+    new BufferedOutputStream(channel.put(path, if (append) ChannelSftp.APPEND else ChannelSftp.OVERWRITE), bufferSize)
+
+  private def wrapMethod(f: => Unit): Boolean = {
+    try {
+      f
+      true
+    } catch {
+      case _: SftpException => false
+      case t: Throwable => throw t
+    }
+  }
 }
 
 class SFTPFileManager(hostName: String,
@@ -78,73 +154,19 @@ class SFTPFileManager(hostName: String,
   }
 
   /**
-   * Creates a buffered input stream for the provided path.
-   *
-   * @param path       The path to read data from
-   * @param bufferSize The buffer size to apply to the stream
-   * @return A buffered input stream
-   */
-  override def getInputStream(path: String, bufferSize: Int = SFTPFileManager.DEFAULT_INPUT_BUFFER): InputStream = {
-    new BufferedInputStream(channel.get(path), bufferSize)
-  }
-
-  /**
-   * Creates a buffered output stream for the provided path.
-   *
-   * @param path       The path where data will be written.
-   * @param append     Boolean flag indicating whether data should be appended. Default is true
-   * @param bufferSize The buffer size to apply to the stream
-   * @return
-   */
-  override def getOutputStream(path: String, append: Boolean, bufferSize: Int = SFTPFileManager.DEFAULT_OUTPUT_BUFFER): OutputStream = {
-    new BufferedOutputStream(channel.put(path, if (append) ChannelSftp.APPEND else ChannelSftp.OVERWRITE), bufferSize)
-  }
-
-  /**
-   * Will attempt to rename the provided path to the destination path.
-   *
-   * @param path     The path to rename.
-   * @param destPath The destination path.
-   * @return True if the path could be renamed.
-   */
-  override def rename(path: String, destPath: String): Boolean = {
-    wrapMethod(channel.rename(path, destPath))
-  }
-
-  /**
-   * Attempts to delete the provided path.
-   *
-   * @param path The path to delete.
-   * @return True if the path could be deleted.
-   */
-  override def deleteFile(path: String): Boolean = {
-    wrapMethod(channel.rm(path))
-  }
-
-  /**
-   * Get the size of the file at the given path. If the path is not a file, an exception will be thrown.
-   *
-   * @param path The path to the file
-   * @return size of the given file
-   */
-  override def getSize(path: String): Long = {
-    channel.stat(path).getSize
-  }
-
-  /**
    * Returns a list of file names at the given path.
    *
    * @param path The path to list.
    * @param recursive Flag indicating whether to run a recursive or simple listing.
    * @return A list of files at the given path
    */
-  override def getFileListing(path: String, recursive: Boolean = false): List[FileInfo] = {
+  override def getFileListing(path: String, recursive: Boolean = false): List[FileResource] = {
     channel.ls(path).asScala.map(_.asInstanceOf[channel.LsEntry]).flatMap {
-      case e if recursive && SFTPFileManager.IGNORED_DIRECTORIES.contains(e.getFilename) => List.empty[FileInfo]
+      case e if recursive && SFTPFileManager.IGNORED_DIRECTORIES.contains(e.getFilename) => List.empty[FileResource]
       case e if recursive && e.getAttrs.isDir && !SFTPFileManager.IGNORED_DIRECTORIES.contains(e.getFilename) =>
         getFileListing(s"${path.stripSuffix("/")}/${e.getFilename}", recursive)
       case e =>
-        List(FileInfo(e.getFilename, e.getAttrs.getSize, e.getAttrs.isDir, Some(path)))
+        List(SFTPFileResource(e.getFilename, channel))
     }.toList
   }
 
@@ -153,12 +175,7 @@ class SFTPFileManager(hostName: String,
    * @param path The path to get a status of.
    * @return A FileInfo object for the path given.
    */
-  override def getStatus(path: String): FileInfo = {
-    val fs = channel.stat(path)
-    val index = path.stripSuffix("/").lastIndexOf('/') + 1
-    val (parent, name) = path.stripSuffix("/").splitAt(index)
-    FileInfo(name, fs.getSize, fs.isDir, Some(parent))
-  }
+  override def getFileResource(path: String): FileResource = SFTPFileResource(path, channel)
 
   /**
    * Disconnect from the file system
@@ -170,17 +187,6 @@ class SFTPFileManager(hostName: String,
     if (session.isConnected) {
       session.disconnect()
     }
-  }
-
-  /**
-   * Copies all of the contents of the input stream to the output stream.
-   *
-   * @param input  The input contents to copy
-   * @param output The output to copy to
-   * @return True if the copy was successful
-   */
-  override def copy(input: InputStream, output: OutputStream): Boolean = {
-    super.copy(input, output, SFTPFileManager.DEFAULT_TRANSFER_BUFFER)
   }
 
   /**

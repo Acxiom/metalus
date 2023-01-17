@@ -1,9 +1,10 @@
 package com.acxiom.pipeline.utils
 
-import com.acxiom.pipeline.{PipelineContext, PipelineParameters, PipelineSecurityManager, PipelineStepMapper}
-import org.scalatest.{BeforeAndAfterAll, FunSpec}
+import com.acxiom.pipeline.{ContextManager, PipelineContext, PipelineStepMapper}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funspec.AnyFunSpec
 
-class ScalaScriptEngineTests extends FunSpec with BeforeAndAfterAll {
+class ScalaScriptEngineTests extends AnyFunSpec with BeforeAndAfterAll {
 
   var scriptEngine: ScalaScriptEngine = _
 
@@ -35,9 +36,9 @@ class ScalaScriptEngineTests extends FunSpec with BeforeAndAfterAll {
     }
 
     it("Should execute a script against pipelineContext") {
-      val pipelineContext = PipelineContext(None, None, Some(Map[String, Any]("pipelineId" -> "testPipelineId")),
-        PipelineSecurityManager(), PipelineParameters(),
-        Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(), None, None)
+      val pipelineContext = PipelineContext(Some(Map[String, Any]("pipelineId" -> "testPipelineId")),
+        List(), Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(),
+        contextManager = new ContextManager(Map(), Map()))
       val script =
         """
           | pipelineContext.getGlobalString("pipelineId").get
@@ -50,9 +51,9 @@ class ScalaScriptEngineTests extends FunSpec with BeforeAndAfterAll {
     }
 
     it("Should execute a script with a supplied object") {
-      val pipelineContext = PipelineContext(None, None, Some(Map[String, Any]("pipelineId" -> "testPipelineId")),
-        PipelineSecurityManager(), PipelineParameters(),
-        Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(), None, None)
+      val pipelineContext = PipelineContext(Some(Map[String, Any]("pipelineId" -> "testPipelineId")),
+        List(), Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(),
+        contextManager = new ContextManager(Map(), Map()))
       val script =
         """
           | "RedOnTheHead" + userValue.asInstanceOf[String]
@@ -62,9 +63,9 @@ class ScalaScriptEngineTests extends FunSpec with BeforeAndAfterAll {
     }
 
     it("Should execute a script with a supplied bindings") {
-      val pipelineContext = PipelineContext(None, None, Some(Map[String, Any]("pipelineId" -> "testPipelineId")),
-        PipelineSecurityManager(), PipelineParameters(),
-        Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(), None, None)
+      val pipelineContext = PipelineContext(Some(Map[String, Any]("pipelineId" -> "testPipelineId")),
+        List(), Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(),
+        contextManager = new ContextManager(Map(), Map()))
       val script =
         """
           | "RedOnTheHead" + userValue.asInstanceOf[String]
@@ -77,9 +78,9 @@ class ScalaScriptEngineTests extends FunSpec with BeforeAndAfterAll {
 
   describe("ScriptEngine - Complex Scripts") {
     it("Should read from pipelineContext") {
-      val pipelineContext = PipelineContext(None, None, Some(Map[String, Any]("pipelineId" -> "testPipelineId")),
-        PipelineSecurityManager(), PipelineParameters(),
-        Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(), None, None)
+      val pipelineContext = PipelineContext(Some(Map[String, Any]("pipelineId" -> "testPipelineId")),
+        List(), Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(),
+        contextManager = new ContextManager(Map(), Map()))
       val script =
         """
           | var stringOption = pipelineContext.getGlobalString("pipelineId")
@@ -94,9 +95,9 @@ class ScalaScriptEngineTests extends FunSpec with BeforeAndAfterAll {
     }
 
     it("Should modify pipelineContext") {
-      val pipelineContext = PipelineContext(None, None, Some(Map[String, Any]("pipelineId" -> "testPipelineId")),
-        PipelineSecurityManager(), PipelineParameters(),
-        Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(), None, None)
+      val pipelineContext = PipelineContext(Some(Map[String, Any]("pipelineId" -> "testPipelineId")),
+        List(), Some(List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")), PipelineStepMapper(),
+        contextManager = new ContextManager(Map(), Map()))
       val script =
         """
           | pipelineContext.setGlobal("scalaString", "Should create a new global");
@@ -106,5 +107,4 @@ class ScalaScriptEngineTests extends FunSpec with BeforeAndAfterAll {
       assert(ctx.getGlobalString("scalaString").getOrElse("none") == "Should create a new global")
     }
   }
-
 }

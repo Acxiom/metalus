@@ -1,49 +1,27 @@
 package com.acxiom.pipeline
 
-import java.io.File
-
-import com.acxiom.pipeline.utils.DriverUtils
-import org.apache.commons.io.FileUtils
+import com.acxiom.metalus.TestHelper
+import com.acxiom.metalus.parser.JsonParser
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.SparkConf
-import org.apache.spark.sql.SparkSession
-import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.{BeforeAndAfterAll, Suite}
 
-class GlobalStepUpdateTests extends FunSpec with BeforeAndAfterAll with Suite {
+class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite {
   override def beforeAll() {
     Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
     Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
     Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
-    SparkTestHelper.sparkConf = new SparkConf()
-      .setMaster(SparkTestHelper.MASTER)
-      .setAppName(SparkTestHelper.APPNAME)
-    SparkTestHelper.sparkConf.set("spark.hadoop.io.compression.codecs",
-      ",org.apache.hadoop.io.compress.BZip2Codec,org.apache.hadoop.io.compress.DeflateCodec," +
-        "org.apache.hadoop.io.compress.GzipCodec,org.apache." +
-        "hadoop.io.compress.Lz4Codec,org.apache.hadoop.io.compress.SnappyCodec")
 
-    SparkTestHelper.sparkSession = SparkSession.builder().config(SparkTestHelper.sparkConf).getOrCreate()
-
-    // cleanup spark-warehouse and user-warehouse directories
-    FileUtils.deleteDirectory(new File("spark-warehouse"))
-    FileUtils.deleteDirectory(new File("user-warehouse"))
-
-    SparkTestHelper.pipelineListener = PipelineListener()
+    TestHelper.pipelineListener = PipelineListener()
   }
 
   override def afterAll() {
-    SparkTestHelper.sparkSession.stop()
     Logger.getRootLogger.setLevel(Level.INFO)
-
-    // cleanup spark-warehouse and user-warehouse directories
-    FileUtils.deleteDirectory(new File("spark-warehouse"))
-    FileUtils.deleteDirectory(new File("user-warehouse"))
   }
 
   describe("Global Value Manipulation from simple Steps") {
     val pipelineJson =
     """
-      |[
       | {
       |   "id": "Pipeline1",
       |   "name": "Pipeline 1",
@@ -112,16 +90,15 @@ class GlobalStepUpdateTests extends FunSpec with BeforeAndAfterAll with Suite {
       |     }
       |   ]
       | }
-      |]
     """.stripMargin
     it("Should allow steps to add a global") {
-      val context = SparkTestHelper.generatePipelineContext()
-      val pipelines = DriverUtils.parsePipelineJson(pipelineJson)
-      val result = PipelineExecutor.executePipelines(pipelines.get, None, context)
+      val context = TestHelper.generatePipelineContext()
+      val pipelines = JsonParser.parsePipelineJson(pipelineJson)
+      val result = PipelineExecutor.executePipelines(pipelines.get.head, context)
       assert(result.success)
       val ctx = result.pipelineContext
       assert(ctx.globals.isDefined)
-      assert(ctx.globals.get.size == 5)
+      assert(ctx.globals.get.size == Constants.THREE)
       assert(ctx.globals.get.contains("redonthehead"))
       assert(ctx.globals.get("redonthehead") == "fred")
       assert(ctx.globals.get.contains("redonthehead1"))
@@ -129,27 +106,27 @@ class GlobalStepUpdateTests extends FunSpec with BeforeAndAfterAll with Suite {
     }
 
     it("Should allow steps to overwrite a global") {
-      val context = SparkTestHelper.generatePipelineContext()
-      val pipelines = DriverUtils.parsePipelineJson(pipelineJson.replaceAll("redonthehead1", "redonthehead"))
-      val result = PipelineExecutor.executePipelines(pipelines.get, None, context)
+      val context = TestHelper.generatePipelineContext()
+      val pipelines = JsonParser.parsePipelineJson(pipelineJson.replaceAll("redonthehead1", "redonthehead"))
+      val result = PipelineExecutor.executePipelines(pipelines.get.head, context)
       assert(result.success)
       val ctx = result.pipelineContext
       assert(ctx.globals.isDefined)
-      assert(ctx.globals.get.size == 4)
+      assert(ctx.globals.get.size == Constants.TWO)
       assert(ctx.globals.get.contains("redonthehead"))
       assert(ctx.globals.get("redonthehead") == "fred1")
     }
 
     it("Should set the last step id as a global") {
-      val context = SparkTestHelper.generatePipelineContext()
-      val pipelines = DriverUtils.parsePipelineJson(pipelineJson)
-      val result = PipelineExecutor.executePipelines(pipelines.get, None, context)
+      val context = TestHelper.generatePipelineContext()
+      val pipelines = JsonParser.parsePipelineJson(pipelineJson)
+      val result = PipelineExecutor.executePipelines(pipelines.get.head, context)
       assert(result.success)
       val ctx = result.pipelineContext
       assert(ctx.globals.isDefined)
-      assert(ctx.globals.get.size == 5)
+      assert(ctx.globals.get.size == Constants.THREE)
       assert(ctx.globals.get.contains("lastStepId"))
-      assert(ctx.globals.get("lastStepId") == "Pipeline1Step3")
+      assert(ctx.globals.get("lastStepId") == "Pipeline1.Pipeline1Step3")
     }
   }
 
@@ -169,7 +146,7 @@ class GlobalStepUpdateTests extends FunSpec with BeforeAndAfterAll with Suite {
         |       "params": [
         |         {
         |           "type": "object",
-        |           "className": "com.acxiom.pipeline.DefaultPipeline",
+        |           "className": "com.acxiom.pipeline.Pipeline",
         |           "name": "pipeline",
         |           "required": true,
         |           "value": {
@@ -291,13 +268,13 @@ class GlobalStepUpdateTests extends FunSpec with BeforeAndAfterAll with Suite {
         |]
     """.stripMargin
     it("Should allow steps to add a global") {
-      val context = SparkTestHelper.generatePipelineContext()
-      val pipelines = DriverUtils.parsePipelineJson(pipelineJson)
-      val result = PipelineExecutor.executePipelines(pipelines.get, None, context)
+      val context = TestHelper.generatePipelineContext()
+      val pipelines = JsonParser.parsePipelineJson(pipelineJson)
+      val result = PipelineExecutor.executePipelines(pipelines.get.head, context)
       assert(result.success)
       val ctx = result.pipelineContext
       assert(ctx.globals.isDefined)
-      assert(ctx.globals.get.size == 6)
+      assert(ctx.globals.get.size == Constants.FOUR)
       assert(ctx.globals.get.contains("redonthehead"))
       assert(ctx.globals.get("redonthehead") == "fred")
       assert(ctx.globals.get.contains("redonthehead1"))
@@ -307,13 +284,13 @@ class GlobalStepUpdateTests extends FunSpec with BeforeAndAfterAll with Suite {
     }
 
     it("Should allow steps to overwrite a global") {
-      val context = SparkTestHelper.generatePipelineContext()
-      val pipelines = DriverUtils.parsePipelineJson(pipelineJson.replaceAll("redonthehead1", "redonthehead"))
-      val result = PipelineExecutor.executePipelines(pipelines.get, None, context)
+      val context = TestHelper.generatePipelineContext()
+      val pipelines = JsonParser.parsePipelineJson(pipelineJson.replaceAll("redonthehead1", "redonthehead"))
+      val result = PipelineExecutor.executePipelines(pipelines.get.head, context)
       assert(result.success)
       val ctx = result.pipelineContext
       assert(ctx.globals.isDefined)
-      assert(ctx.globals.get.size == 5)
+      assert(ctx.globals.get.size == Constants.THREE)
       assert(ctx.globals.get.contains("redonthehead"))
       assert(ctx.globals.get("redonthehead") == "fred1")
       assert(ctx.globals.get.contains("redonthehead2"))
@@ -419,14 +396,13 @@ class GlobalStepUpdateTests extends FunSpec with BeforeAndAfterAll with Suite {
         |]
     """.stripMargin
     it("Should allow steps to add metrics") {
-      val context = SparkTestHelper.generatePipelineContext()
-      val pipelines = DriverUtils.parsePipelineJson(pipelineJson)
-      val result = PipelineExecutor.executePipelines(pipelines.get, None, context)
+      val context = TestHelper.generatePipelineContext()
+      val pipelines = JsonParser.parsePipelineJson(pipelineJson)
+      val result = PipelineExecutor.executePipelines(pipelines.get.head, context)
       assert(result.success)
       val ctx = result.pipelineContext
-      assert(ctx.rootAudit.children.isDefined && ctx.rootAudit.children.get.length == 1)
-      val pAudit = ctx.rootAudit.children.get.head
-      val stepAudit = pAudit.getChildAudit("Pipeline1Step4")
+      val pipelineKey = PipelineStateInfo("Pipeline1", Some("Pipeline1Step4"))
+      val stepAudit = ctx.getPipelineAudit(pipelineKey)
       assert(stepAudit.isDefined)
       val metric = stepAudit.get.getMetric("chickenCount")
       assert(metric.isDefined)

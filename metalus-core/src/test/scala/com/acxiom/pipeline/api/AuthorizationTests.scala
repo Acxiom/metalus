@@ -1,12 +1,13 @@
 package com.acxiom.pipeline.api
 
-import java.net.URL
-
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlPathEqualTo}
-import org.scalatest.{BeforeAndAfterAll, FunSpec}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funspec.AnyFunSpec
 
-class AuthorizationTests extends FunSpec with BeforeAndAfterAll {
+import java.net.URL
+
+class AuthorizationTests extends AnyFunSpec with BeforeAndAfterAll {
   private val HTTP_PORT = 10295
 
   private val wireMockServer = new WireMockServer(HTTP_PORT)

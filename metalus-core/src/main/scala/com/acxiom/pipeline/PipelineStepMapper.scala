@@ -1,10 +1,9 @@
 package com.acxiom.pipeline
 
-import com.acxiom.pipeline.applications.ApplicationUtils
-import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils, ScalaScriptEngine}
+import com.acxiom.metalus.context.Json4sContext
+import com.acxiom.pipeline.applications.Json4sSerializers
+import com.acxiom.pipeline.utils.{ReflectionUtils, ScalaScriptEngine}
 import org.apache.log4j.Logger
-import org.json4s.Formats
-import org.json4s.native.Serialization
 
 import scala.annotation.tailrec
 import scala.math.ScalaNumericAnyConversions
@@ -15,6 +14,7 @@ object PipelineStepMapper {
 
 class DefaultPipelineStepMapper extends PipelineStepMapper
 
+//noinspection ScalaStyle
 trait PipelineStepMapper {
   val logger: Logger = Logger.getLogger(getClass)
 
@@ -26,7 +26,7 @@ trait PipelineStepMapper {
     * @param pipelineContext The pipelineContext
     * @return A map of values for the step.
     */
-  def createStepParameterMap(step: PipelineStep, pipelineContext: PipelineContext): Map[String, Any] = {
+  def createStepParameterMap(step: FlowStep, pipelineContext: PipelineContext): Map[String, Any] = {
     if (step.params.isDefined) {
       step.params.get.filter(_.`type`.getOrElse("text").toLowerCase != "result").map(p => {
         logger.debug(s"Mapping parameter ${p.name}")
@@ -171,7 +171,7 @@ trait PipelineStepMapper {
       if(index <= 0) {
         throw PipelineException(message = Some(s"Unable to execute script: Malformed bindings. Expected enclosing character: [)]."),
           context = Some(pipelineContext),
-          pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+          pipelineProgress = pipelineContext.currentStateInfo)
       }
       val (params, s) = trimmedScript.splitAt(index)
       val paramString = params.drop(1).dropRight(1).trim
@@ -181,7 +181,7 @@ trait PipelineStepMapper {
           if(ret.length < 2){
             throw PipelineException(message = Some(s"Unable to execute script: Illegal binding format: [$p]. Expected format: <name>:<value>:<type>"),
               context = Some(pipelineContext),
-              pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+              pipelineProgress = pipelineContext.currentStateInfo)
           }
           ret(0).trim -> (ret(1).trim, if (ret.length == 3) Some(ret(2)) else None)
         }.toMap.mapValues { case (v, t) => (getBestValue(v.split("\\|\\|"), Parameter(), pipelineContext), t) }
@@ -195,7 +195,7 @@ trait PipelineStepMapper {
     if (script.trim.isEmpty) {
       throw PipelineException(message = Some(s"Unable to execute script: script is empty. Ensure bindings are properly enclosed."),
         context = Some(pipelineContext),
-        pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+        pipelineProgress = pipelineContext.currentStateInfo)
     }
     val engine = new ScalaScriptEngine
     val initialBinding = engine.createBindings("logger", logger, Some("org.apache.log4j.Logger"))
@@ -208,8 +208,8 @@ trait PipelineStepMapper {
         binding.setBinding(name, value, typeName)
     }
     logger.info(s"Preparing to execute script for parameter: [${parameter.name}]" +
-      s"${pipelineContext.getPipelineExecutionInfo.stepId.map(s => s"of step: [$s]").getOrElse("")} " +
-      s"${pipelineContext.getPipelineExecutionInfo.pipelineId.map(p => s"in pipeline: [$p]").getOrElse("")}")
+      s"${pipelineContext.currentStateInfo.get.stepId.map(s => s"of step: [$s]").getOrElse("")} " +
+      s"${pipelineContext.currentStateInfo.get.pipelineId.map(p => s"in pipeline: [$p]")}")
     engine.executeScriptWithBindings(script, bindings, pipelineContext) match {
       case o: Option[_] => o
       case v => Some(v)
@@ -268,17 +268,20 @@ trait PipelineStepMapper {
                                  parameter: Parameter,
                                  pipelineContext: PipelineContext): Option[Any] = {
     val workingMap = map.asInstanceOf[Map[String, Any]]
-    implicit val formats: Formats = parameter.json4sSerializers.map(js => ApplicationUtils.getJson4sFormats(Some(js)))
-      .getOrElse(pipelineContext.getJson4sFormats)
+    val jsonContext = pipelineContext.contextManager.getContext("json").get.asInstanceOf[Json4sContext]
+    val paramSerializers = parameter.json4sSerializers
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
       // Skip the embedded variable mapping if this is a step-group pipeline parameter
+      // TODO [2.0 Review] Pipeline.category has been removed
       if (workingMap.getOrElse("category", "pipeline").asInstanceOf[String] == "step-group") {
-        DriverUtils.parseJson(Serialization.write(workingMap), parameter.className.get)
+        jsonContext.parseJson(jsonContext.serializeJson(workingMap), parameter.className.get, paramSerializers)
       } else {
-        DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(workingMap, pipelineContext)), parameter.className.get)
+        jsonContext.parseJson(
+          jsonContext.serializeJson(mapEmbeddedVariables(workingMap, pipelineContext, paramSerializers), paramSerializers),
+          parameter.className.get, paramSerializers)
       }
     } else {
-      mapEmbeddedVariables(workingMap, pipelineContext)
+      mapEmbeddedVariables(workingMap, pipelineContext, paramSerializers)
     })
   }
 
@@ -293,19 +296,21 @@ trait PipelineStepMapper {
     */
   private def handleListParameter(list: List[_], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
     val dropNone = pipelineContext.getGlobalAs[Boolean]("dropNoneFromLists").getOrElse(true)
-    implicit val formats: Formats = parameter.json4sSerializers.map(js => ApplicationUtils.getJson4sFormats(Some(js)))
-      .getOrElse(pipelineContext.getJson4sFormats)
+    val jsonContext = pipelineContext.contextManager.getContext("json").get.asInstanceOf[Json4sContext]
+    val paramSerializers = parameter.json4sSerializers
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
       list.map(value =>
-        DriverUtils.parseJson(Serialization.write(mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]], pipelineContext)), parameter.className.get))
+        jsonContext.parseJson(
+          jsonContext.serializeJson(mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]],
+            pipelineContext, paramSerializers)), parameter.className.get, paramSerializers))
     } else if (list.nonEmpty && list.head.isInstanceOf[Map[_, _]]) {
       list.map(value => {
         val map = value.asInstanceOf[Map[String, Any]]
         if (map.contains("className") && map.contains("object")) {
           handleMapParameter(map("object").asInstanceOf[Map[String, Any]], Parameter(
-            className = Some(map("className").asInstanceOf[String])), pipelineContext).get
+            className = Some(map("className").asInstanceOf[String]), json4sSerializers = paramSerializers), pipelineContext).get
         } else {
-          mapEmbeddedVariables(map, pipelineContext)
+          mapEmbeddedVariables(map, pipelineContext, paramSerializers)
         }
       })
     } else if(list.nonEmpty) {
@@ -328,18 +333,21 @@ trait PipelineStepMapper {
     * @param pipelineContext The pipelineContext
     * @return A map with substituted values
     */
-  private[pipeline] def mapEmbeddedVariables(classMap: Map[String, Any], pipelineContext: PipelineContext)(implicit formats: Formats): Map[String, Any] = {
+  private[pipeline] def mapEmbeddedVariables(classMap: Map[String, Any],
+                                             pipelineContext: PipelineContext,
+                                             json4sSerializers: Option[Json4sSerializers]): Map[String, Any] = {
+    val jsonContext = pipelineContext.contextManager.getContext("json").get.asInstanceOf[Json4sContext]
     classMap.foldLeft(classMap)((map, entry) => {
       entry._2 match {
         case s: String if containsSpecialCharacters(s) =>
           map + (entry._1 -> getBestValue(s.split("\\|\\|"), Parameter(), pipelineContext))
         case m: Map[String, Any] if m.contains("className")=>
-          map + (entry._1 -> DriverUtils.parseJson(
-            Serialization.write(
-              mapEmbeddedVariables(m("object").asInstanceOf[Map[String, Any]], pipelineContext)),
+          map + (entry._1 -> jsonContext.parseJson(
+            jsonContext.serializeJson(
+              mapEmbeddedVariables(m("object").asInstanceOf[Map[String, Any]], pipelineContext, json4sSerializers)),
             m("className").asInstanceOf[String]))
         case m: Map[_, _] =>
-          map + (entry._1 -> mapEmbeddedVariables(m.asInstanceOf[Map[String, Any]], pipelineContext))
+          map + (entry._1 -> mapEmbeddedVariables(m.asInstanceOf[Map[String, Any]], pipelineContext, json4sSerializers))
         case l: List[_] => map ++ handleListParameter(l, Parameter(), pipelineContext).map(a => entry._1 -> a)
         case _ => map
       }
@@ -487,30 +495,41 @@ trait PipelineStepMapper {
       case "@laststepid" | "#laststepid" => pipelineContext.getGlobalString("lastStepId").getOrElse("")
       case _ => pipelinePath.mainValue.substring(1)
     }
-    // See if the paramName is a pipelineId
-    val pipelineId = if (pipelinePath.pipelineId.isDefined) {
-      pipelinePath.pipelineId.get
-    } else {
-      pipelineContext.getGlobalString("pipelineId").getOrElse("")
-    }
-    val parameters = pipelineContext.parameters.getParametersByPipelineId(pipelineId)
-    logger.debug(s"pulling parameter from Pipeline Parameters,paramName=$paramName,pipelineId=$pipelineId,parameters=$parameters")
+    logger.debug(s"pulling parameter for Pipeline,paramName=$paramName")
     // the value is marked as a step parameter, get it from pipelineContext.parameters (Will be a PipelineStepResponse)
-    if (parameters.get.parameters.contains(paramName)) {
-      val applyMethod = pipelineContext.getGlobalAs[Boolean]("extractMethodsEnabled")
-      pipelinePath.mainValue.head match {
-        case '@' =>
-          getSpecificValue(parameters.get.parameters(paramName).asInstanceOf[PipelineStepResponse].primaryReturn,
-            pipelinePath, applyMethod)
-        case '#' =>
-          getSpecificValue(parameters.get.parameters(paramName).asInstanceOf[PipelineStepResponse].namedReturns,
-            pipelinePath, applyMethod)
-        case '$' => getSpecificValue(parameters.get.parameters(paramName), pipelinePath, applyMethod)
-        case '?' => getSpecificValue(parameters.get.parameters(paramName), pipelinePath, applyMethod)
-      }
-    } else {
-      None
+    val applyMethod = pipelineContext.getGlobalAs[Boolean]("extractMethodsEnabled")
+    pipelinePath.mainValue.head match {
+      case '@' | '#' =>
+        val result = pipelineContext.getStepResultByKey(paramName)
+        if (result.isDefined) {
+          getResponseValue(pipelinePath, applyMethod, result)
+        } else {
+          // Is this a fork?
+          val results = pipelineContext.getStepResultsByKey(paramName)
+          if (results.isDefined) {
+            val list = results.get.map(r => getResponseValue(pipelinePath, applyMethod, Some(r)))
+            Some(list)
+          } else {
+            None
+          }
+        }
+      case '$' | '?' =>
+        val results = pipelineContext.findParameterByPipelineKey(paramName)
+        if (results.isDefined) {
+          getSpecificValue(results.get.parameters, pipelinePath, applyMethod)
+        } else {
+          None
+        }
     }
+  }
+
+  private def getResponseValue(pipelinePath: PipelinePath, applyMethod: Option[Boolean], result: Option[PipelineStepResponse]) = {
+    val response = if (pipelinePath.mainValue.head == '@') {
+      result.get.primaryReturn
+    } else {
+      result.get.namedReturns
+    }
+    getSpecificValue(response, pipelinePath, applyMethod)
   }
 
   private def getSpecificValue(parentObject: Any, pipelinePath: PipelinePath, applyMethod: Option[Boolean]): Option[Any] = {
@@ -524,22 +543,71 @@ trait PipelineStepMapper {
 
   private def getPathValues(value: String, pipelineContext: PipelineContext): PipelinePath = {
     val special = getSpecialCharacter(value)
-    if (value.contains('.') && special.nonEmpty) {
-      // Check for the special character
-      val pipelineId = value.substring(0, value.indexOf('.')).substring(1)
-      val paths = value.split('.')
-      if (pipelineContext.parameters.hasPipelineParameters(pipelineId)) {
-        val extraPath = getExtraPath(paths)
-        PipelinePath(Some(pipelineId), s"$special${paths(1)}", extraPath)
-      } else {
-        PipelinePath(None, paths.head, if (paths.lengthCompare(1) == 0) {
-         None
-        } else {
-          Some(paths.slice(1, paths.length).mkString("."))
-        })
+    val includeExtraPaths = value.contains('.')
+    if (special.nonEmpty) {
+      val paths = value.substring(1).split('.')
+      special match {
+        case "!" | "%" => PipelinePath(s"$special${paths.head}", getExtraPath(1, paths, !includeExtraPaths))
+        case "@" | "#" =>
+          val paramName = paths.head.toLowerCase match {
+            case "laststepid" => pipelineContext.getGlobalString("lastStepId").getOrElse("")
+            case _ => paths.head
+          }
+          val keyList = pipelineContext.stepResults.keys.toList
+          if (isLocalStep(paramName, keyList)) {
+            val extraPath = getExtraPath(1, paths, !includeExtraPaths)
+            val key = pipelineContext.currentStateInfo.get.copy(stepId = Some(paramName))
+            PipelinePath(s"$special${key.key}", extraPath)
+          } else {
+            // Get Key
+            val key = determineKey(paths, keyList, "", 0)
+            PipelinePath(s"$special${key._1}", Some(paths.toList.slice(key._2, paths.length).mkString(".")))
+          }
+        case "$" | "?" =>
+          val keyList = pipelineContext.parameters.map(_.pipelineKey.copy(stepId = None, forkData = None))
+          // See if this is a local request
+          val key = pipelineContext.currentStateInfo.get.copy(stepId = None, forkData = None).key
+          if (pipelineContext.hasPipelineParameters(key, paths.head)) {
+            PipelinePath(s"$special$key", getExtraPath(0, paths))
+          } else {
+            // Get Key
+            val key = determineKey(paths, keyList, "", 0)
+            PipelinePath(s"$special${key._1}", getExtraPath(key._2, paths, !includeExtraPaths))
+          }
+        case _ => PipelinePath(value, getExtraPath(1, paths, !includeExtraPaths))
       }
     } else {
-      PipelinePath(None, value, None)
+      PipelinePath(value, None)
+    }
+  }
+
+  private def determineKey(paths: Array[String], keys: List[PipelineStateInfo], key: String, index: Int = 0): (String, Int) = {
+    // See if we have reached the last token
+    if (index >= paths.length) {
+      (key, index)
+    } else {
+      val token = paths(index)
+      // Make sure that key has a value else use the token
+      val currentKey = if (key.nonEmpty) {
+        s"$key.$token"
+      } else {
+        token
+      }
+      val nextIndex = index + 1
+      if (!keys.exists(k => k.key == currentKey ||
+        (k.forkData.isDefined && (token == "*" || token.forall(Character.isDigit))))) {
+        determineKey(paths, keys, currentKey, nextIndex)
+      } else {
+        (currentKey, nextIndex)
+      }
+    }
+  }
+
+  private def isLocalStep(value: String, keys: List[PipelineStateInfo]): Boolean = {
+    if (!keys.exists(_.pipelineId == value)) {
+      keys.exists(_.stepId.getOrElse("MISSING") == value)
+    } else {
+      false
     }
   }
 
@@ -554,9 +622,9 @@ trait PipelineStepMapper {
     }
   }
 
-  private def getExtraPath(paths: Array[String]): Option[String] = {
-    if (paths.length > 2) {
-      Some(paths.toList.slice(2, paths.length).mkString("."))
+  private def getExtraPath(index: Int, paths: Array[String], skip: Boolean = false): Option[String] = {
+    if (!skip && index < paths.length) {
+      Some(paths.toList.slice(index, paths.length).mkString("."))
     } else {
       None
     }
@@ -604,5 +672,5 @@ trait PipelineStepMapper {
     }
   }
 
-  private case class PipelinePath(pipelineId: Option[String], mainValue: String, extraPath: Option[String])
+  private case class PipelinePath(mainValue: String, extraPath: Option[String])
 }

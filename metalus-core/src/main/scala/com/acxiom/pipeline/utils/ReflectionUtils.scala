@@ -31,10 +31,10 @@ object ReflectionUtils {
     val symbols = classMirror.symbol.info.decls.filter(s => s.isConstructor).toList
     if (symbols.nonEmpty) {
       val method = getMethodBySymbol(symbols.head, parameters.getOrElse(Map[String, Any]()), Some(symbols))
-      classMirror.reflectConstructor(method)(mapMethodParameters(method.paramLists.flatten, parameters.getOrElse(Map[String, Any]()), mirror,
-        mirror.reflect(mirror.reflectModule(module)), symbols.head.asTerm.fullName, method.typeSignature, None,
-        PipelineExecutionInfo(), validateParameterTypes)
-        : _*)
+      val tempList = mapMethodParameters(method.paramLists.flatten,
+        parameters.getOrElse(Map[String, Any]()), mirror, mirror.reflect(mirror.reflectModule(module)),
+        symbols.head.asTerm.fullName, method.typeSignature, None, validateParameterTypes)
+      classMirror.reflectConstructor(method)(tempList: _*)
     }
   }
 
@@ -45,15 +45,13 @@ object ReflectionUtils {
   }
 
   /**
-   * This function will execute the PipelineStep function using the provided parameter values.
+   * This function will execute the FlowStep function using the provided parameter values.
    *
    * @param step            The step to execute
-   * @param pipeline        The pipeline to process the step in
    * @param parameterValues A map of named parameter values to map to the step function parameters.
    * @return The result of the step function execution.
    */
   def processStep(step: PipelineStep,
-                  pipeline: Pipeline,
                   parameterValues: Map[String, Any],
                   pipelineContext: PipelineContext): Any = {
     logger.debug(s"processing step,stepObject=$step")
@@ -79,7 +77,7 @@ object ReflectionUtils {
     val parameters = method.paramLists.head
     val validateTypes = pipelineContext.getGlobalAs[Boolean]("validateStepParameterTypes").getOrElse(false)
     val params = mapMethodParameters(parameters, parameterValues, mirror, stepObject, funcName, ts, Some(pipelineContext),
-      PipelineExecutionInfo(step.id, pipeline.id), validateTypes)
+      validateTypes)
     logger.info(s"Executing step $objName.$funcName")
     logger.debug(s"Parameters: $params")
     // Invoke the method
@@ -213,7 +211,6 @@ object ReflectionUtils {
   private def mapMethodParameters(parameters: List[ru.Symbol], parameterValues: Map[String, Any], runtimeMirror: Mirror,
                                   stepObject: ru.InstanceMirror, funcName: String, ts: ru.Type,
                                   pipelineContext: Option[PipelineContext],
-                                  pipelineProgressInfo: PipelineExecutionInfo,
                                   validateParameterTypes: Boolean) = {
     parameters.zipWithIndex.map { case (param, pos) =>
       val name = param.name.toString
@@ -231,15 +228,11 @@ object ReflectionUtils {
           getBuiltInParameter(pipelineContext, name)
         case _ => paramValue
       }
-      val finalValue = if (pipelineContext.isDefined) {
-        pipelineContext.get.security.secureParameter(getFinalValue(param.asTerm.typeSignature, value))
-      } else {
-        getFinalValue(param.asTerm.typeSignature, value)
-      }
+      val finalValue = getFinalValue(param.asTerm.typeSignature, value)
 
       val finalValueType = getValueType(finalValue)
       if (validateParameterTypes) {
-        validateParamTypeAssignment(runtimeMirror, param, optionType, finalValue, finalValueType, funcName, Some(pipelineProgressInfo), pipelineContext)
+        validateParamTypeAssignment(runtimeMirror, param, optionType, finalValue, finalValueType, funcName, pipelineContext)
       }
       logger.debug(s"Mapping parameter to method $funcName,paramName=$name,paramType=${param.typeSignature}," +
         s"valueType=$finalValueType,value=$finalValue")
@@ -285,23 +278,22 @@ object ReflectionUtils {
                                           value: Any,
                                           valueType: String,
                                           funcName: String,
-                                          pipelineProgess: Option[PipelineExecutionInfo],
                                           pipelineContext: Option[PipelineContext]): Unit = {
     val paramType = if (isOption) param.typeSignature.typeArgs.head else param.typeSignature
     if (!(isOption && value.asInstanceOf[Option[_]].isEmpty) && !(paramType =:= typeOf[Any])) {
       val finalValue = if (isOption) value.asInstanceOf[Option[_]].get else value
       val paramClass = runtimeMirror.runtimeClass(paramType)
       val isAssignable = isAssignableFrom(paramClass, finalValue)
-      val stepId = pipelineProgess.getOrElse(PipelineExecutionInfo()).stepId
-      val pipelineId = pipelineProgess.getOrElse(PipelineExecutionInfo()).pipelineId
+      val stepId = pipelineContext.get.currentStateInfo.get.stepId
+      val pipelineId = pipelineContext.get.currentStateInfo.get.pipelineId
       if (!isAssignable) {
         val stepMessage = if (stepId.isDefined) s"in step [${stepId.get}]" else ""
-        val pipelineMessage = if (pipelineId.isDefined) s"in pipeline [${pipelineId.get}]" else ""
+        val pipelineMessage = s"in pipeline [${pipelineId}]"
         val message = s"Failed to map value [$value] of type [$valueType] to paramName [${param.name.toString}] of" +
           s" type [${param.typeSignature}] for method [$funcName] $stepMessage $pipelineMessage"
         throw PipelineException(message = Some(message),
           context = pipelineContext,
-          pipelineProgress = Some(PipelineExecutionInfo(stepId, pipelineId)))
+          pipelineProgress = pipelineContext.get.currentStateInfo)
       }
     }
   }

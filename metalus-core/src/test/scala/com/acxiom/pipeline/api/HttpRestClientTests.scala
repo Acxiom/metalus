@@ -1,16 +1,16 @@
 package com.acxiom.pipeline.api
 
-import java.net.HttpURLConnection
-import java.text.SimpleDateFormat
-
 import com.acxiom.pipeline.Constants
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.scalatest.{BeforeAndAfterAll, FunSpec, Suite}
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.{BeforeAndAfterAll, Suite}
 
+import java.net.HttpURLConnection
+import java.text.SimpleDateFormat
 import scala.io.Source
 
-class HttpRestClientTests extends FunSpec with BeforeAndAfterAll with Suite {
+class HttpRestClientTests extends AnyFunSpec with BeforeAndAfterAll with Suite {
 
   private val HTTP_PORT = 10293
   private val HTTPS_PORT = 8443

@@ -1,8 +1,8 @@
 package com.acxiom.pipeline
 
-import org.scalatest.{FunSpec, Suite}
+import org.scalatest.funspec.AnyFunSpec
 
-class PipelineManagerTests extends FunSpec with Suite {
+class PipelineManagerTests extends AnyFunSpec {
   describe("PipelineManager - Get Tests") {
     it("Should fetch cached pipeline") {
       val pm = PipelineManager(List(Pipeline(Some("pipeline"), Some("Test pipeline"))))

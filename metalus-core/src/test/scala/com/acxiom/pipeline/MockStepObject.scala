@@ -34,9 +34,7 @@ object MockStepObject {
     s.flatten.mkString(",")
   }
 
-  def mockFlattenListOfOptions(s: List[Option[List[Option[String]]]]): List[String] ={
-    s.flatten.flatMap(_.flatten)
-  }
+  def mockFlattenListOfOptions(s: List[Option[String]]): List[String] = s.map(_.get)
 
   def mockIntStepFunction(int: Int, boolean: Boolean): PipelineStepResponse = {
     PipelineStepResponse(Some(int), Some(Map[String, Any]("boolean" -> boolean, "string" -> int)))
@@ -46,9 +44,7 @@ object MockStepObject {
     PipelineStepResponse(Some(List.tabulate(listSize)(_ + 1)), None)
   }
 
-  def mockSumListOfInts(ints: List[Option[List[Option[Int]]]]): Int ={
-    ints.flatten.flatMap(_.flatten).sum
-  }
+  def mockSumListOfInts(ints: List[Option[Int]]): Int = ints.map(_.get).sum
 
   def mockSumSimpleListOfInts(ints: List[Int]): Int ={
     ints.sum
@@ -111,18 +107,11 @@ class MockDefaultParam(flag: Boolean = false, secondParam: String = "none") {
 }
 
 case class MockDriverSetup(parameters: Map[String, Any]) extends DriverSetup {
-  override def pipelines: List[Pipeline] = List()
 
-  override def initialPipelineId: String = {
-    if (parameters.contains("initialPipelineId")) {
-      parameters("initialPipelineId").asInstanceOf[String]
-    } else {
-      ""
-    }
-  }
+  override def pipeline: Option[Pipeline] = None
 
   override def pipelineContext: PipelineContext = {
-    PipelineContext(None, None, None, PipelineSecurityManager(), PipelineParameters(),
+    PipelineContext(None, List[PipelineParameter](),
       Some(if (parameters.contains("stepPackages")) {
         parameters("stepPackages").asInstanceOf[String]
           .split(",").toList
@@ -130,6 +119,7 @@ case class MockDriverSetup(parameters: Map[String, Any]) extends DriverSetup {
         List("com.acxiom.pipeline.steps", "com.acxiom.pipeline")
       }),
       PipelineStepMapper(),
-      None, None)
+      None, List(), PipelineManager(List()),
+      None, new ContextManager(Map(), Map()), Map(), None)
   }
 }

@@ -6,149 +6,125 @@ import org.apache.log4j.Logger
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.{JsonParser, Serialization}
 import org.json4s.{DefaultFormats, Formats}
+
 import java.util.Date
-
-import org.apache.spark.scheduler._
-
-import scala.collection.mutable
 
 object PipelineListener {
   def apply(): PipelineListener = DefaultPipelineListener()
 }
 
-case class DefaultPipelineListener() extends SparkPipelineListener
-
-trait SparkPipelineListener extends SparkListener with PipelineListener {
-  private var currentExecutionInfo: Option[PipelineExecutionInfo] = None
-  private val applicationStats: ApplicationStats = ApplicationStats(mutable.Map())
-  private val sparkSettingToReport: List[String] = List(
-    "spark.kryoserializer.buffer.max", "spark.driver.memory", "spark.executor.memory", "spark.sql.shuffle.partitions",
-    "spark.driver.cores", "spark.executor.cores", "spark.default.parallelism", "spark.driver.memoryOverhead",
-    "spark.executor.memoryOverhead"
-  )
-
-
-  override def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-    val defaultContext = pipelineContext.setRootAuditMetric(Constants.SPARK_SETTINGS, this.getSparkSettingsForAudit(pipelineContext))
-    val finalContext = if (pipelineContext.getGlobalAs[Boolean]("includeAllSparkSettingsInAudit").contains(true)) {
-      defaultContext.setRootAuditMetric("test-sparkContext", pipelineContext.sparkSession.get.sparkContext.getConf.getAll)
-    } else { defaultContext }
-
-    applicationStats.reset()
-    Some(finalContext)
-  }
-
-  override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-    super.executionFinished(pipelines, pipelineContext)
-  }
-
-  override def executionStopped(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
-    super.executionStopped(pipelines, pipelineContext)
-  }
-
-  override def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
-    this.currentExecutionInfo = Some(pipelineContext.getPipelineExecutionInfo)
-    None
-  }
-
-  override def pipelineFinished(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
-    super.pipelineFinished(pipeline, pipelineContext)
-    None
-  }
-
-  override def pipelineStepStarted(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
-    this.currentExecutionInfo = Some(pipelineContext.getPipelineExecutionInfo)
-    super.pipelineStepStarted(pipeline, step, pipelineContext)
-    None
-  }
-
-  override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
-    val newContext = if (pipeline.id.isDefined && step.id.isDefined) {
-      val groupId = pipelineContext.getPipelineExecutionInfo.groupId
-      pipelineContext.setStepMetric(
-        pipeline.id.get, step.id.get, groupId, Constants.SPARK_METRICS, this.applicationStats.getSummary(pipeline.id, step.id, groupId)
-      )
-    } else {
-      pipelineContext
-    }
-    super.pipelineStepFinished(pipeline, step, newContext)
-    Some(newContext)
-  }
-
-  override def onJobStart(jobStart: SparkListenerJobStart): scala.Unit = {
-    if (this.currentExecutionInfo.isDefined) {
-      this.applicationStats.startJob(jobStart, this.currentExecutionInfo.get)
-    }
-  }
-
-  override def onJobEnd(jobEnd: SparkListenerJobEnd): scala.Unit = {
-    this.applicationStats.endJob(jobEnd)
-  }
-
-  override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit = {
-    this.applicationStats.endStage(stageCompleted)
-  }
-
-  def getSparkSettingsForAudit(pipelineContext: PipelineContext): Map[String, Any] = {
-    if (pipelineContext.sparkSession.isEmpty) {
-      Map()
-    } else {
-      this.sparkSettingToReport.map(s => {
-        val setting = pipelineContext.sparkSession.get.sparkContext.getConf.getOption(s)
-        s -> setting.getOrElse("")
-      }).toMap
-    }
-  }
-}
+case class DefaultPipelineListener() extends PipelineListener
 
 trait PipelineListener {
   implicit val formats: Formats = DefaultFormats +
     new EnumNameSerializer(AuditType)
   private val logger = Logger.getLogger(getClass)
 
-  def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-    logger.info(s"Starting execution of pipelines ${pipelines.map(p => p.name.getOrElse(p.id.getOrElse("")))}")
+  /**
+    * Called when the main application pipeline is started.
+    * @param pipelineKey The unique key of the pipeline. This should always be the application pipeline.
+    * @param pipelineContext The PipelineContext. This is used to fetch the pipeline template.
+    * @return A modified PipelineContext or None if no changes were made.
+    */
+  def pipelineStarted(pipelineKey: PipelineStateInfo, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+    val pipeline = getPipeline(pipelineKey, pipelineContext)
+    if (pipeline.isDefined) {
+      logger.info(s"Starting pipeline ${pipeline.get.name.getOrElse(pipeline.get.id.getOrElse(""))}")
+    } else {
+      logger.info(s"Starting unknown pipeline: ${pipelineKey.key}")
+    }
     None
   }
 
-  def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
-    logger.info(s"Finished execution of pipelines ${pipelines.map(p => p.name.getOrElse(p.id.getOrElse("")))}")
-    logger.info(s"Execution Audit ${Serialization.write(pipelineContext.rootAudit)}")
+  /**
+    * Called when the main application pipeline is finished.
+    * @param pipelineKey The unique key of the pipeline. This should always be the application pipeline.
+    * @param pipelineContext The PipelineContext. This is used to fetch the pipeline template.
+    * @return A modified PipelineContext or None if no changes were made.
+    */
+  def pipelineFinished(pipelineKey: PipelineStateInfo, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+    val pipeline = getPipeline(pipelineKey, pipelineContext)
+    if (pipeline.isDefined) {
+      logger.info(s"Finished pipeline ${pipeline.get.name.getOrElse(pipeline.get.id.getOrElse(""))}")
+    } else {
+      logger.info(s"Finished unknown pipeline: ${pipelineKey.key}")
+    }
     None
   }
 
-  def executionStopped(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
-    logger.info(s"Stopping execution of pipelines. Completed: ${pipelines.map(p => p.name.getOrElse(p.id.getOrElse(""))).mkString(",")}")
-    logger.info(s"Execution Audit ${Serialization.write(pipelineContext.rootAudit)}")
-  }
-
-  def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
-    logger.info(s"Starting pipeline ${pipeline.name.getOrElse(pipeline.id.getOrElse(""))}")
+  /**
+    * Called when a step is being started.
+    * @param pipelineKey The unique key of the step.
+    * @param pipelineContext The PipelineContext. This is used to fetch the pipeline template.
+    * @return A modified PipelineContext or None if no changes were made.
+    */
+  def pipelineStepStarted(pipelineKey: PipelineStateInfo, pipelineContext: PipelineContext): Option[PipelineContext] = {
+    val pipeline = getPipeline(pipelineKey, pipelineContext)
+    if (pipeline.isDefined) {
+      val step = getStep(pipelineKey, pipeline.get)
+      if (step.isDefined) {
+        logger.info(s"Starting step ${step.get.displayName.getOrElse(step.get.id.getOrElse(""))} of pipeline ${pipeline.get.name.getOrElse(pipeline.get.id.getOrElse(""))}")
+      } else {
+        logger.info(s"Starting step (${pipelineKey.stepId.getOrElse("UNKNOWN")}) of pipeline ${pipeline.get.name.getOrElse(pipeline.get.id.getOrElse(""))}")
+      }
+    } else {
+      logger.info(s"Starting step (${pipelineKey.stepId.getOrElse("UNKNOWN")}) in unknown pipeline!")
+    }
     None
   }
 
-  def pipelineFinished(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
-    logger.info(s"Finished pipeline ${pipeline.name.getOrElse(pipeline.id.getOrElse(""))}")
+  /**
+    * Called when a step has finished.
+    * @param pipelineKey The unique key of the step.
+    * @param pipelineContext The PipelineContext. This is used to fetch the pipeline template.
+    * @return A modified PipelineContext or None if no changes were made.
+    */
+  def pipelineStepFinished(pipelineKey: PipelineStateInfo, pipelineContext: PipelineContext): Option[PipelineContext] = {
+    val pipeline = getPipeline(pipelineKey, pipelineContext)
+    if (pipeline.isDefined) {
+      val step = getStep(pipelineKey, pipeline.get)
+      if (step.isDefined) {
+        logger.info(s"Finished step ${step.get.displayName.getOrElse(step.get.id.getOrElse(""))} of pipeline ${pipeline.get.name.getOrElse(pipeline.get.id.getOrElse(""))}")
+      } else {
+        logger.info(s"Finished step (${pipelineKey.stepId.getOrElse("UNKNOWN")}) of pipeline ${pipeline.get.name.getOrElse(pipeline.get.id.getOrElse(""))}")
+      }
+    } else {
+      logger.info(s"Finished step (${pipelineKey.stepId.getOrElse("UNKNOWN")}) in unknown pipeline!")
+    }
     None
   }
 
-  def pipelineStepStarted(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
-    logger.info(s"Starting step ${step.displayName.getOrElse(step.id.getOrElse(""))} of pipeline ${pipeline.name.getOrElse(pipeline.id.getOrElse(""))}")
-    None
-  }
-
-  def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
-    logger.info(s"Finished step ${step.displayName.getOrElse(step.id.getOrElse(""))} of pipeline ${pipeline.name.getOrElse(pipeline.id.getOrElse(""))}")
-    None
-  }
-
-  def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+  /**
+    * Called when an exception has been encountered that is not being handled by the step of retry logic.
+    * @param pipelineKey The unique key of the step.
+    * @param exception The exception.
+    * @param pipelineContext The Current PipelineContext.
+    */
+  def registerStepException(pipelineKey: PipelineStateInfo, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
     // Base implementation does nothing
   }
+
+  /**
+    * Simple method to get the pipeline for this state info.
+    * @param pipelineKey The unique key containing the pipeline id.
+    * @param pipelineContext The PipelineContext.
+    * @return The pipeline template if is found.
+    */
+  protected def getPipeline(pipelineKey: PipelineStateInfo, pipelineContext: PipelineContext): Option[Pipeline] =
+    pipelineContext.pipelineManager.getPipeline(pipelineKey.pipelineId)
+
+  /**
+    * Finds the step specified in the state info using th provided pipeline.
+    * @param pipelineKey The unique key containing the step id.
+    * @param pipeline The pipeline that contains the step.
+    * @return The step if it is found.
+    */
+  protected def getStep(pipelineKey: PipelineStateInfo, pipeline: Pipeline): Option[Step] =
+    pipeline.steps.get.find(_.id.getOrElse("NONE") == pipelineKey.stepId.getOrElse("BUG"))
 }
 
 
-trait EventBasedPipelineListener extends SparkPipelineListener {
+trait EventBasedPipelineListener extends PipelineListener {
   def key: String
   def credentialName: String
   def credentialProvider: CredentialProvider
@@ -184,20 +160,19 @@ trait EventBasedPipelineListener extends SparkPipelineListener {
     ))
   }
 
-  def generatePipelineStepMessage(event: String, pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): String = {
-    pipelineContext.getPipelineExecutionInfo.groupId
+  def generatePipelineStepMessage(event: String, pipeline: Pipeline, step: FlowStep, pipelineContext: PipelineContext): String = {
     Serialization.write(Map[String, Any](
       "key" -> key,
       "event" -> event,
       "eventTime" -> new Date().getTime,
       "pipeline" -> EventPipelineRecord(pipeline.id.getOrElse(""), pipeline.name.getOrElse("")),
-      "step" -> EventPipelineStepRecord(step.id.getOrElse(""), step.stepId.getOrElse(""),
-        pipelineContext.getPipelineExecutionInfo.groupId.getOrElse(""))
+      "step" -> EventPipelineStepRecord(step.id.getOrElse(""), step.stepTemplateId.getOrElse(""),
+        pipelineContext.currentStateInfo.get.forkData.getOrElse(ForkData("", -1, None)).id)
     ))
   }
 
   def generateExceptionMessage(event: String, exception: PipelineStepException, pipelineContext: PipelineContext): String = {
-    val executionInfo = pipelineContext.getPipelineExecutionInfo
+    val executionInfo = pipelineContext.currentStateInfo.get
     val messageList: MessageLists = exception match {
       case fe: ForkedPipelineStepException => fe.exceptions
         .foldLeft(MessageLists(List[String](), List[Array[StackTraceElement]]()))((t, e) =>
@@ -212,10 +187,9 @@ trait EventBasedPipelineListener extends SparkPipelineListener {
       "key" -> key,
       "event" -> event,
       "eventTime" -> new Date().getTime,
-      "executionId" -> executionInfo.executionId.getOrElse(""),
-      "pipelineId" -> executionInfo.pipelineId.getOrElse(""),
+      "pipelineId" -> executionInfo.pipelineId,
       "stepId" -> executionInfo.stepId.getOrElse(""),
-      "groupId" -> executionInfo.groupId.getOrElse(""),
+      "groupId" -> executionInfo.forkData.getOrElse(ForkData("", -1, None)).id,
       "messages" -> messageList.messages,
       "stacks" -> messageList.stacks
     ))
@@ -223,59 +197,41 @@ trait EventBasedPipelineListener extends SparkPipelineListener {
 }
 
 
-case class SessionVariables(executionComplete: Boolean = false, currentPipeline: Option[Pipeline] = None, currentStep: Option[PipelineStep] = None)
+//case class SessionVariables(executionComplete: Boolean = false, currentPipeline: Option[Pipeline] = None, currentStep: Option[PipelineStep] = None)
 case class EventPipelineRecord(id: String, name: String)
 case class EventPipelineStepRecord(id: String, stepId: String, group: String)
 case class MessageLists(messages: List[String], stacks: List[Array[StackTraceElement]])
 case class CombinedPipelineListener(listeners: List[PipelineListener]) extends PipelineListener {
-  override def executionStarted(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+  override def pipelineStarted(key: PipelineStateInfo, pipelineContext: PipelineContext):  Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
-      val updatedCtx = listener.executionStarted(pipelines, ctx)
+      val updatedCtx = listener.pipelineStarted(key, ctx)
       handleContext(updatedCtx, pipelineContext)
     }))
   }
 
-  override def executionFinished(pipelines: List[Pipeline], pipelineContext: PipelineContext): Option[PipelineContext] = {
+  override def pipelineFinished(key: PipelineStateInfo, pipelineContext: PipelineContext):  Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
-      val updatedCtx = listener.executionFinished(pipelines, ctx)
+      val updatedCtx = listener.pipelineFinished(key, ctx)
       handleContext(updatedCtx, pipelineContext)
     }))
   }
 
-  override def executionStopped(pipelines: List[Pipeline], pipelineContext: PipelineContext): Unit = {
-    listeners.foreach(_.executionStopped(pipelines, pipelineContext))
-  }
-
-  override def pipelineStarted(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+  override def pipelineStepStarted(key: PipelineStateInfo, pipelineContext: PipelineContext): Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
-      val updatedCtx = listener.pipelineStarted(pipeline, ctx)
+      val updatedCtx = listener.pipelineStepStarted(key, ctx)
       handleContext(updatedCtx, pipelineContext)
     }))
   }
 
-  override def pipelineFinished(pipeline: Pipeline, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+  override def pipelineStepFinished(key: PipelineStateInfo, pipelineContext: PipelineContext): Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
-      val updatedCtx = listener.pipelineFinished(pipeline, ctx)
+      val updatedCtx = listener.pipelineStepFinished(key, ctx)
       handleContext(updatedCtx, pipelineContext)
     }))
   }
 
-  override def pipelineStepStarted(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
-    Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
-      val updatedCtx = listener.pipelineStepStarted(pipeline, step, ctx)
-      handleContext(updatedCtx, pipelineContext)
-    }))
-  }
-
-  override def pipelineStepFinished(pipeline: Pipeline, step: PipelineStep, pipelineContext: PipelineContext): Option[PipelineContext] = {
-    Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
-      val updatedCtx = listener.pipelineStepFinished(pipeline, step, ctx)
-      handleContext(updatedCtx, pipelineContext)
-    }))
-  }
-
-  override def registerStepException(exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
-    listeners.foreach(_.registerStepException(exception, pipelineContext))
+  override def registerStepException(key: PipelineStateInfo, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+    listeners.foreach(_.registerStepException(key, exception, pipelineContext))
   }
 
   private def handleContext(updatedCtx: Option[PipelineContext], pipelineContext: PipelineContext): PipelineContext = {
