@@ -1,13 +1,11 @@
 package com.acxiom.metalus.parser
 
-import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.{MockClass, Pipeline, PipelineDefs}
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.funspec.AnyFunSpec
 
 class JsonParserTests  extends AnyFunSpec {
   describe("DriverUtils - parsePipelineJson") {
-    implicit val formats: Formats = DefaultFormats
 
     it("Should parse a basic pipeline json returning a list of Pipeline objects") {
       val json = JsonParser.serializePipelines(PipelineDefs.TWO_PIPELINE)
@@ -36,7 +34,6 @@ class JsonParserTests  extends AnyFunSpec {
   }
 
   describe("DriverUtils - JSON conversion") {
-    implicit val formats: Formats = DefaultFormats
     it("Should convert JSON to case class") {
       val json =
         """

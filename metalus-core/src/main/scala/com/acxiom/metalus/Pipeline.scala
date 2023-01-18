@@ -295,16 +295,6 @@ case class PipelineContext(globals: Option[Map[String, Any]],
    * @param globalValue The value of the global property to set.
    * @return A new PipelineContext with an updated globals map.
    */
-  def setGlobal(globalName: String, globalValue: Serializable): PipelineContext =
-    this.copy(globals = Some(this.globals.getOrElse(Map[String, Any]()) + (globalName -> globalValue)))
-
-  /**
-   * This function will add or update a single entry on the globals map.
-   *
-   * @param globalName  The name of the global property to set.
-   * @param globalValue The value of the global property to set.
-   * @return A new PipelineContext with an updated globals map.
-   */
   def setGlobal(globalName: String, globalValue: Any): PipelineContext =
     this.copy(globals = Some(this.globals.getOrElse(Map[String, Any]()) + (globalName -> globalValue)))
 

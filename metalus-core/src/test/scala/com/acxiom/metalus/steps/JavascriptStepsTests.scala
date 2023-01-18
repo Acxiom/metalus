@@ -8,7 +8,6 @@ import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
 import java.io.File
 import java.nio.file.{FileSystems, Files, Path, StandardCopyOption}
 import java.util
-import scala.jdk.CollectionConverters.asScalaBufferConverter
 
 class JavascriptStepsTests extends AnyFunSpec with BeforeAndAfterAll with GivenWhenThen {
   var pipelineContext: PipelineContext = _
@@ -51,16 +50,16 @@ class JavascriptStepsTests extends AnyFunSpec with BeforeAndAfterAll with GivenW
       val updatedScript = script.replaceAll("\\$path", s"'${tempFile.getAbsolutePath}'")
       val result = JavascriptSteps.processScript(updatedScript, pipelineContext)
       assert(result.primaryReturn.isDefined)
-      val df = result.primaryReturn.get.asInstanceOf[util.ArrayList[String]].asScala
-      assert(df.length == 1001)
+      val df = result.primaryReturn.get.asInstanceOf[util.ArrayList[String]]
+      assert(df.size() == 1001)
     }
 
     it ("Should load a file using JS and a provide user value") {
       val updatedScript = script.replaceAll("\\$path", "userValue")
       val result = JavascriptSteps.processScriptWithValue(updatedScript, tempFile.getAbsolutePath, pipelineContext)
       assert(result.primaryReturn.isDefined)
-      val df = result.primaryReturn.get.asInstanceOf[util.ArrayList[String]].asScala
-      assert(df.length == 1001)
+      val df = result.primaryReturn.get.asInstanceOf[util.ArrayList[String]]
+      assert(df.size() == 1001)
     }
 
     it("Should handle multiple values") {

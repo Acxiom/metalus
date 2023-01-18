@@ -4,9 +4,9 @@ import com.acxiom.metalus._
 import org.apache.log4j.Logger
 
 import java.util.UUID
+import java.util.concurrent.ForkJoinPool
 import scala.collection.immutable
 import scala.concurrent.duration.Duration
-import scala.concurrent.forkjoin.ForkJoinPool
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 case class ForkStepFlow(pipeline: Pipeline,
