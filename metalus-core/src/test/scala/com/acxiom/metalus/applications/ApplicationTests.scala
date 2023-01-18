@@ -4,9 +4,7 @@ import com.acxiom.metalus.Constants.{NINE, TWELVE}
 import com.acxiom.metalus._
 import com.acxiom.metalus.api.BasicAuthorization
 import com.acxiom.metalus.applications.Color.Color
-import com.acxiom.metalus.context.Json4sContext
 import com.acxiom.metalus.parser.JsonParser
-import com.acxiom.metalus.parser.JsonParser.StepSerializer
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, urlPathEqualTo}
 import org.apache.commons.io.FileUtils
@@ -181,10 +179,9 @@ class ApplicationTests extends AnyFunSpec with BeforeAndAfterAll {
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
 
-      implicit val formats: Formats = DefaultFormats + new StepSerializer
       val application = JsonParser.parseJson(applicationJson, "com.acxiom.metalus.applications.Application").asInstanceOf[Application]
 
-      val json = org.json4s.native.Serialization.write(ApplicationResponse(application))
+      val json = JsonParser.serialize(ApplicationResponse(application))
 
       wireMockServer.addStubMapping(get(urlPathEqualTo("/applications/54321"))
         .willReturn(aResponse()
@@ -279,7 +276,7 @@ class ApplicationTests extends AnyFunSpec with BeforeAndAfterAll {
           |    }
           |  ]
           |}""".stripMargin
-      val serializers = JsonParser.parseJson(jsonString, "com.acxiom.metalus.applications.Json4sSerializers")(DefaultFormats).asInstanceOf[Json4sSerializers]
+      val serializers = JsonParser.parseJson(jsonString, "com.acxiom.metalus.applications.Json4sSerializers").asInstanceOf[Json4sSerializers]
       assert(Option(serializers).isDefined)
       assert(serializers.customSerializers.isDefined)
       assert(serializers.customSerializers.get.nonEmpty)
@@ -297,8 +294,7 @@ class ApplicationTests extends AnyFunSpec with BeforeAndAfterAll {
           |    }
           |  ]""".stripMargin
 
-      implicit val formats: Formats = new Json4sContext().generateFormats(Some(serializers))
-      val chickenList = parse(jsonDoc).extract[List[Chicken]]
+      val chickenList = JsonParser.parseJsonList(jsonDoc, "com.acxiom.metalus.applications.Chicken", Some(serializers)).asInstanceOf[List[Chicken]]
       assert(Option(chickenList).isDefined)
       assert(chickenList.nonEmpty)
       assert(chickenList.head.isInstanceOf[Silkie])
@@ -315,7 +311,7 @@ class ApplicationTests extends AnyFunSpec with BeforeAndAfterAll {
           |    "name": "child2"
           |  }
           |}""".stripMargin
-      val rootMap = parse(roots).extract[Map[String, Any]]
+      val rootMap = JsonParser.parseMap(roots, Some(serializers))
       assert(rootMap.nonEmpty)
       assert(rootMap("child1").isInstanceOf[Child1])
       assert(rootMap("child2").isInstanceOf[Child2])

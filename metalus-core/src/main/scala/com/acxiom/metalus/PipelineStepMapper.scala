@@ -1,7 +1,7 @@
 package com.acxiom.metalus
 
 import com.acxiom.metalus.applications.Json4sSerializers
-import com.acxiom.metalus.context.Json4sContext
+import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.utils.{ReflectionUtils, ScalaScriptEngine}
 import org.apache.log4j.Logger
 
@@ -268,16 +268,15 @@ trait PipelineStepMapper {
                                  parameter: Parameter,
                                  pipelineContext: PipelineContext): Option[Any] = {
     val workingMap = map.asInstanceOf[Map[String, Any]]
-    val jsonContext = pipelineContext.contextManager.getContext("json").get.asInstanceOf[Json4sContext]
     val paramSerializers = parameter.json4sSerializers
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
       // Skip the embedded variable mapping if this is a step-group pipeline parameter
       // TODO [2.0 Review] Pipeline.category has been removed
       if (workingMap.getOrElse("category", "pipeline").asInstanceOf[String] == "step-group") {
-        jsonContext.parseJson(jsonContext.serializeJson(workingMap), parameter.className.get, paramSerializers)
+        JsonParser.parseJson(JsonParser.serialize(workingMap), parameter.className.get, paramSerializers)
       } else {
-        jsonContext.parseJson(
-          jsonContext.serializeJson(mapEmbeddedVariables(workingMap, pipelineContext, paramSerializers), paramSerializers),
+        JsonParser.parseJson(
+          JsonParser.serialize(mapEmbeddedVariables(workingMap, pipelineContext, paramSerializers), paramSerializers),
           parameter.className.get, paramSerializers)
       }
     } else {
@@ -296,12 +295,11 @@ trait PipelineStepMapper {
     */
   private def handleListParameter(list: List[_], parameter: Parameter, pipelineContext: PipelineContext): Option[Any] = {
     val dropNone = pipelineContext.getGlobalAs[Boolean]("dropNoneFromLists").getOrElse(true)
-    val jsonContext = pipelineContext.contextManager.getContext("json").get.asInstanceOf[Json4sContext]
     val paramSerializers = parameter.json4sSerializers
     Some(if (parameter.className.isDefined && parameter.className.get.nonEmpty) {
       list.map(value =>
-        jsonContext.parseJson(
-          jsonContext.serializeJson(mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]],
+        JsonParser.parseJson(
+          JsonParser.serialize(mapEmbeddedVariables(value.asInstanceOf[Map[String, Any]],
             pipelineContext, paramSerializers)), parameter.className.get, paramSerializers))
     } else if (list.nonEmpty && list.head.isInstanceOf[Map[_, _]]) {
       list.map(value => {
@@ -336,14 +334,13 @@ trait PipelineStepMapper {
   private[metalus] def mapEmbeddedVariables(classMap: Map[String, Any],
                                             pipelineContext: PipelineContext,
                                             json4sSerializers: Option[Json4sSerializers]): Map[String, Any] = {
-    val jsonContext = pipelineContext.contextManager.getContext("json").get.asInstanceOf[Json4sContext]
     classMap.foldLeft(classMap)((map, entry) => {
       entry._2 match {
         case s: String if containsSpecialCharacters(s) =>
           map + (entry._1 -> getBestValue(s.split("\\|\\|"), Parameter(), pipelineContext))
         case m: Map[String, Any] if m.contains("className")=>
-          map + (entry._1 -> jsonContext.parseJson(
-            jsonContext.serializeJson(
+          map + (entry._1 -> JsonParser.parseJson(
+            JsonParser.serialize(
               mapEmbeddedVariables(m("object").asInstanceOf[Map[String, Any]], pipelineContext, json4sSerializers)),
             m("className").asInstanceOf[String]))
         case m: Map[_, _] =>

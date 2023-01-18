@@ -3,7 +3,6 @@ package com.acxiom.metalus.flow
 import com.acxiom.metalus._
 import com.acxiom.metalus.applications.ApplicationUtils
 import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
-import com.acxiom.metalus.context.Json4sContext
 
 import scala.runtime.BoxedUnit
 
@@ -60,7 +59,6 @@ case class StepGroupFlow(pipeline: Pipeline,
   private def preparePipelineContext(parameterValues: Map[String, Any],
                                      pipelineContext: PipelineContext,
                                      subPipeline: Pipeline): PipelineContext = {
-    implicit val formats = pipelineContext.contextManager.getContext("json").get.asInstanceOf[Json4sContext].generateFormats(None)
     val updates = if (subPipeline.parameters.isDefined &&
       subPipeline.parameters.get.inputs.isDefined &&
       subPipeline.parameters.get.inputs.get.nonEmpty) {
@@ -70,11 +68,11 @@ case class StepGroupFlow(pipeline: Pipeline,
         if (parameterValues.contains(input.name)) {
           val paramVals = parameterValues - input.name
           if (input.global) {
-            (ApplicationUtils.parseValue(tuple._1, input.name, parameterValues(input.name), Some(pipelineContext)),
+            (ApplicationUtils.parseValue(tuple._1, input.name, parameterValues(input.name), pipelineContext),
               tuple._2, paramVals)
           } else {
             (tuple._1,
-              tuple._2.copy(parameters = ApplicationUtils.parseValue(tuple._2.parameters, input.name, parameterValues(input.name), Some(pipelineContext))),
+              tuple._2.copy(parameters = ApplicationUtils.parseValue(tuple._2.parameters, input.name, parameterValues(input.name), pipelineContext)),
               paramVals)
           }
         } else {

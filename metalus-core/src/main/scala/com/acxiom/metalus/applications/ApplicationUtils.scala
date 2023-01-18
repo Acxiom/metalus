@@ -5,8 +5,6 @@ import com.acxiom.metalus.context.Json4sContext
 import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.utils.ReflectionUtils
 import org.apache.log4j.Logger
-import org.json4s.Formats
-import org.json4s.native.Serialization
 
 /**
  * Provides a set of utility functions for working with Application metadata
@@ -37,17 +35,16 @@ object ApplicationUtils {
     val validateArgumentTypes = parameters.getOrElse(Map()).getOrElse("validateStepParameterTypes", false).asInstanceOf[Boolean]
     // Create the ContextManager
     val contextManager = new ContextManager(application.contexts.getOrElse(Map()), parameters.getOrElse(Map()))
-    val jsonContext = contextManager.getContext("json").asInstanceOf[Option[Json4sContext]].get
-    implicit val formats: Formats = jsonContext.generateFormats(None)
+    val tempCtx = PipelineContext(globals, List(), contextManager = contextManager)
     val globalStepMapper = generateStepMapper(application.stepMapper, Some(PipelineStepMapper()),
-      validateArgumentTypes, credentialProvider)
+      validateArgumentTypes, credentialProvider, tempCtx)
     val rootGlobals = globals.getOrElse(Map[String, Any]()) // Create the default globals
     val globalListener = generatePipelineListener(application.pipelineListener, Some(pipelineListener),
-      validateArgumentTypes, credentialProvider)
+      validateArgumentTypes, credentialProvider, tempCtx)
     val globalPipelineParameters = generatePipelineParameters(application.pipelineParameters, Some(List[PipelineParameter]()))
     val pipelineManager = generatePipelineManager(application.pipelineManager,
       Some(PipelineManager(application.pipelineTemplates)),
-      validateArgumentTypes, credentialProvider).get
+      validateArgumentTypes, credentialProvider, tempCtx).get
     val initialContext = PipelineContext(Some(rootGlobals), globalPipelineParameters.get, application.stepPackages,
       globalStepMapper.get, globalListener, List(), pipelineManager, credentialProvider, contextManager, Map(), None)
 
@@ -82,10 +79,11 @@ object ApplicationUtils {
   private def generatePipelineManager(pipelineManagerInfo: Option[ClassInfo],
                                       pipelineManager: Option[PipelineManager],
                                       validateArgumentTypes: Boolean,
-                                      credentialProvider: Option[CredentialProvider])(implicit formats: Formats): Option[PipelineManager] = {
+                                      credentialProvider: Option[CredentialProvider],
+                                      pipelineContext: PipelineContext): Option[PipelineManager] = {
     if (pipelineManagerInfo.isDefined && pipelineManagerInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(pipelineManagerInfo.get.className.getOrElse("com.acxiom.metalus.CachedPipelineManager"),
-        Some(parseParameters(pipelineManagerInfo.get, credentialProvider)), validateArgumentTypes).asInstanceOf[PipelineManager])
+        Some(parseParameters(pipelineManagerInfo.get, credentialProvider, pipelineContext)), validateArgumentTypes).asInstanceOf[PipelineManager])
     } else {
       pipelineManager
     }
@@ -94,10 +92,11 @@ object ApplicationUtils {
   private def generatePipelineListener(pipelineListenerInfo: Option[ClassInfo],
                                        pipelineListener: Option[PipelineListener],
                                        validateArgumentTypes: Boolean,
-                                       credentialProvider: Option[CredentialProvider])(implicit formats: Formats): Option[PipelineListener] = {
+                                       credentialProvider: Option[CredentialProvider],
+                                       pipelineContext: PipelineContext): Option[PipelineListener] = {
     if (pipelineListenerInfo.isDefined && pipelineListenerInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(pipelineListenerInfo.get.className.getOrElse("com.acxiom.metalus.DefaultPipelineListener"),
-        Some(parseParameters(pipelineListenerInfo.get, credentialProvider)), validateArgumentTypes).asInstanceOf[PipelineListener])
+        Some(parseParameters(pipelineListenerInfo.get, credentialProvider, pipelineContext)), validateArgumentTypes).asInstanceOf[PipelineListener])
     } else {
       pipelineListener
     }
@@ -106,10 +105,11 @@ object ApplicationUtils {
   private def generateStepMapper(stepMapperInfo: Option[ClassInfo],
                                  stepMapper: Option[PipelineStepMapper],
                                  validateArgumentTypes: Boolean,
-                                 credentialProvider: Option[CredentialProvider])(implicit formats: Formats): Option[PipelineStepMapper] = {
+                                 credentialProvider: Option[CredentialProvider],
+                                 pipelineContext: PipelineContext): Option[PipelineStepMapper] = {
     if (stepMapperInfo.isDefined && stepMapperInfo.get.className.isDefined) {
       Some(ReflectionUtils.loadClass(stepMapperInfo.get.className.getOrElse("com.acxiom.metalus.DefaultPipelineStepMapper"),
-        Some(parseParameters(stepMapperInfo.get, credentialProvider)), validateArgumentTypes).asInstanceOf[PipelineStepMapper])
+        Some(parseParameters(stepMapperInfo.get, credentialProvider, pipelineContext)), validateArgumentTypes).asInstanceOf[PipelineStepMapper])
     } else {
       stepMapper
     }
@@ -128,9 +128,9 @@ object ApplicationUtils {
                               rootGlobals: Map[String, Any],
                               defaultGlobals: Option[Map[String, Any]],
                               pipelineContext: PipelineContext,
-                              merge: Boolean = false)(implicit formats: Formats): Option[Map[String, Any]] = {
+                              merge: Boolean = false): Option[Map[String, Any]] = {
     globals.map { baseGlobals =>
-      val result = baseGlobals.foldLeft(rootGlobals)((rootMap, entry) => parseValue(rootMap, entry._1, entry._2, Some(pipelineContext)))
+      val result = baseGlobals.foldLeft(rootGlobals)((rootMap, entry) => parseValue(rootMap, entry._1, entry._2, pipelineContext))
       if (merge) {
         defaultGlobals.getOrElse(Map[String, Any]()) ++ result
       } else {
@@ -139,9 +139,10 @@ object ApplicationUtils {
     }.orElse(defaultGlobals)
   }
 
-  private def parseParameters(classInfo: ClassInfo, credentialProvider: Option[CredentialProvider])(implicit formats: Formats): Map[String, Any] = {
+  private def parseParameters(classInfo: ClassInfo, credentialProvider: Option[CredentialProvider], pipelineContext: PipelineContext): Map[String, Any] = {
     classInfo.parameters.getOrElse(Map[String, Any]())
-      .foldLeft(Map[String, Any]("credentialProvider" -> credentialProvider))((rootMap, entry) => parseValue(rootMap, entry._1, entry._2))
+      .foldLeft(Map[String, Any]("credentialProvider" -> credentialProvider))((rootMap, entry) =>
+        parseValue(rootMap, entry._1, entry._2, pipelineContext))
   }
 
   /**
@@ -151,36 +152,40 @@ object ApplicationUtils {
     * @param key     The key to use when adding teh result to the rootMap
     * @param value   The value to be parsed
     * @param ctx     The PipelineContext that will provide the mapper
-    * @param formats Implicit formats used for JSON conversion
     * @return A map containing the converted value
     */
-  def parseValue(rootMap: Map[String, Any], key: String, value: Any, ctx: Option[PipelineContext] = None)(implicit formats: Formats): Map[String, Any] = {
+  def parseValue(rootMap: Map[String, Any], key: String, value: Any, ctx: PipelineContext): Map[String, Any] = {
+    val jsonContext = ctx.contextManager.getContext("json").asInstanceOf[Option[Json4sContext]].get
     value match {
       case map: Map[String, Any] if map.contains("className") =>
-        val mapEmbedded = map.get("mapEmbeddedVariables").exists(_.toString.toBoolean) && ctx.isDefined
+        val mapEmbedded = map.get("mapEmbeddedVariables").exists(_.toString.toBoolean)
         val finalMap = if (mapEmbedded) {
-          ctx.get.parameterMapper.mapEmbeddedVariables(map("object").asInstanceOf[Map[String, Any]], ctx.get, None)
+          ctx.parameterMapper.mapEmbeddedVariables(map("object").asInstanceOf[Map[String, Any]], ctx, None)
         } else {
           map("object").asInstanceOf[Map[String, Any]]
         }
-        val obj = JsonParser.parseJson(Serialization.write(finalMap), map("className").asInstanceOf[String])
+        val obj = JsonParser.parseJson(
+          JsonParser.serialize(finalMap, jsonContext.serializers),
+          map("className").asInstanceOf[String], jsonContext.serializers)
         rootMap + (key -> obj)
       case listMap: List[Any] =>
         val obj = listMap.map {
           case m: Map[String, Any] =>
             if (m.contains("className")) {
-              val mapEmbedded = m.get("mapEmbeddedVariables").exists(_.toString.toBoolean) && ctx.isDefined
+              val mapEmbedded = m.get("mapEmbeddedVariables").exists(_.toString.toBoolean)
               val map = if (m.contains("parameters")) {
                 m("parameters").asInstanceOf[Map[String, Any]]
               } else {
                 m("object").asInstanceOf[Map[String, Any]]
               }
               val finalMap = if (mapEmbedded) {
-                ctx.get.parameterMapper.mapEmbeddedVariables(map, ctx.get, None)
+                ctx.parameterMapper.mapEmbeddedVariables(map, ctx, None)
               } else {
                 map
               }
-              JsonParser.parseJson(Serialization.write(finalMap), m("className").asInstanceOf[String])
+              JsonParser.parseJson(
+                JsonParser.serialize(finalMap, jsonContext.serializers),
+                m("className").asInstanceOf[String], jsonContext.serializers)
             } else {
               m
             }
