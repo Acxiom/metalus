@@ -1,7 +1,5 @@
 package com.acxiom.metalus
 
-import com.acxiom.pipeline._
-
 object TestHelper {
   var pipelineListener: PipelineListener = _
 
@@ -14,7 +12,7 @@ object TestHelper {
           .split(",").toList
       }
       else {
-        List("com.acxiom.pipeline", "com.acxiom.pipeline.steps")
+        List("com.acxiom.metalus", "com.acxiom.metalus.steps")
       }),
       PipelineStepMapper(),
       Some(TestHelper.pipelineListener),

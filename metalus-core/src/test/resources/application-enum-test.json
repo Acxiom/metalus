@@ -1,16 +1,16 @@
 {
   "stepPackages": [
-    "com.acxiom.pipeline.steps",
-    "com.acxiom.pipeline"
+    "com.acxiom.metalus.steps",
+    "com.acxiom.metalus"
   ],
   "pipelineListener": {
-    "className": "com.acxiom.pipeline.applications.TestPipelineListener",
+    "className": "com.acxiom.metalus.applications.TestPipelineListener",
     "parameters": {
       "name": "Test Pipeline Listener"
     }
   },
   "stepMapper": {
-    "className": "com.acxiom.pipeline.applications.TestPipelineStepMapper",
+    "className": "com.acxiom.metalus.applications.TestPipelineStepMapper",
     "parameters": {
       "name": "Test Step Mapper"
     }
@@ -41,7 +41,7 @@
   ],
   "globals": {
     "silkie": {
-      "className": "com.acxiom.pipeline.applications.Silkie",
+      "className": "com.acxiom.metalus.applications.Silkie",
       "object": {
         "color": 1
       }
@@ -53,7 +53,7 @@
       "parameters": {
         "jsonSerializers": {
           "enumIdSerializers": [
-            {"className": "com.acxiom.pipeline.applications.Color"}
+            {"className": "com.acxiom.metalus.applications.Color"}
           ]
         }
       }

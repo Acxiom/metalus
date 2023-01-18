@@ -1,7 +1,7 @@
 {
   "stepPackages": [
-    "com.acxiom.pipeline.steps",
-    "com.acxiom.pipeline"
+    "com.acxiom.metalus.steps",
+    "com.acxiom.metalus"
   ],
   "executions": [
     {

@@ -3,17 +3,17 @@
     "rootLogLevel"
   ],
   "stepPackages": [
-    "com.acxiom.pipeline.steps",
-    "com.acxiom.pipeline"
+    "com.acxiom.metalus.steps",
+    "com.acxiom.metalus"
   ],
   "pipelineListener": {
-    "className": "com.acxiom.pipeline.applications.TestPipelineListener",
+    "className": "com.acxiom.metalus.applications.TestPipelineListener",
     "parameters": {
       "name": "Test Pipeline Listener"
     }
   },
   "stepMapper": {
-    "className": "com.acxiom.pipeline.applications.TestPipelineStepMapper",
+    "className": "com.acxiom.metalus.applications.TestPipelineStepMapper",
     "parameters": {
       "name": "Test Step Mapper"
     }
@@ -33,7 +33,7 @@
     "float": 1.5,
     "string": "some string",
     "mappedObject": {
-      "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+      "className": "com.acxiom.metalus.applications.TestGlobalObject",
       "object": {
         "name": "Global Mapped Object",
         "subObjects": [

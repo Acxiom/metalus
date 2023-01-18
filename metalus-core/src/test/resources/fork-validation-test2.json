@@ -12,8 +12,8 @@
     ]
   },
   "stepPackages": [
-    "com.acxiom.pipeline.steps",
-    "com.acxiom.pipeline"
+    "com.acxiom.metalus.steps",
+    "com.acxiom.metalus"
   ],
   "executions": [
     {
@@ -39,7 +39,7 @@
                   "type": "object",
                   "name": "parameterObject",
                   "required": true,
-                  "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+                  "className": "com.acxiom.metalus.applications.TestGlobalObject",
                   "value": {
                     "name": "Parameter Mapped Object",
                     "subObjects": [
@@ -86,7 +86,7 @@
                   "type": "object",
                   "name": "parameterObject",
                   "required": true,
-                  "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+                  "className": "com.acxiom.metalus.applications.TestGlobalObject",
                   "value": {
                     "name": "Parameter Mapped Object",
                     "subObjects": [
@@ -133,7 +133,7 @@
                   "type": "object",
                   "name": "parameterObject",
                   "required": true,
-                  "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+                  "className": "com.acxiom.metalus.applications.TestGlobalObject",
                   "value": {
                     "name": "Parameter Mapped Object",
                     "subObjects": [

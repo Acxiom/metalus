@@ -1,7 +1,7 @@
 package com.acxiom.metalus.parser
 
-import com.acxiom.pipeline._
-import com.acxiom.pipeline.applications.{Application, ApplicationResponse}
+import com.acxiom.metalus._
+import com.acxiom.metalus.applications.{Application, ApplicationResponse}
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
 import org.json4s.reflect.Reflector
@@ -38,9 +38,9 @@ object JsonParser {
   def parseApplication(json: String): Application = {
     // See if this is an application response
     if (json.indexOf("application\"") > -1 && json.indexOf("application") < 15) {
-      parseJson(json, "com.acxiom.pipeline.applications.ApplicationResponse").asInstanceOf[ApplicationResponse].application
+      parseJson(json, "com.acxiom.metalus.applications.ApplicationResponse").asInstanceOf[ApplicationResponse].application
     } else {
-      parseJson(json, "com.acxiom.pipeline.applications.Application").asInstanceOf[Application]
+      parseJson(json, "com.acxiom.metalus.applications.Application").asInstanceOf[Application]
     }
   }
 

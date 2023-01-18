@@ -1,9 +1,9 @@
 package com.acxiom.metalus.context
 
+import com.acxiom.metalus.Context
+import com.acxiom.metalus.applications.Json4sSerializers
 import com.acxiom.metalus.parser.JsonParser.StepSerializer
-import com.acxiom.pipeline.Context
-import com.acxiom.pipeline.applications.Json4sSerializers
-import com.acxiom.pipeline.utils.ReflectionUtils
+import com.acxiom.metalus.utils.ReflectionUtils
 import org.json4s.ext.{EnumNameSerializer, EnumSerializer}
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
@@ -20,7 +20,7 @@ class Json4sContext(jsonSerializers: Option[Map[String, Any]] = None) extends Co
   private val localSerializers = {
     if (jsonSerializers.isDefined) {
       val jsonString = serializeJson(jsonSerializers.get)
-      Some(parseJson(jsonString, "com.acxiom.pipeline.applications.Json4sSerializers").asInstanceOf[Json4sSerializers])
+      Some(parseJson(jsonString, "com.acxiom.metalus.applications.Json4sSerializers").asInstanceOf[Json4sSerializers])
     } else {
       None
     }

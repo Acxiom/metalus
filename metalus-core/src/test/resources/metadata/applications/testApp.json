@@ -4,15 +4,15 @@
     "rootLogLevel"
   ],
   "stepPackages": [
-    "com.acxiom.pipeline.steps",
-    "com.acxiom.pipeline"
+    "com.acxiom.metalus.steps",
+    "com.acxiom.metalus"
   ],
   "pipelineListener": {
-    "className": "com.acxiom.pipeline.CombinedPipelineListener",
+    "className": "com.acxiom.metalus.CombinedPipelineListener",
     "parameters": {
       "listeners": [
         {
-          "className": "com.acxiom.pipeline.applications.TestPipelineListener",
+          "className": "com.acxiom.metalus.applications.TestPipelineListener",
           "parameters": {
             "name": "Test Pipeline Listener"
           }
@@ -21,7 +21,7 @@
     }
   },
   "stepMapper": {
-    "className": "com.acxiom.pipeline.applications.TestPipelineStepMapper",
+    "className": "com.acxiom.metalus.applications.TestPipelineStepMapper",
     "parameters": {
       "name": "Test Step Mapper"
     }
@@ -98,7 +98,7 @@
               "type": "object",
               "name": "mappedObject",
               "value": {
-                "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+                "className": "com.acxiom.metalus.applications.TestGlobalObject",
                 "object": {
                   "name": "Execution Mapped Object",
                   "subObjects": [
@@ -160,7 +160,7 @@
               "type": "object",
               "name": "mappedObject",
               "value": {
-                "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+                "className": "com.acxiom.metalus.applications.TestGlobalObject",
                 "object": {
                   "name": "Execution Mapped Object",
                   "subObjects": [
@@ -256,7 +256,7 @@
               "type": "object",
               "name": "mappedObject",
               "value": {
-                "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+                "className": "com.acxiom.metalus.applications.TestGlobalObject",
                 "object": {
                   "name": "Execution Mapped Object",
                   "subObjects": [
@@ -301,7 +301,7 @@
               "type": "object",
               "name": "mappedObject",
               "value": {
-                "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+                "className": "com.acxiom.metalus.applications.TestGlobalObject",
                 "object": {
                   "name": "Execution Mapped Object",
                   "subObjects": [
@@ -439,7 +439,7 @@
               "type": "object",
               "name": "parameterObject",
               "required": true,
-              "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+              "className": "com.acxiom.metalus.applications.TestGlobalObject",
               "value": {
                 "name": "Parameter Mapped Object",
                 "subObjects": [
@@ -500,7 +500,7 @@
               "type": "object",
               "name": "parameterObject",
               "required": true,
-              "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+              "className": "com.acxiom.metalus.applications.TestGlobalObject",
               "value": {
                 "name": "Parameter Mapped Object",
                 "subObjects": [
@@ -538,7 +538,7 @@
       "another": 5
     }],
     "mappedObject": {
-      "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+      "className": "com.acxiom.metalus.applications.TestGlobalObject",
       "object": {
         "name": "Global Mapped Object",
         "subObjects": [
@@ -553,7 +553,7 @@
     },
     "listMappedObjects": [
       {
-        "className": "com.acxiom.pipeline.applications.TestGlobalObject",
+        "className": "com.acxiom.metalus.applications.TestGlobalObject",
         "object": {
           "name": "Global Mapped Object in a list",
           "subObjects": [
@@ -568,7 +568,7 @@
       }
     ],
     "authorization": {
-      "className": "com.acxiom.pipeline.api.BasicAuthorization",
+      "className": "com.acxiom.metalus.api.BasicAuthorization",
       "object": {
         "username": "myuser",
         "password": "mypassword"

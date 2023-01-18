@@ -1,6 +1,7 @@
 package com.acxiom.metalus.parser
 
-import com.acxiom.pipeline.{MockClass, Pipeline, PipelineDefs}
+import com.acxiom.metalus.parser.JsonParser
+import com.acxiom.metalus.{MockClass, Pipeline, PipelineDefs}
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.funspec.AnyFunSpec
 
@@ -43,7 +44,7 @@ class JsonParserTests  extends AnyFunSpec {
           | "string": "Frederico"
           |}
       """.stripMargin
-      val mc = JsonParser.parseJson(json, "com.acxiom.pipeline.MockClass")
+      val mc = JsonParser.parseJson(json, "com.acxiom.metalus.MockClass")
       assert(Option(mc).isDefined)
       assert(mc.asInstanceOf[MockClass].string == "Frederico")
     }
