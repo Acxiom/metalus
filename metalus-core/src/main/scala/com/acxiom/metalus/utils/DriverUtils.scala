@@ -3,56 +3,11 @@ package com.acxiom.metalus.utils
 import com.acxiom.metalus._
 import com.acxiom.metalus.api.HttpRestClient
 import com.acxiom.metalus.fs.FileManager
-import org.apache.log4j.Level
+import org.slf4j.event.Level
 
 import scala.io.Source
 
 object DriverUtils {
-
-//  val DEFAULT_KRYO_CLASSES: Array[Class[_]] = {
-//    try {
-//      val c = Class.forName("org.apache.http.client.entity.UrlEncodedFormEntity")
-//      Array[Class[_]](classOf[LongWritable], c)
-//    } catch {
-//      case _: Throwable => Array[Class[_]](classOf[LongWritable])
-//    }
-//  }
-//
-//  private val SPARK_MASTER = "spark.master"
-
-  /**
-    * Creates a SparkConf with the provided class array. This function will also set properties required to run on a cluster.
-    *
-    * @param kryoClasses An array of Class types that should be registered for serialization.
-    * @return A SparkConf
-    */
-//  def createSparkConf(kryoClasses: Array[Class[_]]): SparkConf = {
-//    // Create the spark conf.
-//    val tempConf = new SparkConf()
-//      // This is required to ensure that certain classes can be serialized across the nodes
-//      .registerKryoClasses(kryoClasses)
-//      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-//
-//    // Handle test scenarios where the master was not set
-//    val sparkConf = if (!tempConf.contains(SPARK_MASTER)) {
-//      tempConf.setMaster("local")
-//    } else {
-//      tempConf
-//    }
-//
-//    // These properties are required when running the driver on the cluster so the executors
-//    // will be able to communicate back to the driver.
-//    val deployMode = sparkConf.get("spark.submit.deployMode", "client")
-//    val master = sparkConf.get(SPARK_MASTER, "local")
-//    if (deployMode == "cluster" || master == "yarn") {
-//      logger.debug("Configuring driver to run against a cluster")
-//      sparkConf
-//        .set("spark.local.ip", java.net.InetAddress.getLocalHost.getHostAddress)
-//        .set("spark.driver.host", java.net.InetAddress.getLocalHost.getHostAddress)
-//    } else {
-//      sparkConf
-//    }
-//  }
 
   /**
     * Helper function for converting command line parameters ([--param value] style) into a usable map.
@@ -137,17 +92,6 @@ object DriverUtils {
   def loadJsonFromFile(path: String,
                        fileLoaderClassName: String = "com.acxiom.metalus.fs.LocalFileManager",
                        parameters: Map[String, Any] = Map[String, Any]()): String = {
-//    val tempConf = new SparkConf()
-//    // Handle test scenarios where the master was not set
-//    val sparkConf = if (!tempConf.contains(SPARK_MASTER)) {
-//      if (parameters.contains("dfs-cluster")) {
-//        tempConf.setMaster("local").set("spark.hadoop.fs.defaultFS", parameters("dfs-cluster").asInstanceOf[String])
-//      } else {
-//        tempConf.setMaster("local")
-//      }
-//    } else {
-//      tempConf
-//    }
     val fileManager = ReflectionUtils.loadClass(fileLoaderClassName, Some(parameters)).asInstanceOf[FileManager]
     val json = Source.fromInputStream(fileManager.getFileResource(path).getInputStream()).mkString
     json
@@ -165,8 +109,6 @@ object DriverUtils {
       case "ERROR" => Level.ERROR
       case "WARN" => Level.WARN
       case "TRACE" => Level.TRACE
-      case "FATAL" => Level.FATAL
-      case "OFF" => Level.OFF
       case _ => Level.INFO
     }
   }

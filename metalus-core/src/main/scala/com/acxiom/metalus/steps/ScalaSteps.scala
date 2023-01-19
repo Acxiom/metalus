@@ -3,11 +3,11 @@ package com.acxiom.metalus.steps
 import com.acxiom.metalus.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.acxiom.metalus.utils.ScalaScriptEngine
 import com.acxiom.metalus.{PipelineContext, PipelineStepResponse}
-import org.apache.log4j.Logger
+import org.slf4j.LoggerFactory
 
 @StepObject
 object ScalaSteps {
-  private val logger = Logger.getLogger(getClass)
+  private val logger = LoggerFactory.getLogger(getClass)
 
   @StepFunction("a7e17c9d-6956-4be0-a602-5b5db4d1c08b",
     "Scala script Step",
@@ -34,7 +34,7 @@ object ScalaSteps {
                              value: Any, `type`: Option[String] = None,
                              pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
-    val bindings = engine.createBindings("logger", logger, Some("org.apache.log4j.Logger"))
+    val bindings = engine.createBindings("logger", logger, Some("org.slf4j.Logger"))
       .setBinding("userValue", value, `type`)
     val result = engine.executeScriptWithBindings(script, bindings, pipelineContext)
     handleResult(result)
@@ -56,7 +56,7 @@ object ScalaSteps {
                               pipelineContext: PipelineContext): PipelineStepResponse = {
     val engine = new ScalaScriptEngine
     val typeMappings = types.getOrElse(Map())
-    val initialBinding = engine.createBindings("logger", logger, Some("org.apache.log4j.Logger"))
+    val initialBinding = engine.createBindings("logger", logger, Some("org.slf4j.Logger"))
     val bindings = values.foldLeft(initialBinding) { (bindings, pair) =>
       val value = pair._2 match {
         case s: Some[_] if unwrapOptions.getOrElse(true) => s.get

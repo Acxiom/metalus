@@ -1,10 +1,10 @@
 package com.acxiom.metalus
 
 import com.acxiom.metalus.flow.{PipelineStepFlow, SplitStepException}
-import org.apache.log4j.Logger
+import org.slf4j.LoggerFactory
 
 object PipelineExecutor {
-  private val logger = Logger.getLogger(getClass)
+  private val logger = LoggerFactory.getLogger(getClass)
 
   // TODO Upon restart, how will we know where to start?
   // TODO Follow flow to ensure that each step is being audited properly.

@@ -4,13 +4,13 @@ import com.acxiom.metalus._
 import com.acxiom.metalus.context.Json4sContext
 import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.utils.ReflectionUtils
-import org.apache.log4j.Logger
+import org.slf4j.LoggerFactory
 
 /**
  * Provides a set of utility functions for working with Application metadata
  */
 object ApplicationUtils {
-  private val logger = Logger.getLogger(getClass)
+  private val logger = LoggerFactory.getLogger(getClass)
 
   /**
     * This function will convert the Application into an execution plan supplying the globals (if provided) to each

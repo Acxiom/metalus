@@ -4,12 +4,12 @@ import com.acxiom.metalus.drivers.DriverSetup
 import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.utils.DriverUtils
 import com.acxiom.metalus.{CredentialProvider, Pipeline, PipelineContext}
-import org.apache.log4j.Logger
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.io.Source
 
 trait ApplicationDriverSetup extends DriverSetup {
-  val logger: Logger = Logger.getLogger(getClass)
+  val logger: Logger = LoggerFactory.getLogger(getClass)
   // Load the Application configuration
   protected def loadApplication: Application = {
     val json = if (parameters.contains("applicationId")) {

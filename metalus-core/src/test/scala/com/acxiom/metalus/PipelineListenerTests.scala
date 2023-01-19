@@ -2,22 +2,23 @@ package com.acxiom.metalus
 
 import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
 import com.acxiom.metalus.flow.SplitStepException
-import org.apache.log4j.{Level, Logger}
 import org.json4s.native.JsonMethods.parse
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.slf4j.event.Level
+import org.slf4j.{Logger, LoggerFactory}
 
 class PipelineListenerTests extends AnyFunSpec with BeforeAndAfterAll with Suite {
   private val pipelines = PipelineDefs.BASIC_PIPELINE
   private implicit val formats: Formats = DefaultFormats
 
   override def beforeAll() {
-    Logger.getLogger("com.acxiom.metalus").setLevel(Level.DEBUG)
+    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
   }
 
   override def afterAll() {
-    Logger.getRootLogger.setLevel(Level.INFO)
+    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
   }
 
   describe("CombinedPipelineListener") {

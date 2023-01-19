@@ -3,12 +3,12 @@ package com.acxiom.metalus.flow
 import com.acxiom.metalus._
 import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
 import com.acxiom.metalus.utils.ReflectionUtils
-import org.apache.log4j.Logger
+import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
 
 object PipelineFlow {
-  private val logger = Logger.getLogger(getClass)
+  private val logger = LoggerFactory.getLogger(getClass)
   /**
     *
     * @param pipelineContext The current PipelineContext
@@ -91,7 +91,7 @@ object PipelineFlow {
 }
 
 trait PipelineFlow {
-  private val logger = Logger.getLogger(getClass)
+  private val logger = LoggerFactory.getLogger(getClass)
 
   def pipeline: Pipeline
   def initialContext: PipelineContext

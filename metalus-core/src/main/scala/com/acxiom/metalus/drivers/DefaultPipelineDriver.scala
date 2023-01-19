@@ -2,7 +2,7 @@ package com.acxiom.metalus.drivers
 
 import com.acxiom.metalus.PipelineExecutor
 import com.acxiom.metalus.utils.{DriverUtils, ReflectionUtils}
-import org.apache.log4j.Logger
+import org.slf4j.{Logger, LoggerFactory}
 
 /**
   * Provides a basic driver that will read in command line parameters and execute pipelines. The only required parameter
@@ -11,7 +11,7 @@ import org.apache.log4j.Logger
   * creating the PipelineContext.
   */
 object DefaultPipelineDriver {
-  val logger: Logger = Logger.getLogger(getClass)
+  val logger: Logger = LoggerFactory.getLogger(getClass)
 
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("driverSetupClass")))

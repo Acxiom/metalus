@@ -8,7 +8,6 @@ import com.acxiom.metalus.parser.JsonParser
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, get, urlPathEqualTo}
 import org.apache.commons.io.FileUtils
-import org.apache.log4j.{Level, Logger}
 import org.json4s.JsonAST.JString
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.JsonMethods.parse
@@ -16,6 +15,8 @@ import org.json4s.native.Serialization
 import org.json4s.{CustomSerializer, DefaultFormats, Formats, JObject}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
+import org.slf4j.LoggerFactory
+import org.slf4j.event.Level
 
 import java.io.{File, FileOutputStream, OutputStreamWriter}
 import java.net.HttpURLConnection
@@ -25,7 +26,7 @@ import scala.io.Source
 class ApplicationTests extends AnyFunSpec with BeforeAndAfterAll {
 
   override def beforeAll(): Unit = {
-    Logger.getLogger("com.acxiom.metalus").setLevel(Level.DEBUG)
+    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
   }
 
   describe("ApplicationUtils - Parsing") {
@@ -109,8 +110,8 @@ class ApplicationTests extends AnyFunSpec with BeforeAndAfterAll {
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
-      assert(Logger.getLogger("com.test").getLevel.toString == "INFO")
-      assert(Logger.getLogger("com.test1").getLevel.toString == "DEBUG")
+      assert(LoggerFactory.getLogger("com.test").isInfoEnabled)
+      assert(LoggerFactory.getLogger("com.test1").isDebugEnabled)
 
       file.delete()
       FileUtils.deleteDirectory(testDirectory.toFile)
@@ -211,8 +212,8 @@ class ApplicationTests extends AnyFunSpec with BeforeAndAfterAll {
       assert(!setup.pipelineContext.globals.get.contains("applicationJson"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigPath"))
       assert(!setup.pipelineContext.globals.get.contains("applicationConfigurationLoader"))
-      assert(Logger.getLogger("com.test").getLevel.toString == "INFO")
-      assert(Logger.getLogger("com.test1").getLevel.toString == "DEBUG")
+      assert(LoggerFactory.getLogger("com.test").isInfoEnabled)
+      assert(LoggerFactory.getLogger("com.test1").isDebugEnabled)
     }
 
     // TODO [2.0 Review] Move to the spark project

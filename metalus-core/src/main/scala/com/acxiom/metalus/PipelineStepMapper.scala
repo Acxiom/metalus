@@ -3,7 +3,7 @@ package com.acxiom.metalus
 import com.acxiom.metalus.applications.Json4sSerializers
 import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.utils.{ReflectionUtils, ScalaScriptEngine}
-import org.apache.log4j.Logger
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.annotation.tailrec
 import scala.math.ScalaNumericAnyConversions
@@ -16,7 +16,7 @@ class DefaultPipelineStepMapper extends PipelineStepMapper
 
 //noinspection ScalaStyle
 trait PipelineStepMapper {
-  val logger: Logger = Logger.getLogger(getClass)
+  val logger: Logger = LoggerFactory.getLogger(getClass)
 
   /**
     * This function is called prior to executing a PipelineStep generating a map of values to be passed to the step
@@ -198,7 +198,7 @@ trait PipelineStepMapper {
         pipelineProgress = pipelineContext.currentStateInfo)
     }
     val engine = new ScalaScriptEngine
-    val initialBinding = engine.createBindings("logger", logger, Some("org.apache.log4j.Logger"))
+    val initialBinding = engine.createBindings("logger", logger, Some("org.slf4j.Logger"))
     val bindings = pMap.foldLeft(initialBinding){
       case (binding, (name, (value: Some[_], typeName: Some[String]))) if !typeName.get.startsWith("Option[") =>
         logger.debug(s"Adding binding for ad-hoc script: name: [$name], value: [${value.get}], type: [$typeName].")

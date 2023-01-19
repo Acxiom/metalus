@@ -3,13 +3,13 @@ package com.acxiom.metalus.steps
 import com.acxiom.metalus.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
 import com.acxiom.metalus.utils.JavaScriptEngine
 import com.acxiom.metalus.{PipelineContext, PipelineStepResponse}
-import org.apache.log4j.Logger
+import org.slf4j.LoggerFactory
 
 import javax.script.SimpleBindings
 
 @StepObject
 object JavascriptSteps {
-  private val logger = Logger.getLogger(getClass)
+  private val logger = LoggerFactory.getLogger(getClass)
 
   @StepFunction("5e0358a0-d567-5508-af61-c35a69286e4e",
     "Javascript Step",

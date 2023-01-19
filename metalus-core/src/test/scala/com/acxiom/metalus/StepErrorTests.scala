@@ -1,17 +1,18 @@
 package com.acxiom.metalus
 
-import org.apache.log4j.{Level, Logger}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
+import org.slf4j.event.Level
+import org.slf4j.{Logger, LoggerFactory}
 
 class StepErrorTests extends AnyFunSpec with BeforeAndAfterAll {
 
   override def beforeAll() {
-    Logger.getLogger("com.acxiom.metalus").setLevel(Level.DEBUG)
+    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
   }
 
   override def afterAll() {
-    Logger.getRootLogger.setLevel(Level.INFO)
+    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
   }
 
   describe("StepErrorHandling - Basic") {

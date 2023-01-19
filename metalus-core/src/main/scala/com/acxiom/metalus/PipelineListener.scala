@@ -2,10 +2,10 @@ package com.acxiom.metalus
 
 import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
 import com.acxiom.metalus.flow.SplitStepException
-import org.apache.log4j.Logger
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.{JsonParser, Serialization}
 import org.json4s.{DefaultFormats, Formats}
+import org.slf4j.LoggerFactory
 
 import java.util.Date
 
@@ -18,7 +18,7 @@ case class DefaultPipelineListener() extends PipelineListener
 trait PipelineListener {
   implicit val formats: Formats = DefaultFormats +
     new EnumNameSerializer(AuditType)
-  private val logger = Logger.getLogger(getClass)
+  private val logger = LoggerFactory.getLogger(getClass)
 
   /**
     * Called when the main application pipeline is started.

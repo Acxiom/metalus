@@ -2,10 +2,10 @@ package com.acxiom.metalus.flow
 
 import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.{PipelineExecutor, PipelineListener, PipelineStateInfo, PipelineStepResponse, TestHelper}
-import org.apache.log4j.{Level, Logger}
 import org.scalatest.funspec.AnyFunSpec
-//import org.apache.spark.SparkConf
 import org.scalatest.BeforeAndAfterAll
+import org.slf4j.event.Level
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.io.Source
 
@@ -18,11 +18,11 @@ class SplitMergeStepTests extends AnyFunSpec with BeforeAndAfterAll {
       Source.fromInputStream(getClass.getResourceAsStream("/metadata/pipelines/complex_split_flow.json")).mkString).get.head
 
   override def beforeAll(): Unit = {
-    Logger.getLogger("com.acxiom.metalus").setLevel(Level.DEBUG)
+    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
   }
 
   override def afterAll(): Unit = {
-    Logger.getRootLogger.setLevel(Level.INFO)
+    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
   }
 
   describe("Simple Flow Validation") {

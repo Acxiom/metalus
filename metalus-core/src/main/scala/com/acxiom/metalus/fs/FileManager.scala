@@ -1,6 +1,6 @@
 package com.acxiom.metalus.fs
 
-import org.apache.log4j.Logger
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.io._
 import java.nio.file.attribute.BasicFileAttributes
@@ -58,7 +58,7 @@ trait FileManager {
 }
 
 trait FileResource {
-  protected val logger: Logger = Logger.getLogger(getClass)
+  protected val logger: Logger = LoggerFactory.getLogger(getClass)
 
   /**
    * The simple name of this file. Does not include the full path.

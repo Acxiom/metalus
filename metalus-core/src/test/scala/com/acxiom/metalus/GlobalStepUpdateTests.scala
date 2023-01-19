@@ -1,21 +1,20 @@
 package com.acxiom.metalus
 
 import com.acxiom.metalus.parser.JsonParser
-import org.apache.log4j.{Level, Logger}
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.slf4j.{Logger, LoggerFactory}
+import org.slf4j.event.Level
 
 class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite {
   override def beforeAll() {
-    Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
-    Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
-    Logger.getLogger("com.acxiom.metalus").setLevel(Level.DEBUG)
+    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
 
     TestHelper.pipelineListener = PipelineListener()
   }
 
   override def afterAll() {
-    Logger.getRootLogger.setLevel(Level.INFO)
+    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
   }
 
   describe("Global Value Manipulation from simple Steps") {

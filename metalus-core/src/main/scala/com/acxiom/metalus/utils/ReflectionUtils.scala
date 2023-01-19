@@ -1,7 +1,7 @@
 package com.acxiom.metalus.utils
 
 import com.acxiom.metalus._
-import org.apache.log4j.Logger
+import org.slf4j.LoggerFactory
 
 import java.lang.reflect.InvocationTargetException
 import scala.annotation.tailrec
@@ -11,7 +11,7 @@ import scala.runtime.BoxedUnit
 import scala.util.{Failure, Success, Try}
 
 object ReflectionUtils {
-  private val logger = Logger.getLogger(getClass)
+  private val logger = LoggerFactory.getLogger(getClass)
 
   /**
    * This function will attempt to find and instantiate the named class with the given parameters.

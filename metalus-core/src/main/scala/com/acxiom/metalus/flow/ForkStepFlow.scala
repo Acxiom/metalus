@@ -1,7 +1,7 @@
 package com.acxiom.metalus.flow
 
 import com.acxiom.metalus._
-import org.apache.log4j.Logger
+import org.slf4j.LoggerFactory
 
 import java.util.UUID
 import java.util.concurrent.ForkJoinPool
@@ -15,7 +15,7 @@ case class ForkStepFlow(pipeline: Pipeline,
                         parameterValues: Map[String, Any],
                         pipelineStateInfo: PipelineStateInfo) extends PipelineFlow {
 
-  private val logger = Logger.getLogger(getClass)
+  private val logger = LoggerFactory.getLogger(getClass)
 
   private val FORK_METHOD_TYPES: immutable.Seq[String] = List("serial", "parallel")
 

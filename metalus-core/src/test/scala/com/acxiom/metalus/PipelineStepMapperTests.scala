@@ -1,19 +1,19 @@
 package com.acxiom.metalus
 
 import com.acxiom.metalus.parser.JsonParser
-import org.apache.log4j.{Level, Logger}
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
+import org.slf4j.event.Level
+import org.slf4j.{Logger, LoggerFactory}
 
 class PipelineStepMapperTests extends AnyFunSpec with BeforeAndAfterAll with GivenWhenThen {
   override def beforeAll(): Unit = {
-    Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
-    Logger.getLogger("com.acxiom.metalus").setLevel(Level.DEBUG)
+    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
   }
 
   override def afterAll(): Unit = {
-    Logger.getRootLogger.setLevel(Level.INFO)
+    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
   }
 
   describe("PipelineMapperSteps - map parameter") {

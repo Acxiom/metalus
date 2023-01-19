@@ -1,8 +1,8 @@
 package com.acxiom.metalus.api
 
 import com.acxiom.metalus.Constants
-import org.apache.log4j.Logger
 import org.json4s.{DefaultFormats, Formats}
+import org.slf4j.LoggerFactory
 
 import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, OutputStream}
 import java.net.{HttpURLConnection, URL}
@@ -56,7 +56,7 @@ object HttpRestClient {
 }
 
 class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allowSelfSignedCertificates: Boolean) {
-  private val logger = Logger.getLogger(HttpRestClient.getClass)
+  private val logger = LoggerFactory.getLogger(HttpRestClient.getClass)
   def this(hostUrl: String) = {
     this(hostUrl, None, false)
   }
