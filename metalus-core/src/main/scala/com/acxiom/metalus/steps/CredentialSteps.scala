@@ -1,7 +1,7 @@
-package com.acxiom.pipeline.steps
+package com.acxiom.metalus.steps
 
-import com.acxiom.pipeline.annotations._
-import com.acxiom.pipeline.{Credential, PipelineContext}
+import com.acxiom.metalus.{Credential, PipelineContext}
+import com.acxiom.metalus.annotations.{StepFunction, StepObject, StepParameter, StepParameters, StepResults}
 
 @StepObject
 object CredentialSteps {

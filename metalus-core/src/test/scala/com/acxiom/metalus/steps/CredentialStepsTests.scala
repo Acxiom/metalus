@@ -1,23 +1,19 @@
-package com.acxiom.pipeline.steps
+package com.acxiom.metalus.steps
 
-import com.acxiom.pipeline._
-import org.scalatest.FunSpec
+import com.acxiom.metalus._
+import org.scalatest.funspec.AnyFunSpec
 
-class CredentialStepsTests extends FunSpec {
+class CredentialStepsTests extends AnyFunSpec {
   describe("CredentialSteps") {
     it("Should retrieve a credential") {
       val credentialProvider = new DefaultCredentialProvider(Map[String, Any](
-        "credential-classes" -> "com.acxiom.pipeline.DefaultCredential",
+        "credential-classes" -> "com.acxiom.metalus.DefaultCredential",
         "credentialName" -> "bob",
         "credentialValue" -> "bob's credential"))
-      val pipelineContext = PipelineContext(None, None, Some(Map[String, Any]()),
-        PipelineSecurityManager(),
-        PipelineParameters(List()),
-        Some(List("com.acxiom.pipeline.steps")),
-        PipelineStepMapper(),
-        Some(DefaultPipelineListener()),
-        None,
-        credentialProvider = Some(credentialProvider))
+      val pipelineContext = PipelineContext(Some(Map[String, Any]()), List(),
+        Some(List("com.acxiom.metalus.steps")), PipelineStepMapper(),
+        Some(DefaultPipelineListener()), List(), credentialProvider = Some(credentialProvider),
+        contextManager = new ContextManager(Map(), Map()))
       val credential = CredentialSteps.getCredential("bob", pipelineContext)
       assert(credential.isDefined)
       assert(credential.get.name == "bob")
