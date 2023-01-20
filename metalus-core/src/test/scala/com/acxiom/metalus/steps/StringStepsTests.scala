@@ -1,8 +1,9 @@
-package com.acxiom.pipeline.steps
+package com.acxiom.metalus.steps
 
-import org.scalatest.{FunSpec, GivenWhenThen}
+import org.scalatest.GivenWhenThen
+import org.scalatest.funspec.AnyFunSpec
 
-class StringStepsTests extends FunSpec with GivenWhenThen {
+class StringStepsTests extends AnyFunSpec with GivenWhenThen {
 
   describe("String Steps - Basic") {
     it("Should call toString") {

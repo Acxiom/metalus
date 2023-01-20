@@ -1,15 +1,16 @@
-package com.acxiom.pipeline.steps
+package com.acxiom.metalus.steps
 
-import com.acxiom.pipeline.api.{BasicAuthorization, HttpRestClient}
+import com.acxiom.metalus.api.{BasicAuthorization, HttpRestClient}
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.scalatest.{BeforeAndAfterAll, FunSpec}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funspec.AnyFunSpec
 
 import java.net.HttpURLConnection
 import java.text.SimpleDateFormat
 import scala.io.Source
 
-class ApiStepsTests extends FunSpec with BeforeAndAfterAll {
+class ApiStepsTests extends AnyFunSpec with BeforeAndAfterAll {
   private val HTTP_PORT = 10293
 
   private val wireMockServer = new WireMockServer(HTTP_PORT)

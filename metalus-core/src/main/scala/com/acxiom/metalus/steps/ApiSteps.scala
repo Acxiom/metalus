@@ -1,7 +1,7 @@
-package com.acxiom.pipeline.steps
+package com.acxiom.metalus.steps
 
-import com.acxiom.pipeline.annotations._
-import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
+import com.acxiom.metalus.annotations.{StepFunction, StepObject, StepParameter, StepParameters, StepResults}
+import com.acxiom.metalus.api.{Authorization, HttpRestClient}
 
 import java.io.{InputStream, OutputStream}
 import java.util.Date
