@@ -1,17 +1,17 @@
-package com.acxiom.pipeline.steps
+package com.acxiom.metalus.steps
+
+import com.acxiom.metalus.PipelineContext
+import com.acxiom.metalus.annotations.{StepFunction, StepObject, StepParameter, StepParameters, StepResults}
+import com.acxiom.metalus.connectors.FileConnector
+import com.acxiom.metalus.fs.{FileManager, FileResource}
+import org.slf4j.LoggerFactory
 
 import java.io.{InputStream, OutputStream}
-
-import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations._
-import com.acxiom.pipeline.connectors.FileConnector
-import com.acxiom.pipeline.fs.{FileInfo, FileManager}
-import org.apache.log4j.Logger
 import java.util.Date
 
 @StepObject
 object FileManagerSteps {
-  private val logger = Logger.getLogger(getClass)
+  private val logger = LoggerFactory.getLogger(getClass)
 
   /**
     * Copy the contents of the source path to the destination path. This function will call connect on both FileManagers.
@@ -40,11 +40,11 @@ object FileManagerSteps {
   /**
     * Copy the contents of the source path to the destination path. This function will call connect on both FileManagers.
     *
-    * @param srcFS    FileManager for the source file system
-    * @param srcPath  Source path
-    * @param destFS   FileManager for the destination file system
-    * @param destPath Destination path
-    * @param inputBufferSize The size of the buffer for the input stream
+    * @param srcFS            FileManager for the source file system
+    * @param srcPath          Source path
+    * @param destFS           FileManager for the destination file system
+    * @param destPath         Destination path
+    * @param inputBufferSize  The size of the buffer for the input stream
     * @param outputBufferSize The size of the buffer for the output stream
     * @return object with copy results.
     */
@@ -68,13 +68,13 @@ object FileManagerSteps {
   /**
     * Copy the contents of the source path to the destination path. This function will call connect on both FileManagers.
     *
-    * @param srcFS    FileManager for the source file system
-    * @param srcPath  Source path
-    * @param destFS   FileManager for the destination file system
-    * @param destPath Destination path
-    * @param inputBufferSize The size of the buffer for the input stream
+    * @param srcFS            FileManager for the source file system
+    * @param srcPath          Source path
+    * @param destFS           FileManager for the destination file system
+    * @param destPath         Destination path
+    * @param inputBufferSize  The size of the buffer for the input stream
     * @param outputBufferSize The size of the buffer for the output stream
-    * @param copyBufferSize The size of the buffer used to transfer from input to output
+    * @param copyBufferSize   The size of the buffer used to transfer from input to output
     * @return object with copy results.
     */
   @StepFunction("f5a24db0-e91b-5c88-8e67-ab5cff09c883",
@@ -98,23 +98,19 @@ object FileManagerSteps {
     destFS.connect()
 
     // create input and output streams
-    val inputStream = srcFS.getInputStream(srcPath, inputBufferSize)
-    val outputStream = destFS.getOutputStream(destPath, bufferSize = outputBufferSize)
+    val sourceFile = srcFS.getFileResource(srcPath)
+    val outputFile = destFS.getFileResource(destPath)
     logger.info(s"starting copy,source=$srcPath,destination=$destPath")
 
     // track size and start time
-    val size = srcFS.getSize(srcPath)
+    val size = sourceFile.size
     val startTime = new Date()
 
     // start the copy
-    val copied = destFS.copy(inputStream, outputStream, copyBufferSize)
+    val copied = sourceFile.copy(outputFile, copyBufferSize, inputBufferSize, outputBufferSize)
     val endTime = new Date()
     val duration = endTime.getTime - startTime.getTime
     logger.info(s"copy complete,success=$copied,size=$size,durationMS=$duration")
-
-    // close input and output streams
-    inputStream.close()
-    outputStream.close()
 
     // return metrics
     CopyResults(copied, size, duration, startTime, endTime)
@@ -138,8 +134,11 @@ object FileManagerSteps {
     "srcPath" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to the source")),
     "destFS" -> StepParameter(None, Some(true), None, None, None, None, Some("The destination FileManager")),
     "destPath" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to th destination"))))
-  def compareFileSizes(srcFS: FileManager, srcPath: String, destFS: FileManager, destPath: String): Int =
-    srcFS.getSize(srcPath).compareTo(destFS.getSize(destPath))
+  def compareFileSizes(srcFS: FileManager, srcPath: String, destFS: FileManager, destPath: String): Int = {
+    val sourceFile = srcFS.getFileResource(srcPath)
+    val outputFile = destFS.getFileResource(destPath)
+    sourceFile.size.compareTo(outputFile.size)
+  }
 
   /**
     * Delete the file using the provided FileManager and Path
@@ -156,8 +155,7 @@ object FileManagerSteps {
   @StepParameters(Map("fileManager" -> StepParameter(None, Some(true), None, None, None, None, Some("The FileManager")),
     "path" -> StepParameter(None, Some(true), None, None, None, None, Some("The path to the file being deleted"))))
   @StepResults(primaryType = "Boolean", secondaryTypes = None)
-  def deleteFile(fileManager: FileManager, path: String): Boolean =
-    fileManager.deleteFile(path)
+  def deleteFile(fileManager: FileManager, path: String): Boolean = fileManager.getFileResource(path).delete
 
   /**
     * Disconnects a FileManager from the underlying file system
@@ -170,9 +168,7 @@ object FileManagerSteps {
     "Pipeline",
     "FileManager")
   @StepParameters(Map("fileManager" -> StepParameter(None, Some(true), None, None, None, None, Some("The file manager to disconnect"))))
-  def disconnectFileManager(fileManager: FileManager): Unit = {
-    fileManager.disconnect()
-  }
+  def disconnectFileManager(fileManager: FileManager): Unit = fileManager.disconnect()
 
   /**
     * Creates a FileManager from provided connector
@@ -202,8 +198,10 @@ object FileManagerSteps {
     "bufferSize" -> StepParameter(None, Some(false), None, None,
       None, None, Some("The buffer size to use for the InputStream"))
   ))
-  def getInputStream(fileManager: FileManager, path: String, bufferSize: Option[Int] = None): InputStream =
-    bufferSize.map(fileManager.getInputStream(path, _)).getOrElse(fileManager.getInputStream(path))
+  def getInputStream(fileManager: FileManager, path: String, bufferSize: Option[Int] = None): InputStream = {
+    val sourceFile = fileManager.getFileResource(path)
+    bufferSize.map(sourceFile.getInputStream).getOrElse(sourceFile.getInputStream())
+  }
 
   @StepFunction("89eee531-4eb7-4059-9ad3-99a33d252069",
     "Get an OutputStream",
@@ -223,10 +221,10 @@ object FileManagerSteps {
   def getOutputStream(fileManager: FileManager, path: String, append: Option[Boolean] = None,
                       bufferSize: Option[Int] = None): OutputStream = (append, bufferSize) match {
     case (Some(a), Some(b)) =>
-      fileManager.getOutputStream(path, a, b)
-    case (Some(a), None) => fileManager.getOutputStream(path, a)
-    case (None, Some(b)) => fileManager.getOutputStream(path, bufferSize = b)
-    case _ => fileManager.getOutputStream(path)
+      fileManager.getFileResource(path).getOutputStream(a, b)
+    case (Some(a), None) => fileManager.getFileResource(path).getOutputStream(a)
+    case (None, Some(b)) => fileManager.getFileResource(path).getOutputStream(bufferSize = b)
+    case _ => fileManager.getFileResource(path).getOutputStream()
   }
 
   @StepFunction("22c4cc61-1cd8-4ee2-8589-d434d8854c55",
@@ -242,7 +240,8 @@ object FileManagerSteps {
     "destPath" -> StepParameter(None, Some(true), None, None,
       None, None, Some("The destination of the file"))
   ))
-  def rename(fileManager: FileManager, path: String, destPath: String): Boolean = fileManager.rename(path, destPath)
+  def rename(fileManager: FileManager, path: String, destPath: String): Boolean =
+    fileManager.getFileResource(path).rename(destPath)
 
   @StepFunction("b38f857b-aa37-440a-8824-659fae60a0df",
     "Get File Size",
@@ -255,7 +254,7 @@ object FileManagerSteps {
     "path" -> StepParameter(None, Some(true), None, None,
       None, None, Some("The path of the file"))
   ))
-  def getSize(fileManager: FileManager, path: String): Long = fileManager.getSize(path)
+  def getSize(fileManager: FileManager, path: String): Long = fileManager.getFileResource(path).size
 
   @StepFunction("aec5ebf7-7dac-4132-8d58-3a06b4772f79",
     "Does File Exist",
@@ -283,7 +282,7 @@ object FileManagerSteps {
     "recursive" -> StepParameter(None, Some(false), None, None,
       None, None, Some("Should the listing be recursive"))
   ))
-  def getFileListing(fileManager: FileManager, path: String, recursive: Option[Boolean] = None): List[FileInfo] =
+  def getFileListing(fileManager: FileManager, path: String, recursive: Option[Boolean] = None): List[FileResource] =
     recursive.map(fileManager.getFileListing(path, _)).getOrElse(fileManager.getFileListing(path))
 
   @StepFunction("c941f117-85a1-4793-9c4d-fdd986797979",
@@ -297,7 +296,7 @@ object FileManagerSteps {
     "path" -> StepParameter(None, Some(true), None, None,
       None, None, Some("The path of the file being renamed"))
   ))
-  def getDirectoryListing(fileManager: FileManager, path: String): List[FileInfo] = fileManager.getDirectoryListing(path)
+  def getDirectoryListing(fileManager: FileManager, path: String): List[FileResource] = fileManager.getDirectoryListing(path)
 }
 
 case class CopyResults(success: Boolean, fileSize: Long, durationMS: Long, startTime: Date, endTime: Date)

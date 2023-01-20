@@ -135,27 +135,30 @@ trait FileResource {
    * Copies all of the contents of this file to the destination file. The base implementation will
    * use streams to copy the data.
    *
-   * @param destination    A FileResource representing the destination of the copy.
-   * @param copyBufferSize The size in bytes of the copy buffer.
+   * @param destination           A FileResource representing the destination of the copy.
+   * @param copyBufferSize        The size in bytes of the copy buffer.
+   * @param sourceBufferSize      An optional int indicating the size the input buffer should be if streams are used for the copy
+   * @param destinationBufferSize An optional int indicating the size the output buffer should be if streams are used for the copy
    * @return True if the copy was successful.
    */
-  def copy(destination: FileResource, copyBufferSize: Int, closeStreams: Boolean = false): Boolean = {
+  def copy(destination: FileResource,
+           copyBufferSize: Int,
+           sourceBufferSize: Int = FileManager.DEFAULT_BUFFER_SIZE,
+           destinationBufferSize: Int = FileManager.DEFAULT_BUFFER_SIZE): Boolean = {
     try {
       val buffer = new Array[Byte](copyBufferSize)
-      val input = this.getInputStream()
-      val output = destination.getOutputStream()
+      val input = this.getInputStream(sourceBufferSize)
+      val output = destination.getOutputStream(bufferSize = destinationBufferSize)
       Stream.continually(input.read(buffer)).takeWhile(_ != -1).foreach(count => {
         output.write(buffer, 0, count)
       })
       output.flush()
-      if (closeStreams) {
         try {
           input.close()
         }
         try {
           output.close()
         }
-      }
       true
     } catch {
       case t: Throwable =>

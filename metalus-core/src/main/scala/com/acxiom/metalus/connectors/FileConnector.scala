@@ -1,7 +1,7 @@
-package com.acxiom.pipeline.connectors
+package com.acxiom.metalus.connectors
 
-import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.fs.FileManager
+import com.acxiom.metalus.PipelineContext
+import com.acxiom.metalus.fs.FileManager
 
 /**
   * File connectors provide easily representable configuration for the various file systems. The connector
@@ -10,6 +10,7 @@ import com.acxiom.pipeline.fs.FileManager
 trait FileConnector extends Connector {
   /**
     * Creates and opens a FileManager.
+    *
     * @param pipelineContext The current PipelineContext for this session.
     * @return A FileManager for this specific connector type
     */

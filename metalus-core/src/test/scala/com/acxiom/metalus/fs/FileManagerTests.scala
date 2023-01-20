@@ -98,7 +98,7 @@ class FileManagerTests extends AnyFunSpec with Suite {
       assert(inputResource.copy(outputResource))
       assert(Source.fromInputStream(outputResource.getInputStream()).mkString == data)
       outputResource.delete
-      assert(inputResource.copy(outputResource, FileManager.DEFAULT_BUFFER_SIZE / 2, closeStreams = true))
+      assert(inputResource.copy(outputResource, FileManager.DEFAULT_BUFFER_SIZE / 2))
       assert(Source.fromInputStream(outputResource.getInputStream()).mkString == data)
       // Should fail to copy
       outputResource.delete

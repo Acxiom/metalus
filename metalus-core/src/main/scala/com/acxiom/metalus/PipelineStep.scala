@@ -120,7 +120,7 @@ case class Parameter(`type`: Option[String] = None,
   * @param pkg An optional package location
   * @param results The optional StepResult
   */
-case class EngineMeta(spark: Option[String] = None, pkg: Option[String] = None, results: Option[StepResults] = None)
+case class EngineMeta(spark: Option[String] = None, pkg: Option[String] = None, results: Option[Results] = None)
 
 /**
   * This class represents the expected result of a step execution
@@ -128,7 +128,7 @@ case class EngineMeta(spark: Option[String] = None, pkg: Option[String] = None, 
   * @param primaryType The expected type of the primary response
   * @param secondaryTypes An optional map of secondary response types by name
   */
-case class StepResults(primaryType: String, secondaryTypes: Option[Map[String, String]] = None)
+case class Results(primaryType: String, secondaryTypes: Option[Map[String, String]] = None)
 
 /**
   * Trait that defines the minimum properties required by an exception thrown by a PipelineStep

@@ -51,7 +51,7 @@ val connector = SFTPFileConnector("sftp.myhost.com", "my-sftp-connector", None, 
 ```json
 {
   "sftpConnector": {
-    "className": "com.acxiom.pipeline.connectors.SFTPFileConnector",
+    "className": "com.acxiom.metalus.connectors.SFTPFileConnector",
     "object": {
       "name": "my-connector",
       "hostName": "sftp.myhost.com"

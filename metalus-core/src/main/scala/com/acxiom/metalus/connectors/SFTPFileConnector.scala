@@ -1,7 +1,7 @@
-package com.acxiom.pipeline.connectors
+package com.acxiom.metalus.connectors
 
-import com.acxiom.pipeline.fs.{FileManager, SFTPFileManager}
-import com.acxiom.pipeline.{Credential, PipelineContext, UserNameCredential}
+import com.acxiom.metalus.fs.{FileManager, SFTPFileManager}
+import com.acxiom.metalus.{Credential, PipelineContext, UserNameCredential}
 
 /**
   * Provides an implementation of FileConnector that works with SFTP.
