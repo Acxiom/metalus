@@ -1,0 +1,407 @@
+{
+  "id": "copy-file",
+  "name": "CopyFile",
+  "description": "Copies a file from the provided source location to the specified destination. After the copy is complete, the results are verified. If the copy failed, then it will be retried 5 times.",
+  "layout": {
+    "GETSOURCE": {
+      "x": 493,
+      "y": 32
+    },
+    "GETDESTINATION": {
+      "x": 493,
+      "y": 146
+    },
+    "COPY": {
+      "x": 493,
+      "y": 260
+    },
+    "VERIFY": {
+      "x": 362,
+      "y": 375
+    },
+    "TO_STRING": {
+      "x": 394,
+      "y": 488
+    },
+    "CHECKRESULTS": {
+      "x": 394,
+      "y": 602
+    },
+    "CLOSESOURCE": {
+      "x": 503,
+      "y": 944
+    },
+    "CLOSEDESTINATION": {
+      "x": 503,
+      "y": 1058
+    },
+    "DELETEDESTINATION": {
+      "x": 503,
+      "y": 716
+    },
+    "RETRY": {
+      "x": 552.5,
+      "y": 830
+    }
+  },
+  "steps": [
+    {
+      "id": "GETSOURCE",
+      "displayName": "Create a FileManager",
+      "description": "Creates a FileManager that represents the source.",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "fileConnector",
+          "required": true,
+          "value": "!sourceConnector",
+          "parameterType": "com.acxiom.pipeline.connectors.FileConnector",
+          "description": "Maps the value from the sourceConnector global."
+        }
+      ],
+      "engineMeta": {
+        "spark": "FileManagerSteps.getFileManager",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "com.acxiom.pipeline.fs.FileManager"
+        }
+      },
+      "nextStepId": "GETDESTINATION",
+      "stepId": "259a880a-3e12-4843-9f02-2cfc2a05f576"
+    },
+    {
+      "id": "GETDESTINATION",
+      "displayName": "Create a FileManager",
+      "description": "Creates a FileManager that represents the destination.",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "fileConnector",
+          "required": true,
+          "value": "!destinationConnector",
+          "parameterType": "com.acxiom.pipeline.connectors.FileConnector",
+          "description": "Maps the value from the destinationConnector global."
+        }
+      ],
+      "engineMeta": {
+        "spark": "FileManagerSteps.getFileManager",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "com.acxiom.pipeline.fs.FileManager"
+        }
+      },
+      "nextStepId": "COPY",
+      "stepId": "259a880a-3e12-4843-9f02-2cfc2a05f576"
+    },
+    {
+      "id": "COPY",
+      "displayName": "Copy (auto buffering)",
+      "description": "Copies the data from the source to the destination.",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "srcFS",
+          "required": true,
+          "value": "@GETSOURCE",
+          "parameterType": "com.acxiom.pipeline.fs.FileManager",
+          "description": "The source FileManager"
+        },
+        {
+          "type": "text",
+          "name": "srcPath",
+          "required": true,
+          "value": "!sourceCopyPath",
+          "parameterType": "String",
+          "description": "Maps the value from the sourceCopyPath global."
+        },
+        {
+          "type": "text",
+          "name": "destFS",
+          "required": true,
+          "value": "@GETDESTINATION",
+          "parameterType": "com.acxiom.pipeline.fs.FileManager",
+          "description": "The destination FileManager"
+        },
+        {
+          "type": "text",
+          "name": "destPath",
+          "required": true,
+          "value": "!destinationCopyPath",
+          "parameterType": "String",
+          "description": "Maps the value from the destinationCopyPath global."
+        }
+      ],
+      "engineMeta": {
+        "spark": "FileManagerSteps.copy",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "com.acxiom.pipeline.steps.CopyResults"
+        }
+      },
+      "nextStepId": "VERIFY",
+      "stepId": "0342654c-2722-56fe-ba22-e342169545af",
+      "nextStepOnError": "DELETEDESTINATION"
+    },
+    {
+      "id": "VERIFY",
+      "displayName": "Compare File Sizes",
+      "description": "Verifies that the data was copied.",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "srcFS",
+          "required": true,
+          "value": "@GETSOURCE",
+          "parameterType": "com.acxiom.pipeline.fs.FileManager",
+          "description": "The source FileManager"
+        },
+        {
+          "type": "text",
+          "name": "srcPath",
+          "required": true,
+          "value": "!sourceCopyPath",
+          "parameterType": "String",
+          "description": "Maps the value from the sourceCopyPath global."
+        },
+        {
+          "type": "text",
+          "name": "destFS",
+          "required": true,
+          "value": "@GETDESTINATION",
+          "parameterType": "com.acxiom.pipeline.fs.FileManager",
+          "description": "The destination FileManager"
+        },
+        {
+          "type": "text",
+          "name": "destPath",
+          "required": true,
+          "value": "!destinationCopyPath",
+          "parameterType": "String",
+          "description": "Maps the value from the destinationCopyPath global."
+        }
+      ],
+      "engineMeta": {
+        "spark": "FileManagerSteps.compareFileSizes",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "Int"
+        }
+      },
+      "nextStepId": "TO_STRING",
+      "stepId": "1af68ab5-a3fe-4afb-b5fa-34e52f7c77f5"
+    },
+    {
+      "id": "TO_STRING",
+      "displayName": "To String",
+      "description": "Converts the output of the VERIFY step to a string.",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "value",
+          "required": true,
+          "value": "@VERIFY",
+          "parameterType": "Any",
+          "description": "The output of the VERIFY step."
+        },
+        {
+          "type": "boolean",
+          "name": "unwrapOption",
+          "required": false,
+          "value": false,
+          "parameterType": "Boolean",
+          "description": "Boolean indicating whether to unwrap the value from an Option prior to calling toString"
+        }
+      ],
+      "engineMeta": {
+        "spark": "StringSteps.toString",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "String"
+        }
+      },
+      "nextStepId": "CHECKRESULTS",
+      "stepId": "b5485d97-d4e8-41a6-8af7-9ce79a435140"
+    },
+    {
+      "id": "CHECKRESULTS",
+      "displayName": "String Equals",
+      "description": "Return whether string1 equals string2",
+      "type": "branch",
+      "params": [
+        {
+          "type": "text",
+          "name": "string",
+          "required": true,
+          "value": "@TO_STRING",
+          "parameterType": "String",
+          "description": "Maps the output of the TO_STRING step."
+        },
+        {
+          "type": "text",
+          "name": "anotherString",
+          "required": true,
+          "value": "0",
+          "parameterType": "String",
+          "description": "Set to 0 indicating no difference."
+        },
+        {
+          "type": "boolean",
+          "name": "caseInsensitive",
+          "required": false,
+          "value": false,
+          "parameterType": "Boolean",
+          "description": "Set to ignore the case of the mapped value."
+        },
+        {
+          "type": "result",
+          "name": "true",
+          "required": false,
+          "value": "CLOSESOURCE",
+          "description": ""
+        },
+        {
+          "type": "result",
+          "name": "false",
+          "required": false,
+          "value": "DELETEDESTINATION",
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "StringSteps.stringEquals",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "Boolean"
+        }
+      },
+      "stepId": "3fabf9ec-5383-4eb3-81af-6092ab7c370d"
+    },
+    {
+      "id": "CLOSESOURCE",
+      "displayName": "Disconnect a FileManager",
+      "description": "Disconnects the  FileManager from the GETSOURCE step.",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "fileManager",
+          "required": true,
+          "value": "@GETSOURCE",
+          "parameterType": "com.acxiom.pipeline.fs.FileManager",
+          "description": "The file manager from the GETSOURCE step."
+        }
+      ],
+      "engineMeta": {
+        "spark": "FileManagerSteps.disconnectFileManager",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "nextStepId": "CLOSEDESTINATION",
+      "stepId": "3d1e8519-690c-55f0-bd05-1e7b97fb6633"
+    },
+    {
+      "id": "CLOSEDESTINATION",
+      "displayName": "Disconnect a FileManager",
+      "description": "Disconnects a FileManager from the GETDESTINATION step.",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "fileManager",
+          "required": true,
+          "value": "@GETDESTINATION",
+          "parameterType": "com.acxiom.pipeline.fs.FileManager",
+          "description": "The file manager from the GETDESTINATION step."
+        }
+      ],
+      "engineMeta": {
+        "spark": "FileManagerSteps.disconnectFileManager",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "stepId": "3d1e8519-690c-55f0-bd05-1e7b97fb6633"
+    },
+    {
+      "id": "DELETEDESTINATION",
+      "displayName": "Delete (file)",
+      "description": "Delete a file",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "fileManager",
+          "required": true,
+          "value": "@GETDESTINATION",
+          "parameterType": "com.acxiom.pipeline.fs.FileManager",
+          "description": "Uses the FileeManager from thee GETDESTINATION step."
+        },
+        {
+          "type": "text",
+          "name": "path",
+          "required": true,
+          "value": "!destinationCopyPath",
+          "parameterType": "String",
+          "description": "Maps the value from the destinationCopyPath global."
+        }
+      ],
+      "engineMeta": {
+        "spark": "FileManagerSteps.deleteFile",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "Boolean"
+        }
+      },
+      "nextStepId": "RETRY",
+      "stepId": "bf2c4df8-a215-480b-87d8-586984e04189"
+    },
+    {
+      "id": "RETRY",
+      "displayName": "Retry (simple)",
+      "description": "Makes a decision to retry or stop based on a named counter",
+      "type": "branch",
+      "params": [
+        {
+          "type": "text",
+          "name": "counterName",
+          "required": true,
+          "value": "COPY_FILE_RETRY",
+          "parameterType": "String",
+          "description": "Sets the name of the tracking counter to COPY_FILE_RETRY."
+        },
+        {
+          "type": "integer",
+          "name": "maxRetries",
+          "required": true,
+          "value": 5,
+          "parameterType": "Int",
+          "description": "The maximum number of retries will be 5."
+        },
+        {
+          "type": "result",
+          "name": "retry",
+          "required": false,
+          "value": "COPY",
+          "description": ""
+        },
+        {
+          "type": "result",
+          "name": "stop",
+          "required": false,
+          "value": "CLOSESOURCE",
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "spark": "FlowUtilsSteps.simpleRetry",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "com.acxiom.pipeline.PipelineStepResponse"
+        }
+      },
+      "stepId": "6ed36f89-35d1-4280-a555-fbcd8dd76bf2"
+    }
+  ]
+}
