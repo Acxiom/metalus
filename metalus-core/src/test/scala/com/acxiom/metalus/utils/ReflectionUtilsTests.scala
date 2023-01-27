@@ -1,6 +1,7 @@
 package com.acxiom.metalus.utils
 
 import com.acxiom.metalus._
+import com.acxiom.metalus.context.ContextManager
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
 import org.slf4j.event.Level

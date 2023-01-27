@@ -15,7 +15,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockIntListStepFunction"
+        "command": "MockStepObject.mockIntListStepFunction"
       },
       "nextStepId": "SPLIT"
     },
@@ -80,7 +80,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockStepFunction"
+        "command": "MockStepObject.mockStepFunction"
       }
     },
     {
@@ -96,7 +96,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockSumSimpleListOfInts"
+        "command": "MockStepObject.mockSumSimpleListOfInts"
       },
       "nextStepId": "MERGE"
     },
@@ -113,7 +113,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockSumSimpleListOfInts"
+        "command": "MockStepObject.mockSumSimpleListOfInts"
       },
       "nextStepId": "MERGE2"
     },
@@ -130,7 +130,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockSumSimpleListOfInts"
+        "command": "MockStepObject.mockSumSimpleListOfInts"
       },
       "nextStepId": "FORMAT_STRING_PART_2"
     },
@@ -147,7 +147,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockListOfIntsToString"
+        "command": "MockStepObject.mockListOfIntsToString"
       },
       "nextStepId": "MERGE"
     },
@@ -182,7 +182,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockStepFunction"
+        "command": "MockStepObject.mockStepFunction"
       }
     },
     {
@@ -205,7 +205,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockStepFunction"
+        "command": "MockStepObject.mockStepFunction"
       }
     }
   ]

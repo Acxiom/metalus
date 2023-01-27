@@ -394,7 +394,7 @@
               }
             ],
             "engineMeta": {
-              "spark": "ExecutionSteps.normalFunction"
+              "command": "ExecutionSteps.normalFunction"
             }
           }
         ]
@@ -416,7 +416,7 @@
               }
             ],
             "engineMeta": {
-              "spark": "ExecutionSteps.normalFunction"
+              "command": "ExecutionSteps.normalFunction"
             }
           }
         ]
@@ -455,7 +455,7 @@
               }
             ],
             "engineMeta": {
-              "spark": "ExecutionSteps.normalFunction"
+              "command": "ExecutionSteps.normalFunction"
             }
           }
         ]
@@ -477,7 +477,7 @@
               }
             ],
             "engineMeta": {
-              "spark": "ExecutionSteps.normalFunction"
+              "command": "ExecutionSteps.normalFunction"
             }
           }
         ]
@@ -516,7 +516,7 @@
               }
             ],
             "engineMeta": {
-              "spark": "ExecutionSteps.normalFunction"
+              "command": "ExecutionSteps.normalFunction"
             }
           }
         ],

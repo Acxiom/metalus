@@ -56,7 +56,7 @@ object ReflectionUtils {
                   pipelineContext: PipelineContext): Any = {
     logger.debug(s"processing step,stepObject=$step")
     // Get the step directive which should follow the pattern "Object.function"
-    val executionObject = step.engineMeta.get.spark.get
+    val executionObject = step.engineMeta.get.command.get
     // Get the object and function
     val directives = executionObject.split('.')
     val objName = directives(Constants.ZERO)

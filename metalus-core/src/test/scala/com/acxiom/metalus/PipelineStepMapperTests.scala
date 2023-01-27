@@ -1,5 +1,6 @@
 package com.acxiom.metalus
 
+import com.acxiom.metalus.context.ContextManager
 import com.acxiom.metalus.parser.JsonParser
 import org.json4s.{DefaultFormats, Formats}
 import org.scalatest.funspec.AnyFunSpec

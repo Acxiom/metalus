@@ -44,7 +44,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
       |         }
       |       ],
       |       "engineMeta": {
-      |         "spark": "MockStepObject.mockStepSetGlobal"
+      |         "command": "MockStepObject.mockStepSetGlobal"
       |       }
       |     },
       |     {
@@ -67,7 +67,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
       |         }
       |       ],
       |       "engineMeta": {
-      |         "spark": "MockStepObject.mockStepSetGlobal"
+      |         "command": "MockStepObject.mockStepSetGlobal"
       |       }
       |     },
       |     {
@@ -83,7 +83,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
       |         }
       |       ],
       |       "engineMeta": {
-      |         "spark": "MockStepObject.mockStepFunctionAnyResponse"
+      |         "command": "MockStepObject.mockStepFunctionAnyResponse"
       |       }
       |     }
       |   ]
@@ -172,7 +172,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
         |         }
         |       ],
         |       "engineMeta": {
-        |         "spark": "MockStepObject.mockStepSetGlobal"
+        |         "command": "MockStepObject.mockStepSetGlobal"
         |       }
         |     },
         |     {
@@ -195,7 +195,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
         |         }
         |       ],
         |       "engineMeta": {
-        |         "spark": "MockStepObject.mockStepSetGlobal"
+        |         "command": "MockStepObject.mockStepSetGlobal"
         |       }
         |     },
         |     {
@@ -211,7 +211,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
         |         }
         |       ],
         |       "engineMeta": {
-        |         "spark": "MockStepObject.mockStepFunctionAnyResponse"
+        |         "command": "MockStepObject.mockStepFunctionAnyResponse"
         |       }
         |     }
         |   ]
@@ -219,7 +219,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
         |         }
         |       ],
         |       "engineMeta": {
-        |         "spark": "MockStepObject.mockStepSetGlobal"
+        |         "command": "MockStepObject.mockStepSetGlobal"
         |       }
         |     },
         |     {
@@ -242,7 +242,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
         |         }
         |       ],
         |       "engineMeta": {
-        |         "spark": "MockStepObject.mockStepSetGlobal"
+        |         "command": "MockStepObject.mockStepSetGlobal"
         |       }
         |     },
         |     {
@@ -258,7 +258,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
         |         }
         |       ],
         |       "engineMeta": {
-        |         "spark": "MockStepObject.mockStepFunctionAnyResponse"
+        |         "command": "MockStepObject.mockStepFunctionAnyResponse"
         |       }
         |     }
         |   ]
@@ -324,7 +324,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
         |         }
         |       ],
         |       "engineMeta": {
-        |         "spark": "MockStepObject.mockStepSetGlobal"
+        |         "command": "MockStepObject.mockStepSetGlobal"
         |       }
         |     },
         |     {
@@ -347,7 +347,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
         |         }
         |       ],
         |       "engineMeta": {
-        |         "spark": "MockStepObject.mockStepSetGlobal"
+        |         "command": "MockStepObject.mockStepSetGlobal"
         |       }
         |     },
         |     {
@@ -364,7 +364,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
         |         }
         |       ],
         |       "engineMeta": {
-        |         "spark": "MockStepObject.mockStepFunctionAnyResponse"
+        |         "command": "MockStepObject.mockStepFunctionAnyResponse"
         |       }
         |     },
         |     {
@@ -386,7 +386,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
         |         }
         |       ],
         |       "engineMeta": {
-        |         "spark": "MockStepObject.mockStepSetMetric"
+        |         "command": "MockStepObject.mockStepSetMetric"
         |       }
         |     }
         |   ]

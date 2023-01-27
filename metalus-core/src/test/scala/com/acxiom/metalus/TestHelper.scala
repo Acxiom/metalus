@@ -1,5 +1,7 @@
 package com.acxiom.metalus
 
+import com.acxiom.metalus.context.ContextManager
+
 object TestHelper {
   var pipelineListener: PipelineListener = _
 

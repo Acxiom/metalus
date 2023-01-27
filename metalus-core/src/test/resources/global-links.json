@@ -30,7 +30,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.normalFunction"
+                "command": "ExecutionSteps.normalFunction"
               }
             }
           ]
@@ -63,7 +63,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.normalFunction"
+                "command": "ExecutionSteps.normalFunction"
               },
               "nextStepId": "Pipeline1StepB"
             },
@@ -80,7 +80,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.normalFunction"
+                "command": "ExecutionSteps.normalFunction"
               }
             }
           ]
@@ -111,7 +111,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.normalFunction"
+                "command": "ExecutionSteps.normalFunction"
               },
               "nextStepId": "Pipeline2StepB"
             },

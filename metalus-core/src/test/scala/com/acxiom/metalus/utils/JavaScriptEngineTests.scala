@@ -1,6 +1,7 @@
 package com.acxiom.metalus.utils
 
-import com.acxiom.metalus.{ContextManager, PipelineContext, PipelineStepMapper}
+import com.acxiom.metalus.context.ContextManager
+import com.acxiom.metalus.{PipelineContext, PipelineStepMapper}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
 

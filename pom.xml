@@ -63,7 +63,7 @@
 <!--        <module>metalus-application</module>-->
 <!--        <module>metalus-aws</module>-->
         <module>metalus-spark</module>
-<!--        <module>metalus-common</module>-->
+        <module>metalus-common</module>
 <!--        <module>metalus-examples</module>-->
 <!--        <module>metalus-gcp</module>-->
 <!--        <module>metalus-kafka</module>-->

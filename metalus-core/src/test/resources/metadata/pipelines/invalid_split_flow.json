@@ -15,7 +15,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockIntListStepFunction"
+        "command": "MockStepObject.mockIntListStepFunction"
       },
       "nextStepId": "SPLIT"
     },
@@ -45,7 +45,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockSumSimpleListOfInts"
+        "command": "MockStepObject.mockSumSimpleListOfInts"
       },
       "nextStepId": "MERGE"
     },
@@ -75,7 +75,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockStepFunction"
+        "command": "MockStepObject.mockStepFunction"
       }
     }
   ]

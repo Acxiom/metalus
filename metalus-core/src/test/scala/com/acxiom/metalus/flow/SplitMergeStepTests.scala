@@ -56,8 +56,8 @@ class SplitMergeStepTests extends AnyFunSpec with BeforeAndAfterAll {
       val stepResult = executionResult.pipelineContext.getStepResultByStateInfo(key.copy(stepId = Some("FORMAT_STRING")))
       assert(stepResult.isDefined)
       assert(stepResult.get.isInstanceOf[PipelineStepResponse])
-      assert(stepResult.get.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(stepResult.get.asInstanceOf[PipelineStepResponse]
+      assert(stepResult.get.primaryReturn.isDefined)
+      assert(stepResult.get
         .primaryReturn.get.asInstanceOf[String] == "List with values 1,2 has a sum of 3")
 
       // Verify audits

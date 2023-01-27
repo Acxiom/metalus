@@ -24,14 +24,15 @@ object PipelineFlow {
   }
 
   /**
-    *
-    * @param t The exception to process
-    * @param pipeline The current executing pipeline
-    * @param pipelineContext The current PipelineContext
-    * @return A PipelineStepException
-    */
-  def handleStepExecutionExceptions(t: Throwable, pipeline: Pipeline,
-                                    pipelineContext: PipelineContext): PipelineStepException = {
+   * Ensures that any exception is a type of PipelineException.
+   *
+   * @param t               The exception to process
+   * @param pipeline        The current executing pipeline
+   * @param pipelineContext The current PipelineContext
+   * @return A PipelineStepException
+   */
+  private def handleStepExecutionExceptions(t: Throwable, pipeline: Pipeline,
+                                            pipelineContext: PipelineContext): PipelineStepException = {
     val stateInfo = pipelineContext.currentStateInfo.get
     val ex = t match {
       case se: PipelineStepException => se
@@ -42,7 +43,7 @@ object PipelineFlow {
     }
     if (pipelineContext.pipelineListener.isDefined) {
       pipelineContext.pipelineListener.get.registerStepException(stateInfo, ex, pipelineContext)
-      // TODO Revisit this to determine if we need a way to indicate that the overall execution has stopped.
+      // TODO [2.0 Review] Revisit this to determine if we need a way to indicate that the overall execution has stopped.
 //      if (pipelines.isDefined && pipelines.get.nonEmpty) {
 //        pipelineContext.pipelineListener.get.executionStopped(pipelines.get.slice(0, pipelines.get.indexWhere(pipeline => {
 //          pipeline.id.get == pipeline.id.getOrElse("")
@@ -224,21 +225,7 @@ trait PipelineFlow {
         logger.warn(s"Unrecognized step result: ${result.getClass.toString}")
         pipelineContext
     }
-//    val updateCtx = setStepAudit(ctx, nextStepId)
-//    val audit = updateCtx.getPipelineAudit(pipelineContext.currentStateInfo.get).get.setEnd(System.currentTimeMillis())
-//    updateCtx.setPipelineAudit(audit)
   }
-
-//  protected def setStepAudit(pipelineContext: PipelineContext, nextStepId: Option[String]): PipelineContext = {
-//    if (nextStepId.isDefined) {
-//      val metrics = Map[String, Any]()
-//      pipelineContext.setPipelineAudit(
-//        ExecutionAudit(pipelineContext.currentStateInfo.get.copy(stepId = nextStepId),
-//          AuditType.STEP, metrics, System.currentTimeMillis(), None, None))
-//    } else {
-//      pipelineContext
-//    }
-//  }
 
   private def getNextStepId(step: FlowStep, result: Any): Option[String] = {
     step.`type`.getOrElse("").toLowerCase match {

@@ -32,8 +32,6 @@ case class StepGroupFlow(pipeline: Pipeline,
                                pipelineContext: PipelineContext): StepGroupResult = {
     // Get Pipeline
     val subPipeline = getPipeline(step, parameterValues, pipelineContext)
-    val firstStep = subPipeline.steps.get.head
-    val stepLookup = PipelineExecutorValidations.validateAndCreateStepLookup(subPipeline)
     val pipelineKey = pipelineContext.currentStateInfo.get
       .copy(pipelineId = subPipeline.id.getOrElse(""), stepId = None, stepGroup = pipelineContext.currentStateInfo)
     val pipelineAudit = ExecutionAudit(pipelineKey, AuditType.PIPELINE, Map[String, Any](),
@@ -42,7 +40,8 @@ case class StepGroupFlow(pipeline: Pipeline,
     val ctx = preparePipelineContext(parameterValues, pipelineContext, subPipeline)
       .setPipelineAudit(pipelineAudit).setCurrentStateInfo(pipelineKey)
 
-    val resultCtx = executeStep(firstStep, subPipeline, stepLookup, ctx)
+    val result = PipelineStepFlow(subPipeline, ctx).execute()
+    val resultCtx = result.pipelineContext
     val response = extractStepGroupResponse(step, subPipeline, resultCtx)
     val updates = subPipeline.steps.get
       .filter { step =>

@@ -15,7 +15,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockIntListStepFunction"
+        "command": "MockStepObject.mockIntListStepFunction"
       },
       "nextStepId": "ROOT_FORK"
     },
@@ -53,7 +53,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockIntListStepFunction"
+        "command": "MockStepObject.mockIntListStepFunction"
       },
       "nextStepId": "FORK_DATA"
     },
@@ -98,7 +98,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockIntStepFunction"
+        "command": "MockStepObject.mockIntStepFunction"
       },
       "nextStepId": "JOIN"
     },
@@ -120,7 +120,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockSumListOfInts"
+        "command": "MockStepObject.mockSumListOfInts"
       },
       "nextStepId": "ROOT_JOIN"
     },
@@ -142,7 +142,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "MockStepObject.mockSumListOfInts"
+        "command": "MockStepObject.mockSumListOfInts"
       }
     }
   ],

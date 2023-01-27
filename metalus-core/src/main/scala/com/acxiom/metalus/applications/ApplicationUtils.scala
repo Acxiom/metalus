@@ -1,7 +1,7 @@
 package com.acxiom.metalus.applications
 
 import com.acxiom.metalus._
-import com.acxiom.metalus.context.Json4sContext
+import com.acxiom.metalus.context.{ContextManager, Json4sContext}
 import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.utils.ReflectionUtils
 import org.slf4j.LoggerFactory
@@ -34,7 +34,8 @@ object ApplicationUtils {
     }
     val validateArgumentTypes = parameters.getOrElse(Map()).getOrElse("validateStepParameterTypes", false).asInstanceOf[Boolean]
     // Create the ContextManager
-    val contextManager = new ContextManager(application.contexts.getOrElse(Map()), parameters.getOrElse(Map()))
+    val contextManager = new ContextManager(application.contexts.getOrElse(Map()),
+      parameters.getOrElse(Map()) + ("credentialProvider" -> credentialProvider))
     val tempCtx = PipelineContext(globals, List(), contextManager = contextManager)
     val globalStepMapper = generateStepMapper(application.stepMapper, Some(PipelineStepMapper()),
       validateArgumentTypes, credentialProvider, tempCtx)
@@ -51,30 +52,6 @@ object ApplicationUtils {
     val defaultGlobals = generateGlobals(application.globals, rootGlobals , Some(rootGlobals), initialContext)
     initialContext.copy(globals = defaultGlobals)
   }
-
-  /** TODO [2.0 Review] IS this still needed?
-   * Utility method that resets the state on the PipelineExecution.
-   *
-   * @param application       The Application configuration
-   * @param rootGlobals       The initial set of globals
-   * @param execution         The execution configuration
-   * @param pipelineExecution The PipelineExecution that needs to be refreshed
-   * @return An updated PipelineExecution
-   */
-//  def refreshPipelineExecution(application: Application,
-//                               rootGlobals: Option[Map[String, Any]],
-//                               execution: Execution,
-//                               pipelineExecution: PipelineExecution): PipelineExecution = {
-//    implicit val formats: Formats = getJson4sFormats(application.json4sSerializers)
-//    val initialContext = pipelineExecution.pipelineContext.copy(globals = rootGlobals)
-//    val defaultGlobals = generateGlobals(application.globals, rootGlobals.get, rootGlobals, initialContext)
-//    val globalPipelineParameters = generatePipelineParameters(application.pipelineParameters, Some(PipelineParameters()))
-//    val ctx = pipelineExecution.pipelineContext
-//      .copy(globals = generateGlobals(execution.globals, rootGlobals.get, defaultGlobals,
-//        initialContext, execution.mergeGlobals.getOrElse(false)))
-//      .copy(parameters = generatePipelineParameters(execution.pipelineParameters, globalPipelineParameters).get)
-//    pipelineExecution.asInstanceOf[DefaultPipelineExecution].copy(pipelineContext = ctx)
-//  }
 
   private def generatePipelineManager(pipelineManagerInfo: Option[ClassInfo],
                                       pipelineManager: Option[PipelineManager],

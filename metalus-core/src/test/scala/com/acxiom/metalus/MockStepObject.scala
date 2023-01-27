@@ -1,5 +1,6 @@
 package com.acxiom.metalus
 
+import com.acxiom.metalus.context.ContextManager
 import com.acxiom.metalus.drivers.DriverSetup
 
 object MockStepObject {
@@ -101,7 +102,7 @@ class MockNoParams {
   def string: String = "no-constructor-string"
 }
 
-class MockDefaultParam(flag: Boolean = false, secondParam: String = "none") {
+class MockDefaultParam(flag: Boolean = false, secondParam: String = "none") extends Serializable {
   def getFlag: Boolean = flag
   def getSecondParam: String = secondParam
 }

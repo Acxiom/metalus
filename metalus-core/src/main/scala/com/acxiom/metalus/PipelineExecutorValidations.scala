@@ -20,7 +20,7 @@ object PipelineExecutorValidations {
     step.`type`.getOrElse("").toLowerCase match {
       case s if s == PipelineStepType.PIPELINE || s == PipelineStepType.BRANCH =>
         val ps = step.asInstanceOf[PipelineStep]
-        if(ps.engineMeta.isEmpty || ps.engineMeta.get.spark.getOrElse("") == "") {
+        if(ps.engineMeta.isEmpty || ps.engineMeta.get.command.getOrElse("") == "") {
           throw PipelineException(
             message = Some(s"EngineMeta is required for [${step.`type`.get}] step [${step.id.get}] in pipeline [${pipeline.id.get}]"),
             pipelineProgress = defaultStateInfo)

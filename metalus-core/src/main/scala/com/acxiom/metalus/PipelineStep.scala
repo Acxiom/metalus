@@ -116,11 +116,11 @@ case class Parameter(`type`: Option[String] = None,
 /**
   * This class contains the execution information for a Step
   *
-  * @param spark The execution instruction for the Spark engine.
+  * @param command The execution instruction for the Spark engine.
   * @param pkg An optional package location
   * @param results The optional StepResult
   */
-case class EngineMeta(spark: Option[String] = None, pkg: Option[String] = None, results: Option[Results] = None)
+case class EngineMeta(command: Option[String] = None, pkg: Option[String] = None, results: Option[Results] = None)
 
 /**
   * This class represents the expected result of a step execution

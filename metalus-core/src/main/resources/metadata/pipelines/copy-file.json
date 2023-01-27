@@ -61,7 +61,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "FileManagerSteps.getFileManager",
+        "command": "FileManagerSteps.getFileManager",
         "pkg": "com.acxiom.pipeline.steps",
         "results": {
           "primaryType": "com.acxiom.pipeline.fs.FileManager"
@@ -86,7 +86,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "FileManagerSteps.getFileManager",
+        "command": "FileManagerSteps.getFileManager",
         "pkg": "com.acxiom.pipeline.steps",
         "results": {
           "primaryType": "com.acxiom.pipeline.fs.FileManager"
@@ -135,7 +135,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "FileManagerSteps.copy",
+        "command": "FileManagerSteps.copy",
         "pkg": "com.acxiom.pipeline.steps",
         "results": {
           "primaryType": "com.acxiom.pipeline.steps.CopyResults"
@@ -185,7 +185,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "FileManagerSteps.compareFileSizes",
+        "command": "FileManagerSteps.compareFileSizes",
         "pkg": "com.acxiom.pipeline.steps",
         "results": {
           "primaryType": "Int"
@@ -218,7 +218,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "StringSteps.toString",
+        "command": "StringSteps.toString",
         "pkg": "com.acxiom.pipeline.steps",
         "results": {
           "primaryType": "String"
@@ -273,7 +273,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "StringSteps.stringEquals",
+        "command": "StringSteps.stringEquals",
         "pkg": "com.acxiom.pipeline.steps",
         "results": {
           "primaryType": "Boolean"
@@ -297,7 +297,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "FileManagerSteps.disconnectFileManager",
+        "command": "FileManagerSteps.disconnectFileManager",
         "pkg": "com.acxiom.pipeline.steps"
       },
       "nextStepId": "CLOSEDESTINATION",
@@ -319,7 +319,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "FileManagerSteps.disconnectFileManager",
+        "command": "FileManagerSteps.disconnectFileManager",
         "pkg": "com.acxiom.pipeline.steps"
       },
       "stepId": "3d1e8519-690c-55f0-bd05-1e7b97fb6633"
@@ -348,7 +348,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "FileManagerSteps.deleteFile",
+        "command": "FileManagerSteps.deleteFile",
         "pkg": "com.acxiom.pipeline.steps",
         "results": {
           "primaryType": "Boolean"
@@ -395,7 +395,7 @@
         }
       ],
       "engineMeta": {
-        "spark": "FlowUtilsSteps.simpleRetry",
+        "command": "FlowUtilsSteps.simpleRetry",
         "pkg": "com.acxiom.pipeline.steps",
         "results": {
           "primaryType": "com.acxiom.pipeline.PipelineStepResponse"

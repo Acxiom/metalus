@@ -24,7 +24,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.normalFunction"
+                "command": "ExecutionSteps.normalFunction"
               }
             }
           ]
@@ -52,7 +52,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.pauseStep"
+                "command": "ExecutionSteps.pauseStep"
               }
             },
             {
@@ -68,7 +68,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.pauseStep"
+                "command": "ExecutionSteps.pauseStep"
               }
             }
           ]
@@ -99,7 +99,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.sleepFunction"
+                "command": "ExecutionSteps.sleepFunction"
               }
             },
             {
@@ -115,7 +115,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.sleepFunction"
+                "command": "ExecutionSteps.sleepFunction"
               }
             }
           ]
@@ -146,7 +146,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.normalFunction"
+                "command": "ExecutionSteps.normalFunction"
               }
             },
             {
@@ -162,7 +162,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.normalFunction"
+                "command": "ExecutionSteps.normalFunction"
               }
             }
           ]
@@ -193,7 +193,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.normalFunction"
+                "command": "ExecutionSteps.normalFunction"
               }
             },
             {
@@ -209,7 +209,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.normalFunction"
+                "command": "ExecutionSteps.normalFunction"
               }
             }
           ]
@@ -240,7 +240,7 @@
                 }
               ],
               "engineMeta": {
-                "spark": "ExecutionSteps.normalFunction"
+                "command": "ExecutionSteps.normalFunction"
               }
             }
           ]

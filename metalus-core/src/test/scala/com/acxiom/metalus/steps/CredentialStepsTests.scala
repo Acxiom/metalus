@@ -1,6 +1,7 @@
 package com.acxiom.metalus.steps
 
 import com.acxiom.metalus._
+import com.acxiom.metalus.context.ContextManager
 import org.scalatest.funspec.AnyFunSpec
 
 class CredentialStepsTests extends AnyFunSpec {
