@@ -2,6 +2,7 @@ package com.acxiom.metalus.flow
 
 import com.acxiom.metalus._
 import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
+import com.acxiom.metalus.context.SessionContext
 import com.acxiom.metalus.utils.ReflectionUtils
 import org.slf4j.LoggerFactory
 
@@ -16,7 +17,7 @@ object PipelineFlow {
     * @param params List of parameters to pass to the function
     * @return An updated PipelineContext
     */
-  def handleEvent(pipelineContext: PipelineContext, funcName: String, params: List[Any]): PipelineContext = {
+  private def handleEvent(pipelineContext: PipelineContext, funcName: String, params: List[Any]): PipelineContext = {
     if (pipelineContext.pipelineListener.isDefined) {
       val rCtx = ReflectionUtils.executeFunctionByName(pipelineContext.pipelineListener.get, funcName, params).asInstanceOf[Option[PipelineContext]]
       if (rCtx.isEmpty) pipelineContext else rCtx.get
@@ -81,7 +82,6 @@ object PipelineFlow {
     * This function will create a new PipelineContext from the provided that includes new StepMessages
     *
     * @param pipelineContext The PipelineContext to be cloned.
-    * @param groupId The id of the fork process
     * @return A cloned PipelineContext
     */
   def createForkedPipelineContext(pipelineContext: PipelineContext, firstStep: FlowStep): PipelineContext = {
@@ -106,6 +106,8 @@ trait PipelineFlow {
       val updatedCtx = PipelineFlow.handleEvent(initialContext, "pipelineStarted", List(pipelineStateInfo, initialContext))
         .setCurrentStateInfo(pipelineStateInfo)
         .setPipelineAudit(ExecutionAudit(pipelineStateInfo, AuditType.PIPELINE, start = System.currentTimeMillis()))
+      val sessionContext = updatedCtx.contextManager.getContext("session").get.asInstanceOf[SessionContext]
+      sessionContext.saveGlobals(pipelineStateInfo, updatedCtx.globals.getOrElse(Map()))
       val resultPipelineContext = executeStep(step, pipeline, stepLookup, updatedCtx)
       val auditCtx = resultPipelineContext.setPipelineAudit(
         resultPipelineContext.getPipelineAudit(pipelineStateInfo).get.setEnd(System.currentTimeMillis()))
@@ -124,12 +126,17 @@ trait PipelineFlow {
     val ctx = pipelineContext.setCurrentStateInfo(stepState)
       .setPipelineAudit(ExecutionAudit(stepState, AuditType.STEP, start = System.currentTimeMillis()))
     val ssContext = PipelineFlow.handleEvent(ctx, "pipelineStepStarted", List(stepState, ctx))
+    // Set step status of RUNNING
+    val sessionContext = ssContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
+    sessionContext.saveStepStatus(stepState, "RUNNING")
     val (nextStepId, sfContextResult) = processStepWithRetry(step, pipeline, ssContext, 0)
     // Close the step audit
     val audit = sfContextResult.getPipelineAudit(stepState).get.setEnd(System.currentTimeMillis())
     // run the step finished event
     val sfContext = PipelineFlow.handleEvent(sfContextResult, "pipelineStepFinished",
       List(stepState, sfContextResult)).setPipelineAudit(audit)
+    // Set step status to COMPLETE
+    sessionContext.saveStepStatus(stepState, "COMPLETE")
     // Call the next step here
     if (steps.contains(nextStepId.getOrElse("")) &&
       (steps(nextStepId.getOrElse("")).`type`.getOrElse("") == PipelineStepType.JOIN ||
@@ -160,10 +167,10 @@ trait PipelineFlow {
       val result = processPipelineStep(step, pipeline, ssContext.setGlobal("stepRetryCount", stepRetryCount))
       // setup the next step
       val (newPipelineContext, nextStepId) = result match {
-        case flowResult: FlowResult => (updatePipelineContext(step, result, flowResult.nextStepId, flowResult.pipelineContext), flowResult.nextStepId)
+        case flowResult: FlowResult => (updatePipelineContext(step, result, flowResult.pipelineContext), flowResult.nextStepId)
         case _ =>
           val nextStepId = getNextStepId(step, result)
-          (updatePipelineContext(step, result, nextStepId, ssContext), nextStepId)
+          (updatePipelineContext(step, result, ssContext), nextStepId)
       }
       (nextStepId, newPipelineContext.removeGlobal("stepRetryCount"))
     } catch {
@@ -176,9 +183,14 @@ trait PipelineFlow {
         // handle exception
         val ex = PipelineFlow.handleStepExecutionExceptions(e, pipeline, ssContext)
         // put exception on the context as the "result" for this step.
-        val updateContext = updatePipelineContext(step, PipelineStepResponse(Some(ex), None), step.nextStepOnError, ssContext)
+        val sessionContext = ssContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
+        sessionContext.saveStepStatus(ssContext.currentStateInfo.get, "ERROR")
+        val updateContext = updatePipelineContext(step, PipelineStepResponse(Some(ex), None), ssContext)
         (step.nextStepOnError, updateContext)
-      case e => throw e
+      case e =>
+        val sessionContext = ssContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
+        sessionContext.saveStepStatus(ssContext.currentStateInfo.get, "ERROR")
+        throw e
     }
   }
 
@@ -213,11 +225,13 @@ trait PipelineFlow {
     }
   }
 
-  private def updatePipelineContext(step: FlowStep, result: Any, nextStepId: Option[String], pipelineContext: PipelineContext): PipelineContext = {
+  private def updatePipelineContext(step: FlowStep, result: Any, pipelineContext: PipelineContext): PipelineContext = {
     val pipelineProgress = pipelineContext.currentStateInfo.get.copy(stepId = step.id)
     result match {
       case flowResult: FlowResult => flowResult.pipelineContext
       case response: PipelineStepResponse =>
+        val sessionContext = pipelineContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
+        sessionContext.saveStepResult(pipelineContext.currentStateInfo.get, response)
         processResponseGlobals(step, result, pipelineContext)
           .setPipelineStepResponse(pipelineContext.currentStateInfo.get, response)
           .setGlobal("lastStepId", pipelineProgress.key)
@@ -249,21 +263,31 @@ trait PipelineFlow {
   private def processResponseGlobals(step: FlowStep, result: Any, updatedCtx: PipelineContext) = {
     result match {
       case response: PipelineStepResponse if response.namedReturns.isDefined && response.namedReturns.get.nonEmpty =>
-        response.namedReturns.get.foldLeft(updatedCtx)((context, entry) => {
+        val resultMap = response.namedReturns.get.foldLeft((updatedCtx, Map[String, Any](), Map[String, Any]()))((resultsTuple, entry) => {
           entry._1 match {
             case e if e.startsWith("$globals.") =>
               val keyName = entry._1.substring(Constants.NINE)
-              PipelineFlow.updateGlobals(step.displayName.getOrElse(step.id.getOrElse("")), context, entry._2, keyName)
+              (PipelineFlow.updateGlobals(step.displayName.getOrElse(step.id.getOrElse("")), resultsTuple._1, entry._2, keyName),
+                resultsTuple._2 + (keyName -> entry._2), resultsTuple._3)
             case e if e.startsWith("$metrics.") =>
-              val stepKey = context.currentStateInfo.get.copy(stepId = step.id)
+              val stepKey = resultsTuple._1.currentStateInfo.get.copy(stepId = step.id)
               val keyName = entry._1.substring(Constants.NINE)
-              context.setPipelineAudit(context.getPipelineAudit(stepKey).get.setMetric(keyName, entry._2))
+              (resultsTuple._1.setPipelineAudit(resultsTuple._1.getPipelineAudit(stepKey).get.setMetric(keyName, entry._2)),
+                resultsTuple._2, resultsTuple._3)
             case e if e.startsWith("$globalLink.") =>
               val keyName = entry._1.substring(Constants.TWELVE)
-              PipelineFlow.updateGlobals(step.displayName.getOrElse(step.id.getOrElse("")), context, entry._2, keyName, true)
-            case _ => context
+              (PipelineFlow.updateGlobals(step.displayName.getOrElse(step.id.getOrElse("")), resultsTuple._1, entry._2, keyName, isLink = true),
+                resultsTuple._2, resultsTuple._3 + (keyName -> entry._2))
+            case _ => resultsTuple
           }
         })
+        val sessionContext = updatedCtx.contextManager.getContext("session").get.asInstanceOf[SessionContext]
+        val pipelineKey = updatedCtx.currentStateInfo.get.copy(stepId = None)
+        // Save the updated globals
+        val existingGL = updatedCtx.globals.getOrElse(Map()).getOrElse("GlobalLinks", Map()).asInstanceOf[Map[String, Any]]
+        val globals = resultMap._2 + ("GlobalLinks" -> resultMap._3.foldLeft(existingGL)((result, entry) => result + entry))
+        sessionContext.saveGlobals(pipelineKey, globals)
+        resultMap._1
       case _ => updatedCtx
     }
   }
@@ -274,7 +298,7 @@ trait PipelineFlow {
         if (entry._1.startsWith("$globals.")) {
           list :+ GlobalUpdates(step.displayName.get, pipelineId, entry._1.substring(Constants.NINE), entry._2)
         } else if (entry._1.startsWith("$globalLink.")) {
-          list :+ GlobalUpdates(step.displayName.get, pipelineId, entry._1.substring(Constants.TWELVE), entry._2, true)
+          list :+ GlobalUpdates(step.displayName.get, pipelineId, entry._1.substring(Constants.TWELVE), entry._2, isLink = true)
         } else {
           list
         }

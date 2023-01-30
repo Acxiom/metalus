@@ -5,16 +5,7 @@ import org.scalatest.funspec.AnyFunSpec
 import org.slf4j.event.Level
 import org.slf4j.{Logger, LoggerFactory}
 
-class StepErrorTests extends AnyFunSpec with BeforeAndAfterAll {
-
-  override def beforeAll() {
-    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
-  }
-
-  override def afterAll() {
-    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
-  }
-
+class StepErrorTests extends AnyFunSpec {
   describe("StepErrorHandling - Basic") {
     val stepToThrowError = PipelineStep(Some("PROCESS_RAW_VALUE"), None, None, Some("Pipeline"),
       Some(List(Parameter(Some("text"), Some("string"), value = Some("RAW_DATA")))),
@@ -31,7 +22,7 @@ class StepErrorTests extends AnyFunSpec with BeforeAndAfterAll {
       assert(executionResult.success)
       val res = executionResult.pipelineContext.getStepResultByStateInfo(PipelineStateInfo("Simple_error_test", Some("HANDLE_ERROR")))
       assert(res.isDefined)
-      assert(res.get.asInstanceOf[PipelineStepResponse].primaryReturn.get == "An unknown exception has occurred")
+      assert(res.get.primaryReturn.get == "An unknown exception has occurred")
     }
 
     it("Should fail if an exception is thrown and nextStepOnError is not set") {

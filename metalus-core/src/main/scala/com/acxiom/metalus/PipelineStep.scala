@@ -155,7 +155,7 @@ case class PauseException(errorType: Option[String] = Some("pauseException"),
                           message: Option[String] = Some(""),
                           pipelineProgress: Option[PipelineStateInfo],
                           cause: Throwable = None.orNull,
-                          context: Option[PipelineContext] = None)
+                          @transient context: Option[PipelineContext] = None)
   extends Exception(message.getOrElse(""), cause)
     with PipelineStepException
 
@@ -174,7 +174,7 @@ case class PipelineException(errorType: Option[String] = Some("pipelineException
                              message: Option[String] = Some(""),
                              pipelineProgress: Option[PipelineStateInfo],
                              cause: Throwable = None.orNull,
-                             context: Option[PipelineContext] = None)
+                             @transient context: Option[PipelineContext] = None)
   extends Exception(message.getOrElse(""), cause)
     with PipelineStepException
 
@@ -190,7 +190,7 @@ case class ForkedPipelineStepException(errorType: Option[String] = Some("forkSte
                                        dateTime: Option[String] = Some(new Date().toString),
                                        message: Option[String] = Some(""),
                                        exceptions: Map[Int, Throwable] = Map(),
-                                       context: Option[PipelineContext] = None)
+                                       @transient context: Option[PipelineContext] = None)
   extends Exception(message.getOrElse(""))
     with PipelineStepException {
   /**
@@ -220,7 +220,7 @@ case class ForkedPipelineStepException(errorType: Option[String] = Some("forkSte
 case class SkipExecutionPipelineStepException(errorType: Option[String] = Some("skipExecutionException"),
                                               dateTime: Option[String] = Some(new Date().toString),
                                               message: Option[String] = Some("Execution should be skipped"),
-                                              context: Option[PipelineContext] = None) extends Exception(message.getOrElse(""))
+                                              @transient context: Option[PipelineContext] = None) extends Exception(message.getOrElse(""))
   with PipelineStepException
 
 case class PipelineStepResponse(primaryReturn: Option[Any], namedReturns: Option[Map[String, Any]] = None)
