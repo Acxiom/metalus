@@ -1,14 +1,14 @@
 package com.acxiom.metalus.context
 
+import com.acxiom.metalus._
 import com.acxiom.metalus.audits.ExecutionAudit
 import com.acxiom.metalus.utils.ReflectionUtils
-import com.acxiom.metalus.{ClassInfo, CredentialProvider, PipelineStateInfo, PipelineStepResponse, UserNameCredential}
 import org.slf4j.LoggerFactory
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
-import java.sql.DriverManager
-import java.util.{Base64, Date, Properties, UUID}
-import scala.jdk.CollectionConverters._
+import java.sql.{DriverManager, ResultSet}
+import java.util
+import java.util.{Date, Properties, UUID}
 
 trait SessionContext extends Context {
   def existingSessionId: Option[String]
@@ -54,7 +54,7 @@ trait SessionContext extends Context {
   /**
    * Stores the globals for this session.
    *
-   * @param key The pipeline key for these globals
+   * @param key     The pipeline key for these globals
    * @param globals The globals to store.
    * @return True if the globals could be stored.
    */
@@ -81,30 +81,6 @@ trait SessionContext extends Context {
   def saveStepStatus(key: PipelineStateInfo, status: String): Boolean
 }
 
-/* TODO [2.0 Review]
- * Should we include the PipelineContext in these calls or would the ContextManager be enough?
- *
- * Save step status in execute step
- *  Set failed status in the processPipelineStep try/catch after the retries have been exhausted in processStepWithRetry
- *  If a step fails and has nextStepOnError, set the status to ERROR and proceed in processStepWithRetry
- * Save result in execute step
- * Save globals in the execute step
- *  Only save globals at the beginning of a pipeline (and store that id) and when changes are made
- *  Forks will do a lot of overwrites
- *  Should we track the version so it doesn't increment after every step?
- *  Must update after each step since steps can add globals
- *  Should we add fork information so we can have different copies for each fork?
- *    If we allow a fork to be restarted, then we will need this state.
- *
- *
- * Since these are "global", how do we handle the version?
- * Can we determine if a global has changed?
- *  Calling only when globals are updated will help, but the entire map is being sent
- *    What about creating a map of changes and sending that?
- *  Anyway to perform a diff?
- *    Compare the state? Since it is stored as a string, we could try ==
- *
- */
 /**
  * The session context is used to manage state of a running flow.
  *
@@ -280,10 +256,8 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
    * @return An optional globals map.
    */
   def loadGlobals(key: PipelineStateInfo): Option[Map[String, Any]] = {
-    // TODO [2.0 Review] Since this will pull global maps for *all* pipelines, do we need to provide the pipeline key?
     val globalRecords = storage.loadGlobals(sessionId)
     if (globalRecords.isDefined) {
-//      globalRecords.get.groupBy(_.)
       Some(globalRecords.get.foldLeft(Map[String, Any]())((mapResponse, global) => {
         val convertor = findNamedConvertor(global.convertor)
         mapResponse + (global.globalName -> convertor.deserialize(global.state))
@@ -447,12 +421,6 @@ trait SerializedSessionRecord extends SessionRecord {
    * @return The serialized state data.
    */
   def state: Array[Byte]
-
-  /**
-   * Converts the serialized state into a string which can be save.
-   * @return A string representing the state.
-   */
-  def encodedState: String = Base64.getEncoder.encodeToString(state)
 }
 
 case class StatusSessionRecord(override val sessionId: UUID,
@@ -487,10 +455,6 @@ case class GlobalSessionRecord(override val sessionId: UUID,
                                resultKey: String,
                                globalName: String) extends SerializedSessionRecord
 
-/*
-  * Possible schemas:
-  * globals --> |sessionId|date|version|convertor|globalName|state
- */
 trait SessionStorage {
   /**
    * Sets the current status for the provided key.
@@ -613,18 +577,18 @@ case class JDBCSessionStorage(connectionString: String,
                               connectionProperties: Map[String, String],
                               credentialName: Option[String] = None,
                               credentialProvider: Option[CredentialProvider] = None) extends SessionStorage {
-  private val p = new Properties()
-  p.putAll(connectionProperties.asJava)
+  private val properties = new Properties()
+  connectionProperties.foreach(entry => properties.put(entry._1, entry._2))
 
   private val CONN_PROPERTIES = if (credentialName.isDefined && credentialProvider.isDefined) {
     val cred = credentialProvider.get.getNamedCredential(credentialName.get)
     if (cred.isDefined) {
-      p.setProperty("user", cred.get.asInstanceOf[UserNameCredential].username)
-      p.setProperty("password", cred.get.asInstanceOf[UserNameCredential].password)
+      properties.setProperty("user", cred.get.asInstanceOf[UserNameCredential].username)
+      properties.setProperty("password", cred.get.asInstanceOf[UserNameCredential].password)
     }
-    p
+    properties
   } else {
-    p
+    properties
   }
 
   private val connection = DriverManager.getConnection(connectionString, CONN_PROPERTIES)
@@ -639,7 +603,7 @@ case class JDBCSessionStorage(connectionString: String,
     // Table --> |SESSION_ID|DATE|VERSION|RESULT_KEY|STATUS
     val sharedWhere = s"where SESSION_ID = '${sessionRecord.sessionId}' AND RESULT_KEY = '${sessionRecord.resultKey}'"
     val results = connection.prepareStatement(s"select * from STEP_STATUS $sharedWhere").executeQuery()
-    if (results.first()) {
+    if (results.next()) {
       val count =
         connection.prepareStatement(s"update STEP_STATUS set STATUS = '${sessionRecord.status}' $sharedWhere ")
           .executeUpdate()
@@ -661,30 +625,31 @@ case class JDBCSessionStorage(connectionString: String,
    * @return true if the data can be stored.
    */
   override def saveAudit(sessionRecord: AuditSessionRecord): Boolean = {
-    // Table --> |SESSION_ID|DATE|VERSION|CONVERTOR|AUDIT_KEY|START|END|DURATION|STATE
+    // Table --> |SESSION_ID|DATE|VERSION|CONVERTOR|AUDIT_KEY|START_TIMEE|END_TIME|DURATION|STATE
     val sharedWhere = s"WHERE SESSION_ID = '${sessionRecord.sessionId}' AND AUDIT_KEY = '${sessionRecord.auditKey}'"
     val results = connection.prepareStatement(s"SELECT * FROM AUDITS $sharedWhere").executeQuery()
-    if (results.first()) {
+    val statement = if (results.next()) {
       // Increment the version here
-      val version = if (results.getLong("END") == -1) {
+      val version = if (results.getLong("END_TIME") == -1) {
         results.getInt("VERSION")
       } else {
         results.getInt("VERSION") + 1
       }
       val setClause =
-        s"""VERSION = '$version', STATE = '${sessionRecord.encodedState}', END = ${sessionRecord.end},
-           |START = ${sessionRecord.start}, DURATION = ${sessionRecord.duration},
+        s"""VERSION = $version, STATE = ?, END_TIME = ${sessionRecord.end},
+           |START_TIME = ${sessionRecord.start}, DURATION = ${sessionRecord.duration},
            |DATE = ${sessionRecord.date.getTime}""".stripMargin
-      val count = connection.prepareStatement(s"update AUDITS set $setClause $sharedWhere ").executeUpdate()
-      count == 1
+      connection.prepareStatement(s"update AUDITS set $setClause $sharedWhere")
     } else {
-      val valuesClause =s"""'${sessionRecord.sessionId}', '${sessionRecord.date.getTime}',
+      val valuesClause =
+        s"""'${sessionRecord.sessionId}', ${sessionRecord.date.getTime},
            |${sessionRecord.version.getOrElse(0)}, '${sessionRecord.convertor}',
            |'${sessionRecord.auditKey}', ${sessionRecord.start}, ${sessionRecord.end},
-           |${sessionRecord.duration}, '${sessionRecord.encodedState}'""".stripMargin
-      val count = connection.prepareStatement(s"INSERT INTO AUDITS VALUES($valuesClause)").executeUpdate()
-      count == 1
+           |${sessionRecord.duration}, ?""".stripMargin
+      connection.prepareStatement(s"INSERT INTO AUDITS VALUES($valuesClause)")
     }
+    statement.setBlob(1, new ByteArrayInputStream(sessionRecord.state))
+    statement.executeUpdate() == 1
   }
 
   /**
@@ -694,18 +659,18 @@ case class JDBCSessionStorage(connectionString: String,
    * @return An optional list of session records.
    */
   override def loadAudits(sessionId: UUID): Option[List[AuditSessionRecord]] = {
-    // Table --> |SESSION_ID|DATE|VERSION|CONVERTOR|AUDIT_KEY|START|END|DURATION|STATE
+    // Table --> |SESSION_ID|DATE|VERSION|CONVERTOR|AUDIT_KEY|START_TIME|END_TIME|DURATION|STATE
     val sharedWhere = s"WHERE SESSION_ID = '${sessionId.toString}'"
     val results = connection.prepareStatement(s"SELECT * FROM AUDITS $sharedWhere").executeQuery()
     val list = Iterator.from(0).takeWhile(_ => results.next()).map(_ => {
       AuditSessionRecord(UUID.fromString(results.getString("SESSION_ID")),
         new Date(results.getLong("DATE")),
         Some(results.getInt("VERSION")),
-        Base64.getDecoder.decode(results.getString("STATE")),
+        readBlobData(results),
         results.getString("CONVERTOR"),
         results.getString("AUDIT_KEY"),
-        results.getLong("START"),
-        results.getLong("END"),
+        results.getLong("START_TIME"),
+        results.getLong("END_TIME"),
         results.getLong("DURATION"))
     }).toList
     if (list.nonEmpty) {
@@ -723,21 +688,24 @@ case class JDBCSessionStorage(connectionString: String,
    */
   override def saveStepResult(sessionRecord: StepResultSessionRecord): Boolean = {
     // Table --> |SESSION_ID|DATE|VERSION|CONVERTOR|RESULT_KEY|NAME|STATE
-    val sharedWhere = s"WHERE SESSION_ID = '${sessionRecord.sessionId}' AND RESULT_KEY = '${sessionRecord.resultKey}'"
+    val sharedWhere =
+      s"""WHERE SESSION_ID = '${sessionRecord.sessionId}'
+         |AND RESULT_KEY = '${sessionRecord.resultKey}'
+         |AND NAME = '${sessionRecord.name}'""".stripMargin
     val results = connection.prepareStatement(s"SELECT * FROM STEP_RESULTS $sharedWhere").executeQuery()
-    if (results.next()) {
+    val statement = if (results.next()) {
       val version = results.getInt("VERSION") + 1
-      val setClause = s"VERSION = '$version', STATE = '${sessionRecord.encodedState}', DATE = ${sessionRecord.date.getTime}"
-      val count = connection.prepareStatement(s"update STEP_RESULTS set $setClause $sharedWhere ").executeUpdate()
-      count == 1
+      val setClause = s"VERSION = $version, STATE = ?, DATE = ${sessionRecord.date.getTime}"
+      connection.prepareStatement(s"update STEP_RESULTS set $setClause $sharedWhere ")
     } else {
       val valuesClause =
-        s"""'${sessionRecord.sessionId}', '${sessionRecord.date.getTime}',
+        s"""'${sessionRecord.sessionId}', ${sessionRecord.date.getTime},
            |${sessionRecord.version.getOrElse(0)}, '${sessionRecord.convertor}',
-           |'${sessionRecord.resultKey}', '${sessionRecord.name}', '${sessionRecord.encodedState}'""".stripMargin
-      val count = connection.prepareStatement(s"INSERT INTO STEP_RESULTS VALUES($valuesClause)").executeUpdate()
-      count == 1
+           |'${sessionRecord.resultKey}', '${sessionRecord.name}', ?""".stripMargin
+      connection.prepareStatement(s"INSERT INTO STEP_RESULTS VALUES($valuesClause)")
     }
+    statement.setBlob(1, new ByteArrayInputStream(sessionRecord.state))
+    statement.executeUpdate() == 1
   }
 
   /**
@@ -754,7 +722,7 @@ case class JDBCSessionStorage(connectionString: String,
       StepResultSessionRecord(UUID.fromString(results.getString("SESSION_ID")),
         new Date(results.getLong("DATE")),
         Some(results.getInt("VERSION")),
-        Base64.getDecoder.decode(results.getString("STATE")),
+        readBlobData(results),
         results.getString("CONVERTOR"),
         results.getString("RESULT_KEY"),
         results.getString("NAME"))
@@ -779,22 +747,23 @@ case class JDBCSessionStorage(connectionString: String,
          |AND RESULT_KEY = '${sessionRecord.resultKey}'
          |AND NAME = '${sessionRecord.globalName}'""".stripMargin
     val results = connection.prepareStatement(s"SELECT * FROM GLOBALS $sharedWhere").executeQuery()
-    if (results.next()) {
-      if (results.getString("STATE") == sessionRecord.encodedState) {
-        true
-      } else {
-        val version = results.getInt("VERSION") + 1
-        val setClause = s"VERSION = '$version', STATE = '${sessionRecord.encodedState}', DATE = ${sessionRecord.date.getTime}"
-        val count = connection.prepareStatement(s"update GLOBALS set $setClause $sharedWhere ").executeUpdate()
-        count == 1
-      }
+    val existingRecord = results.next()
+    if (existingRecord && util.Arrays.equals(readBlobData(results), sessionRecord.state)) {
+      true
     } else {
-      val valuesClause =
-        s"""'${sessionRecord.sessionId}', '${sessionRecord.date.getTime}',
-           |${sessionRecord.version.getOrElse(0)}, '${sessionRecord.convertor}',
-           |'${sessionRecord.resultKey}', '${sessionRecord.globalName}', '${sessionRecord.encodedState}'""".stripMargin
-      val count = connection.prepareStatement(s"INSERT INTO GLOBALS VALUES($valuesClause)").executeUpdate()
-      count == 1
+      val statement = if (existingRecord) {
+        val version = results.getInt("VERSION") + 1
+        val setClause = s"VERSION = $version, STATE = ?, DATE = ${sessionRecord.date.getTime}"
+        connection.prepareStatement(s"update GLOBALS set $setClause $sharedWhere ")
+      } else {
+        val valuesClause =
+          s"""'${sessionRecord.sessionId}', ${sessionRecord.date.getTime},
+             |${sessionRecord.version.getOrElse(0)}, '${sessionRecord.convertor}',
+             |'${sessionRecord.resultKey}', '${sessionRecord.globalName}', ?""".stripMargin
+        connection.prepareStatement(s"INSERT INTO GLOBALS VALUES($valuesClause)")
+      }
+      statement.setBlob(1, new ByteArrayInputStream(sessionRecord.state))
+      statement.executeUpdate() == 1
     }
   }
 
@@ -812,7 +781,7 @@ case class JDBCSessionStorage(connectionString: String,
       GlobalSessionRecord(UUID.fromString(results.getString("SESSION_ID")),
         new Date(results.getLong("DATE")),
         Some(results.getInt("VERSION")),
-        Base64.getDecoder.decode(results.getString("STATE")),
+        readBlobData(results),
         results.getString("CONVERTOR"),
         results.getString("RESULT_KEY"),
         results.getString("NAME"))
@@ -822,5 +791,11 @@ case class JDBCSessionStorage(connectionString: String,
     } else {
       None
     }
+  }
+
+  private def readBlobData(results: ResultSet) = {
+    val blob = results.getBlob("STATE").getBinaryStream
+    val state = Stream.continually(blob.read).takeWhile(-1 !=).map(_.toByte).toArray
+    state
   }
 }

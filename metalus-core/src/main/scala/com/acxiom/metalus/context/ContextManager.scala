@@ -11,7 +11,8 @@ import com.acxiom.metalus.utils.ReflectionUtils
  */
 class ContextManager(contexts: Map[String, ClassInfo], setupParameters: Map[String, Any]) {
   private val defaultContexts: Map[String, ClassInfo] = Map[String, ClassInfo](
-    "json" -> ClassInfo(Some("com.acxiom.metalus.context.Json4sContext"), Some(Map[String, Any]()))
+    "json" -> ClassInfo(Some("com.acxiom.metalus.context.Json4sContext"), Some(Map[String, Any]())),
+    "session" -> ClassInfo(Some("com.acxiom.metalus.context.DefaultSessionContext"), Some(Map[String, Any]()))
   )
   private val contextObjects: Map[String, Context] = (defaultContexts ++ contexts)
     .map(c => c._1 -> ReflectionUtils.loadClass(c._2.className.get, Some(c._2.parameters.getOrElse(Map()) ++ setupParameters)).asInstanceOf[Context])
