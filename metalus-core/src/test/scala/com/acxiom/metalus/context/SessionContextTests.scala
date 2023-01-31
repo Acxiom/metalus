@@ -38,6 +38,7 @@ class SessionContextTests extends AnyFunSpec {
         assert(sessionContext.saveStepResult(pipelineKey, FULL_STEP_RESPONSE))
         assert(sessionContext.loadStepResults().isEmpty)
         assert(sessionContext.saveStepStatus(pipelineKey, "complete"))
+        assert(sessionContext.loadStepStatus().isEmpty)
         assert(sessionContext.saveGlobals(pipelineKey, GLOBALS_MAP))
         assert(sessionContext.loadGlobals(pipelineKey).isEmpty)
         assert(!sessionContext.saveStepResult(pipelineKey, BASE_STEP_RESPONSE.copy(primaryReturn = Some(new MockNoParams()))))
@@ -88,6 +89,10 @@ class SessionContextTests extends AnyFunSpec {
         assert(results.next())
         assert(results.getInt("VERSION") == 0)
         assert(results.getString("STATUS") == "COMPLETE")
+        val statusList = sessionContext.loadStepStatus()
+        assert(statusList.isDefined)
+        assert(statusList.get.length == 1)
+        assert(statusList.get.head.status == "COMPLETE")
         // Audit
         // Simulate saving an audit when a step / pipeline starts
         sessionContext.saveAudit(pipelineKey, BASE_STEP_AUDIT)
@@ -126,19 +131,15 @@ class SessionContextTests extends AnyFunSpec {
 
         // Step Result
         assert(sessionContext.saveStepResult(pipelineKey, BASE_STEP_RESPONSE))
-        assert(sessionContext.saveStepResult(pipelineKey.copy(stepId = Some("step1")), FULL_STEP_RESPONSE))
+        val fullStepKey = pipelineKey.copy(stepId = Some("step1"))
+        assert(sessionContext.saveStepResult(fullStepKey, FULL_STEP_RESPONSE))
         val steps = sessionContext.loadStepResults()
         assert(steps.nonEmpty)
-        assert(steps.get.length == 2)
-        val baseStepIndex = steps.get.indexWhere(_.primaryReturn.get == "Test String")
-        assert(baseStepIndex != -1)
-        val step = steps.get(baseStepIndex)
+        assert(steps.get.size == 2)
+        assert(steps.get.contains(pipelineKey.key))
+        val step = steps.get(pipelineKey.key)
         assert(step.namedReturns.isEmpty)
-        val fullStep = if (baseStepIndex == 0) {
-          steps.get(1)
-        } else {
-          steps.get.head
-        }
+        val fullStep = steps.get(fullStepKey.key)
         var defaultObjParam = fullStep.primaryReturn.get.asInstanceOf[MockDefaultParam]
         assert(defaultObjParam.getFlag == DEFAULT_OBJECT.getFlag)
         assert(defaultObjParam.getSecondParam == DEFAULT_OBJECT.getSecondParam)

@@ -1,7 +1,7 @@
 package com.acxiom.metalus.applications
 
 import com.acxiom.metalus._
-import com.acxiom.metalus.context.{ContextManager, Json4sContext}
+import com.acxiom.metalus.context.{ContextManager, Json4sContext, SessionContext}
 import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.utils.ReflectionUtils
 import org.slf4j.LoggerFactory
@@ -36,6 +36,11 @@ object ApplicationUtils {
     // Create the ContextManager
     val contextManager = new ContextManager(application.contexts.getOrElse(Map()),
       parameters.getOrElse(Map()) + ("credentialProvider" -> credentialProvider))
+    val sessionContext = contextManager.getContext("session").get.asInstanceOf[SessionContext]
+    val audits = sessionContext.loadAudits().getOrElse(List())
+    val stepResults = sessionContext.loadStepResults().getOrElse(Map())
+      .map(r => (PipelineStateInfo.fromString(r._1), r._2))
+    val sessionGlobals = sessionContext.loadGlobals(PipelineStateInfo(application.pipelineId.getOrElse(""))).getOrElse(Map())
     val tempCtx = PipelineContext(globals, List(), contextManager = contextManager)
     val globalStepMapper = generateStepMapper(application.stepMapper, Some(PipelineStepMapper()),
       validateArgumentTypes, credentialProvider, tempCtx)
@@ -47,10 +52,10 @@ object ApplicationUtils {
       Some(PipelineManager(application.pipelineTemplates)),
       validateArgumentTypes, credentialProvider, tempCtx).get
     val initialContext = PipelineContext(Some(rootGlobals), globalPipelineParameters.get, application.stepPackages,
-      globalStepMapper.get, globalListener, List(), pipelineManager, credentialProvider, contextManager, Map(), None)
+      globalStepMapper.get, globalListener, audits, pipelineManager, credentialProvider, contextManager, stepResults, None)
 
     val defaultGlobals = generateGlobals(application.globals, rootGlobals , Some(rootGlobals), initialContext)
-    initialContext.copy(globals = defaultGlobals)
+    initialContext.copy(globals = Some(defaultGlobals.get ++ sessionGlobals))
   }
 
   private def generatePipelineManager(pipelineManagerInfo: Option[ClassInfo],

@@ -42,7 +42,7 @@ trait ApplicationDriverSetup extends DriverSetup {
     case "enableHiveSupport" => false
     case "dfs-cluster" => false
     case _ => true
-  }.toMap
+  }
 
   private[applications] lazy val application: Application = loadAndValidateApplication
 
@@ -52,22 +52,6 @@ trait ApplicationDriverSetup extends DriverSetup {
 
   override def pipelineContext: PipelineContext =
     ApplicationUtils.createPipelineContext(application, Some(params), Some(parameters), credentialProvider = Some(credentialProvider))
-
-  /**
-    * This function allows the driver setup a chance to refresh the execution plan. This is useful in long running
-    * applications such as streaming where artifacts build up over time.
-    *
-    * @param executionPlan The execution plan to refresh
-    * @since 1.1.0
-    * @return An execution plan
-    */
-//  override def refreshExecutionPlan(executionPlan: List[PipelineExecution],
-//                                    results: Option[Map[String, DependencyResult]] = None): List[PipelineExecution] = {
-//    executionPlan.map(plan => {
-//      val execution = application.executions.get.find(_.id.getOrElse("") == plan.id).get
-//      ApplicationUtils.refreshPipelineExecution(application, Some(params), execution, plan)
-//    })
-//  }
 
   private def loadAndValidateApplication: Application = {
     val application = loadApplication

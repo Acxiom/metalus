@@ -33,7 +33,7 @@ trait SessionContext extends Context {
    *
    * @return An optional list of step results.
    */
-  def loadStepResults(): Option[List[PipelineStepResponse]]
+  def loadStepResults(): Option[Map[String, PipelineStepResponse]]
 
   /**
    * Saves an audit for the provided key.
@@ -79,7 +79,16 @@ trait SessionContext extends Context {
    * @return True if the status could be saved.
    */
   def saveStepStatus(key: PipelineStateInfo, status: String): Boolean
+
+  /**
+   * Returns all recorded status for this session or None.
+   *
+   * @return An optional list of recorded status.
+   */
+  def loadStepStatus(): Option[List[StepStatus]]
 }
+
+case class StepStatus(stepKey: String, status: String)
 
 /**
  * The session context is used to manage state of a running flow.
@@ -157,7 +166,7 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
    *
    * @return An optional list of step results.
    */
-  def loadStepResults(): Option[List[PipelineStepResponse]] = {
+  def loadStepResults(): Option[Map[String, PipelineStepResponse]] = {
     val results = storage.loadStepResults(sessionId)
     if (results.isDefined && results.get.nonEmpty) {
       val resultGroups = results.get.groupBy(record => (record.resultKey, record.name)).map(group => {
@@ -186,7 +195,7 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
         }
         responseMap + (result.resultKey -> updatedResponse)
       })
-      Some(resultsMap.values.toList)
+      Some(resultsMap)
     } else {
       None
     }
@@ -285,6 +294,27 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
       case _ => "UNKNOWN"
     }
     storage.setStatus(StatusSessionRecord(sessionId, new Date(), None, key.key, convertedStatus))
+  }
+
+  /**
+   * Returns all recorded status for this session or None.
+   *
+   * @return An optional list of recorded status.
+   */
+  override def loadStepStatus(): Option[List[StepStatus]] = {
+    val statusRecords = storage.loadStepStatus(sessionId)
+    if (statusRecords.isDefined && statusRecords.get.nonEmpty) {
+      Some(statusRecords.get.groupBy(_.resultKey).map(group => {
+        val record = if (group._2.length == 1) {
+          group._2.head
+        } else {
+          group._2.maxBy(_.version.getOrElse(-1))
+        }
+        StepStatus(record.resultKey, record.status)
+      }).toList)
+    } else {
+      None
+    }
   }
 
   private def findNamedConvertor(convertorName: String) = {
@@ -465,6 +495,13 @@ trait SessionStorage {
   def setStatus(sessionRecord: StatusSessionRecord): Boolean
 
   /**
+   * Loads the recorded status for the provided sessionId.
+   * @param sessionId The unique session id.
+   * @return A list of status or None.
+   */
+  def loadStepStatus(sessionId: UUID): Option[List[StatusSessionRecord]]
+
+  /**
    * Stores audit data.
    *
    * @param sessionRecord The record containing the state data.
@@ -522,6 +559,14 @@ case class NoopSessionStorage() extends SessionStorage {
    * @return true if the status can be saved.
    */
   override def setStatus(sessionRecord: StatusSessionRecord): Boolean = true
+
+  /**
+   * Loads the recorded status for the provided sessionId.
+   *
+   * @param sessionId The unique session id.
+   * @return A list of status or None.
+   */
+  override def loadStepStatus(sessionId: UUID): Option[List[StatusSessionRecord]] = None
 
   /**
    * Saves a step result.
@@ -615,6 +660,30 @@ case class JDBCSessionStorage(connectionString: String,
       ${sessionRecord.version.getOrElse(0)}, '${sessionRecord.resultKey}',
       '${sessionRecord.status}')""").executeUpdate()
       count == 1
+    }
+  }
+
+  /**
+   * Loads the recorded status for the provided sessionId.
+   *
+   * @param sessionId The unique session id.
+   * @return A list of status or None.
+   */
+  override def loadStepStatus(sessionId: UUID): Option[List[StatusSessionRecord]] = {
+    // Table --> |SESSION_ID|DATE|VERSION|RESULT_KEY|STATUS
+    val sharedWhere = s"WHERE SESSION_ID = '${sessionId.toString}'"
+    val results = connection.prepareStatement(s"SELECT * FROM STEP_STATUS $sharedWhere").executeQuery()
+    val list = Iterator.from(0).takeWhile(_ => results.next()).map(_ => {
+      StatusSessionRecord(UUID.fromString(results.getString("SESSION_ID")),
+        new Date(results.getLong("DATE")),
+        Some(results.getInt("VERSION")),
+        results.getString("RESULT_KEY"),
+        results.getString("STATUS"))
+    }).toList
+    if (list.nonEmpty) {
+      Some(list)
+    } else {
+      None
     }
   }
 

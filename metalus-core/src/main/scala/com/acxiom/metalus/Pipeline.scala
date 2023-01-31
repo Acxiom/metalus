@@ -64,31 +64,37 @@ final case class NamedMapping(mappedName: String, stepKey: String)
   */
 final case class ForkData(id: String, index: Int, value: Option[Any])
 
-//object PipelineStateInfo {
-//  def apply(pipelineId: String,
-//            stepId: Option[String] = None,
-//            forkData: Option[ForkData] = None,
-//            stepGroup: Option[PipelineStateInfo] = None): PipelineStateInfo = PipelineStateInfo(pipelineId, stepId, forkData, stepGroup)
+object PipelineStateInfo {
+  def fromString(key: String): PipelineStateInfo = {
+    val keyTokens = key.split('.')
+    if (keyTokens.length > 1) {
+      keyTokens.foldLeft(PipelineStateInfo(""))((info, token) => {
+        // See if the info is a parent
+        val updatedInfo = if (info.pipelineId.nonEmpty &&
+          info.stepId.isDefined &&
+          !token.startsWith("f(")) {
+          PipelineStateInfo("", stepGroup = Some(info))
+        } else {
+          info
+        }
 
-//  def fromString(key: String): PipelineStateInfo = {
-//    /* TODO
-//     * Create a set of "keys" that will be used for testing to help write the code:
-//     *
-//     *  p1                      //  pipeline only
-//     *  p1.s2                   //  pipeline and step
-//     *  p1.s2.p2.s3             //  outer pipeline with step group and sub pipeline with step
-//     *  p1.s2.p2.s4             //  outer pipeline with step group and sub pipeline with step
-//     *  p1.s2.p2.s1.f(01_0)     //  outer pipeline with step group and sub pipeline with fork step
-//     *  p1.s2.p2.s2.f(01_0)     //  outer pipeline with step group and sub pipeline with fork step
-//     *  p1.s2.p2.s1.f(02_1)     //  outer pipeline with step group and sub pipeline with fork step
-//     *  p1.s2.p2.s2.f(02_1)     //  outer pipeline with step group and sub pipeline with fork step
-//     */
-//    // TODO What if this is just a pipelineId? It would not have a . in the value
-//    key.split('.').reverse.foldLeft(PipelineStateInfo(""))((info, token) => {
-//      // The last key is either a stepId or forkData
-//    })
-//  }
-//}
+        if (token.startsWith("f(")) {
+          updatedInfo.copy(forkData = Some(
+          ForkData(token.substring(2, token.indexOf("_")),
+            token.substring(token.indexOf("_") + 1, token.length - 1).toInt, None)))
+        } else if (updatedInfo.pipelineId.isEmpty) {
+          // pipeline
+          updatedInfo.copy(pipelineId = token)
+        } else {
+          // step
+          updatedInfo.copy(stepId = Some(token))
+        }
+      })
+    } else { // Pipeline Key
+      PipelineStateInfo(key)
+    }
+  }
+}
 
 /**
   * Provides information about the current step being executed.
