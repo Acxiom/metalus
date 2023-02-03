@@ -23,12 +23,7 @@ import java.net.HttpURLConnection
 import java.nio.file.Files
 import scala.io.Source
 
-class ApplicationTests extends AnyFunSpec with BeforeAndAfterAll {
-
-  override def beforeAll(): Unit = {
-    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
-  }
-
+class ApplicationTests extends AnyFunSpec {
   describe("ApplicationUtils - Parsing") {
     // Load the application for all the tests
     val application = JsonParser.parseApplication(Source.fromInputStream(getClass.getResourceAsStream("/application-test.json")).mkString)
@@ -50,7 +45,7 @@ class ApplicationTests extends AnyFunSpec with BeforeAndAfterAll {
         val badApplication = JsonParser.parseApplication(
           Source.fromInputStream(getClass.getResourceAsStream("/no-pipeline-application-test.json")).mkString
         )
-        val pipelineContext = ApplicationUtils.createPipelineContext(badApplication, Some(Map[String, Any]("rootLogLevel" -> true)), None)
+        ApplicationUtils.createPipelineContext(badApplication, Some(Map[String, Any]("rootLogLevel" -> true)), None)
       }
       assert(thrown.getMessage == "Application pipelineId is required!")
     }
@@ -590,10 +585,6 @@ class ApplicationTests extends AnyFunSpec with BeforeAndAfterAll {
 }
 
 case class TestPipelineListener(name: String) extends PipelineListener
-//
-//case class TestSparkListener(name: String) extends SparkListener
-
-case class TestPipelineSecurityManager(name: String) extends PipelineSecurityManager
 
 case class TestPipelineStepMapper(name: String) extends PipelineStepMapper
 

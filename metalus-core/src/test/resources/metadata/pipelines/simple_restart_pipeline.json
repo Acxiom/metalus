@@ -1,0 +1,82 @@
+{
+  "id": "simple_restart_pipeline",
+  "name": "Simple Restart Test Pipeline",
+  "parameters": {
+    "restartableSteps": [
+      "STEP_2"
+    ]
+  },
+  "steps": [
+    {
+      "id": "STEP_1",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "string",
+          "required": false,
+          "value": "STEP1",
+          "description": ""
+        },
+        {
+          "type": "boolean",
+          "name": "boolean",
+          "required": false,
+          "value": true,
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "command": "MockStepObject.mockStepFunction"
+      },
+      "nextStepId": "STEP_2"
+    },
+    {
+      "id": "STEP_2",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "string",
+          "required": false,
+          "value": "@{STEP_1} -> STEP2 -> !{step2Value}",
+          "description": ""
+        },
+        {
+          "type": "boolean",
+          "name": "boolean",
+          "required": false,
+          "value": true,
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "command": "MockStepObject.mockStepFunction"
+      },
+      "nextStepId": "STEP_3"
+    },
+    {
+      "id": "STEP_3",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "string",
+          "required": false,
+          "value": "@{STEP_2} -> STEP3",
+          "description": ""
+        },
+        {
+          "type": "boolean",
+          "name": "boolean",
+          "required": false,
+          "value": true,
+          "description": ""
+        }
+      ],
+      "engineMeta": {
+        "command": "MockStepObject.mockStepFunction"
+      }
+    }
+  ]
+}

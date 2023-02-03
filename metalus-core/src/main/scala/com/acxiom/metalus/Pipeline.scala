@@ -159,6 +159,7 @@ case class ClassInfo(className: Option[String], parameters: Option[Map[String, A
   * @param contextManager     The context manager to use for accessing side loaded contexts
   * @param stepResults        A map of results from the execution of the pipeline steps.
   * @param currentStateInfo   The current pipeline state information
+ *  @param restartPoints      Optional list of steps that should be restarted.
   */
 case class PipelineContext(globals: Option[Map[String, Any]],
                            parameters: List[PipelineParameter],
@@ -175,7 +176,8 @@ case class PipelineContext(globals: Option[Map[String, Any]],
                            credentialProvider: Option[CredentialProvider] = None,
                            contextManager: ContextManager,
                            stepResults: Map[PipelineStateInfo, PipelineStepResponse] = Map(),
-                           currentStateInfo: Option[PipelineStateInfo] = None) {
+                           currentStateInfo: Option[PipelineStateInfo] = None,
+                           restartPoints: Option[RestartPoints] = None) {
 
   /**
     * Merges the provided PipelineContext audits, stepResults and globals onto this PipelineContext. Merge is additive
@@ -216,7 +218,20 @@ case class PipelineContext(globals: Option[Map[String, Any]],
       }
     })
 
-    newResults._2.copy(stepResults = newResults._1, audits = newAudits)
+    val restartMerge = if (this.restartPoints.isEmpty || pipelineContext.restartPoints.isEmpty) {
+//      val completePoints = pipelineContext.restartPoints.get.steps.filter(_.status == "COMPLETE").map(_.key.key)
+//      val newList = this.restartPoints.get.steps.filter(key => !completePoints.contains(key.key.key))
+//      if (newList.nonEmpty) {
+//        Some(RestartPoints(newList))
+//      } else {
+//        None
+//      }
+      None
+    } else {
+      this.restartPoints
+    }
+
+    newResults._2.copy(stepResults = newResults._1, audits = newAudits, restartPoints = restartMerge)
   }
 
   /**
@@ -499,10 +514,19 @@ case class PipelineContext(globals: Option[Map[String, Any]],
 case class PipelineParameter(pipelineKey: PipelineStateInfo, parameters: Map[String, Any])
 
 /**
-  * Represents initial parameters for each pipeline as well as results from step execution.
-  *
-  * @param parameters An initial list of pipeline parameters
-  */
+ * Contains a list of step kes and the action that may be taken.
+ *
+ * @param steps The list of keys and status.
+ */
+case class RestartPoints(steps: List[StepState])
+
+/**
+ * Contains the key for the step and the status: RESTART or COMPLETE
+ *
+ * @param key    The unique key for the step.
+ * @param status The action to take on this step: RESTART or COMPLETE
+ */
+case class StepState(key: PipelineStateInfo, status: String)
 
 // TODO Reevaluate the classes below to see if they are needed in the new world.
 

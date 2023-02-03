@@ -9,15 +9,23 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, 
 import java.sql.{DriverManager, ResultSet}
 import java.util
 import java.util.{Date, Properties, UUID}
+import scala.language.postfixOps
 
 trait SessionContext extends Context {
   def existingSessionId: Option[String]
 
-  def sessionStorage: Option[ClassInfo]
+  def sessionStorage: Option[SessionStorage]
 
-  def sessionConvertors: Option[List[ClassInfo]]
+  def sessionConvertors: Option[List[SessionConvertor]]
 
   def credentialProvider: Option[CredentialProvider]
+
+  /**
+   * The unique session id being used to track state.
+   *
+   * @return The session id
+   */
+  def sessionId: UUID
 
   /**
    * Saves the result of the step.
@@ -99,8 +107,8 @@ case class StepStatus(stepKey: String, status: String)
  * @param credentialProvider Optional credential provider to assist with authentication
  */
 case class DefaultSessionContext(override val existingSessionId: Option[String],
-                                 override val sessionStorage: Option[ClassInfo],
-                                 override val sessionConvertors: Option[List[ClassInfo]],
+                                 override val sessionStorage: Option[SessionStorage],
+                                 override val sessionConvertors: Option[List[SessionConvertor]],
                                  override val credentialProvider: Option[CredentialProvider] = None) extends SessionContext {
   private val logger = LoggerFactory.getLogger(DefaultSessionContext.getClass)
 
@@ -108,24 +116,10 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
 
   private val primaryKey = "primaryKey"
 
-  private lazy val storage: SessionStorage = {
-    if (sessionStorage.isDefined) {
-      ReflectionUtils.loadClass(sessionStorage.get.className.getOrElse("com.acxiom.metalus.context.NoopSessionStorage"),
-        Some(sessionStorage.get.parameters.getOrElse(Map()) + ("credentialProvider" -> credentialProvider))).asInstanceOf[SessionStorage]
-    } else {
-      NoopSessionStorage()
-    }
-  }
+  private lazy val storage: SessionStorage = sessionStorage.getOrElse(NoopSessionStorage())
 
-  private lazy val convertors = {
-    if (sessionConvertors.isDefined && sessionConvertors.get.nonEmpty) {
-      sessionConvertors.get.map(info => {
-        ReflectionUtils.loadClass(info.className.get, info.parameters).asInstanceOf[SessionConvertor]
-      }) :+ defaultConvertor
-    } else {
-      List(defaultConvertor)
-    }
-  }
+  private lazy val convertors = sessionConvertors.getOrElse(List()) :+ defaultConvertor
+
   /**
    * The unique session id being used to track state.
    *
@@ -863,8 +857,10 @@ case class JDBCSessionStorage(connectionString: String,
   }
 
   private def readBlobData(results: ResultSet) = {
-    val blob = results.getBlob("STATE").getBinaryStream
-    val state = Stream.continually(blob.read).takeWhile(-1 !=).map(_.toByte).toArray
-    state
+    val blob = results.getBlob("STATE")
+    blob.getBytes(1, blob.length().toInt)
+//    val blob = results.getBlob("STATE").getBinaryStream
+//    val state = Stream.continually(blob.read).takeWhile(-1 !=).map(_.toByte).toArray
+//    state
   }
 }

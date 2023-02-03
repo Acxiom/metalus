@@ -9,21 +9,13 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import scala.io.Source
 
-class SplitMergeStepTests extends AnyFunSpec with BeforeAndAfterAll {
+class SplitMergeStepTests extends AnyFunSpec {
   private val simpleSplitPipeline =
     JsonParser.parsePipelineJson(
       Source.fromInputStream(getClass.getResourceAsStream("/metadata/pipelines/simple_split_flow.json")).mkString).get.head
   private val complexSplitPipeline =
     JsonParser.parsePipelineJson(
       Source.fromInputStream(getClass.getResourceAsStream("/metadata/pipelines/complex_split_flow.json")).mkString).get.head
-
-  override def beforeAll(): Unit = {
-    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
-  }
-
-  override def afterAll(): Unit = {
-    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
-  }
 
   describe("Simple Flow Validation") {
     it("Should fail when less than two flows are part of the split step") {
@@ -88,14 +80,14 @@ class SplitMergeStepTests extends AnyFunSpec with BeforeAndAfterAll {
       var stepResult = executionResult.pipelineContext.getStepResultByStateInfo(key.copy(stepId = Some("FORMAT_STRING")))
       assert(stepResult.isDefined)
       assert(stepResult.get.isInstanceOf[PipelineStepResponse])
-      assert(stepResult.get.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(stepResult.get.asInstanceOf[PipelineStepResponse]
+      assert(stepResult.get.primaryReturn.isDefined)
+      assert(stepResult.get
         .primaryReturn.get.asInstanceOf[String] == "List with values 1,2 has a sum of 3")
       stepResult = executionResult.pipelineContext.getStepResultByStateInfo(key.copy(stepId = Some("FORMAT_STRING_PART_2")))
       assert(stepResult.isDefined)
       assert(stepResult.get.isInstanceOf[PipelineStepResponse])
-      assert(stepResult.get.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(stepResult.get.asInstanceOf[PipelineStepResponse]
+      assert(stepResult.get.primaryReturn.isDefined)
+      assert(stepResult.get
         .primaryReturn.get.asInstanceOf[String] == "List has a sum of 3")
       // Verify that the globals got updated
       assert(executionResult.pipelineContext.getGlobalString("mockGlobal").getOrElse("") == "split_global")

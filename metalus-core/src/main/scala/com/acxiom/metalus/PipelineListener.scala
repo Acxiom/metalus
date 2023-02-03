@@ -1,6 +1,7 @@
 package com.acxiom.metalus
 
 import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
+import com.acxiom.metalus.context.SessionContext
 import com.acxiom.metalus.flow.SplitStepException
 import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.{JsonParser, Serialization}
@@ -19,6 +20,42 @@ trait PipelineListener {
   implicit val formats: Formats = DefaultFormats +
     new EnumNameSerializer(AuditType)
   private val logger = LoggerFactory.getLogger(getClass)
+
+  /**
+   * Called when the application is being processed. This will only be called after the initial setup has occurred.
+   * @param pipelineContext The current PipelineContext.
+   * @return An optional updated PipelineContext.
+   */
+  def applicationStarted(pipelineContext: PipelineContext): Option[PipelineContext] = {
+    val sessionContext = getSessionContext(pipelineContext)
+    logger.info(s"Starting application with sessionId: ${sessionContext.sessionId.toString}")
+   None
+  }
+
+  /**
+   * Called when the application has completed processing. This will only be called when processing completes. If processing
+   * stops due to an exception, then applicationStopped will be called.
+   *
+   * @param pipelineContext The current PipelineContext.
+   * @return An optional updated PipelineContext.
+   */
+  def applicationComplete(pipelineContext: PipelineContext): Option[PipelineContext] = {
+    val sessionContext = getSessionContext(pipelineContext)
+    logger.info(s"Application has completed with sessionId: ${sessionContext.sessionId.toString}")
+    None
+  }
+
+  /**
+   * Called when the application is being processed. This will only be called after the initial setup has occurred.
+   *
+   * @param pipelineContext The current PipelineContext.
+   * @return An optional updated PipelineContext.
+   */
+  def applicationStopped(pipelineContext: PipelineContext): Option[PipelineContext] = {
+    val sessionContext = getSessionContext(pipelineContext)
+    logger.info(s"Stopping application with sessionId: ${sessionContext.sessionId.toString}")
+    None
+  }
 
   /**
     * Called when the main application pipeline is started.
@@ -121,6 +158,9 @@ trait PipelineListener {
     */
   protected def getStep(pipelineKey: PipelineStateInfo, pipeline: Pipeline): Option[Step] =
     pipeline.steps.get.find(_.id.getOrElse("NONE") == pipelineKey.stepId.getOrElse("BUG"))
+
+  protected def getSessionContext(pipelineContext: PipelineContext): SessionContext =
+    pipelineContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
 }
 
 
@@ -197,7 +237,6 @@ trait EventBasedPipelineListener extends PipelineListener {
 }
 
 
-//case class SessionVariables(executionComplete: Boolean = false, currentPipeline: Option[Pipeline] = None, currentStep: Option[PipelineStep] = None)
 case class EventPipelineRecord(id: String, name: String)
 case class EventPipelineStepRecord(id: String, stepId: String, group: String)
 case class MessageLists(messages: List[String], stacks: List[Array[StackTraceElement]])
@@ -240,5 +279,45 @@ case class CombinedPipelineListener(listeners: List[PipelineListener]) extends P
     } else {
       pipelineContext
     }
+  }
+
+  /**
+   * Called when the application is being processed. This will only be called after the initial setup has occurred.
+   *
+   * @param pipelineContext The current PipelineContext.
+   * @return An optional updated PipelineContext.
+   */
+  override def applicationStarted(pipelineContext: PipelineContext): Option[PipelineContext] = {
+    Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
+      val updatedCtx = listener.applicationStarted(ctx)
+      handleContext(updatedCtx, pipelineContext)
+    }))
+  }
+
+  /**
+   * Called when the application has completed processing. This will only be called when processing completes. If processing
+   * stops due to an exception, then applicationStopped will be called.
+   *
+   * @param pipelineContext The current PipelineContext.
+   * @return An optional updated PipelineContext.
+   */
+  override def applicationComplete(pipelineContext: PipelineContext): Option[PipelineContext] = {
+    Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
+      val updatedCtx = listener.applicationComplete(ctx)
+      handleContext(updatedCtx, pipelineContext)
+    }))
+  }
+
+  /**
+   * Called when the application is being processed. This will only be called after the initial setup has occurred.
+   *
+   * @param pipelineContext The current PipelineContext.
+   * @return An optional updated PipelineContext.
+   */
+  override def applicationStopped(pipelineContext: PipelineContext): Option[PipelineContext] = {
+    Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
+      val updatedCtx = listener.applicationStopped(ctx)
+      handleContext(updatedCtx, pipelineContext)
+    }))
   }
 }

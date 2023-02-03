@@ -117,26 +117,39 @@ trait PipelineFlow {
     }
   }
 
+  // TODO What if the step happens to be inside a fork / split / step group?
   @tailrec
   protected final def executeStep(step: FlowStep, pipeline: Pipeline, steps: Map[String, FlowStep],
-                          pipelineContext: PipelineContext): PipelineContext = {
+                                  pipelineContext: PipelineContext): PipelineContext = {
     logger.debug(s"Executing Step (${step.id.getOrElse("")}) ${step.displayName.getOrElse("")}")
     // Create the step state info
     val stepState = pipelineContext.currentStateInfo.get.copy(stepId = step.id)
-    val ctx = pipelineContext.setCurrentStateInfo(stepState)
-      .setPipelineAudit(ExecutionAudit(stepState, AuditType.STEP, start = System.currentTimeMillis()))
-    val ssContext = PipelineFlow.handleEvent(ctx, "pipelineStepStarted", List(stepState, ctx))
-    // Set step status of RUNNING
-    val sessionContext = ssContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
-    sessionContext.saveStepStatus(stepState, "RUNNING")
-    val (nextStepId, sfContextResult) = processStepWithRetry(step, pipeline, ssContext, 0)
-    // Close the step audit
-    val audit = sfContextResult.getPipelineAudit(stepState).get.setEnd(System.currentTimeMillis())
-    // run the step finished event
-    val sfContext = PipelineFlow.handleEvent(sfContextResult, "pipelineStepFinished",
-      List(stepState, sfContextResult)).setPipelineAudit(audit)
-    // Set step status to COMPLETE
-    sessionContext.saveStepStatus(stepState, "COMPLETE")
+    val (skipStep, skipCtx) = determineRestartLogic(pipelineContext, stepState)
+    val (nextStepId, sfContext) = if (!skipStep) {
+      val ctx = skipCtx.setCurrentStateInfo(stepState)
+        .setPipelineAudit(ExecutionAudit(stepState, AuditType.STEP, start = System.currentTimeMillis()))
+      val ssContext = PipelineFlow.handleEvent(ctx, "pipelineStepStarted", List(stepState, ctx))
+      // Set step status of RUNNING
+      val sessionContext = ssContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
+      sessionContext.saveStepStatus(stepState, "RUNNING")
+      val (nstepId, sfContextResult) = processStepWithRetry(step, pipeline, ssContext, 0)
+      // Close the step audit
+      val audit = sfContextResult.getPipelineAudit(stepState).get.setEnd(System.currentTimeMillis())
+      // run the step finished event
+      val sfContext = PipelineFlow.handleEvent(sfContextResult, "pipelineStepFinished",
+        List(stepState, sfContextResult)).setPipelineAudit(audit)
+      // Set step status to COMPLETE
+      sessionContext.saveStepStatus(stepState, "COMPLETE")
+      (nstepId, sfContext)
+    } else {
+      step.`type`.getOrElse("").toLowerCase match {
+        case PipelineStepType.SPLIT =>
+          processStepWithRetry(step, pipeline, skipCtx, 0)
+        case _ =>
+          val nstepId = getNextStepId(step, skipCtx.getStepResultByKey(stepState.key))
+          (nstepId, skipCtx)
+      }
+    }
     // Call the next step here
     if (steps.contains(nextStepId.getOrElse("")) &&
       (steps(nextStepId.getOrElse("")).`type`.getOrElse("") == PipelineStepType.JOIN ||
@@ -155,8 +168,25 @@ trait PipelineFlow {
           context = Some(sfContext),
           pipelineProgress = Some(sfContext.currentStateInfo.get.copy(stepId = nextStepId)))
       }
+    } else {sfContext}
+  }
+
+  private def determineRestartLogic(pipelineContext: PipelineContext, stepState: PipelineStateInfo) = {
+    if (pipelineContext.restartPoints.isDefined) {
+      val index = pipelineContext.restartPoints.get.steps.indexWhere(s => s.key.key == stepState.key && s.status == "RESTART")
+      if (index != -1) {
+//        val list = pipelineContext.restartPoints.get.steps.filter(_.key.key != stepState.key)
+//        val restartPoints = if (list.nonEmpty) {
+//          Some(RestartPoints(list))
+//        } else {
+//          None
+//        }
+        (false, pipelineContext.copy(restartPoints = None))
+      } else {
+        (true, pipelineContext)
+      }
     } else {
-      sfContext
+      (false, pipelineContext)
     }
   }
 
@@ -197,12 +227,13 @@ trait PipelineFlow {
   private def processPipelineStep(step: FlowStep, pipeline: Pipeline, pipelineContext: PipelineContext): Any = {
     // Create a map of values for each defined parameter
     val parameterValues: Map[String, Any] = pipelineContext.parameterMapper.createStepParameterMap(step, pipelineContext)
+    val stateInfo = pipelineContext.currentStateInfo.get
     (step.executeIfEmpty.getOrElse(""), step.`type`.getOrElse("").toLowerCase) match {
       // process step normally if empty
       case ("", PipelineStepType.FORK) =>
-        ForkStepFlow(pipeline, pipelineContext, step, parameterValues, pipelineContext.currentStateInfo.get).execute()
+        ForkStepFlow(pipeline, pipelineContext, step, parameterValues, stateInfo).execute()
       case ("", PipelineStepType.STEPGROUP) =>
-        StepGroupFlow(pipeline, pipelineContext, step, parameterValues, pipelineContext.currentStateInfo.get).execute()
+        StepGroupFlow(pipeline, pipelineContext, step, parameterValues, stateInfo).execute()
       case ("", PipelineStepType.SPLIT) =>
         SplitStepFlow(pipeline, pipelineContext, step).execute()
       case ("", _) => ReflectionUtils.processStep(step.asInstanceOf[PipelineStep], parameterValues, pipelineContext)
@@ -246,6 +277,7 @@ trait PipelineFlow {
       case PipelineStepType.BRANCH =>
         // match the result against the step parameter name until we find a match
         val matchValue = result match {
+          case response: Option[PipelineStepResponse] => response.get.primaryReturn.getOrElse("").toString
           case response: PipelineStepResponse => response.primaryReturn.getOrElse("").toString
           case _ => result
         }

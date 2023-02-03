@@ -3,6 +3,8 @@ package com.acxiom.metalus
 import com.acxiom.metalus.context.ContextManager
 import com.acxiom.metalus.drivers.DriverSetup
 
+import java.util.UUID
+
 object MockStepObject {
   def mockStepFunction(string: String, boolean: Boolean): PipelineStepResponse = {
     PipelineStepResponse(Some(string), Some(Map[String, Any]("boolean" -> boolean, "string" -> string)))
@@ -123,4 +125,11 @@ case class MockDriverSetup(parameters: Map[String, Any]) extends DriverSetup {
       None, List(), PipelineManager(List()),
       None, new ContextManager(Map(), Map()), Map(), None)
   }
+
+  /**
+   * The existing session id if one was provided.
+   *
+   * @return
+   */
+  override val existingSessionId: Option[UUID] = None
 }

@@ -83,7 +83,8 @@ object DriverUtils {
     * @return Common parameters
     */
   def parseCommonParameters(parameters: Map[String, Any]): CommonParameters =
-    CommonParameters(parameters("driverSetupClass").asInstanceOf[String],
+    CommonParameters(parameters.getOrElse("driverSetupClass",
+      "com.acxiom.metalus.applications.ApplicationDriverSetup").asInstanceOf[String],
       parameters.getOrElse("maxRetryAttempts", "0").toString.toInt,
       parameters.getOrElse("terminateAfterFailures", "false").toString.toBoolean,
       parameters.getOrElse("streaming-job", "false").toString.toBoolean,
