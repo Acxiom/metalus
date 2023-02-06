@@ -20,6 +20,7 @@
     {
       "id": "STEP_1",
       "type": "Pipeline",
+      "stepTemplateId": "4bf75f08-14c9-460b-b4ce-33acbb692f18",
       "params": [
         {
           "type": "text",

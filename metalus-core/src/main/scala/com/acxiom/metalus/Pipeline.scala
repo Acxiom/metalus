@@ -3,7 +3,9 @@ package com.acxiom.metalus
 import com.acxiom.metalus.ExecutionEvaluationResult.ExecutionEvaluationResult
 import com.acxiom.metalus.audits.ExecutionAudit
 import com.acxiom.metalus.context.ContextManager
+import com.acxiom.metalus.parser.JsonParser
 
+import scala.io.Source
 import scala.jdk.CollectionConverters._
 
 /**
@@ -160,6 +162,7 @@ case class ClassInfo(className: Option[String], parameters: Option[Map[String, A
   * @param stepResults        A map of results from the execution of the pipeline steps.
   * @param currentStateInfo   The current pipeline state information
  *  @param restartPoints      Optional list of steps that should be restarted.
+ *  @param executionEngines   An optional list of execution engines.
   */
 case class PipelineContext(globals: Option[Map[String, Any]],
                            parameters: List[PipelineParameter],
@@ -177,7 +180,46 @@ case class PipelineContext(globals: Option[Map[String, Any]],
                            contextManager: ContextManager,
                            stepResults: Map[PipelineStateInfo, PipelineStepResponse] = Map(),
                            currentStateInfo: Option[PipelineStateInfo] = None,
-                           restartPoints: Option[RestartPoints] = None) {
+                           restartPoints: Option[RestartPoints] = None,
+                           executionEngines: Option[List[String]] = Some(List("batch"))) {
+
+  private lazy val alternateStepMaps = {
+    executionEngines.getOrElse(List("batch")).filter(_ != "batch").foldLeft(List[AlternateStepMap]())((list, engine) => {
+      val stream = getClass.getResourceAsStream(s"/metadata/steps/$engine-mappings.json")
+      if (Option(stream).isDefined) {
+        list :+
+          JsonParser.parseJson(
+            Source.fromInputStream(stream).mkString,
+            "com.acxiom.metalus.AlternateStepMap").asInstanceOf[AlternateStepMap]
+      } else {
+        list
+      }
+    })
+  }
+
+  /**
+   * This method will see if there is an alternate step command that should be used.
+   * @param stepTemplateId The step template id being referenced.
+   * @return Either an alternate command or None if there is no alternative.
+   */
+  def getAlternateCommand(stepTemplateId: String): Option[String] = {
+    val map = alternateStepMaps.find(map => map.alternatives.exists(_.stepId == stepTemplateId))
+    if (map.isDefined) {
+      val step = map.get.alternatives.find(_.stepId == stepTemplateId)
+      if (step.isDefined) {
+        val command = map.get.alternativeStepCommands.find(_.stepId == step.get.alternativeStepId)
+        if (command.isDefined) {
+          Some(command.get.command)
+        } else {
+          None
+        }
+      } else {
+        None
+      }
+    } else {
+      None
+    }
+  }
 
   /**
     * Merges the provided PipelineContext audits, stepResults and globals onto this PipelineContext. Merge is additive
@@ -265,10 +307,21 @@ case class PipelineContext(globals: Option[Map[String, Any]],
     })
   }
 
+  /**
+   * Get the named global value (considering GlobalLinks) and perform a cast
+   *
+   * @param globalName The name of the global property to return.
+   * @return An option containing the value cast to the specified type or None
+   */
   def getGlobalAs[T](globalName: String): Option[T] = {
     getGlobal(globalName).map(_.asInstanceOf[T])
   }
 
+  /**
+   * Determines if the named global is a global link.
+   * @param globalName The name of the global property to check.
+   * @return true if the named global is a global link.
+   */
   def isGlobalLink(globalName: String): Boolean = {
     val links = getGlobalAs[Map[String, Any]]("GlobalLinks")
     links.getOrElse(Map[String, Any]()).asJava.containsKey(globalName)
@@ -387,7 +440,6 @@ case class PipelineContext(globals: Option[Map[String, Any]],
    */
   def setPipelineStepResponse(stepKey: PipelineStateInfo, result: PipelineStepResponse): PipelineContext =
     this.copy(stepResults = stepResults + (stepKey -> result))
-
 
   /**
     * This method will locate the pipeline parameter for the provided key.
@@ -513,6 +565,12 @@ case class PipelineContext(globals: Option[Map[String, Any]],
 }
 
 case class PipelineParameter(pipelineKey: PipelineStateInfo, parameters: Map[String, Any])
+
+case class AlternateStepMap(alternatives: List[StepMap], alternativeStepCommands: List[StepCommand])
+
+case class StepMap(stepId: String, alternativeStepId: String)
+
+case class StepCommand(stepId: String, command: String)
 
 /**
  * Contains a list of step kes and the action that may be taken.

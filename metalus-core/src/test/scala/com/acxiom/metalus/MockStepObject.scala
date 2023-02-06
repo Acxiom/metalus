@@ -14,6 +14,10 @@ object MockStepObject {
     PipelineStepResponse(Some(string), Some(Map[String, Any]("boolean" -> boolean, "string" -> string, "option" -> opt)))
   }
 
+  def alternateMockStepFunction(string: String, boolean: Boolean): PipelineStepResponse = {
+    PipelineStepResponse(Some(s"ALT_$string"), Some(Map[String, Any]("boolean" -> boolean, "string" -> string)))
+  }
+
   def mockStepGlobalsUpdateFunction(string: String, boolean: Boolean, global: Option[String]): PipelineStepResponse = {
     val secondaryMap = if (global.isDefined) {
       Map[String, Any]("boolean" -> boolean, "string" -> string,

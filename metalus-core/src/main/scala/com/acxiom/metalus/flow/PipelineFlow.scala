@@ -230,7 +230,15 @@ trait PipelineFlow {
         StepGroupFlow(pipeline, pipelineContext, step, parameterValues, stateInfo).execute()
       case ("", PipelineStepType.SPLIT) =>
         SplitStepFlow(pipeline, pipelineContext, step).execute()
-      case ("", _) => ReflectionUtils.processStep(step.asInstanceOf[PipelineStep], parameterValues, pipelineContext)
+      case ("", _) =>
+        val alternateCommand = pipelineContext.getAlternateCommand(step.stepTemplateId.getOrElse(""))
+        val finalStep = if (alternateCommand.isDefined) {
+          val engineMeta = step.asInstanceOf[PipelineStep].engineMeta.get
+          step.asInstanceOf[PipelineStep].copy(engineMeta = Some(engineMeta.copy(command = alternateCommand)))
+        } else {
+          step.asInstanceOf[PipelineStep]
+        }
+        ReflectionUtils.processStep(finalStep, parameterValues, pipelineContext)
       case (value, _) =>
         logger.debug(s"Evaluating execute if empty: $value")
         // wrap the value in a parameter object

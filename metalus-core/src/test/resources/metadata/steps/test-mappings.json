@@ -1,0 +1,14 @@
+{
+  "alternatives": [
+    {
+      "stepId": "4bf75f08-14c9-460b-b4ce-33acbb692f18",
+      "alternativeStepId": "da53adf0-4bf9-4487-abb9-56ad20419caa"
+    }
+  ],
+  "alternativeStepCommands": [
+    {
+      "stepId": "da53adf0-4bf9-4487-abb9-56ad20419caa",
+      "command": "MockStepObject.alternateMockStepFunction"
+    }
+  ]
+}

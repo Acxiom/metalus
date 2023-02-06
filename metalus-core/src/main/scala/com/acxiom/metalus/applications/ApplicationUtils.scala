@@ -32,6 +32,7 @@ object ApplicationUtils {
     if (application.pipelineId.isEmpty || application.pipelineId.getOrElse("").isEmpty) {
       throw new IllegalArgumentException("Application pipelineId is required!")
     }
+    val executionEngines = parameters.getOrElse(Map()).getOrElse("executionEngines", "").toString.split(",").map(_.trim) :+ "batch"
     val validateArgumentTypes = parameters.getOrElse(Map()).getOrElse("validateStepParameterTypes", false).asInstanceOf[Boolean]
     // Create the ContextManager
     // The top level context can be a ClassInfo, but the parameters will be hydrated
@@ -58,7 +59,8 @@ object ApplicationUtils {
       Some(PipelineManager(application.pipelineTemplates)),
       validateArgumentTypes, credentialProvider, tempCtx).get
     val initialContext = PipelineContext(Some(rootGlobals), globalPipelineParameters.get, application.stepPackages,
-      globalStepMapper.get, globalListener, audits, pipelineManager, credentialProvider, contextManager, stepResults, None)
+      globalStepMapper.get, globalListener, audits, pipelineManager, credentialProvider, contextManager, stepResults, None,
+      executionEngines = Some(executionEngines.toList))
     val restartPoints = getRestartPoints(parameters.getOrElse(Map()), initialContext)
     val defaultGlobals = generateGlobals(application.globals, rootGlobals , Some(rootGlobals), initialContext)
     initialContext.copy(globals = Some(sessionGlobals ++ defaultGlobals.get), restartPoints = restartPoints)
