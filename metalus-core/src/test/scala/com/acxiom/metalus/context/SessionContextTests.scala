@@ -1,12 +1,13 @@
 package com.acxiom.metalus.context
 
-import com.acxiom.metalus.{ClassInfo, Constants, DefaultCredentialProvider, MockDefaultParam, MockNoParams, PipelineStateInfo, PipelineStepResponse}
 import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
+import com.acxiom.metalus._
 import org.scalatest.funspec.AnyFunSpec
 
 import java.sql.DriverManager
-import java.util.{Properties, UUID}
+import java.util.UUID
 
+// noinspection SqlNoDataSourceInspection
 class SessionContextTests extends AnyFunSpec {
   private val pipelineKey: PipelineStateInfo = PipelineStateInfo("pipeline", Some("step"))
 
@@ -38,6 +39,7 @@ class SessionContextTests extends AnyFunSpec {
         assert(sessionContext.saveStepResult(pipelineKey, FULL_STEP_RESPONSE))
         assert(sessionContext.loadStepResults().isEmpty)
         assert(sessionContext.saveStepStatus(pipelineKey, "complete"))
+        assert(sessionContext.loadStepStatus().isEmpty)
         assert(sessionContext.saveGlobals(pipelineKey, GLOBALS_MAP))
         assert(sessionContext.loadGlobals(pipelineKey).isEmpty)
         assert(!sessionContext.saveStepResult(pipelineKey, BASE_STEP_RESPONSE.copy(primaryReturn = Some(new MockNoParams()))))
@@ -45,37 +47,13 @@ class SessionContextTests extends AnyFunSpec {
     }
 
     describe("JDBC Storage") {
-      val url = "jdbc:derby:memory:test;create=true"
-      val shutDownurl = "jdbc:derby:memory:test;shutdown=true"
-      val properties = new Properties()
-      val connectionMap = Map[String, String]("driver" -> "org.apache.derby.jdbc.EmbeddedDriver")
-      connectionMap.foreach(entry => properties.put(entry._1, entry._2))
-      val conn = DriverManager.getConnection(url, properties)
+      val settings = TestHelper.setupTestDB("sessionTest")
+      val conn = DriverManager.getConnection(settings.url, settings.connectionProperties)
       val stmt = conn.createStatement
-      stmt.execute("""CREATE TABLE STEP_STATUS
-          |(SESSION_ID VARCHAR(64), DATE BIGINT, VERSION INTEGER, RESULT_KEY VARCHAR(2048), STATUS VARCHAR(15))""".stripMargin)
-      stmt.execute("""CREATE TABLE AUDITS
-          |(SESSION_ID VARCHAR(64), DATE BIGINT, VERSION INTEGER, CONVERTOR VARCHAR(2048), AUDIT_KEY VARCHAR(2048),
-          |START_TIME BIGINT, END_TIME BIGINT, DURATION BIGINT, STATE BLOB)""".stripMargin)
-      stmt.execute("""CREATE TABLE STEP_RESULTS
-          |(SESSION_ID VARCHAR(64), DATE BIGINT, VERSION INTEGER, CONVERTOR VARCHAR(2048), RESULT_KEY VARCHAR(2048),
-          |NAME VARCHAR(512), STATE BLOB)""".stripMargin)
-      stmt.execute("""CREATE TABLE GLOBALS
-          |(SESSION_ID VARCHAR(64), DATE BIGINT, VERSION INTEGER, CONVERTOR VARCHAR(2048), RESULT_KEY VARCHAR(2048),
-          |NAME VARCHAR(512), STATE BLOB)""".stripMargin)
-
-      val parameters = Map[String, Any](
-        "username" -> "redonthehead",
-        "password" -> "fred",
-        "credential-classes" -> "com.acxiom.metalus.UserNameCredential",
-        "credential-parsers" -> ",,,com.acxiom.metalus.DefaultCredentialParser")
 
       it ("should read and write state data to a database") {
-        val sessionStorageInfo = ClassInfo(Some("com.acxiom.metalus.context.JDBCSessionStorage"),
-          Some(Map("connectionString" -> url,
-          "connectionProperties" -> Map("driver" -> "org.apache.derby.jdbc.EmbeddedDriver"),
-          "credentialName" -> "redonthehead",
-          "credentialProvider" -> new DefaultCredentialProvider(parameters))))
+        val sessionStorageInfo = JDBCSessionStorage(settings.url, Map("driver" -> "org.apache.derby.jdbc.EmbeddedDriver"),
+          None, Some(TestHelper.getDefaultCredentialProvider))
         val sessionContext = DefaultSessionContext(None, Some(sessionStorageInfo), None)
         // Status
         sessionContext.saveStepStatus(pipelineKey, "running")
@@ -88,6 +66,10 @@ class SessionContextTests extends AnyFunSpec {
         assert(results.next())
         assert(results.getInt("VERSION") == 0)
         assert(results.getString("STATUS") == "COMPLETE")
+        val statusList = sessionContext.loadStepStatus()
+        assert(statusList.isDefined)
+        assert(statusList.get.length == 1)
+        assert(statusList.get.head.status == "COMPLETE")
         // Audit
         // Simulate saving an audit when a step / pipeline starts
         sessionContext.saveAudit(pipelineKey, BASE_STEP_AUDIT)
@@ -126,19 +108,15 @@ class SessionContextTests extends AnyFunSpec {
 
         // Step Result
         assert(sessionContext.saveStepResult(pipelineKey, BASE_STEP_RESPONSE))
-        assert(sessionContext.saveStepResult(pipelineKey.copy(stepId = Some("step1")), FULL_STEP_RESPONSE))
+        val fullStepKey = pipelineKey.copy(stepId = Some("step1"))
+        assert(sessionContext.saveStepResult(fullStepKey, FULL_STEP_RESPONSE))
         val steps = sessionContext.loadStepResults()
         assert(steps.nonEmpty)
-        assert(steps.get.length == 2)
-        val baseStepIndex = steps.get.indexWhere(_.primaryReturn.get == "Test String")
-        assert(baseStepIndex != -1)
-        val step = steps.get(baseStepIndex)
+        assert(steps.get.size == 2)
+        assert(steps.get.contains(pipelineKey.key))
+        val step = steps.get(pipelineKey.key)
         assert(step.namedReturns.isEmpty)
-        val fullStep = if (baseStepIndex == 0) {
-          steps.get(1)
-        } else {
-          steps.get.head
-        }
+        val fullStep = steps.get(fullStepKey.key)
         var defaultObjParam = fullStep.primaryReturn.get.asInstanceOf[MockDefaultParam]
         assert(defaultObjParam.getFlag == DEFAULT_OBJECT.getFlag)
         assert(defaultObjParam.getSecondParam == DEFAULT_OBJECT.getSecondParam)
@@ -192,10 +170,11 @@ class SessionContextTests extends AnyFunSpec {
         assert(results.next())
         assert(results.getInt("VERSION") == 1)
 
+        // noinspection DangerousCatchAll
         try {
           stmt.close()
           conn.close()
-          DriverManager.getConnection(shutDownurl)
+          TestHelper.stopTestDB(settings.name)
         } catch {
           case _ => // Do nothing
         }

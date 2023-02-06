@@ -1,19 +1,8 @@
 package com.acxiom.metalus
 
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
-import org.slf4j.{Logger, LoggerFactory}
-import org.slf4j.event.Level
 
-class PipelineValidationTests extends AnyFunSpec with BeforeAndAfterAll {
-
-  override def beforeAll() {
-    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
-  }
-
-  override def afterAll() {
-    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
-  }
+class PipelineValidationTests extends AnyFunSpec {
 
   describe("Pipeline Step Validations") {
 

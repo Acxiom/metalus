@@ -14,7 +14,7 @@ object DefaultPipelineDriver {
   val logger: Logger = LoggerFactory.getLogger(getClass)
 
   def main(args: Array[String]): Unit = {
-    val parameters = DriverUtils.extractParameters(args, Some(List("driverSetupClass")))
+    val parameters = DriverUtils.extractParameters(args, None)
     val commonParameters = DriverUtils.parseCommonParameters(parameters)
     val driverSetup = ReflectionUtils.loadClass(commonParameters.initializationClass,
       Some(Map("parameters" -> parameters))).asInstanceOf[DriverSetup]

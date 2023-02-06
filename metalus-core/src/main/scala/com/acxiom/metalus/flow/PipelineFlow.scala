@@ -44,12 +44,6 @@ object PipelineFlow {
     }
     if (pipelineContext.pipelineListener.isDefined) {
       pipelineContext.pipelineListener.get.registerStepException(stateInfo, ex, pipelineContext)
-      // TODO [2.0 Review] Revisit this to determine if we need a way to indicate that the overall execution has stopped.
-//      if (pipelines.isDefined && pipelines.get.nonEmpty) {
-//        pipelineContext.pipelineListener.get.executionStopped(pipelines.get.slice(0, pipelines.get.indexWhere(pipeline => {
-//          pipeline.id.get == pipeline.id.getOrElse("")
-//        }) + 1), pipelineContext)
-//      }
     }
     ex
   }
@@ -119,24 +113,36 @@ trait PipelineFlow {
 
   @tailrec
   protected final def executeStep(step: FlowStep, pipeline: Pipeline, steps: Map[String, FlowStep],
-                          pipelineContext: PipelineContext): PipelineContext = {
+                                  pipelineContext: PipelineContext): PipelineContext = {
     logger.debug(s"Executing Step (${step.id.getOrElse("")}) ${step.displayName.getOrElse("")}")
     // Create the step state info
     val stepState = pipelineContext.currentStateInfo.get.copy(stepId = step.id)
-    val ctx = pipelineContext.setCurrentStateInfo(stepState)
-      .setPipelineAudit(ExecutionAudit(stepState, AuditType.STEP, start = System.currentTimeMillis()))
-    val ssContext = PipelineFlow.handleEvent(ctx, "pipelineStepStarted", List(stepState, ctx))
-    // Set step status of RUNNING
-    val sessionContext = ssContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
-    sessionContext.saveStepStatus(stepState, "RUNNING")
-    val (nextStepId, sfContextResult) = processStepWithRetry(step, pipeline, ssContext, 0)
-    // Close the step audit
-    val audit = sfContextResult.getPipelineAudit(stepState).get.setEnd(System.currentTimeMillis())
-    // run the step finished event
-    val sfContext = PipelineFlow.handleEvent(sfContextResult, "pipelineStepFinished",
-      List(stepState, sfContextResult)).setPipelineAudit(audit)
-    // Set step status to COMPLETE
-    sessionContext.saveStepStatus(stepState, "COMPLETE")
+    val (skipStep, skipCtx) = determineRestartLogic(pipelineContext, stepState)
+    val (nextStepId, sfContext) = if (!skipStep) {
+      val ctx = skipCtx.setCurrentStateInfo(stepState)
+        .setPipelineAudit(ExecutionAudit(stepState, AuditType.STEP, start = System.currentTimeMillis()))
+      val ssContext = PipelineFlow.handleEvent(ctx, "pipelineStepStarted", List(stepState, ctx))
+      // Set step status of RUNNING
+      val sessionContext = ssContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
+      sessionContext.saveStepStatus(stepState, "RUNNING")
+      val (nstepId, sfContextResult) = processStepWithRetry(step, pipeline, ssContext, 0)
+      // Close the step audit
+      val audit = sfContextResult.getPipelineAudit(stepState).get.setEnd(System.currentTimeMillis())
+      // run the step finished event
+      val sfContext = PipelineFlow.handleEvent(sfContextResult, "pipelineStepFinished",
+        List(stepState, sfContextResult)).setPipelineAudit(audit)
+      // Set step status to COMPLETE
+      sessionContext.saveStepStatus(stepState, "COMPLETE")
+      (nstepId, sfContext)
+    } else {
+      step.`type`.getOrElse("").toLowerCase match {
+        case PipelineStepType.SPLIT =>
+          processStepWithRetry(step, pipeline, skipCtx, 0)
+        case PipelineStepType.STEPGROUP =>
+          processStepWithRetry(step, pipeline, skipCtx.setCurrentStateInfo(stepState), 0)
+        case _ => (getNextStepId(step, skipCtx.getStepResultByKey(stepState.key)), skipCtx)
+      }
+    }
     // Call the next step here
     if (steps.contains(nextStepId.getOrElse("")) &&
       (steps(nextStepId.getOrElse("")).`type`.getOrElse("") == PipelineStepType.JOIN ||
@@ -155,15 +161,27 @@ trait PipelineFlow {
           context = Some(sfContext),
           pipelineProgress = Some(sfContext.currentStateInfo.get.copy(stepId = nextStepId)))
       }
+    } else { sfContext }
+  }
+
+  private def determineRestartLogic(pipelineContext: PipelineContext, stepState: PipelineStateInfo) = {
+    if (pipelineContext.restartPoints.isDefined) {
+      val index = pipelineContext.restartPoints.get.steps.indexWhere(s => s.key.key == stepState.key && s.status == "RESTART")
+      if (index != -1) {
+        (false, pipelineContext.copy(restartPoints = None))
+      } else {
+        (true, pipelineContext)
+      }
     } else {
-      sfContext
+      (false, pipelineContext)
     }
   }
 
+  @tailrec
   private def processStepWithRetry(step: FlowStep, pipeline: Pipeline,
                                    ssContext: PipelineContext,
                                    stepRetryCount: Int): (Option[String], PipelineContext) = {
-    try {
+    val response = try {
       val result = processPipelineStep(step, pipeline, ssContext.setGlobal("stepRetryCount", stepRetryCount))
       // setup the next step
       val (newPipelineContext, nextStepId) = result match {
@@ -172,13 +190,13 @@ trait PipelineFlow {
           val nextStepId = getNextStepId(step, result)
           (updatePipelineContext(step, result, ssContext), nextStepId)
       }
-      (nextStepId, newPipelineContext.removeGlobal("stepRetryCount"))
+      Some((nextStepId, newPipelineContext.removeGlobal("stepRetryCount")))
     } catch {
       case t: Throwable if step.retryLimit.getOrElse(-1) > 0 && stepRetryCount < step.retryLimit.getOrElse(-1) =>
         logger.warn(s"Retrying step ${step.id.getOrElse("")}", t)
         // Backoff timer
         Thread.sleep(stepRetryCount * 1000)
-        processStepWithRetry(step, pipeline, ssContext, stepRetryCount + 1)
+        None
       case e: Throwable if step.nextStepOnError.isDefined =>
         // handle exception
         val ex = PipelineFlow.handleStepExecutionExceptions(e, pipeline, ssContext)
@@ -186,26 +204,41 @@ trait PipelineFlow {
         val sessionContext = ssContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
         sessionContext.saveStepStatus(ssContext.currentStateInfo.get, "ERROR")
         val updateContext = updatePipelineContext(step, PipelineStepResponse(Some(ex), None), ssContext)
-        (step.nextStepOnError, updateContext)
+        Some((step.nextStepOnError, updateContext))
       case e =>
         val sessionContext = ssContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
         sessionContext.saveStepStatus(ssContext.currentStateInfo.get, "ERROR")
         throw e
+    }
+
+    if (response.isDefined) {
+      response.get
+    } else {
+      processStepWithRetry(step, pipeline, ssContext, stepRetryCount + 1)
     }
   }
 
   private def processPipelineStep(step: FlowStep, pipeline: Pipeline, pipelineContext: PipelineContext): Any = {
     // Create a map of values for each defined parameter
     val parameterValues: Map[String, Any] = pipelineContext.parameterMapper.createStepParameterMap(step, pipelineContext)
+    val stateInfo = pipelineContext.currentStateInfo.get
     (step.executeIfEmpty.getOrElse(""), step.`type`.getOrElse("").toLowerCase) match {
       // process step normally if empty
       case ("", PipelineStepType.FORK) =>
-        ForkStepFlow(pipeline, pipelineContext, step, parameterValues, pipelineContext.currentStateInfo.get).execute()
+        ForkStepFlow(pipeline, pipelineContext, step, parameterValues, stateInfo).execute()
       case ("", PipelineStepType.STEPGROUP) =>
-        StepGroupFlow(pipeline, pipelineContext, step, parameterValues, pipelineContext.currentStateInfo.get).execute()
+        StepGroupFlow(pipeline, pipelineContext, step, parameterValues, stateInfo).execute()
       case ("", PipelineStepType.SPLIT) =>
         SplitStepFlow(pipeline, pipelineContext, step).execute()
-      case ("", _) => ReflectionUtils.processStep(step.asInstanceOf[PipelineStep], parameterValues, pipelineContext)
+      case ("", _) =>
+        val alternateCommand = pipelineContext.getAlternateCommand(step.stepTemplateId.getOrElse(""))
+        val finalStep = if (alternateCommand.isDefined) {
+          val engineMeta = step.asInstanceOf[PipelineStep].engineMeta.get
+          step.asInstanceOf[PipelineStep].copy(engineMeta = Some(engineMeta.copy(command = alternateCommand)))
+        } else {
+          step.asInstanceOf[PipelineStep]
+        }
+        ReflectionUtils.processStep(finalStep, parameterValues, pipelineContext)
       case (value, _) =>
         logger.debug(s"Evaluating execute if empty: $value")
         // wrap the value in a parameter object
@@ -246,6 +279,7 @@ trait PipelineFlow {
       case PipelineStepType.BRANCH =>
         // match the result against the step parameter name until we find a match
         val matchValue = result match {
+          case response: Option[PipelineStepResponse] => response.get.primaryReturn.getOrElse("").toString
           case response: PipelineStepResponse => response.primaryReturn.getOrElse("").toString
           case _ => result
         }

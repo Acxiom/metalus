@@ -3,7 +3,9 @@ package com.acxiom.metalus
 import com.acxiom.metalus.ExecutionEvaluationResult.ExecutionEvaluationResult
 import com.acxiom.metalus.audits.ExecutionAudit
 import com.acxiom.metalus.context.ContextManager
+import com.acxiom.metalus.parser.JsonParser
 
+import scala.io.Source
 import scala.jdk.CollectionConverters._
 
 /**
@@ -64,31 +66,37 @@ final case class NamedMapping(mappedName: String, stepKey: String)
   */
 final case class ForkData(id: String, index: Int, value: Option[Any])
 
-//object PipelineStateInfo {
-//  def apply(pipelineId: String,
-//            stepId: Option[String] = None,
-//            forkData: Option[ForkData] = None,
-//            stepGroup: Option[PipelineStateInfo] = None): PipelineStateInfo = PipelineStateInfo(pipelineId, stepId, forkData, stepGroup)
+object PipelineStateInfo {
+  def fromString(key: String): PipelineStateInfo = {
+    val keyTokens = key.split('.')
+    if (keyTokens.length > 1) {
+      keyTokens.foldLeft(PipelineStateInfo(""))((info, token) => {
+        // See if the info is a parent
+        val updatedInfo = if (info.pipelineId.nonEmpty &&
+          info.stepId.isDefined &&
+          !token.startsWith("f(")) {
+          PipelineStateInfo("", stepGroup = Some(info))
+        } else {
+          info
+        }
 
-//  def fromString(key: String): PipelineStateInfo = {
-//    /* TODO
-//     * Create a set of "keys" that will be used for testing to help write the code:
-//     *
-//     *  p1                      //  pipeline only
-//     *  p1.s2                   //  pipeline and step
-//     *  p1.s2.p2.s3             //  outer pipeline with step group and sub pipeline with step
-//     *  p1.s2.p2.s4             //  outer pipeline with step group and sub pipeline with step
-//     *  p1.s2.p2.s1.f(01_0)     //  outer pipeline with step group and sub pipeline with fork step
-//     *  p1.s2.p2.s2.f(01_0)     //  outer pipeline with step group and sub pipeline with fork step
-//     *  p1.s2.p2.s1.f(02_1)     //  outer pipeline with step group and sub pipeline with fork step
-//     *  p1.s2.p2.s2.f(02_1)     //  outer pipeline with step group and sub pipeline with fork step
-//     */
-//    // TODO What if this is just a pipelineId? It would not have a . in the value
-//    key.split('.').reverse.foldLeft(PipelineStateInfo(""))((info, token) => {
-//      // The last key is either a stepId or forkData
-//    })
-//  }
-//}
+        if (token.startsWith("f(")) {
+          updatedInfo.copy(forkData = Some(
+          ForkData(token.substring(2, token.indexOf("_")),
+            token.substring(token.indexOf("_") + 1, token.length - 1).toInt, None)))
+        } else if (updatedInfo.pipelineId.isEmpty) {
+          // pipeline
+          updatedInfo.copy(pipelineId = token)
+        } else {
+          // step
+          updatedInfo.copy(stepId = Some(token))
+        }
+      })
+    } else { // Pipeline Key
+      PipelineStateInfo(key)
+    }
+  }
+}
 
 /**
   * Provides information about the current step being executed.
@@ -153,6 +161,8 @@ case class ClassInfo(className: Option[String], parameters: Option[Map[String, A
   * @param contextManager     The context manager to use for accessing side loaded contexts
   * @param stepResults        A map of results from the execution of the pipeline steps.
   * @param currentStateInfo   The current pipeline state information
+ *  @param restartPoints      Optional list of steps that should be restarted.
+ *  @param executionEngines   An optional list of execution engines.
   */
 case class PipelineContext(globals: Option[Map[String, Any]],
                            parameters: List[PipelineParameter],
@@ -169,7 +179,47 @@ case class PipelineContext(globals: Option[Map[String, Any]],
                            credentialProvider: Option[CredentialProvider] = None,
                            contextManager: ContextManager,
                            stepResults: Map[PipelineStateInfo, PipelineStepResponse] = Map(),
-                           currentStateInfo: Option[PipelineStateInfo] = None) {
+                           currentStateInfo: Option[PipelineStateInfo] = None,
+                           restartPoints: Option[RestartPoints] = None,
+                           executionEngines: Option[List[String]] = Some(List("batch"))) {
+
+  private lazy val alternateStepMaps = {
+    executionEngines.getOrElse(List("batch")).filter(_ != "batch").foldLeft(List[AlternateStepMap]())((list, engine) => {
+      val stream = getClass.getResourceAsStream(s"/metadata/steps/$engine-mappings.json")
+      if (Option(stream).isDefined) {
+        list :+
+          JsonParser.parseJson(
+            Source.fromInputStream(stream).mkString,
+            "com.acxiom.metalus.AlternateStepMap").asInstanceOf[AlternateStepMap]
+      } else {
+        list
+      }
+    })
+  }
+
+  /**
+   * This method will see if there is an alternate step command that should be used.
+   * @param stepTemplateId The step template id being referenced.
+   * @return Either an alternate command or None if there is no alternative.
+   */
+  def getAlternateCommand(stepTemplateId: String): Option[String] = {
+    val map = alternateStepMaps.find(map => map.alternatives.exists(_.stepId == stepTemplateId))
+    if (map.isDefined) {
+      val step = map.get.alternatives.find(_.stepId == stepTemplateId)
+      if (step.isDefined) {
+        val command = map.get.alternativeStepCommands.find(_.stepId == step.get.alternativeStepId)
+        if (command.isDefined) {
+          Some(command.get.command)
+        } else {
+          None
+        }
+      } else {
+        None
+      }
+    } else {
+      None
+    }
+  }
 
   /**
     * Merges the provided PipelineContext audits, stepResults and globals onto this PipelineContext. Merge is additive
@@ -181,7 +231,8 @@ case class PipelineContext(globals: Option[Map[String, Any]],
     val newResults = pipelineContext.stepResults
       .foldLeft((this.stepResults, this))((results, result) => {
       if (this.stepResults.keys.exists(_.key == result._1.key)) {
-        results
+        // Replace the current result with the incoming result
+        (results._1 + (result._1 -> result._2), results._2)
       } else {
         // See if there may be global updates
         val ctx = if (result._2.namedReturns.isDefined) {
@@ -210,7 +261,20 @@ case class PipelineContext(globals: Option[Map[String, Any]],
       }
     })
 
-    newResults._2.copy(stepResults = newResults._1, audits = newAudits)
+    val restartMerge = if (this.restartPoints.isEmpty || pipelineContext.restartPoints.isEmpty) {
+//      val completePoints = pipelineContext.restartPoints.get.steps.filter(_.status == "COMPLETE").map(_.key.key)
+//      val newList = this.restartPoints.get.steps.filter(key => !completePoints.contains(key.key.key))
+//      if (newList.nonEmpty) {
+//        Some(RestartPoints(newList))
+//      } else {
+//        None
+//      }
+      None
+    } else {
+      this.restartPoints
+    }
+
+    newResults._2.copy(stepResults = newResults._1, audits = newAudits, restartPoints = restartMerge)
   }
 
   /**
@@ -243,10 +307,21 @@ case class PipelineContext(globals: Option[Map[String, Any]],
     })
   }
 
+  /**
+   * Get the named global value (considering GlobalLinks) and perform a cast
+   *
+   * @param globalName The name of the global property to return.
+   * @return An option containing the value cast to the specified type or None
+   */
   def getGlobalAs[T](globalName: String): Option[T] = {
     getGlobal(globalName).map(_.asInstanceOf[T])
   }
 
+  /**
+   * Determines if the named global is a global link.
+   * @param globalName The name of the global property to check.
+   * @return true if the named global is a global link.
+   */
   def isGlobalLink(globalName: String): Boolean = {
     val links = getGlobalAs[Map[String, Any]]("GlobalLinks")
     links.getOrElse(Map[String, Any]()).asJava.containsKey(globalName)
@@ -365,7 +440,6 @@ case class PipelineContext(globals: Option[Map[String, Any]],
    */
   def setPipelineStepResponse(stepKey: PipelineStateInfo, result: PipelineStepResponse): PipelineContext =
     this.copy(stepResults = stepResults + (stepKey -> result))
-
 
   /**
     * This method will locate the pipeline parameter for the provided key.
@@ -492,11 +566,26 @@ case class PipelineContext(globals: Option[Map[String, Any]],
 
 case class PipelineParameter(pipelineKey: PipelineStateInfo, parameters: Map[String, Any])
 
+case class AlternateStepMap(alternatives: List[StepMap], alternativeStepCommands: List[StepCommand])
+
+case class StepMap(stepId: String, alternativeStepId: String)
+
+case class StepCommand(stepId: String, command: String)
+
 /**
-  * Represents initial parameters for each pipeline as well as results from step execution.
-  *
-  * @param parameters An initial list of pipeline parameters
-  */
+ * Contains a list of step kes and the action that may be taken.
+ *
+ * @param steps The list of keys and status.
+ */
+case class RestartPoints(steps: List[StepState])
+
+/**
+ * Contains the key for the step and the status: RESTART or COMPLETE
+ *
+ * @param key    The unique key for the step.
+ * @param status The action to take on this step: RESTART or COMPLETE
+ */
+case class StepState(key: PipelineStateInfo, status: String)
 
 // TODO Reevaluate the classes below to see if they are needed in the new world.
 

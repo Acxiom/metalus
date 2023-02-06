@@ -9,15 +9,23 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, 
 import java.sql.{DriverManager, ResultSet}
 import java.util
 import java.util.{Date, Properties, UUID}
+import scala.language.postfixOps
 
 trait SessionContext extends Context {
   def existingSessionId: Option[String]
 
-  def sessionStorage: Option[ClassInfo]
+  def sessionStorage: Option[SessionStorage]
 
-  def sessionConvertors: Option[List[ClassInfo]]
+  def sessionConvertors: Option[List[SessionConvertor]]
 
   def credentialProvider: Option[CredentialProvider]
+
+  /**
+   * The unique session id being used to track state.
+   *
+   * @return The session id
+   */
+  def sessionId: UUID
 
   /**
    * Saves the result of the step.
@@ -33,7 +41,7 @@ trait SessionContext extends Context {
    *
    * @return An optional list of step results.
    */
-  def loadStepResults(): Option[List[PipelineStepResponse]]
+  def loadStepResults(): Option[Map[String, PipelineStepResponse]]
 
   /**
    * Saves an audit for the provided key.
@@ -79,7 +87,16 @@ trait SessionContext extends Context {
    * @return True if the status could be saved.
    */
   def saveStepStatus(key: PipelineStateInfo, status: String): Boolean
+
+  /**
+   * Returns all recorded status for this session or None.
+   *
+   * @return An optional list of recorded status.
+   */
+  def loadStepStatus(): Option[List[StepStatus]]
 }
+
+case class StepStatus(stepKey: String, status: String)
 
 /**
  * The session context is used to manage state of a running flow.
@@ -90,8 +107,8 @@ trait SessionContext extends Context {
  * @param credentialProvider Optional credential provider to assist with authentication
  */
 case class DefaultSessionContext(override val existingSessionId: Option[String],
-                                 override val sessionStorage: Option[ClassInfo],
-                                 override val sessionConvertors: Option[List[ClassInfo]],
+                                 override val sessionStorage: Option[SessionStorage],
+                                 override val sessionConvertors: Option[List[SessionConvertor]],
                                  override val credentialProvider: Option[CredentialProvider] = None) extends SessionContext {
   private val logger = LoggerFactory.getLogger(DefaultSessionContext.getClass)
 
@@ -99,24 +116,10 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
 
   private val primaryKey = "primaryKey"
 
-  private lazy val storage: SessionStorage = {
-    if (sessionStorage.isDefined) {
-      ReflectionUtils.loadClass(sessionStorage.get.className.getOrElse("com.acxiom.metalus.context.NoopSessionStorage"),
-        Some(sessionStorage.get.parameters.getOrElse(Map()) + ("credentialProvider" -> credentialProvider))).asInstanceOf[SessionStorage]
-    } else {
-      NoopSessionStorage()
-    }
-  }
+  private lazy val storage: SessionStorage = sessionStorage.getOrElse(NoopSessionStorage())
 
-  private lazy val convertors = {
-    if (sessionConvertors.isDefined && sessionConvertors.get.nonEmpty) {
-      sessionConvertors.get.map(info => {
-        ReflectionUtils.loadClass(info.className.get, info.parameters).asInstanceOf[SessionConvertor]
-      }) :+ defaultConvertor
-    } else {
-      List(defaultConvertor)
-    }
-  }
+  private lazy val convertors = sessionConvertors.getOrElse(List()) :+ defaultConvertor
+
   /**
    * The unique session id being used to track state.
    *
@@ -157,7 +160,7 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
    *
    * @return An optional list of step results.
    */
-  def loadStepResults(): Option[List[PipelineStepResponse]] = {
+  def loadStepResults(): Option[Map[String, PipelineStepResponse]] = {
     val results = storage.loadStepResults(sessionId)
     if (results.isDefined && results.get.nonEmpty) {
       val resultGroups = results.get.groupBy(record => (record.resultKey, record.name)).map(group => {
@@ -186,7 +189,7 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
         }
         responseMap + (result.resultKey -> updatedResponse)
       })
-      Some(resultsMap.values.toList)
+      Some(resultsMap)
     } else {
       None
     }
@@ -285,6 +288,27 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
       case _ => "UNKNOWN"
     }
     storage.setStatus(StatusSessionRecord(sessionId, new Date(), None, key.key, convertedStatus))
+  }
+
+  /**
+   * Returns all recorded status for this session or None.
+   *
+   * @return An optional list of recorded status.
+   */
+  override def loadStepStatus(): Option[List[StepStatus]] = {
+    val statusRecords = storage.loadStepStatus(sessionId)
+    if (statusRecords.isDefined && statusRecords.get.nonEmpty) {
+      Some(statusRecords.get.groupBy(_.resultKey).map(group => {
+        val record = if (group._2.length == 1) {
+          group._2.head
+        } else {
+          group._2.maxBy(_.version.getOrElse(-1))
+        }
+        StepStatus(record.resultKey, record.status)
+      }).toList)
+    } else {
+      None
+    }
   }
 
   private def findNamedConvertor(convertorName: String) = {
@@ -465,6 +489,13 @@ trait SessionStorage {
   def setStatus(sessionRecord: StatusSessionRecord): Boolean
 
   /**
+   * Loads the recorded status for the provided sessionId.
+   * @param sessionId The unique session id.
+   * @return A list of status or None.
+   */
+  def loadStepStatus(sessionId: UUID): Option[List[StatusSessionRecord]]
+
+  /**
    * Stores audit data.
    *
    * @param sessionRecord The record containing the state data.
@@ -522,6 +553,14 @@ case class NoopSessionStorage() extends SessionStorage {
    * @return true if the status can be saved.
    */
   override def setStatus(sessionRecord: StatusSessionRecord): Boolean = true
+
+  /**
+   * Loads the recorded status for the provided sessionId.
+   *
+   * @param sessionId The unique session id.
+   * @return A list of status or None.
+   */
+  override def loadStepStatus(sessionId: UUID): Option[List[StatusSessionRecord]] = None
 
   /**
    * Saves a step result.
@@ -615,6 +654,30 @@ case class JDBCSessionStorage(connectionString: String,
       ${sessionRecord.version.getOrElse(0)}, '${sessionRecord.resultKey}',
       '${sessionRecord.status}')""").executeUpdate()
       count == 1
+    }
+  }
+
+  /**
+   * Loads the recorded status for the provided sessionId.
+   *
+   * @param sessionId The unique session id.
+   * @return A list of status or None.
+   */
+  override def loadStepStatus(sessionId: UUID): Option[List[StatusSessionRecord]] = {
+    // Table --> |SESSION_ID|DATE|VERSION|RESULT_KEY|STATUS
+    val sharedWhere = s"WHERE SESSION_ID = '${sessionId.toString}'"
+    val results = connection.prepareStatement(s"SELECT * FROM STEP_STATUS $sharedWhere").executeQuery()
+    val list = Iterator.from(0).takeWhile(_ => results.next()).map(_ => {
+      StatusSessionRecord(UUID.fromString(results.getString("SESSION_ID")),
+        new Date(results.getLong("DATE")),
+        Some(results.getInt("VERSION")),
+        results.getString("RESULT_KEY"),
+        results.getString("STATUS"))
+    }).toList
+    if (list.nonEmpty) {
+      Some(list)
+    } else {
+      None
     }
   }
 
@@ -794,8 +857,10 @@ case class JDBCSessionStorage(connectionString: String,
   }
 
   private def readBlobData(results: ResultSet) = {
-    val blob = results.getBlob("STATE").getBinaryStream
-    val state = Stream.continually(blob.read).takeWhile(-1 !=).map(_.toByte).toArray
-    state
+    val blob = results.getBlob("STATE")
+    blob.getBytes(1, blob.length().toInt)
+//    val blob = results.getBlob("STATE").getBinaryStream
+//    val state = Stream.continually(blob.read).takeWhile(-1 !=).map(_.toByte).toArray
+//    state
   }
 }

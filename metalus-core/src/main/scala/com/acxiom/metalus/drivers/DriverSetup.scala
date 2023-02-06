@@ -4,6 +4,8 @@ import com.acxiom.metalus._
 import com.acxiom.metalus.utils.{DriverUtils, ReflectionUtils}
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.util.UUID
+
 trait DriverSetup {
   val parameters: Map[String, Any]
 
@@ -11,6 +13,12 @@ trait DriverSetup {
   setLogLevel()
 
   private lazy val provider = DriverUtils.getCredentialProvider(parameters)
+
+  /**
+   * The existing session id if one was provided.
+   * @return
+   */
+  def existingSessionId: Option[UUID]
 
   /**
     * Returns the main pipeline being executed.

@@ -1,6 +1,12 @@
 {
   "id": "complex_split_flow",
   "name": "Complex Split Flow Test",
+  "parameters": {
+    "restartableSteps": [
+      "SUM_VALUES",
+      "SUM_VALUES_NOT_MERGED"
+    ]
+  },
   "steps": [
     {
       "id": "GENERATE_DATA",

@@ -6,10 +6,20 @@ import com.acxiom.metalus.utils.DriverUtils
 import com.acxiom.metalus.{CredentialProvider, Pipeline, PipelineContext}
 import org.slf4j.{Logger, LoggerFactory}
 
+import java.util.UUID
 import scala.io.Source
 
 trait ApplicationDriverSetup extends DriverSetup {
   val logger: Logger = LoggerFactory.getLogger(getClass)
+
+  lazy val existingSessionId: Option[UUID] = {
+    if (parameters.contains("existingSessionId")) {
+      Some(UUID.fromString(parameters("existingSessionId").toString))
+    } else {
+      None
+    }
+  }
+
   // Load the Application configuration
   protected def loadApplication: Application = {
     val json = if (parameters.contains("applicationId")) {
@@ -33,6 +43,7 @@ trait ApplicationDriverSetup extends DriverSetup {
     JsonParser.parseApplication(json)
   }
 
+  // noinspection RedundantCollectionConversion
   // Clean out the application properties from the parameters
   protected def cleanParams: Map[String, Any] = parameters.filterKeys {
     case "applicationId" => false
@@ -42,7 +53,7 @@ trait ApplicationDriverSetup extends DriverSetup {
     case "enableHiveSupport" => false
     case "dfs-cluster" => false
     case _ => true
-  }.toMap
+  }.toMap[String, Any] // This is required from scala 2.13
 
   private[applications] lazy val application: Application = loadAndValidateApplication
 
@@ -50,24 +61,8 @@ trait ApplicationDriverSetup extends DriverSetup {
 
   override def pipeline: Option[Pipeline] = pipelineContext.pipelineManager.getPipeline(application.pipelineId.getOrElse(""))
 
-  override def pipelineContext: PipelineContext =
+  override lazy val pipelineContext: PipelineContext =
     ApplicationUtils.createPipelineContext(application, Some(params), Some(parameters), credentialProvider = Some(credentialProvider))
-
-  /**
-    * This function allows the driver setup a chance to refresh the execution plan. This is useful in long running
-    * applications such as streaming where artifacts build up over time.
-    *
-    * @param executionPlan The execution plan to refresh
-    * @since 1.1.0
-    * @return An execution plan
-    */
-//  override def refreshExecutionPlan(executionPlan: List[PipelineExecution],
-//                                    results: Option[Map[String, DependencyResult]] = None): List[PipelineExecution] = {
-//    executionPlan.map(plan => {
-//      val execution = application.executions.get.find(_.id.getOrElse("") == plan.id).get
-//      ApplicationUtils.refreshPipelineExecution(application, Some(params), execution, plan)
-//    })
-//  }
 
   private def loadAndValidateApplication: Application = {
     val application = loadApplication

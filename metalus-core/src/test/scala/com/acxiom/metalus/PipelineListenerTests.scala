@@ -4,22 +4,12 @@ import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
 import com.acxiom.metalus.flow.SplitStepException
 import org.json4s.native.JsonMethods.parse
 import org.json4s.{DefaultFormats, Formats}
+import org.scalatest.Suite
 import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.{BeforeAndAfterAll, Suite}
-import org.slf4j.event.Level
-import org.slf4j.{Logger, LoggerFactory}
 
-class PipelineListenerTests extends AnyFunSpec with BeforeAndAfterAll with Suite {
+class PipelineListenerTests extends AnyFunSpec with Suite {
   private val pipelines = PipelineDefs.BASIC_PIPELINE
   private implicit val formats: Formats = DefaultFormats
-
-  override def beforeAll() {
-    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
-  }
-
-  override def afterAll() {
-    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
-  }
 
   describe("CombinedPipelineListener") {
     it ("Should call multiple listeners") {
@@ -27,16 +17,16 @@ class PipelineListenerTests extends AnyFunSpec with BeforeAndAfterAll with Suite
       val test1 = new TestPipelineListener("", "", None.orNull)
       val test2 = new TestPipelineListener("", "", None.orNull)
       val combined = CombinedPipelineListener(List(test1, test2))
-//      combined.executionStarted(pipelines, pipelineContext)
-//      combined.executionFinished(pipelines, pipelineContext)
-//      combined.executionStopped(pipelines, pipelineContext)
+      combined.applicationStarted(pipelineContext)
+      combined.applicationComplete(pipelineContext)
+      combined.applicationStopped(pipelineContext)
       val pipelineKey = PipelineStateInfo(pipelines.head.id.get)
       combined.pipelineStarted(pipelineKey, pipelineContext)
       combined.pipelineFinished(pipelineKey, pipelineContext)
       combined.pipelineStepStarted(pipelineKey.copy(stepId =  PipelineDefs.GLOBAL_SINGLE_STEP.id), pipelineContext)
       combined.pipelineStepFinished(pipelineKey.copy(stepId =  PipelineDefs.GLOBAL_SINGLE_STEP.id), pipelineContext)
       combined.registerStepException(pipelineKey, PipelineException(None, None, None, None, new IllegalArgumentException("")), pipelineContext)
-      assert(test1.results.count == 5)
+      assert(test1.results.count == 8)
       assert(test1.results.count == test2.results.count)
     }
   }
@@ -108,7 +98,6 @@ class PipelineListenerTests extends AnyFunSpec with BeforeAndAfterAll with Suite
       assert(forkExceptionMap("messages").asInstanceOf[List[String]].head == "Fork  Message")
       val pipelineKey = PipelineStateInfo("pipeline")
       val step1Audit = ExecutionAudit(pipelineKey.copy(stepId = Some("step1")), AuditType.STEP, Map[String, Any](), Constants.THREE, Some(Constants.FIVE))
-      val step2Audit = ExecutionAudit(pipelineKey.copy(stepId = Some("step2")), AuditType.STEP, Map[String, Any](), Constants.SIX, Some(Constants.EIGHT))
       val pipelineAudit = ExecutionAudit(pipelineKey, AuditType.PIPELINE, Map[String, Any](), Constants.TWO, Some(Constants.NINE))
       var auditMessage = test.generateAuditMessage("audit-message", pipelineAudit)
       var auditMap = parse(auditMessage).extract[Map[String, Any]]
@@ -128,10 +117,6 @@ class PipelineListenerTests extends AnyFunSpec with BeforeAndAfterAll with Suite
       val step1Map = auditMap("audit").asInstanceOf[Map[String, Any]]
       assert(step1Map("start").asInstanceOf[BigInt] == Constants.THREE)
       assert(step1Map("end").asInstanceOf[BigInt] == Constants.FIVE)
-//      val step2Map = pipelineAuditMap("children").asInstanceOf[List[Map[String, Any]]](1)
-//      assert(step2Map("id") == "step2")
-//      assert(step2Map("start").asInstanceOf[BigInt] == Constants.SIX)
-//      assert(step2Map("end").asInstanceOf[BigInt] == Constants.EIGHT)
     }
   }
 }
@@ -163,5 +148,20 @@ class TestPipelineListener(val key: String,
 
   override def registerStepException(key: PipelineStateInfo, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
     results.addValidation("registerStepException", valid = true)
+  }
+
+  override def applicationStarted(pipelineContext: PipelineContext): Option[PipelineContext] = {
+    results.addValidation("applicationStarted", valid = true)
+    None
+  }
+
+  override def applicationComplete(pipelineContext: PipelineContext): Option[PipelineContext] = {
+    results.addValidation("applicationComplete", valid = true)
+    None
+  }
+
+  override def applicationStopped(pipelineContext: PipelineContext): Option[PipelineContext] = {
+    results.addValidation("applicationStopped", valid = true)
+    None
   }
 }
