@@ -1,0 +1,85 @@
+{
+  "pipelineId": "root",
+  "requiredParameters": [
+    "rootLogLevel"
+  ],
+  "stepPackages": [
+    "com.acxiom.metalus"
+  ],
+  "contexts": {
+    "session": {
+      "className": "com.acxiom.metalus.context.DefaultSessionContext",
+      "parameters": {
+        "sessionStorage": {
+          "className": "com.acxiom.metalus.context.JDBCSessionStorage",
+          "mapEmbeddedVariables": true,
+          "object": {
+            "connectionProperties": {
+              "driver": "org.apache.derby.jdbc.EmbeddedDriver"
+            },
+            "credentialName": "!credentialName",
+            "connectionString": "!connectionString"
+          }
+        }
+      }
+    }
+  },
+  "pipelineTemplates": [
+    {
+      "id": "root",
+      "parameters": {
+        "restartableSteps": [
+          "SIMPLEPIPELINE"
+        ]
+      },
+      "steps": [
+        {
+          "id": "SIMPLEPIPELINE",
+          "displayName": "Step Group",
+          "description": "Allows pipelines to be executed as a single step within a parent pipeline.",
+          "type": "step-group",
+          "pipelineId": "simple_restart_pipeline",
+          "params": [
+            {
+              "type": "boolean",
+              "name": "useParentGlobals",
+              "required": false,
+              "value": true,
+              "description": "Indicates whether the calling pipeline globals should be merged with the pipelineMappings."
+            },
+            {
+              "type": "text",
+              "name": "step2Value",
+              "required": true,
+              "value": "!step2Value"
+            }
+          ],
+          "nextStepId": "STEP_4"
+        },
+        {
+          "id": "STEP_4",
+          "type": "Pipeline",
+          "params": [
+            {
+              "type": "text",
+              "name": "string",
+              "required": false,
+              "value": "@{SIMPLEPIPELINE} -> STEP4",
+              "description": ""
+            },
+            {
+              "type": "boolean",
+              "name": "boolean",
+              "required": false,
+              "value": true,
+              "description": ""
+            }
+          ],
+          "engineMeta": {
+            "command": "MockStepObject.mockStepFunction"
+          }
+        }
+      ]
+    }
+  ]
+}

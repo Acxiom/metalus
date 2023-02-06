@@ -1,19 +1,9 @@
 package com.acxiom.metalus.flow
 
 import com.acxiom.metalus._
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
-import org.slf4j.event.Level
-import org.slf4j.{Logger, LoggerFactory}
 
-class StepGroupStepTests extends AnyFunSpec with BeforeAndAfterAll {
-  override def beforeAll(): Unit = {
-    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
-  }
-
-  override def afterAll(): Unit = {
-    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
-  }
+class StepGroupStepTests extends AnyFunSpec {
 
   describe("Verify validations") {
     it("Should fail validation with missing parameters") {

@@ -14,10 +14,12 @@ case class StepGroupFlow(pipeline: Pipeline,
   override def execute(): FlowResult = {
     val stepState = initialContext.currentStateInfo
     val groupResult = processStepGroup(step, parameterValues, initialContext)
-    val updatedCtx = initialContext
-      .setPipelineAudit(initialContext.getPipelineAudit(stepState.get).get.setEnd(System.currentTimeMillis()))
-      .setPipelineStepResponse(stepState.get, groupResult.pipelineStepResponse)
-      .merge(groupResult.pipelineContext)
+    val audit = initialContext.getPipelineAudit(stepState.get)
+    val updatedCtx = (if (audit.isDefined) {
+      initialContext.setPipelineAudit(audit.get.setEnd(System.currentTimeMillis()))
+    } else {
+      initialContext
+    }).setPipelineStepResponse(stepState.get, groupResult.pipelineStepResponse).merge(groupResult.pipelineContext)
     val finalCtx = if (groupResult.globalUpdates.nonEmpty) {
       groupResult.globalUpdates.foldLeft(updatedCtx)((ctx, update) => {
         PipelineFlow.updateGlobals(update.stepName, ctx, update.global, update.globalName, update.isLink)

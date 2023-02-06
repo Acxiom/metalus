@@ -189,7 +189,8 @@ case class PipelineContext(globals: Option[Map[String, Any]],
     val newResults = pipelineContext.stepResults
       .foldLeft((this.stepResults, this))((results, result) => {
       if (this.stepResults.keys.exists(_.key == result._1.key)) {
-        results
+        // Replace the current result with the incoming result
+        (results._1 + (result._1 -> result._2), results._2)
       } else {
         // See if there may be global updates
         val ctx = if (result._2.namedReturns.isDefined) {

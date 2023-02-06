@@ -2,6 +2,16 @@
   "id": "simple_restart_pipeline",
   "name": "Simple Restart Test Pipeline",
   "parameters": {
+    "inputs": [
+      {
+        "name": "step2Value",
+        "global": true,
+        "required": true
+      }
+    ],
+    "output": {
+      "primaryMapping": "@STEP_3"
+    },
     "restartableSteps": [
       "STEP_2"
     ]
