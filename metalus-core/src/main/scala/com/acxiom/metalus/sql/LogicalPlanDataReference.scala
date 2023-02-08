@@ -25,13 +25,6 @@ trait LogicalPlanDataReference[T, R] extends DataReference[T] {
 
   def executePlan: R = optimizedPlan.foldLeft(initialReference)((query, op) => translations(op)(query))
 
-//  override protected def queryOperations: QueryFunction = {
-//    case a: As => setPlan(updateLogicalPlan(a))
-//    case qo if qo.supported => setPlan(updateLogicalPlan(qo))
-//  }
-
-  protected def parseExpression(expression: Expression):String = expression
-
   protected def newAlias: String = s"sub${internalPlan.size}"
 
   protected def optimize: Queue[QueryOperator] = internalPlan
@@ -81,13 +74,16 @@ trait SqlBuildingDataReference[T] extends LogicalPlanDataReference[T, String] {
   }
 
   override protected def logicalPlanRules: LogicalPlanRules = {
+    case As(alias) => sql"($queryRef) $alias"
     case Select(expressions) => sql"SELECT ${expressions.map(parseExpression).mkString(",")} FROM $queryRef"
     case Join(right: SqlBuildingDataReference[_], joinType, condition) if right.engine == engine =>
-      sql"$joinType JOIN ${right.toSql}${condition.map(c => s" ON ${parseExpression(c)}").mkString}"
+      sql"${joinType.toUpperCase} JOIN ${right.toSql}${condition.map(c => s" ON ${parseExpression(c)}").mkString}"
     case Where(expression) => sql"WHERE ${parseExpression(expression)}"
     case GroupBy(expressions) => sql"GROUP BY ${expressions.map(parseExpression).mkString(", ")}"
     case Having(expression) => sql"HAVING ${parseExpression(expression)}"
     case OrderBy(expressions) => sql"ORDER BY ${expressions.map(parseExpression).mkString(", ")}"
     case Delete() => sql"DELETE FROM $queryRef"
   }
+
+  protected def parseExpression(expression: Expression):String = expression
 }

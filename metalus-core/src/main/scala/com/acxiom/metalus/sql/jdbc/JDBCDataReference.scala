@@ -1,7 +1,7 @@
 package com.acxiom.metalus.sql.jdbc
 
 import com.acxiom.metalus.PipelineContext
-import com.acxiom.metalus.sql.{QueryOperator, SqlBuildingDataReference}
+import com.acxiom.metalus.sql.{QueryOperator, Select, SqlBuildingDataReference}
 
 import java.sql.{Connection, DriverManager, ResultSet}
 import java.util.Properties
@@ -29,14 +29,15 @@ trait JDBCDataReference[T] extends SqlBuildingDataReference[T] {
 final case class BasicJDBCDataReference(initialReference: String,
                                         uri: String,
                                         properties: Map[String, String],
-                                        logicalPlan: Queue[QueryOperator] = Queue(),
-                                        pipelineContext: PipelineContext)
+                                        pipelineContext: PipelineContext,
+                                        logicalPlan: Queue[QueryOperator] = Queue())
   extends JDBCDataReference[ResultSet] {
 
   override def execute: ResultSet = {
     Try(createConnection()).flatMap { connection =>
       val stmt = connection.createStatement()
-      val exe = Try(stmt.executeQuery(toSql))
+      val sql = if (!logicalPlan.lastOption.exists(_.isInstanceOf[Select])) s"SELECT * FROM ($toSql) $newAlias" else toSql
+      val exe = Try(stmt.executeQuery(sql))
       stmt.close()
       connection.close()
       exe
