@@ -3,7 +3,6 @@ package com.acxiom.metalus.flow
 import com.acxiom.metalus._
 import org.slf4j.LoggerFactory
 
-import java.util.UUID
 import java.util.concurrent.ForkJoinPool
 import scala.collection.immutable
 import scala.concurrent.duration.Duration
@@ -66,8 +65,6 @@ case class ForkStepFlow(pipeline: Pipeline,
     val newSteps = forkFlow.steps
     // Identify the join steps and verify that only one is present
     val joinSteps = newSteps.filter(_.`type`.getOrElse("").toLowerCase == PipelineStepType.JOIN)
-    val updateStateInfo = pipelineContext.currentStateInfo.get.copy(forkData = None)
-
     val finalResult = results.sortBy(_.index).foldLeft(ForkStepExecutionResult(-1, Some(pipelineContext), None))((combinedResult, result) => {
       if (result.result.isDefined) {
         val ctx = result.result.get
@@ -78,7 +75,7 @@ case class ForkStepFlow(pipeline: Pipeline,
         } else {
           combinedResult.copy(error =
             Some(ForkedPipelineStepException(message = Some("One or more errors has occurred while processing fork step:\n"),
-              context = Some(pipelineContext.setCurrentStateInfo(updateStateInfo)),
+              context = Some(pipelineContext),
               exceptions = Map(result.index -> result.error.get))))
         }
       } else { combinedResult }
@@ -98,7 +95,7 @@ case class ForkStepFlow(pipeline: Pipeline,
         }
       } else {
         None
-      }, finalResult.result.get.setCurrentStateInfo(updateStateInfo))
+      }, finalResult.result.get)
     }
   }
 
@@ -162,7 +159,8 @@ case class ForkStepFlow(pipeline: Pipeline,
                                        value: Any,
                                        index: Int) = {
     try {
-      val stateInfo = pipelineContext.currentStateInfo.get.copy(forkData = Some(ForkData(UUID.randomUUID().toString, index, Some(value))))
+      val currentForkData = pipelineContext.currentStateInfo.get.forkData
+      val stateInfo = pipelineContext.currentStateInfo.get.copy(forkData = Some(ForkData(index, Some(value), currentForkData)))
       ForkStepExecutionResult(index,
         Some(executeStep(firstStep, pipeline, steps,
           PipelineFlow.createForkedPipelineContext(pipelineContext.setCurrentStateInfo(stateInfo), firstStep)
@@ -228,13 +226,13 @@ case class ForkFlow(steps: List[FlowStep], pipeline: Pipeline, forkPairs: List[F
         case PipelineStepType.FORK =>
           this.copy(steps = steps :+ step, forkPairs = this.forkPairs :+ ForkPair(step, None))
         case PipelineStepType.JOIN =>
-          val newPairs = this.forkPairs.reverse.map(p => {
-            if (p.joinStep.isEmpty) {
-              p.copy(joinStep = Some(step))
+          val newPairs = this.forkPairs.reverse.foldLeft((List[ForkPair](), false))((tuple, p) => {
+            if (p.joinStep.isEmpty && !tuple._2) {
+              (tuple._1 :+ p.copy(joinStep = Some(step)), true)
             } else {
-              p
+              (tuple._1 :+ p, tuple._2)
             }
-          })
+          })._1
           this.copy(steps = steps :+ step, forkPairs = newPairs.reverse)
         case _ => this.copy(steps = steps :+ step)
       }

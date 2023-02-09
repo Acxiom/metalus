@@ -52,7 +52,7 @@ class PipelineListenerTests extends AnyFunSpec with Suite {
       assert(stepMap("pipeline").asInstanceOf[Map[String, String]]("id") == pipelines.head.id.get)
       assert(stepMap("step").asInstanceOf[Map[String, String]]("id") == pipelines.head.steps.get.head.id.get)
 
-      val ctx = pipelineContext.setCurrentStateInfo(PipelineStateInfo("pipeline1", Some("step1"), Some(ForkData("group1", 0, None))))
+      val ctx = pipelineContext.setCurrentStateInfo(PipelineStateInfo("pipeline1", Some("step1"), Some(ForkData(0, None, None))))
       val simpleExceptionMessage = test.generateExceptionMessage("simple-exception",
         PipelineException(message = Some("Test  Message"),
           cause = new IllegalArgumentException("Stinky Pete"),
@@ -63,10 +63,10 @@ class PipelineListenerTests extends AnyFunSpec with Suite {
       assert(simpleExceptionMap("event") == "simple-exception")
       assert(simpleExceptionMap("pipelineId") == "pipeline1")
       assert(simpleExceptionMap("stepId") == "step1")
-      assert(simpleExceptionMap("groupId") == "group1")
+      assert(simpleExceptionMap("groupId") == "0")
       assert(simpleExceptionMap("messages").asInstanceOf[List[String]].head == "Test  Message")
 
-      val splitCtx = pipelineContext.setCurrentStateInfo(PipelineStateInfo("pipeline2", Some("step2"), Some(ForkData("group2", 0, None))))
+      val splitCtx = pipelineContext.setCurrentStateInfo(PipelineStateInfo("pipeline2", Some("step2"), Some(ForkData(1, None, None))))
       val splitExceptionMessage = test.generateExceptionMessage("split-exception",
         SplitStepException(exceptions =
         Map("" -> PipelineException(message = Some("Split  Message"),
@@ -79,7 +79,7 @@ class PipelineListenerTests extends AnyFunSpec with Suite {
       assert(splitExceptionMap("event") == "split-exception")
       assert(splitExceptionMap("pipelineId") == "pipeline2")
       assert(splitExceptionMap("stepId") == "step2")
-      assert(splitExceptionMap("groupId") == "group2")
+      assert(splitExceptionMap("groupId") == "1")
       assert(splitExceptionMap("messages").asInstanceOf[List[String]].head == "Split  Message")
 
       val forkCtx = pipelineContext.setCurrentStateInfo(PipelineStateInfo("pipeline3", Some("step3")))
@@ -94,7 +94,7 @@ class PipelineListenerTests extends AnyFunSpec with Suite {
       assert(forkExceptionMap("event") == "fork-exception")
       assert(forkExceptionMap("pipelineId") == "pipeline3")
       assert(forkExceptionMap("stepId") == "step3")
-      assert(forkExceptionMap("groupId") == "")
+      assert(forkExceptionMap("groupId") == "-1")
       assert(forkExceptionMap("messages").asInstanceOf[List[String]].head == "Fork  Message")
       val pipelineKey = PipelineStateInfo("pipeline")
       val step1Audit = ExecutionAudit(pipelineKey.copy(stepId = Some("step1")), AuditType.STEP, Map[String, Any](), Constants.THREE, Some(Constants.FIVE))

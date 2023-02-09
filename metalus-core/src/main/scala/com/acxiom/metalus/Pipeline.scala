@@ -58,13 +58,22 @@ final case class PipelineResult(primaryMapping: String, secondaryMappings: Optio
 final case class NamedMapping(mappedName: String, stepKey: String)
 
 /**
-  * Represents the information used to track a fork process within an execution or pipeline
-  *
-  * @param id    The unique id of the fork process
-  * @param index The index of the value in the list
-  * @param value The value that is being processed
-  */
-final case class ForkData(id: String, index: Int, value: Option[Any])
+ * Represents the information used to track a fork process within an execution or pipeline
+ *
+ * @param index  The index of the value in the list
+ * @param value  The value that is being processed
+ * @param parent An optional parent fork
+ */
+final case class ForkData(index: Int, value: Option[Any], parent: Option[ForkData]) {
+  def generateForkKeyValue(): String = {
+    if (parent.isDefined) {
+      s"${parent.get.generateForkKeyValue()}_$index"
+    } else {
+      s"$index"
+    }
+
+  }
+}
 
 object PipelineStateInfo {
   def fromString(key: String): PipelineStateInfo = {
@@ -81,9 +90,9 @@ object PipelineStateInfo {
         }
 
         if (token.startsWith("f(")) {
-          updatedInfo.copy(forkData = Some(
-          ForkData(token.substring(2, token.indexOf("_")),
-            token.substring(token.indexOf("_") + 1, token.length - 1).toInt, None)))
+          val forkData = token.substring(2, token.indexOf(")")).split("_")
+            .foldLeft(Option[ForkData](None.orNull))((fork, token) => Some(ForkData(token.toInt, None, fork)))
+          updatedInfo.copy(forkData = forkData)
         } else if (updatedInfo.pipelineId.isEmpty) {
           // pipeline
           updatedInfo.copy(pipelineId = token)
@@ -122,7 +131,7 @@ final case class PipelineStateInfo(pipelineId: String,
       pipelineId
     }
     val forkKey = if (forkData.isDefined) {
-      s"$key.f(${forkData.get.id}_${forkData.get.index})"
+      s"$key.f(${forkData.get.generateForkKeyValue()})"
     } else {
       key
     }
@@ -255,20 +264,13 @@ case class PipelineContext(globals: Option[Map[String, Any]],
     val newAudits = pipelineContext.audits.foldLeft(this.audits)((audits, audit) => {
       val index = this.audits.indexWhere(_.key.key == audit.key.key)
       if (index != -1) {
-        audits.updated(index, audit)
+        audits.updated(index, audits(index).merge(audit))
       } else {
         audits :+ audit
       }
     })
 
     val restartMerge = if (this.restartPoints.isEmpty || pipelineContext.restartPoints.isEmpty) {
-//      val completePoints = pipelineContext.restartPoints.get.steps.filter(_.status == "COMPLETE").map(_.key.key)
-//      val newList = this.restartPoints.get.steps.filter(key => !completePoints.contains(key.key.key))
-//      if (newList.nonEmpty) {
-//        Some(RestartPoints(newList))
-//      } else {
-//        None
-//      }
       None
     } else {
       this.restartPoints
@@ -403,7 +405,7 @@ case class PipelineContext(globals: Option[Map[String, Any]],
    * @return The response value or None if no value exists.
    */
   def getStepResultsByKey(stepKey: String): Option[List[PipelineStepResponse]] = {
-    val defaultForkData = ForkData("", 0, None)
+    val defaultForkData = ForkData(0, None, None)
     val filteredResponses = this.stepResults.filter(_._1.copy(forkData = None).key == stepKey)
     val sortedKeys = filteredResponses.keys.toList
       .sortWith(_.forkData.getOrElse(defaultForkData).index < _.forkData.getOrElse(defaultForkData).index)

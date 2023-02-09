@@ -83,6 +83,14 @@
     </dependencies>
 
     <build>
+        <sourceDirectory>${basedir}/src/main/scala</sourceDirectory>
+        <testSourceDirectory>${basedir}/src/test/scala</testSourceDirectory>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <!-- see http://davidb.github.com/scala-maven-plugin -->
@@ -201,6 +209,15 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.scoverage</groupId>
+                <artifactId>scoverage-maven-plugin</artifactId>
+                <version>1.4.11</version>
+                <configuration>
+                    <scalaVersion>${scala.version}</scalaVersion>
+                    <highlighting>true</highlighting>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
@@ -295,5 +312,25 @@
             </dependencies>
         </profile>
     </profiles>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.scoverage</groupId>
+                <artifactId>scoverage-maven-plugin</artifactId>
+                <version>1.4.11</version>
+                <configuration>
+                    <scalaVersion>${scala.version}</scalaVersion>
+                </configuration>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>report</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+        </plugins>
+    </reporting>
 
 </project>

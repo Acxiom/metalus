@@ -73,16 +73,13 @@ object PipelineFlow {
   }
 
   /**
-    * This function will create a new PipelineContext from the provided that includes new StepMessages
-    *
-    * @param pipelineContext The PipelineContext to be cloned.
-    * @return A cloned PipelineContext
-    */
-  def createForkedPipelineContext(pipelineContext: PipelineContext, firstStep: FlowStep): PipelineContext = {
-    val stateInfo = pipelineContext.currentStateInfo.get.copy(stepId = firstStep.id)
-    pipelineContext.setCurrentStateInfo(stateInfo)
-      .setPipelineAudit(ExecutionAudit(stateInfo, AuditType.STEP, Map[String, Any](), System.currentTimeMillis()))
-  }
+   * This function will create a new PipelineContext from the provided that includes new StepMessages
+   *
+   * @param pipelineContext The PipelineContext to be cloned.
+   * @return A cloned PipelineContext
+   */
+  def createForkedPipelineContext(pipelineContext: PipelineContext, firstStep: FlowStep): PipelineContext =
+    pipelineContext.setCurrentStateInfo(pipelineContext.currentStateInfo.get.copy(stepId = firstStep.id))
 }
 
 trait PipelineFlow {
@@ -93,18 +90,21 @@ trait PipelineFlow {
 
   protected val stepLookup: Map[String, FlowStep] = PipelineExecutorValidations.validateAndCreateStepLookup(pipeline)
 
+  protected lazy val sessionContext: SessionContext = initialContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
+
   def execute(): FlowResult = {
     try {
       val step = pipeline.steps.get.head
       val pipelineStateInfo = initialContext.currentStateInfo.get
+      val executionAudit = ExecutionAudit(pipelineStateInfo, AuditType.PIPELINE, start = System.currentTimeMillis())
+      sessionContext.saveAudit(pipelineStateInfo, executionAudit)
       val updatedCtx = PipelineFlow.handleEvent(initialContext, "pipelineStarted", List(pipelineStateInfo, initialContext))
-        .setCurrentStateInfo(pipelineStateInfo)
-        .setPipelineAudit(ExecutionAudit(pipelineStateInfo, AuditType.PIPELINE, start = System.currentTimeMillis()))
-      val sessionContext = updatedCtx.contextManager.getContext("session").get.asInstanceOf[SessionContext]
+        .setCurrentStateInfo(pipelineStateInfo).setPipelineAudit(executionAudit)
       sessionContext.saveGlobals(pipelineStateInfo, updatedCtx.globals.getOrElse(Map()))
       val resultPipelineContext = executeStep(step, pipeline, stepLookup, updatedCtx)
-      val auditCtx = resultPipelineContext.setPipelineAudit(
-        resultPipelineContext.getPipelineAudit(pipelineStateInfo).get.setEnd(System.currentTimeMillis()))
+      val updatedAudit = resultPipelineContext.getPipelineAudit(pipelineStateInfo).get.setEnd(System.currentTimeMillis())
+      sessionContext.saveAudit(pipelineStateInfo, updatedAudit)
+      val auditCtx = resultPipelineContext.setPipelineAudit(updatedAudit)
       FlowResult(PipelineFlow.handleEvent(auditCtx, "pipelineFinished", List(pipelineStateInfo, auditCtx)), None, None)
     } catch {
       case t: Throwable => throw PipelineFlow.handleStepExecutionExceptions(t, pipeline, initialContext)
@@ -119,15 +119,16 @@ trait PipelineFlow {
     val stepState = pipelineContext.currentStateInfo.get.copy(stepId = step.id)
     val (skipStep, skipCtx) = determineRestartLogic(pipelineContext, stepState)
     val (nextStepId, sfContext) = if (!skipStep) {
-      val ctx = skipCtx.setCurrentStateInfo(stepState)
-        .setPipelineAudit(ExecutionAudit(stepState, AuditType.STEP, start = System.currentTimeMillis()))
+      val executionAudit = ExecutionAudit(stepState, AuditType.STEP, start = System.currentTimeMillis())
+      sessionContext.saveAudit(stepState, executionAudit)
+      val ctx = skipCtx.setCurrentStateInfo(stepState).setPipelineAudit(executionAudit)
       val ssContext = PipelineFlow.handleEvent(ctx, "pipelineStepStarted", List(stepState, ctx))
       // Set step status of RUNNING
-      val sessionContext = ssContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
       sessionContext.saveStepStatus(stepState, "RUNNING")
       val (nstepId, sfContextResult) = processStepWithRetry(step, pipeline, ssContext, 0)
       // Close the step audit
       val audit = sfContextResult.getPipelineAudit(stepState).get.setEnd(System.currentTimeMillis())
+      sessionContext.saveAudit(stepState, audit)
       // run the step finished event
       val sfContext = PipelineFlow.handleEvent(sfContextResult, "pipelineStepFinished",
         List(stepState, sfContextResult)).setPipelineAudit(audit)
@@ -136,7 +137,7 @@ trait PipelineFlow {
       (nstepId, sfContext)
     } else {
       step.`type`.getOrElse("").toLowerCase match {
-        case PipelineStepType.SPLIT =>
+        case PipelineStepType.SPLIT | PipelineStepType.FORK =>
           processStepWithRetry(step, pipeline, skipCtx, 0)
         case PipelineStepType.STEPGROUP =>
           processStepWithRetry(step, pipeline, skipCtx.setCurrentStateInfo(stepState), 0)
@@ -306,8 +307,9 @@ trait PipelineFlow {
             case e if e.startsWith("$metrics.") =>
               val stepKey = resultsTuple._1.currentStateInfo.get.copy(stepId = step.id)
               val keyName = entry._1.substring(Constants.NINE)
-              (resultsTuple._1.setPipelineAudit(resultsTuple._1.getPipelineAudit(stepKey).get.setMetric(keyName, entry._2)),
-                resultsTuple._2, resultsTuple._3)
+              val metricAudit = resultsTuple._1.getPipelineAudit(stepKey).get.setMetric(keyName, entry._2)
+              sessionContext.saveAudit(stepKey, metricAudit)
+              (resultsTuple._1.setPipelineAudit(metricAudit), resultsTuple._2, resultsTuple._3)
             case e if e.startsWith("$globalLink.") =>
               val keyName = entry._1.substring(Constants.TWELVE)
               (PipelineFlow.updateGlobals(step.displayName.getOrElse(step.id.getOrElse("")), resultsTuple._1, entry._2, keyName, isLink = true),
@@ -315,7 +317,6 @@ trait PipelineFlow {
             case _ => resultsTuple
           }
         })
-        val sessionContext = updatedCtx.contextManager.getContext("session").get.asInstanceOf[SessionContext]
         val pipelineKey = updatedCtx.currentStateInfo.get.copy(stepId = None)
         // Save the updated globals
         val existingGL = updatedCtx.globals.getOrElse(Map()).getOrElse("GlobalLinks", Map()).asInstanceOf[Map[String, Any]]

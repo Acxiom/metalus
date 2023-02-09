@@ -1,6 +1,11 @@
 {
   "id": "embedded_fork_pipeline",
   "name": "Embedded Fork Test",
+  "parameters": {
+    "restartableSteps": [
+      "PROCESS_VALUE"
+    ]
+  },
   "steps": [
     {
       "id": "GENERATE_DATA",
@@ -135,7 +140,7 @@
       "params": [
         {
           "type": "text",
-          "name": "s",
+          "name": "ints",
           "required": false,
           "value": "@SUM_VALUES",
           "description": ""
@@ -145,6 +150,5 @@
         "command": "MockStepObject.mockSumListOfInts"
       }
     }
-  ],
-  "category": "pipeline"
+  ]
 }

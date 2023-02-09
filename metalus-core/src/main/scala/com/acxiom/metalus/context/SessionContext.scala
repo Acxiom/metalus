@@ -2,7 +2,6 @@ package com.acxiom.metalus.context
 
 import com.acxiom.metalus._
 import com.acxiom.metalus.audits.ExecutionAudit
-import com.acxiom.metalus.utils.ReflectionUtils
 import org.slf4j.LoggerFactory
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
@@ -688,7 +687,7 @@ case class JDBCSessionStorage(connectionString: String,
    * @return true if the data can be stored.
    */
   override def saveAudit(sessionRecord: AuditSessionRecord): Boolean = {
-    // Table --> |SESSION_ID|DATE|VERSION|CONVERTOR|AUDIT_KEY|START_TIMEE|END_TIME|DURATION|STATE
+    // Table --> |SESSION_ID|DATE|VERSION|CONVERTOR|AUDIT_KEY|START_TIME|END_TIME|DURATION|STATE
     val sharedWhere = s"WHERE SESSION_ID = '${sessionRecord.sessionId}' AND AUDIT_KEY = '${sessionRecord.auditKey}'"
     val results = connection.prepareStatement(s"SELECT * FROM AUDITS $sharedWhere").executeQuery()
     val statement = if (results.next()) {
@@ -767,8 +766,15 @@ case class JDBCSessionStorage(connectionString: String,
            |'${sessionRecord.resultKey}', '${sessionRecord.name}', ?""".stripMargin
       connection.prepareStatement(s"INSERT INTO STEP_RESULTS VALUES($valuesClause)")
     }
-    statement.setBlob(1, new ByteArrayInputStream(sessionRecord.state))
-    statement.executeUpdate() == 1
+    statement.setBlob(1, new ByteArrayInputStream(sessionRecord.state), sessionRecord.state.length)
+    try {
+      statement.executeUpdate() == 1
+    } catch {
+      case t: Throwable =>
+        println(s"${sessionRecord.resultKey} failed to save")
+        t.printStackTrace()
+        throw t
+    }
   }
 
   /**
@@ -858,9 +864,10 @@ case class JDBCSessionStorage(connectionString: String,
 
   private def readBlobData(results: ResultSet) = {
     val blob = results.getBlob("STATE")
-    blob.getBytes(1, blob.length().toInt)
-//    val blob = results.getBlob("STATE").getBinaryStream
-//    val state = Stream.continually(blob.read).takeWhile(-1 !=).map(_.toByte).toArray
-//    state
+    if (Option(blob).isDefined) {
+      blob.getBytes(1, blob.length().toInt)
+    } else {
+      None.orNull
+    }
   }
 }

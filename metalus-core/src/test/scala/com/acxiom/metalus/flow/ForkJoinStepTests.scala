@@ -158,7 +158,7 @@ class ForkJoinStepTests extends AnyFunSpec {
       val executionResult = PipelineExecutor.executePipelines(pipeline.get, TestHelper.generatePipelineContext())
       assert(executionResult.success)
       val ctx = executionResult.pipelineContext
-      val results = ctx.getStepResultByKey(PipelineStateInfo("embedded_fork_pipeline", Some("SUM_VALUES")).key)
+      val results = ctx.getStepResultByKey(PipelineStateInfo("embedded_fork_pipeline", Some("FLATTEN_LIST")).key)
       assert(results.isDefined)
       assert(results.get.primaryReturn.isDefined)
       val primary = results.get.primaryReturn.get.asInstanceOf[Int]

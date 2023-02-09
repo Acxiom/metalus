@@ -207,7 +207,7 @@ trait EventBasedPipelineListener extends PipelineListener {
       "eventTime" -> new Date().getTime,
       "pipeline" -> EventPipelineRecord(pipeline.id.getOrElse(""), pipeline.name.getOrElse("")),
       "step" -> EventPipelineStepRecord(step.id.getOrElse(""), step.stepTemplateId.getOrElse(""),
-        pipelineContext.currentStateInfo.get.forkData.getOrElse(ForkData("", -1, None)).id)
+        pipelineContext.currentStateInfo.get.forkData.getOrElse(ForkData(-1, None, None)).index.toString)
     ))
   }
 
@@ -229,7 +229,7 @@ trait EventBasedPipelineListener extends PipelineListener {
       "eventTime" -> new Date().getTime,
       "pipelineId" -> executionInfo.pipelineId,
       "stepId" -> executionInfo.stepId.getOrElse(""),
-      "groupId" -> executionInfo.forkData.getOrElse(ForkData("", -1, None)).id,
+      "groupId" -> executionInfo.forkData.getOrElse(ForkData(-1, None, None)).index.toString,
       "messages" -> messageList.messages,
       "stacks" -> messageList.stacks
     ))

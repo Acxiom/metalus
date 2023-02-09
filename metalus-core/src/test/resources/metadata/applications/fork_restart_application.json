@@ -1,0 +1,27 @@
+{
+  "pipelineId": "embedded_fork_pipeline",
+  "requiredParameters": [
+    "rootLogLevel"
+  ],
+  "stepPackages": [
+    "com.acxiom.metalus"
+  ],
+  "contexts": {
+    "session": {
+      "className": "com.acxiom.metalus.context.DefaultSessionContext",
+      "parameters": {
+        "sessionStorage": {
+          "className": "com.acxiom.metalus.context.JDBCSessionStorage",
+          "mapEmbeddedVariables": true,
+          "object": {
+            "connectionProperties": {
+              "driver": "org.apache.derby.jdbc.EmbeddedDriver"
+            },
+            "credentialName": "!credentialName",
+            "connectionString": "!connectionString"
+          }
+        }
+      }
+    }
+  }
+}

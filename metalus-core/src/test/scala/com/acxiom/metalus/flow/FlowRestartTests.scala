@@ -1,6 +1,6 @@
 package com.acxiom.metalus.flow
 
-import com.acxiom.metalus.{Constants, PipelineContext, PipelineExecutor, PipelineListener, PipelineStateInfo, TestHelper}
+import com.acxiom.metalus._
 import com.acxiom.metalus.applications.ApplicationUtils
 import com.acxiom.metalus.context.SessionContext
 import com.acxiom.metalus.parser.JsonParser
@@ -49,7 +49,7 @@ class FlowRestartTests extends AnyFunSpec {
         assert(thrown.getMessage == "Step is not restartable: simple_restart_pipeline.STEP_3")
 
         // Restart STEP_2
-        pipelineListener.clear
+        pipelineListener.clear()
         val ctx = ApplicationUtils.createPipelineContext(application,
           Some(Map[String, Any]("rootLogLevel" -> true, "customLogLevels" -> "",
             "connectionString" -> settings.url, "credentialName" -> "redonthehead", "step2Value" -> "restart")),
@@ -95,7 +95,7 @@ class FlowRestartTests extends AnyFunSpec {
         assert(pipelineListener.getStepList.length == Constants.NINE)
 
         // Restart two steps, one in each branch SUM_VALUES and SUM_VALUES_NOT_MERGED (after branch)
-        pipelineListener.clear
+        pipelineListener.clear()
         val ctx = ApplicationUtils.createPipelineContext(application,
           Some(Map[String, Any]("rootLogLevel" -> true, "customLogLevels" -> "",
             "connectionString" -> settings.url,
@@ -172,7 +172,7 @@ class FlowRestartTests extends AnyFunSpec {
         assert(thrown.getMessage == "Step is not restartable: root.STEP_4")
 
         // Validate the output of STEP_4 should include the output of STEP_3
-        pipelineListener.clear
+        pipelineListener.clear()
         val ctx = ApplicationUtils.createPipelineContext(application,
           Some(Map[String, Any]("rootLogLevel" -> true, "customLogLevels" -> "",
             "connectionString" -> settings.url, "credentialName" -> "redonthehead", "step2Value" -> "restart")),
@@ -225,6 +225,87 @@ class FlowRestartTests extends AnyFunSpec {
           case _ => // Do nothing
         }
       }
+    }
+
+    describe("fork") {
+      it("should restart within a fork") {
+        val settings = TestHelper.setupTestDB("restartForkTest")
+        val application = JsonParser.parseApplication(
+          Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/fork_restart_application.json")).mkString)
+        val credentialProvider = TestHelper.getDefaultCredentialProvider
+        val pipelineListener = RestartPipelineListener()
+        val pipelineContext = ApplicationUtils.createPipelineContext(application,
+          Some(Map[String, Any]("rootLogLevel" -> true, "customLogLevels" -> "",
+            "connectionString" -> settings.url, "validateStepParameterTypes" -> true)), None, pipelineListener, Some(credentialProvider))
+
+        val sessionId = pipelineContext.contextManager.getContext("session").get.asInstanceOf[SessionContext].sessionId
+        val executionResult = PipelineExecutor.executePipelines(pipelineContext.pipelineManager.getPipeline(application.pipelineId.get).get, pipelineContext)
+        assert(executionResult.success)
+        assert(pipelineListener.getStepList.nonEmpty)
+        assert(pipelineListener.getStepList.length == Constants.EIGHTEEN)
+        var ctx = executionResult.pipelineContext
+        val results = ctx.getStepResultByKey(PipelineStateInfo("embedded_fork_pipeline", Some("FLATTEN_LIST")).key)
+        assert(results.isDefined)
+        assert(results.get.primaryReturn.isDefined)
+        val primary = results.get.primaryReturn.get.asInstanceOf[Int]
+        assert(primary == 10)
+        val processValueAudits = ctx.getPipelineAudits(PipelineStateInfo("embedded_fork_pipeline", Some("PROCESS_VALUE")))
+        assert(processValueAudits.isDefined)
+        assert(processValueAudits.get.length == 6)
+
+        // Validate the restart for embedded fork. Restart should be the last fork (3 elements) second inner fork (value 2)
+        pipelineListener.clear()
+        ctx = ApplicationUtils.createPipelineContext(application,
+          Some(Map[String, Any]("rootLogLevel" -> true, "customLogLevels" -> "", "connectionString" -> settings.url)),
+          Some(Map("restartSteps" -> "embedded_fork_pipeline.PROCESS_VALUE.f(2_1)", "existingSessionId" -> sessionId.toString)),
+          pipelineListener, Some(credentialProvider))
+        // Validate the session was restored
+        assert(ctx.contextManager.getContext("session").get.asInstanceOf[SessionContext].sessionId.toString == sessionId.toString)
+        val result1 = PipelineExecutor.executePipelines(ctx.pipelineManager.getPipeline(application.pipelineId.get).get, ctx)
+        assert(result1.success)
+        assert(pipelineListener.getStepList.nonEmpty)
+        assert(pipelineListener.getStepList.length == Constants.THREE)
+
+        val query =
+          s"""SELECT * FROM STEP_RESULTS WHERE SESSION_ID = '${sessionId.toString}'
+             |AND NAME = 'primaryKey'
+             |AND RESULT_KEY =""".stripMargin
+        val conn = DriverManager.getConnection(settings.url, settings.connectionProperties)
+        val stmt = conn.createStatement
+        var sqlResults = stmt.executeQuery(s"$query 'embedded_fork_pipeline.PROCESS_VALUE.f(2_1)'")
+        assert(sqlResults.next())
+        assert(sqlResults.getInt("VERSION") == 1)
+        sqlResults = stmt.executeQuery(s"$query 'embedded_fork_pipeline.FLATTEN_LIST'")
+        assert(sqlResults.next())
+        assert(sqlResults.getInt("VERSION") == 1)
+        sqlResults = stmt.executeQuery(s"$query 'embedded_fork_pipeline.SUM_VALUES.f(2)'")
+        assert(sqlResults.next())
+        assert(sqlResults.getInt("VERSION") == 1)
+        sqlResults = stmt.executeQuery(s"$query 'embedded_fork_pipeline.SUM_VALUES.f(1)'")
+        assert(sqlResults.next())
+        assert(sqlResults.getInt("VERSION") == 0)
+
+        // Clean up the data
+        try {
+          stmt.close()
+          conn.close()
+          TestHelper.stopTestDB(settings.name)
+        } catch {
+          case _ => // Do nothing
+        }
+      }
+    }
+  }
+
+  describe("Recovery") {
+    ignore("should recover from a fail run") {
+      /* TODO [2.0 Review]
+       * Get a clean run, update the DB to act like it failed at a certain step
+       * Restart the session and ensure that it starts processing at the right place.
+       * How do restartable steps factor into this?
+       * Some steps will not have properly stored state and need us to start earlier in the pipeline.
+       *  How can we determine that point?
+       */
     }
   }
 }

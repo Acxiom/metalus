@@ -20,6 +20,21 @@ case class ExecutionAudit(key: PipelineStateInfo,
                           durationMs: Option[Long] = None) {
 
   /**
+   * Merges the provided audit with this audit. The end and metrics will be merged. Attributes from
+   * the provided audit will override the properties of this audit.
+   *
+   * @param audit The audit to merge
+   * @return The newly merged audit.
+   */
+  def merge(audit: ExecutionAudit): ExecutionAudit = {
+    (if (audit.end.isDefined) {
+      setEnd(audit.end.get)
+    } else {
+      this
+    }).copy(metrics = this.metrics ++ audit.metrics)
+  }
+
+  /**
     * This function will set the end time and return a new Audit.
     *
     * @param endTime A long representing the time.

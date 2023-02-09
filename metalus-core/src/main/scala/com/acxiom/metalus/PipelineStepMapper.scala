@@ -90,11 +90,11 @@ trait PipelineStepMapper {
     if (value.isDefined) {
       val convertedVal = castToType(value.get, parameter)
       convertedVal match {
-        case s: String => mapByValue(Some(s), parameter, pipelineContext)
+        case s: String => mapByValue(Some(s), parameter)
         case _ => convertedVal
       }
     } else {
-      mapByValue(value, parameter, pipelineContext)
+      mapByValue(value, parameter)
     }
   }
 
@@ -502,7 +502,12 @@ trait PipelineStepMapper {
           getResponseValue(pipelinePath, applyMethod, result)
         } else {
           // Is this a fork?
-          val results = pipelineContext.getStepResultsByKey(paramName)
+          val stepName = if (pipelinePath.fork) {
+            paramName.substring(0, paramName.lastIndexOf(".f("))
+          } else {
+            paramName
+          }
+          val results = pipelineContext.getStepResultsByKey(stepName)
           if (results.isDefined) {
             val list = results.get.map(r => getResponseValue(pipelinePath, applyMethod, Some(r)))
             Some(list)
@@ -554,10 +559,14 @@ trait PipelineStepMapper {
           if (isLocalStep(paramName, keyList)) {
             val extraPath = getExtraPath(1, paths, !includeExtraPaths)
             val key = pipelineContext.currentStateInfo.get.copy(stepId = Some(paramName))
-            PipelinePath(s"$special${key.key}", extraPath)
+            if (key.forkData.isDefined && !value.contains("f(")) {
+              PipelinePath(s"$special${key.key}", extraPath, fork = true)
+            } else {
+              PipelinePath(s"$special${key.key}", extraPath)
+            }
           } else {
             // Get Key
-            val key = determineKey(paths, keyList, "", 0)
+            val key = determineKey(paths, keyList, "")
             PipelinePath(s"$special${key._1}", Some(paths.toList.slice(key._2, paths.length).mkString(".")))
           }
         case "$" | "?" =>
@@ -568,7 +577,7 @@ trait PipelineStepMapper {
             PipelinePath(s"$special$key", getExtraPath(0, paths))
           } else {
             // Get Key
-            val key = determineKey(paths, keyList, "", 0)
+            val key = determineKey(paths, keyList, "")
             PipelinePath(s"$special${key._1}", getExtraPath(key._2, paths, !includeExtraPaths))
           }
         case _ => PipelinePath(value, getExtraPath(1, paths, !includeExtraPaths))
@@ -578,10 +587,12 @@ trait PipelineStepMapper {
     }
   }
 
-  private def determineKey(paths: Array[String], keys: List[PipelineStateInfo], key: String, index: Int = 0): (String, Int) = {
+  @tailrec
+  private def determineKey(paths: Array[String], keys: List[PipelineStateInfo],
+                           key: String, index: Int = 0, fork: Boolean = false): (String, Int, Boolean) = {
     // See if we have reached the last token
     if (index >= paths.length) {
-      (key, index)
+      (key, index, fork)
     } else {
       val token = paths(index)
       // Make sure that key has a value else use the token
@@ -591,11 +602,11 @@ trait PipelineStepMapper {
         token
       }
       val nextIndex = index + 1
-      if (!keys.exists(k => k.key == currentKey ||
-        (k.forkData.isDefined && (token == "*" || token.forall(Character.isDigit))))) {
-        determineKey(paths, keys, currentKey, nextIndex)
+      val matchedKey = keys.find(k => k.key == currentKey || (k.forkData.isDefined && k.copy(forkData = None).key == currentKey))
+      if (matchedKey.isEmpty) {
+        determineKey(paths, keys, currentKey, nextIndex, fork)
       } else {
-        (currentKey, nextIndex)
+        (currentKey, nextIndex, matchedKey.get.forkData.isDefined)
       }
     }
   }
@@ -658,7 +669,7 @@ trait PipelineStepMapper {
     }
   }
 
-  private def mapByValue(value: Option[String], parameter: Parameter, pipelineContext: PipelineContext): Any = {
+  private def mapByValue(value: Option[String], parameter: Parameter): Any = {
     if (value.isDefined) {
       value.get
     } else if (parameter.defaultValue.isDefined) {
@@ -669,5 +680,5 @@ trait PipelineStepMapper {
     }
   }
 
-  private case class PipelinePath(mainValue: String, extraPath: Option[String])
+  private case class PipelinePath(mainValue: String, extraPath: Option[String], fork: Boolean = false)
 }
