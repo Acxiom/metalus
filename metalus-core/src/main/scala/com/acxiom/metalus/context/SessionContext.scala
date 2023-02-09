@@ -27,6 +27,25 @@ trait SessionContext extends Context {
   def sessionId: UUID
 
   /**
+   * Called when application execution begins.
+   * @return true if the event is logged.
+   */
+  def startSession(): Boolean
+
+  /**
+   * Called when an application completes.
+   * @param status The status of the application. Will be either: COMPLETE, ERROR, PAUSE
+   * @return true if the application can be completed.
+   */
+  def completeSession(status: String): Boolean
+
+  /**
+   * Returns the history for this session. None will be returned for new sessions.
+   * @return An option list of session history or None.
+   */
+  def sessionHistory: Option[List[SessionInformation]]
+
+  /**
    * Saves the result of the step.
    *
    * @param key    The step key.
@@ -95,6 +114,7 @@ trait SessionContext extends Context {
   def loadStepStatus(): Option[List[StepStatus]]
 }
 
+case class SessionInformation(sessionId: UUID, status: String, startDate: Date, endDate: Date, durations: Long)
 case class StepStatus(stepKey: String, status: String)
 
 /**
@@ -131,6 +151,14 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
       UUID.randomUUID()
     }
   }
+
+  override def startSession(): Boolean =
+    storage.startSession(sessionId, System.currentTimeMillis(), "RUNNING")
+
+  override def completeSession(status: String): Boolean =
+    storage.completeSession(sessionId, System.currentTimeMillis(), status.toUpperCase)
+
+  override def sessionHistory: Option[List[SessionInformation]] = storage.getSessionHistory(sessionId)
 
   /**
    * Saves the result of the step.
@@ -480,6 +508,33 @@ case class GlobalSessionRecord(override val sessionId: UUID,
 
 trait SessionStorage {
   /**
+   * Creates a new entry for this session.
+   *
+   * @param sessionId The session id.
+   * @param startDate The date this session was started.
+   * @param status    The status to log. Should be RUNNING.
+   * @return true if the data was stored.
+   */
+  def startSession(sessionId: UUID, startDate: Long, status: String): Boolean
+
+  /**
+   * Updates the session data to include the provided end date and status. Status should be either COMPLETE, ERROR or PAUSED.
+   *
+   * @param sessionId The session id.
+   * @param endDate   The date this session ended.
+   * @param status    The status to log. Should be COMPLETE, ERROR or PAUSED.
+   * @return true if the data was stored
+   */
+  def completeSession(sessionId: UUID, endDate: Long, status: String): Boolean
+
+  /**
+   * Returns an history for this session.
+   * @param sessionId The unique session id.
+   * @return An optional list of history information.
+   */
+  def getSessionHistory(sessionId: UUID): Option[List[SessionInformation]]
+
+  /**
    * Sets the current status for the provided key.
    *
    * @param sessionRecord The record containing the status data.
@@ -608,6 +663,34 @@ case class NoopSessionStorage() extends SessionStorage {
    * @return An optional list of session records.
    */
   override def loadAudits(sessionId: UUID): Option[List[AuditSessionRecord]] = None
+
+  /**
+   * Creates a new entry for this session.
+   *
+   * @param sessionId The session id.
+   * @param startDate The date this session was started.
+   * @param status    The status to log. Should be RUNNING.
+   * @return true if the data was stored.
+   */
+  override def startSession(sessionId: UUID, startDate: Long, status: String): Boolean = true
+
+  /**
+   * Updates the session data to include the provided end date and status. Status should be either COMPLETE, ERROR or PAUSED.
+   *
+   * @param sessionId The session id.
+   * @param endDate   The date this session ended.
+   * @param status    The status to log. Should be COMPLETE, ERROR or PAUSED.
+   * @return true if the data was stored
+   */
+  override def completeSession(sessionId: UUID, endDate: Long, status: String): Boolean = true
+
+  /**
+   * Returns an history for this session.
+   *
+   * @param sessionId The unique session id.
+   * @return An optional list of history information.
+   */
+  override def getSessionHistory(sessionId: UUID): Option[List[SessionInformation]] = None
 }
 
 // noinspection SqlNoDataSourceInspection
@@ -630,6 +713,90 @@ case class JDBCSessionStorage(connectionString: String,
   }
 
   private val connection = DriverManager.getConnection(connectionString, CONN_PROPERTIES)
+
+  /**
+   * Creates a new entry for this session.
+   *
+   * @param sessionId The session id.
+   * @param startDate The date this session was started.
+   * @param status    The status to log. Should be RUNNING.
+   * @return true if the data was stored.
+   */
+  override def startSession(sessionId: UUID, startDate: Long, status: String): Boolean = {
+    // Table --> |SESSION_ID|STATUS|START_TIME|END_TIME|DURATION
+    val results = connection.prepareStatement(s"select * from SESSIONS where SESSION_ID = '${sessionId.toString}'").executeQuery()
+    if (results.next()) {
+      connection.prepareStatement(
+        s"""INSERT INTO SESSION_HISTORY
+           |VALUES('${sessionId.toString}',
+           |'${results.getString("STATUS")}',
+           |${results.getLong("START_TIME")},
+           |${results.getLong("END_TIME")},
+           |${results.getLong("DURATION")})""".stripMargin)
+        .executeUpdate()
+      connection.prepareStatement(s"DELETE FROM SESSIONS WHERE SESSION_ID = '${sessionId.toString}'").executeUpdate()
+    }
+    connection.prepareStatement(s"INSERT INTO SESSIONS VALUES('${sessionId.toString}', '$status', $startDate, -1, -1)")
+      .executeUpdate() == 1
+  }
+
+  /**
+   * Updates the session data to include the provided end date and status. Status should be either COMPLETE, ERROR or PAUSED.
+   *
+   * @param sessionId The session id.
+   * @param endDate   The date this session ended.
+   * @param status    The status to log. Should be COMPLETE, ERROR or PAUSED.
+   * @return true if the data was stored
+   */
+  override def completeSession(sessionId: UUID, endDate: Long, status: String): Boolean = {
+    // Table --> |SESSION_ID|STATUS|START_TIME|END_TIME|DURATION
+    val results = connection.prepareStatement(s"select * from SESSIONS where SESSION_ID = '${sessionId.toString}'").executeQuery()
+    if (results.next()) {
+      val startTime = results.getLong("START_TIME")
+      connection.prepareStatement(
+        s"""UPDATE SESSIONS SET END_TIME = $endDate, DURATION = ${endDate - startTime}, STATUS = '$status'
+            WHERE SESSION_ID = '${sessionId.toString}'""").executeUpdate() == 1
+    } else {
+      false
+    }
+  }
+
+  /**
+   * Returns an history for this session.
+   *
+   * @param sessionId The unique session id.
+   * @return An optional list of history information.
+   */
+  override def getSessionHistory(sessionId: UUID): Option[List[SessionInformation]] = {
+    // Tables --> |SESSION_ID|STATUS|START_TIME|END_TIME|DURATION
+    val sessionResult = connection.prepareStatement(s"select * from SESSIONS where SESSION_ID = '${sessionId.toString}'").executeQuery()
+    val mainRecord = if (sessionResult.next()) {
+      Some(List(createSessionInformation(sessionResult)))
+    } else {
+      None
+    }
+    val historyResults = connection.prepareStatement(s"select * from SESSION_HISTORY where SESSION_ID = '${sessionId.toString}'").executeQuery()
+    val historyRecords = Iterator.from(0).takeWhile(_ => historyResults.next()).map(_ => createSessionInformation(historyResults))
+    val finalList = if (mainRecord.isDefined) {
+      historyRecords.foldLeft(mainRecord.get)((list, history) => list :+ history)
+    } else {
+      historyRecords
+    }
+
+    if (finalList.nonEmpty) {
+      Some(finalList.toList)
+    } else {
+      None
+    }
+  }
+
+  private def createSessionInformation(sessionResult: ResultSet) = {
+    SessionInformation(UUID.fromString(sessionResult.getString("SESSION_ID")),
+      sessionResult.getString("STATUS"),
+      new Date(sessionResult.getLong("START_TIME")),
+      new Date(sessionResult.getLong("END_TIME")),
+      sessionResult.getLong("DURATION"))
+  }
 
   /**
    * Sets the current status for the provided key.
@@ -767,14 +934,7 @@ case class JDBCSessionStorage(connectionString: String,
       connection.prepareStatement(s"INSERT INTO STEP_RESULTS VALUES($valuesClause)")
     }
     statement.setBlob(1, new ByteArrayInputStream(sessionRecord.state), sessionRecord.state.length)
-    try {
-      statement.executeUpdate() == 1
-    } catch {
-      case t: Throwable =>
-        println(s"${sessionRecord.resultKey} failed to save")
-        t.printStackTrace()
-        throw t
-    }
+    statement.executeUpdate() == 1
   }
 
   /**
