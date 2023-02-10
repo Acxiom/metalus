@@ -3,7 +3,7 @@ package com.acxiom.metalus.audits
 import com.acxiom.metalus.PipelineStateInfo
 import com.acxiom.metalus.audits.AuditType.AuditType
 
-/** TODO Use the stateinfo as the key and remove the graph
+/**
   * Creates a new Audit with the appropriate information,
   *
   * @param key The pipeline state associated with this audit

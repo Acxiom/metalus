@@ -86,14 +86,12 @@ class StepGroupStepTests extends AnyFunSpec {
       validateResults(executionResult.pipelineContext, "globalOne", "gtwo", "3")
     }
 
-    it("Should execute step with pipelineMappings pulled from PipelineManager") {
+    it("Should execute step with pipeline pulled from PipelineManager") {
       TestHelper.pipelineListener = PipelineListener()
       val mappingPipelineStepTwo = PipelineStepGroup(Some("PIPELINE_STEP_TWO"), None, None, Some("step-group"),
-        Some(List(Parameter(Some("text"), Some("pipelineId"),
-          value = Some("subPipelineId")),
-          Parameter(Some("object"), Some("pipelineMappings"),
+        Some(List(Parameter(Some("object"), Some("pipelineMappings"),
             value = Some(Map[String, Any]("globalOne" -> "globalOne", "globalTwo" -> "gtwo", "globalThree" -> "3"))))),
-        pipelineId = None, nextStepId = Some("PIPELINE_STEP_THREE"))
+        pipelineId = Some("subPipelineId"), nextStepId = Some("PIPELINE_STEP_THREE"))
 
       val context = TestHelper.generatePipelineContext()
         .copy(pipelineManager = PipelineManager(List(subPipeline)))
@@ -103,7 +101,7 @@ class StepGroupStepTests extends AnyFunSpec {
       validateResults(executionResult.pipelineContext, "globalOne", "gtwo", "3")
     }
 
-    it("Should execute step with pipelineMappings pulled from PipelineManager using special character") {
+    it("Should execute step with pipeline pulled from PipelineManager using special character") {
       TestHelper.pipelineListener = PipelineListener()
       val mappingPipelineStepTwo = PipelineStepGroup(Some("PIPELINE_STEP_TWO"), None, None, Some("step-group"),
         Some(List(Parameter(Some("text"), Some("pipeline"),
@@ -123,13 +121,11 @@ class StepGroupStepTests extends AnyFunSpec {
     it("Should execute step with result parameter") {
       TestHelper.pipelineListener = PipelineListener()
       val mappingPipelineStepTwo = PipelineStepGroup(Some("PIPELINE_STEP_TWO"), None, None, Some("step-group"),
-        Some(List(Parameter(Some("text"), Some("pipeline"),
-          value = Some("!subPipeline")),
-          Parameter(Some("boolean"), Some("useParentGlobals"), value = Some(true)),
+        Some(List(Parameter(Some("boolean"), Some("useParentGlobals"), value = Some(true)),
           Parameter(Some("object"), Some("pipelineMappings"),
             value = Some(Map[String, Any]("globalTwo" -> "gtwo", "globalThree" -> "3"))),
         Parameter(Some("result"), Some("output"), None, None, Some("@SUB_PIPELINE_STEP_TWO")))),
-        pipelineId = None, nextStepId = Some("PIPELINE_STEP_THREE"))
+        pipelineId = Some("!subPipeline"), nextStepId = Some("PIPELINE_STEP_THREE"))
 
       val context = TestHelper.generatePipelineContext()
         .setGlobal("subPipeline", subPipeline)

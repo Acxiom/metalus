@@ -1,6 +1,5 @@
 package com.acxiom.metalus
 
-import com.acxiom.metalus.ExecutionEvaluationResult.ExecutionEvaluationResult
 import com.acxiom.metalus.audits.ExecutionAudit
 import com.acxiom.metalus.context.ContextManager
 import com.acxiom.metalus.parser.JsonParser
@@ -589,8 +588,6 @@ case class RestartPoints(steps: List[StepState])
  */
 case class StepState(key: PipelineStateInfo, status: String)
 
-// TODO Reevaluate the classes below to see if they are needed in the new world.
-
 /**
   * This class represents the result of executing a list of pipelines.
   *
@@ -598,37 +595,8 @@ case class StepState(key: PipelineStateInfo, status: String)
   * @param success         Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
   * @param paused          Flag indicating whether the "failure" was actually a pause
   * @param exception       The original exception
-  * @param runStatus       Status indicating whether the calling execution should continue execution.
   */
 case class PipelineExecutionResult(pipelineContext: PipelineContext,
                                    success: Boolean,
                                    paused: Boolean,
-                                   exception: Option[Throwable],
-                                   runStatus: ExecutionEvaluationResult = ExecutionEvaluationResult.RUN)
-
-// TODO [2.0 Review] Remove in 2.0.0
-object ExecutionEvaluationResult extends Enumeration {
-  type ExecutionEvaluationResult = Value
-  val RUN, SKIP, STOP = Value
-}
-
-///**
-//  * Contains the current pipeline and step information
-//  *
-//  * @param stepId      The current step being executed
-//  * @param pipelineId  The current pipeline being executed
-//  * @param executionId The current execution being executed
-//  * @param groupId     The current group being executed
-//  */
-//case class PipelineExecutionInfo(stepId: Option[String] = None,
-//                                 pipelineId: Option[String] = None,
-//                                 executionId: Option[String] = None,
-//                                 groupId: Option[String] = None) {
-//  def displayPipelineStepString: String = {
-//    s"pipeline ${pipelineId.getOrElse("")} step ${stepId.getOrElse("")}"
-//  }
-//
-//  def displayString: String = {
-//    s"execution ${executionId.getOrElse("")} group ${groupId.getOrElse("")} pipeline ${pipelineId.getOrElse("")} step ${stepId.getOrElse("")}"
-//  }
-//}
+                                   exception: Option[Throwable])

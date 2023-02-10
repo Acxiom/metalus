@@ -137,14 +137,20 @@ case class StepGroupFlow(pipeline: Pipeline,
   }
 
   private def getPipeline(step: FlowStep, parameterValues: Map[String, Any], pipelineContext: PipelineContext): Pipeline = {
-    val pipelineId = step match {
-      case group: PipelineStepGroup if group.pipelineId.isDefined => group.pipelineId
+    val (pipelineId, pipeline) = step match {
+      case group: PipelineStepGroup if group.pipelineId.isDefined =>
+        val p = Parameter(Some("text"), Some("pipelineId"), value = group.pipelineId)
+        val pipeline = pipelineContext.parameterMapper.mapParameter(p, pipelineContext)
+        pipeline match {
+          case pipeline1: Pipeline => (None, Some(pipeline1))
+          case _ => (Some(pipeline.toString), None)
+        }
       case _ => if (step.params.get.exists(_.name.getOrElse("") == "pipelineId")) {
-        Some(step.params.get.find(_.name.getOrElse("") == "pipelineId").get.value.getOrElse("").toString)
+        (Some(step.params.get.find(_.name.getOrElse("") == "pipelineId").get.value.getOrElse("").toString), None)
       } else if (parameterValues.contains("pipelineId")) {
-        parameterValues.get("pipelineId").asInstanceOf[Option[String]]
+        (parameterValues.get("pipelineId").asInstanceOf[Option[String]], None)
       } else {
-        None
+        (None, None)
       }
     }
 
@@ -153,6 +159,8 @@ case class StepGroupFlow(pipeline: Pipeline,
         .getOrElse(throw PipelineException(message = Some(s"Unable to retrieve required step group id ${pipelineId.get}"),
           context = Some(pipelineContext),
           pipelineProgress = pipelineContext.currentStateInfo))
+    } else if (pipeline.isDefined) {
+      pipeline.get
     } else {
       parameterValues("pipeline").asInstanceOf[Pipeline]
     }
