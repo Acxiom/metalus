@@ -39,7 +39,8 @@ trait ConvertableReference { self: DataReference[_] =>
   def convertAndApply(queryOperation: QueryOperator, converters: Option[List[String]] = None): DataReference[_] = {
     val res = convertIfPossible(queryOperation, converters)
     if(res.isEmpty) {
-      throw PipelineException(message = Some(""),
+      val message = s"No conversions found for data reference: [${getClass.getSimpleName}] and operator: [$queryOperation]"
+      throw PipelineException(message = Some(message),
         pipelineProgress = pipelineContext.currentStateInfo)
     }
     res.get

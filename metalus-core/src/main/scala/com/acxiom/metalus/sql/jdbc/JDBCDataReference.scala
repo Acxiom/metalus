@@ -1,7 +1,7 @@
 package com.acxiom.metalus.sql.jdbc
 
 import com.acxiom.metalus.PipelineContext
-import com.acxiom.metalus.sql.{QueryOperator, Select, SqlBuildingDataReference}
+import com.acxiom.metalus.sql.{ConvertableReference, QueryOperator, Select, SqlBuildingDataReference}
 
 import java.sql.{Connection, DriverManager, ResultSet}
 import java.util.Properties
@@ -31,7 +31,7 @@ final case class BasicJDBCDataReference(initialReference: String,
                                         properties: Map[String, String],
                                         pipelineContext: PipelineContext,
                                         logicalPlan: Queue[QueryOperator] = Queue())
-  extends JDBCDataReference[ResultSet] {
+  extends JDBCDataReference[ResultSet] with ConvertableReference {
 
   override def execute: ResultSet = {
     Try(createConnection()).flatMap { connection =>
