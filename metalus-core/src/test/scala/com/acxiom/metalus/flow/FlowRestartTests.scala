@@ -26,7 +26,7 @@ class FlowRestartTests extends AnyFunSpec {
             "step2Value" -> "first run")), None,
           pipelineListener, Some(credentialProvider))
 
-        val sessionId = pipelineContext.contextManager.getContext("session").get.asInstanceOf[SessionContext].sessionId
+        val sessionId = pipelineContext.currentSessionId
         val result = PipelineExecutor.executePipelines(pipelineContext.pipelineManager.getPipeline(application.pipelineId.get).get, pipelineContext)
         assert(result.success)
         assert(pipelineListener.getStepList.nonEmpty)
@@ -88,7 +88,7 @@ class FlowRestartTests extends AnyFunSpec {
             "step2Value" -> "first run")), None,
           pipelineListener, Some(credentialProvider))
 
-        val sessionId = pipelineContext.contextManager.getContext("session").get.asInstanceOf[SessionContext].sessionId
+        val sessionId = pipelineContext.currentSessionId
         val result = PipelineExecutor.executePipelines(pipelineContext.pipelineManager.getPipeline(application.pipelineId.get).get, pipelineContext)
         assert(result.success)
         assert(pipelineListener.getStepList.nonEmpty)
@@ -109,7 +109,7 @@ class FlowRestartTests extends AnyFunSpec {
         assert(pipelineListener.getStepList.nonEmpty)
         assert(pipelineListener.getStepList.length == Constants.FOUR)
 
-        // Ensure that the version is incremented for the steps that are being re-run
+        // Ensure that the RUN_ID is incremented for the steps that are being re-run
         val conn = DriverManager.getConnection(settings.url, settings.connectionProperties)
         val stmt = conn.createStatement
         val query =
@@ -118,19 +118,19 @@ class FlowRestartTests extends AnyFunSpec {
              |AND RESULT_KEY =""".stripMargin
         var results = stmt.executeQuery(s"$query 'complex_split_flow.SUM_VALUES_NOT_MERGED'")
         assert(results.next())
-        assert(results.getInt("VERSION") == 1)
+        assert(results.getInt("RUN_ID") == Constants.TWO)
         results = stmt.executeQuery(s"$query 'complex_split_flow.SUM_VALUES'")
         assert(results.next())
-        assert(results.getInt("VERSION") == 1)
+        assert(results.getInt("RUN_ID") == Constants.TWO)
         results = stmt.executeQuery(s"$query 'complex_split_flow.FORMAT_STRING_PART_2'")
         assert(results.next())
-        assert(results.getInt("VERSION") == 1)
+        assert(results.getInt("RUN_ID") == Constants.TWO)
         results = stmt.executeQuery(s"$query 'complex_split_flow.GENERATE_DATA'")
         assert(results.next())
-        assert(results.getInt("VERSION") == 0)
+        assert(results.getInt("RUN_ID") == Constants.ONE)
         results = stmt.executeQuery(s"$query 'complex_split_flow.BRANCH'")
         assert(results.next())
-        assert(results.getInt("VERSION") == 0)
+        assert(results.getInt("RUN_ID") == Constants.ONE)
 
         // Clean up the data
         try {
@@ -156,11 +156,12 @@ class FlowRestartTests extends AnyFunSpec {
             "step2Value" -> "first run")), None,
           pipelineListener, Some(credentialProvider))
 
-        val sessionId = pipelineContext.contextManager.getContext("session").get.asInstanceOf[SessionContext].sessionId
+        val sessionId = pipelineContext.currentSessionId
         val result = PipelineExecutor.executePipelines(pipelineContext.pipelineManager.getPipeline(application.pipelineId.get).get, pipelineContext)
         assert(result.success)
         assert(pipelineListener.getStepList.nonEmpty)
         assert(pipelineListener.getStepList.length == Constants.FIVE)
+        assert(result.pipelineContext.stepResults.size == Constants.FIVE)
 
         // Make sure that any step (STEP_4) which we want to restart and is not listed as restartable fails
         val thrown = intercept[IllegalArgumentException] {
@@ -180,7 +181,7 @@ class FlowRestartTests extends AnyFunSpec {
           pipelineListener, Some(credentialProvider))
         // Validate the session was restored
         assert(ctx.contextManager.getContext("session").get.asInstanceOf[SessionContext].sessionId.toString == sessionId.toString)
-        assert(ctx.stepResults.size == Constants.FOUR)
+        assert(ctx.stepResults.size == Constants.FIVE)
         assert(ctx.globals.get("step2Value") == "restart")
         val result1 = PipelineExecutor.executePipelines(ctx.pipelineManager.getPipeline(application.pipelineId.get).get, ctx)
         assert(result1.success)
@@ -196,7 +197,7 @@ class FlowRestartTests extends AnyFunSpec {
         assert(step4Restart.isDefined)
         assert(step4Restart.get.primaryReturn.get.toString == "STEP1 -> STEP2 -> restart -> STEP3 -> STEP4")
 
-        // Ensure that the version is incremented for the steps that are being re-run
+        // Ensure that the RUN_ID is incremented for the steps that are being re-run
         val query =
           s"""SELECT * FROM STEP_RESULTS WHERE SESSION_ID = '${sessionId.toString}'
              |AND NAME = 'primaryKey'
@@ -205,16 +206,16 @@ class FlowRestartTests extends AnyFunSpec {
         val stmt = conn.createStatement
         var results = stmt.executeQuery(s"$query 'root.SIMPLEPIPELINE.simple_restart_pipeline.STEP_2'")
         assert(results.next())
-        assert(results.getInt("VERSION") == 1)
+        assert(results.getInt("RUN_ID") == Constants.TWO)
         results = stmt.executeQuery(s"$query 'root.SIMPLEPIPELINE.simple_restart_pipeline.STEP_3'")
         assert(results.next())
-        assert(results.getInt("VERSION") == 1)
+        assert(results.getInt("RUN_ID") == Constants.TWO)
         results = stmt.executeQuery(s"$query 'root.STEP_4'")
         assert(results.next())
-        assert(results.getInt("VERSION") == 1)
+        assert(results.getInt("RUN_ID") == Constants.TWO)
         results = stmt.executeQuery(s"$query 'root.SIMPLEPIPELINE.simple_restart_pipeline.STEP_1'")
         assert(results.next())
-        assert(results.getInt("VERSION") == 0)
+        assert(results.getInt("RUN_ID") == Constants.ONE)
 
         // Clean up the data
         try {
@@ -238,7 +239,7 @@ class FlowRestartTests extends AnyFunSpec {
           Some(Map[String, Any]("rootLogLevel" -> true, "customLogLevels" -> "",
             "connectionString" -> settings.url, "validateStepParameterTypes" -> true)), None, pipelineListener, Some(credentialProvider))
 
-        val sessionId = pipelineContext.contextManager.getContext("session").get.asInstanceOf[SessionContext].sessionId
+        val sessionId = pipelineContext.currentSessionId
         val executionResult = PipelineExecutor.executePipelines(pipelineContext.pipelineManager.getPipeline(application.pipelineId.get).get, pipelineContext)
         assert(executionResult.success)
         assert(pipelineListener.getStepList.nonEmpty)
@@ -274,16 +275,16 @@ class FlowRestartTests extends AnyFunSpec {
         val stmt = conn.createStatement
         var sqlResults = stmt.executeQuery(s"$query 'embedded_fork_pipeline.PROCESS_VALUE.f(2_1)'")
         assert(sqlResults.next())
-        assert(sqlResults.getInt("VERSION") == 1)
+        assert(sqlResults.getInt("RUN_ID") == Constants.TWO)
         sqlResults = stmt.executeQuery(s"$query 'embedded_fork_pipeline.FLATTEN_LIST'")
         assert(sqlResults.next())
-        assert(sqlResults.getInt("VERSION") == 1)
+        assert(sqlResults.getInt("RUN_ID") == Constants.TWO)
         sqlResults = stmt.executeQuery(s"$query 'embedded_fork_pipeline.SUM_VALUES.f(2)'")
         assert(sqlResults.next())
-        assert(sqlResults.getInt("VERSION") == 1)
+        assert(sqlResults.getInt("RUN_ID") == Constants.TWO)
         sqlResults = stmt.executeQuery(s"$query 'embedded_fork_pipeline.SUM_VALUES.f(1)'")
         assert(sqlResults.next())
-        assert(sqlResults.getInt("VERSION") == 0)
+        assert(sqlResults.getInt("RUN_ID") == Constants.ONE)
 
         // Clean up the data
         try {
@@ -298,14 +299,73 @@ class FlowRestartTests extends AnyFunSpec {
   }
 
   describe("Recovery") {
-    ignore("should recover from a fail run") {
-      /* TODO [2.0 Review]
-       * Get a clean run, update the DB to act like it failed at a certain step
-       * Restart the session and ensure that it starts processing at the right place.
-       * How do restartable steps factor into this?
-       * Some steps will not have properly stored state and need us to start earlier in the pipeline.
-       *  How can we determine that point?
-       */
+    it("should recover from a fail run within a step group") {
+      val settings = TestHelper.setupTestDB("recoveryStepGroupTest")
+      val application = JsonParser.parseApplication(
+        Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/step_group_restart_application.json")).mkString)
+      val credentialProvider = TestHelper.getDefaultCredentialProvider
+      val pipelineListener = RestartPipelineListener()
+      val pipelineContext = ApplicationUtils.createPipelineContext(application,
+        Some(Map[String, Any]("rootLogLevel" -> true, "customLogLevels" -> "",
+          "connectionString" -> settings.url,
+          "step2Value" -> "first run")), None,
+        pipelineListener, Some(credentialProvider))
+      val sessionId = pipelineContext.currentSessionId
+      val result = PipelineExecutor.executePipelines(pipelineContext.pipelineManager.getPipeline(application.pipelineId.get).get, pipelineContext)
+      assert(result.success)
+      assert(pipelineListener.getStepList.nonEmpty)
+      assert(pipelineListener.getStepList.length == Constants.FIVE)
+      assert(result.pipelineContext.stepResults.size == Constants.FIVE)
+
+      // Modify the DB to simulate a failed process
+      val conn = DriverManager.getConnection(settings.url, settings.connectionProperties)
+      val stmt = conn.createStatement
+      stmt.execute(
+        s"""UPDATE STEP_STATUS SET STATUS = 'RUNNING'
+           |WHERE SESSION_ID = '${sessionId.toString}' AND
+           |RESULT_KEY = 'root.SIMPLEPIPELINE.simple_restart_pipeline.STEP_3'""".stripMargin)
+      stmt.execute(
+        s"""DELETE FROM STEP_STATUS_STEPS
+           |WHERE SESSION_ID = '${sessionId.toString}' AND
+           |RESULT_KEY = 'root.SIMPLEPIPELINE.simple_restart_pipeline.STEP_3'""".stripMargin)
+      stmt.execute(
+        s"""DELETE FROM STEP_STATUS_STEPS
+           |WHERE SESSION_ID = '${sessionId.toString}' AND
+           |RESULT_KEY = 'root.STEP_4'""".stripMargin)
+      stmt.execute(
+        s"""DELETE FROM STEP_RESULTS
+           |WHERE SESSION_ID = '${sessionId.toString}' AND
+           |RESULT_KEY = 'root.STEP_4'""".stripMargin)
+      stmt.execute(
+        s"""DELETE FROM STEP_STATUS_STEPS
+           |WHERE SESSION_ID = '${sessionId.toString}' AND
+           |RESULT_KEY = 'root.STEP_4'""".stripMargin)
+
+      // Ensure that the process recovers and runs STEP_2 again and not STEP_3
+      pipelineListener.clear()
+      val ctx = ApplicationUtils.createPipelineContext(application,
+        Some(Map[String, Any]("rootLogLevel" -> true, "customLogLevels" -> "",
+          "connectionString" -> settings.url, "credentialName" -> "redonthehead", "step2Value" -> "recovery")),
+        Some(Map("existingSessionId" -> sessionId.toString)),
+        pipelineListener, Some(credentialProvider))
+      // Validate the session was restored
+      assert(ctx.contextManager.getContext("session").get.asInstanceOf[SessionContext].sessionId.toString == sessionId.toString)
+      // Make sure there are only 4 results since we "failed" to finish
+      assert(ctx.stepResults.size == Constants.FOUR)
+      assert(ctx.globals.get("step2Value") == "recovery")
+      val result1 = PipelineExecutor.executePipelines(ctx.pipelineManager.getPipeline(application.pipelineId.get).get, ctx)
+      assert(result1.success)
+      assert(pipelineListener.getStepList.nonEmpty)
+      assert(pipelineListener.getStepList.length == Constants.THREE)
+      val step2Restart = result1.pipelineContext.getStepResultByKey("root.SIMPLEPIPELINE.simple_restart_pipeline.STEP_2")
+      assert(step2Restart.isDefined)
+      assert(step2Restart.get.primaryReturn.get.toString == "STEP1 -> STEP2 -> recovery")
+      val step3Restart = result1.pipelineContext.getStepResultByKey("root.SIMPLEPIPELINE.simple_restart_pipeline.STEP_3")
+      assert(step3Restart.isDefined)
+      assert(step3Restart.get.primaryReturn.get.toString == "STEP1 -> STEP2 -> recovery -> STEP3")
+      val step4Restart = result1.pipelineContext.getStepResultByKey("root.STEP_4")
+      assert(step4Restart.isDefined)
+      assert(step4Restart.get.primaryReturn.get.toString == "STEP1 -> STEP2 -> recovery -> STEP3 -> STEP4")
     }
   }
 }

@@ -97,13 +97,11 @@ trait PipelineFlow {
       val step = pipeline.steps.get.head
       val pipelineStateInfo = initialContext.currentStateInfo.get
       val executionAudit = ExecutionAudit(pipelineStateInfo, AuditType.PIPELINE, start = System.currentTimeMillis())
-      sessionContext.saveAudit(pipelineStateInfo, executionAudit)
       val updatedCtx = PipelineFlow.handleEvent(initialContext, "pipelineStarted", List(pipelineStateInfo, initialContext))
         .setCurrentStateInfo(pipelineStateInfo).setPipelineAudit(executionAudit)
       sessionContext.saveGlobals(pipelineStateInfo, updatedCtx.globals.getOrElse(Map()))
       val resultPipelineContext = executeStep(step, pipeline, stepLookup, updatedCtx)
       val updatedAudit = resultPipelineContext.getPipelineAudit(pipelineStateInfo).get.setEnd(System.currentTimeMillis())
-      sessionContext.saveAudit(pipelineStateInfo, updatedAudit)
       val auditCtx = resultPipelineContext.setPipelineAudit(updatedAudit)
       FlowResult(PipelineFlow.handleEvent(auditCtx, "pipelineFinished", List(pipelineStateInfo, auditCtx)), None, None)
     } catch {
@@ -120,27 +118,27 @@ trait PipelineFlow {
     val (skipStep, skipCtx) = determineRestartLogic(pipelineContext, stepState)
     val (nextStepId, sfContext) = if (!skipStep) {
       val executionAudit = ExecutionAudit(stepState, AuditType.STEP, start = System.currentTimeMillis())
-      sessionContext.saveAudit(stepState, executionAudit)
       val ctx = skipCtx.setCurrentStateInfo(stepState).setPipelineAudit(executionAudit)
       val ssContext = PipelineFlow.handleEvent(ctx, "pipelineStepStarted", List(stepState, ctx))
-      // Set step status of RUNNING
-      sessionContext.saveStepStatus(stepState, "RUNNING")
-      val (nstepId, sfContextResult) = processStepWithRetry(step, pipeline, ssContext, 0)
+        .setStepStatus(stepState, "RUNNING", None) // Set step status of RUNNING
+      val (nstepId, sfContextResult) = processStepWithRetry(step, pipeline, ssContext, Constants.ZERO)
       // Close the step audit
       val audit = sfContextResult.getPipelineAudit(stepState).get.setEnd(System.currentTimeMillis())
-      sessionContext.saveAudit(stepState, audit)
       // run the step finished event
+      val nextSteps = if (nstepId.isDefined) {
+        Some(List(nstepId.get))
+      } else {
+        None
+      }
       val sfContext = PipelineFlow.handleEvent(sfContextResult, "pipelineStepFinished",
-        List(stepState, sfContextResult)).setPipelineAudit(audit)
-      // Set step status to COMPLETE
-      sessionContext.saveStepStatus(stepState, "COMPLETE")
+        List(stepState, sfContextResult)).setPipelineAudit(audit).setStepStatus(stepState, "COMPLETE", nextSteps)
       (nstepId, sfContext)
     } else {
       step.`type`.getOrElse("").toLowerCase match {
         case PipelineStepType.SPLIT | PipelineStepType.FORK =>
-          processStepWithRetry(step, pipeline, skipCtx, 0)
+          processStepWithRetry(step, pipeline, skipCtx, Constants.ZERO)
         case PipelineStepType.STEPGROUP =>
-          processStepWithRetry(step, pipeline, skipCtx.setCurrentStateInfo(stepState), 0)
+          processStepWithRetry(step, pipeline, skipCtx.setCurrentStateInfo(stepState), Constants.ZERO)
         case _ => (getNextStepId(step, skipCtx.getStepResultByKey(stepState.key)), skipCtx)
       }
     }
@@ -193,22 +191,20 @@ trait PipelineFlow {
       }
       Some((nextStepId, newPipelineContext.removeGlobal("stepRetryCount")))
     } catch {
-      case t: Throwable if step.retryLimit.getOrElse(-1) > 0 && stepRetryCount < step.retryLimit.getOrElse(-1) =>
+      case t: Throwable if step.retryLimit.getOrElse(-1) > Constants.ZERO && stepRetryCount < step.retryLimit.getOrElse(-1) =>
         logger.warn(s"Retrying step ${step.id.getOrElse("")}", t)
         // Backoff timer
-        Thread.sleep(stepRetryCount * 1000)
+        Thread.sleep(stepRetryCount * Constants.ONE_THOUSAND)
         None
       case e: Throwable if step.nextStepOnError.isDefined =>
         // handle exception
         val ex = PipelineFlow.handleStepExecutionExceptions(e, pipeline, ssContext)
         // put exception on the context as the "result" for this step.
-        val sessionContext = ssContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
-        sessionContext.saveStepStatus(ssContext.currentStateInfo.get, "ERROR")
         val updateContext = updatePipelineContext(step, PipelineStepResponse(Some(ex), None), ssContext)
+          .setStepStatus(ssContext.currentStateInfo.get, "ERROR", Some(List(step.nextStepOnError.get)))
         Some((step.nextStepOnError, updateContext))
       case e =>
-        val sessionContext = ssContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
-        sessionContext.saveStepStatus(ssContext.currentStateInfo.get, "ERROR")
+        ssContext.setStepStatus(ssContext.currentStateInfo.get, "ERROR", None)
         throw e
     }
 
@@ -264,8 +260,6 @@ trait PipelineFlow {
     result match {
       case flowResult: FlowResult => flowResult.pipelineContext
       case response: PipelineStepResponse =>
-        val sessionContext = pipelineContext.contextManager.getContext("session").get.asInstanceOf[SessionContext]
-        sessionContext.saveStepResult(pipelineContext.currentStateInfo.get, response)
         processResponseGlobals(step, result, pipelineContext)
           .setPipelineStepResponse(pipelineContext.currentStateInfo.get, response)
           .setGlobal("lastStepId", pipelineProgress.key)
@@ -308,7 +302,6 @@ trait PipelineFlow {
               val stepKey = resultsTuple._1.currentStateInfo.get.copy(stepId = step.id)
               val keyName = entry._1.substring(Constants.NINE)
               val metricAudit = resultsTuple._1.getPipelineAudit(stepKey).get.setMetric(keyName, entry._2)
-              sessionContext.saveAudit(stepKey, metricAudit)
               (resultsTuple._1.setPipelineAudit(metricAudit), resultsTuple._2, resultsTuple._3)
             case e if e.startsWith("$globalLink.") =>
               val keyName = entry._1.substring(Constants.TWELVE)

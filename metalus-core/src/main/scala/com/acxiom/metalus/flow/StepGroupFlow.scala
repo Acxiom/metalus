@@ -17,7 +17,6 @@ case class StepGroupFlow(pipeline: Pipeline,
     val audit = initialContext.getPipelineAudit(stepState.get)
     val updatedCtx = (if (audit.isDefined) {
       val updatedAudit = audit.get.setEnd(System.currentTimeMillis())
-      sessionContext.saveAudit(audit.get.key, updatedAudit)
       initialContext.setPipelineAudit(updatedAudit)
     } else {
       initialContext
@@ -41,13 +40,12 @@ case class StepGroupFlow(pipeline: Pipeline,
     val pipelineAudit = ExecutionAudit(pipelineKey, AuditType.PIPELINE, Map[String, Any](),
       System.currentTimeMillis(), None, None)
     // Inject the mappings into the globals object of the PipelineContext
-    sessionContext.saveAudit(pipelineAudit.key, pipelineAudit)
     val ctx = preparePipelineContext(parameterValues, pipelineContext, subPipeline)
       .setPipelineAudit(pipelineAudit).setCurrentStateInfo(pipelineKey)
 
     val result = PipelineStepFlow(subPipeline, ctx).execute()
-    val resultCtx = result.pipelineContext
-    val response = extractStepGroupResponse(step, subPipeline, resultCtx)
+    val response = extractStepGroupResponse(step, subPipeline, result.pipelineContext)
+    val resultCtx = result.pipelineContext.setPipelineStepResponse(pipelineContext.currentStateInfo.get, response)
     val updates = subPipeline.steps.get
       .filter { step =>
         val r = resultCtx.getStepResultByStateInfo(pipelineKey.copy(stepId = step.id))
@@ -57,7 +55,6 @@ case class StepGroupFlow(pipeline: Pipeline,
       updates ++ gatherGlobalUpdates(r, step, subPipeline.id.get)
     })
     val updatePipelineAudit = ctx.getPipelineAudit(pipelineKey).get.setEnd(System.currentTimeMillis())
-    sessionContext.saveAudit(updatePipelineAudit.key, updatePipelineAudit)
     StepGroupResult(resultCtx.setPipelineAudit(updatePipelineAudit), response, updates)
   }
 

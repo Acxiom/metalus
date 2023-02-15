@@ -1,7 +1,7 @@
 package com.acxiom.metalus
 
 import com.acxiom.metalus.audits.ExecutionAudit
-import com.acxiom.metalus.context.ContextManager
+import com.acxiom.metalus.context.{ContextManager, SessionContext, StepStatus}
 import com.acxiom.metalus.parser.JsonParser
 
 import scala.io.Source
@@ -171,6 +171,7 @@ case class ClassInfo(className: Option[String], parameters: Option[Map[String, A
   * @param currentStateInfo   The current pipeline state information
  *  @param restartPoints      Optional list of steps that should be restarted.
  *  @param executionEngines   An optional list of execution engines.
+ *  @param stepStatus         An oprional list of step status objects.
   */
 case class PipelineContext(globals: Option[Map[String, Any]],
                            parameters: List[PipelineParameter],
@@ -189,7 +190,14 @@ case class PipelineContext(globals: Option[Map[String, Any]],
                            stepResults: Map[PipelineStateInfo, PipelineStepResponse] = Map(),
                            currentStateInfo: Option[PipelineStateInfo] = None,
                            restartPoints: Option[RestartPoints] = None,
-                           executionEngines: Option[List[String]] = Some(List("batch"))) {
+                           executionEngines: Option[List[String]] = Some(List("batch")),
+                           stepStatus: Option[List[StepStatus]] = Some(List())) {
+
+  lazy val currentSessionId = sessionContext.sessionId
+
+  lazy val currentRunId = sessionContext.runId
+
+  private lazy val sessionContext = contextManager.getContext("session").get.asInstanceOf[SessionContext]
 
   private lazy val alternateStepMaps = {
     executionEngines.getOrElse(List("batch")).filter(_ != "batch").foldLeft(List[AlternateStepMap]())((list, engine) => {
@@ -439,8 +447,10 @@ case class PipelineContext(globals: Option[Map[String, Any]],
    * @param result  The result of the step execution.
    * @return An updated PipelineContext.
    */
-  def setPipelineStepResponse(stepKey: PipelineStateInfo, result: PipelineStepResponse): PipelineContext =
+  def setPipelineStepResponse(stepKey: PipelineStateInfo, result: PipelineStepResponse): PipelineContext = {
+    sessionContext.saveStepResult(stepKey, result)
     this.copy(stepResults = stepResults + (stepKey -> result))
+  }
 
   /**
     * This method will locate the pipeline parameter for the provided key.
@@ -521,6 +531,7 @@ case class PipelineContext(globals: Option[Map[String, Any]],
     * @return
     */
   def setPipelineAudit(audit: ExecutionAudit): PipelineContext = {
+    sessionContext.saveAudit(audit.key, audit)
     if (this.hasAudit(audit.key)) {
       val index = audits.indexWhere(_.key.key == audit.key.key)
       this.copy(audits = audits.updated(index, audit))
@@ -563,6 +574,30 @@ case class PipelineContext(globals: Option[Map[String, Any]],
     */
   def getPipelineAudits(auditKey: PipelineStateInfo): Option[List[ExecutionAudit]] =
     Some(this.audits.filter(_.key.copy(forkData = None).key == auditKey.copy(forkData = None).key))
+
+  /**
+   * Stores the status of each executed step.
+   *
+   * @param key       The step key.
+   * @param status    The status of the step.
+   * @param nextSteps Optional list of step ids that are going to be called next.
+   * @return An updated PipelineContext.
+   */
+  def setStepStatus(key: PipelineStateInfo, status: String, nextSteps: Option[List[String]]): PipelineContext = {
+    sessionContext.saveStepStatus(key, status, nextSteps)
+    val newStatusList = if (this.stepStatus.isDefined) {
+      val statusIndex = this.stepStatus.get.indexWhere(_.stepKey == key.key)
+      if (statusIndex != -1) {
+        val updateStatus = this.stepStatus.get(statusIndex).copy(status = status, nextSteps = nextSteps)
+        Some(this.stepStatus.get.updated(statusIndex, updateStatus))
+      } else {
+        Some(this.stepStatus.get :+ StepStatus(key.key, this.currentRunId, status, nextSteps))
+      }
+    } else {
+      Some(List(StepStatus(key.key, this.currentRunId, status, nextSteps)))
+    }
+    this.copy(stepStatus = newStatusList)
+  }
 }
 
 case class PipelineParameter(pipelineKey: PipelineStateInfo, parameters: Map[String, Any])

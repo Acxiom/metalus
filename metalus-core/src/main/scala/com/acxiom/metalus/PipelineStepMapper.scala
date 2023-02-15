@@ -80,10 +80,11 @@ trait PipelineStepMapper {
 
   /**
    * This function will map a parameter based on its type. String values will also be run through the castToType
-   * method. This function can be overridden to provide more control over how "None" values are mappped to step params.
+   * method. This function can be overridden to provide more control over how "None" values are mapped to step params.
    *
-   * @param value     The value to convert
-   * @param parameter The step parameter
+   * @param value           The value to convert
+   * @param parameter       The step parameter
+   * @param pipelineContext The current context.
    * @return
    */
   def mapByType(value: Option[String], parameter: Parameter, pipelineContext: PipelineContext): Any = {

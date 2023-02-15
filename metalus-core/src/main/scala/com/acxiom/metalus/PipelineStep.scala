@@ -69,7 +69,6 @@ final case class PipelineStepGroup(override val id: Option[String] = None,
                                    override val nextStepOnError: Option[String] = None,
                                    override val retryLimit: Option[Int] = Some(-1),
                                    pipelineId: Option[String] = None) extends FlowStep
-// TODO [2.0 Review] Look into creating a PipelineForkStep which exposes the fork method and fork by values attributes
 
 /**
   * Represents a template fora step to be used when creating a pipeline.

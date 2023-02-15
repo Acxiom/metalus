@@ -41,7 +41,7 @@ class SessionContextTests extends AnyFunSpec {
         assert(sessionContext.saveStepResult(pipelineKey, BASE_STEP_RESPONSE))
         assert(sessionContext.saveStepResult(pipelineKey, FULL_STEP_RESPONSE))
         assert(sessionContext.loadStepResults().isEmpty)
-        assert(sessionContext.saveStepStatus(pipelineKey, "complete"))
+        assert(sessionContext.saveStepStatus(pipelineKey, "complete", None))
         assert(sessionContext.loadStepStatus().isEmpty)
         assert(sessionContext.saveGlobals(pipelineKey, GLOBALS_MAP))
         assert(sessionContext.loadGlobals(pipelineKey).isEmpty)
@@ -87,20 +87,24 @@ class SessionContextTests extends AnyFunSpec {
         assert(applicationHistory.get.length == Constants.TWO)
         assert(applicationHistory.get.head.status == "RUNNING")
         // Status
-        sessionContext.saveStepStatus(pipelineKey, "running")
+        sessionContext.saveStepStatus(pipelineKey, "running", None)
         results = stmt.executeQuery("SELECT * FROM STEP_STATUS")
         assert(results.next())
-        assert(results.getInt("VERSION") == 0)
+        assert(results.getInt("RUN_ID") == Constants.ONE)
         assert(results.getString("STATUS") == "RUNNING")
-        sessionContext.saveStepStatus(pipelineKey, "comPLete")
+        sessionContext.saveStepStatus(pipelineKey, "comPLete", Some(List("nextstep1", "nextstep2")))
         results = stmt.executeQuery("SELECT * FROM STEP_STATUS")
         assert(results.next())
-        assert(results.getInt("VERSION") == 0)
+        assert(results.getInt("RUN_ID") == Constants.ONE)
         assert(results.getString("STATUS") == "COMPLETE")
         val statusList = sessionContext.loadStepStatus()
         assert(statusList.isDefined)
         assert(statusList.get.length == 1)
         assert(statusList.get.head.status == "COMPLETE")
+        assert(statusList.get.head.nextSteps.isDefined)
+        assert(statusList.get.head.nextSteps.get.length == Constants.TWO)
+        assert(statusList.get.head.nextSteps.get.contains("nextstep1"))
+        assert(statusList.get.head.nextSteps.get.contains("nextstep2"))
         // Audit
         // Simulate saving an audit when a step / pipeline starts
         sessionContext.saveAudit(pipelineKey, BASE_STEP_AUDIT)
@@ -121,7 +125,7 @@ class SessionContextTests extends AnyFunSpec {
         // Check the DB to determine if the record was created properly
         results = stmt.executeQuery("SELECT * FROM AUDITS")
         assert(results.next())
-        assert(results.getInt("VERSION") == 0)
+        assert(results.getInt("RUN_ID") == Constants.ONE)
         assert(results.getLong("END_TIME") == updatedAudit.end.getOrElse(-Constants.FIFTEEN))
         // Save one more time to ensure we get the most recent record
         updatedAudit = BASE_STEP_AUDIT.setEnd(System.currentTimeMillis())
@@ -134,7 +138,7 @@ class SessionContextTests extends AnyFunSpec {
         assert(audits.get.head.auditType == updatedAudit.auditType)
         results = stmt.executeQuery("SELECT * FROM AUDITS")
         assert(results.next())
-        assert(results.getInt("VERSION") == 1)
+        assert(results.getInt("RUN_ID") == 1)
         assert(results.getLong("END_TIME") == updatedAudit.end.getOrElse(-Constants.FIFTEEN))
 
         // Step Result
@@ -185,7 +189,7 @@ class SessionContextTests extends AnyFunSpec {
         assert(defaultObjParam.getFlag == DEFAULT_OBJECT.getFlag)
         assert(defaultObjParam.getSecondParam == DEFAULT_OBJECT.getSecondParam)
 
-        // Save the globals again to get another version
+        // Save the globals again to get another RUN_ID
         assert(sessionContext.saveGlobals(subPipelineKey, updatedMap + ("test" -> 60L)))
         subGlobals = sessionContext.loadGlobals(subPipelineKey)
         assert(subGlobals.nonEmpty)
@@ -199,7 +203,7 @@ class SessionContextTests extends AnyFunSpec {
              |AND RESULT_KEY = '${subPipelineKey.key}'
              |AND NAME = 'test'""".stripMargin)
         assert(results.next())
-        assert(results.getInt("VERSION") == 1)
+        assert(results.getInt("RUN_ID") == 1)
 
         // noinspection DangerousCatchAll
         try {
