@@ -1,11 +1,8 @@
 package com.acxiom.metalus.flow
 
 import com.acxiom.metalus.parser.JsonParser
-import com.acxiom.metalus.{PipelineExecutor, PipelineListener, PipelineStateInfo, PipelineStepResponse, TestHelper}
+import com.acxiom.metalus._
 import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.BeforeAndAfterAll
-import org.slf4j.event.Level
-import org.slf4j.{Logger, LoggerFactory}
 
 import scala.io.Source
 
@@ -44,7 +41,7 @@ class SplitMergeStepTests extends AnyFunSpec {
       TestHelper.pipelineListener = PipelineListener()
       val executionResult = PipelineExecutor.executePipelines(simpleSplitPipeline, TestHelper.generatePipelineContext())
       assert(executionResult.success)
-      val key = PipelineStateInfo(simpleSplitPipeline.id.get)
+      val key = PipelineStateKey(simpleSplitPipeline.id.get)
       val stepResult = executionResult.pipelineContext.getStepResultByStateInfo(key.copy(stepId = Some("FORMAT_STRING")))
       assert(stepResult.isDefined)
       assert(stepResult.get.isInstanceOf[PipelineStepResponse])
@@ -76,7 +73,7 @@ class SplitMergeStepTests extends AnyFunSpec {
       TestHelper.pipelineListener = PipelineListener()
       val executionResult = PipelineExecutor.executePipelines(complexSplitPipeline, TestHelper.generatePipelineContext())
       assert(executionResult.success)
-      val key = PipelineStateInfo(complexSplitPipeline.id.get)
+      val key = PipelineStateKey(complexSplitPipeline.id.get)
       var stepResult = executionResult.pipelineContext.getStepResultByStateInfo(key.copy(stepId = Some("FORMAT_STRING")))
       assert(stepResult.isDefined)
       assert(stepResult.get.isInstanceOf[PipelineStepResponse])

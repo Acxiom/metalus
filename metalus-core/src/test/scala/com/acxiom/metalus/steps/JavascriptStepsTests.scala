@@ -19,8 +19,8 @@ class JavascriptStepsTests extends AnyFunSpec with BeforeAndAfterAll with GivenW
     LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
 
     pipelineContext = PipelineContext(Some(Map[String, Any]()),
-      List(PipelineParameter(PipelineStateInfo("0"), Map[String, Any]()),
-        PipelineParameter(PipelineStateInfo("1"), Map[String, Any]())),
+      List(PipelineParameter(PipelineStateKey("0"), Map[String, Any]()),
+        PipelineParameter(PipelineStateKey("1"), Map[String, Any]())),
       Some(List("com.acxiom.metalus.steps")),
       PipelineStepMapper(),
       Some(DefaultPipelineListener()),

@@ -58,7 +58,7 @@ trait SessionContext extends Context {
    * @param result The result to save.
    * @return true if the step could be saved.
    */
-  def saveStepResult(key: PipelineStateInfo, result: PipelineStepResponse): Boolean
+  def saveStepResult(key: PipelineStateKey, result: PipelineStepResponse): Boolean
 
   /**
    * Loads the step results for this session or None if this is a new session or has no recorded results.
@@ -74,7 +74,7 @@ trait SessionContext extends Context {
    * @param audit The audit to store
    * @return True if the audit was saved.
    */
-  def saveAudit(key: PipelineStateInfo, audit: ExecutionAudit): Boolean
+  def saveAudit(key: PipelineStateKey, audit: ExecutionAudit): Boolean
 
   /**
    * Loads the audits for this session or None if this is a new session or has no recorded audits.
@@ -90,7 +90,7 @@ trait SessionContext extends Context {
    * @param globals The globals to store.
    * @return True if the globals could be stored.
    */
-  def saveGlobals(key: PipelineStateInfo, globals: Map[String, Any]): Boolean
+  def saveGlobals(key: PipelineStateKey, globals: Map[String, Any]): Boolean
 
   /**
    * Loads the globals for this session or None if none were recorded.
@@ -98,7 +98,7 @@ trait SessionContext extends Context {
    * @param key The pipeline key for these globals
    * @return An optional globals map.
    */
-  def loadGlobals(key: PipelineStateInfo): Option[Map[String, Any]]
+  def loadGlobals(key: PipelineStateKey): Option[Map[String, Any]]
 
   /**
    * Saves the status identified by the provided key. Valid status codes are:
@@ -111,7 +111,7 @@ trait SessionContext extends Context {
    * @param nextSteps An optional list of steps being called by this step. Should only be supplied with ERROR or COMPLETE status.
    * @return True if the status could be saved.
    */
-  def saveStepStatus(key: PipelineStateInfo, status: String, nextSteps: Option[List[String]]): Boolean
+  def saveStepStatus(key: PipelineStateKey, status: String, nextSteps: Option[List[String]]): Boolean
 
   /**
    * Returns all recorded status for this session or None.
@@ -183,7 +183,7 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
    * @param result The result to save.
    * @return true if the step could be saved.
    */
-  def saveStepResult(key: PipelineStateInfo, result: PipelineStepResponse): Boolean = {
+  def saveStepResult(key: PipelineStateKey, result: PipelineStepResponse): Boolean = {
     val saved = saveStepResult(result.primaryReturn.getOrElse(""), key.key, primaryKey)
     if (result.namedReturns.isDefined) {
       result.namedReturns.get.foldLeft(saved)((s, r) => {
@@ -245,7 +245,7 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
    * @param audit The audit to store
    * @return True if the audit was saved.
    */
-  def saveAudit(key: PipelineStateInfo, audit: ExecutionAudit): Boolean = {
+  def saveAudit(key: PipelineStateKey, audit: ExecutionAudit): Boolean = {
     val convertor = convertors.find(_.canConvert(audit))
     if (convertor.isDefined) {
       storage.saveAudit(AuditSessionRecord(sessionId, new Date(), runId, convertor.get.serialize(audit),
@@ -284,7 +284,7 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
    * @param globals The globals to store.
    * @return True if the globals could be stored.
    */
-  def saveGlobals(key: PipelineStateInfo, globals: Map[String, Any]): Boolean = {
+  def saveGlobals(key: PipelineStateKey, globals: Map[String, Any]): Boolean = {
     globals.forall(global => {
       val convertor = convertors.find(_.canConvert(global._2))
       if (convertor.isDefined) {
@@ -301,7 +301,7 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
    *
    * @return An optional globals map.
    */
-  def loadGlobals(key: PipelineStateInfo): Option[Map[String, Any]] = {
+  def loadGlobals(key: PipelineStateKey): Option[Map[String, Any]] = {
     val globalRecords = storage.loadGlobals(sessionId)
     if (globalRecords.isDefined) {
       Some(globalRecords.get.foldLeft(Map[String, Any]())((mapResponse, global) => {
@@ -324,7 +324,7 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
    * @param nextSteps An optional list of steps being called by this step. Should only be supplied with ERROR or COMPLETE status.
    * @return True if the status could be saved.
    */
-  def saveStepStatus(key: PipelineStateInfo, status: String, nextSteps: Option[List[String]]): Boolean = {
+  def saveStepStatus(key: PipelineStateKey, status: String, nextSteps: Option[List[String]]): Boolean = {
     val convertedStatus = status.toUpperCase match {
       case "RUNNING" => "RUNNING"
       case "COMPLETE" => "COMPLETE"

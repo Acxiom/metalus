@@ -1,7 +1,7 @@
 package com.acxiom.metalus.steps
 
-import com.acxiom.metalus.connectors.{LocalFileConnector, SFTPFileConnector}
 import com.acxiom.metalus._
+import com.acxiom.metalus.connectors.{LocalFileConnector, SFTPFileConnector}
 import com.acxiom.metalus.context.ContextManager
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
@@ -25,8 +25,8 @@ class FileManagerStepsTests extends AnyFunSpec with BeforeAndAfterAll {
       new File(s"${sftpServer.getBaseDirectory.toFile.getAbsolutePath}/MOCK_DATA.csv").toPath,
       StandardCopyOption.REPLACE_EXISTING)
     pipelineContext = PipelineContext(Some(Map[String, Any]("StrictHostKeyChecking" -> "no")),
-      List(PipelineParameter(PipelineStateInfo("0"), Map[String, Any]()),
-        PipelineParameter(PipelineStateInfo("1"), Map[String, Any]())),
+      List(PipelineParameter(PipelineStateKey("0"), Map[String, Any]()),
+        PipelineParameter(PipelineStateKey("1"), Map[String, Any]())),
       Some(List("com.acxiom.metalus.steps")), PipelineStepMapper(),
       Some(DefaultPipelineListener()), List(), PipelineManager(List()),
       contextManager = new ContextManager(Map(), Map()))

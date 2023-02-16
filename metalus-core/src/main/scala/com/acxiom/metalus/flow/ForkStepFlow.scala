@@ -12,7 +12,7 @@ case class ForkStepFlow(pipeline: Pipeline,
                         initialContext: PipelineContext,
                         step: FlowStep,
                         parameterValues: Map[String, Any],
-                        pipelineStateInfo: PipelineStateInfo) extends PipelineFlow {
+                        pipelineStateInfo: PipelineStateKey) extends PipelineFlow {
 
   private val logger = LoggerFactory.getLogger(getClass)
 
@@ -246,7 +246,7 @@ case class ForkFlow(steps: List[FlowStep], pipeline: Pipeline, forkPairs: List[F
     if (this.forkPairs.length > 1 && unclosedPairs.length > 1) {
       val msg = s"Fork step(s) (${unclosedPairs.map(_.forkStep.id).mkString(",")}) must be closed by join when embedding other forks!"
       throw PipelineException(message = Some(msg),
-        pipelineProgress = Some(PipelineStateInfo(pipeline.id.getOrElse(""), unclosedPairs.head.forkStep.id)))
+        pipelineProgress = Some(PipelineStateKey(pipeline.id.getOrElse(""), unclosedPairs.head.forkStep.id)))
     }
   }
 

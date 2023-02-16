@@ -22,7 +22,7 @@ class ReflectionUtilsTests extends AnyFunSpec with BeforeAndAfterAll {
 
   describe("ReflectionUtil - processStep") {
     val globals = Map[String, Any]("validateStepParameterTypes" -> true)
-    val stateInfo = PipelineStateInfo("TestPipeline")
+    val stateInfo = PipelineStateKey("TestPipeline")
     val pipelineContext = PipelineContext(Some(globals), List(),
       Some(List("com.acxiom.metalus", "com.acxiom.metalus.steps")), PipelineStepMapper(),
       contextManager = new ContextManager(Map(), Map()),

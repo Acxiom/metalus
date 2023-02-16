@@ -2,10 +2,10 @@ package com.acxiom.metalus
 
 import org.scalatest.funspec.AnyFunSpec
 
-class PipelineStateInfoTests extends AnyFunSpec {
+class PipelineStateKeyTests extends AnyFunSpec {
   describe("fromString") {
     it("should generate a pipeline key") {
-      val info = PipelineStateInfo.fromString("mypipeline")
+      val info = PipelineStateKey.fromString("mypipeline")
       assert(info.pipelineId == "mypipeline")
       assert(info.stepId.isEmpty)
       assert(info.forkData.isEmpty)
@@ -13,7 +13,7 @@ class PipelineStateInfoTests extends AnyFunSpec {
     }
 
     it("should generate a pipeline and step key") {
-      val info = PipelineStateInfo.fromString("mypipeline.step")
+      val info = PipelineStateKey.fromString("mypipeline.step")
       assert(info.pipelineId == "mypipeline")
       assert(info.stepId.isDefined)
       assert(info.stepId.get == "step")
@@ -22,7 +22,7 @@ class PipelineStateInfoTests extends AnyFunSpec {
     }
 
     it("should generate a step group key") {
-      val info = PipelineStateInfo.fromString("mypipeline.stepGroup.subPipeline.subStep")
+      val info = PipelineStateKey.fromString("mypipeline.stepGroup.subPipeline.subStep")
       assert(info.pipelineId == "subPipeline")
       assert(info.stepId.isDefined)
       assert(info.stepId.get == "subStep")
@@ -31,7 +31,7 @@ class PipelineStateInfoTests extends AnyFunSpec {
       assert(info.stepGroup.get.pipelineId == "mypipeline")
       assert(info.stepGroup.get.stepId.isDefined)
       assert(info.stepGroup.get.stepId.get == "stepGroup")
-      val info1 = PipelineStateInfo.fromString("mypipeline.stepGroup.subPipeline.subStep1")
+      val info1 = PipelineStateKey.fromString("mypipeline.stepGroup.subPipeline.subStep1")
       assert(info1.pipelineId == "subPipeline")
       assert(info1.stepId.isDefined)
       assert(info1.stepId.get == "subStep1")
@@ -43,7 +43,7 @@ class PipelineStateInfoTests extends AnyFunSpec {
     }
 
     it("should generate a pipeline and step key with fork data") {
-      val info = PipelineStateInfo.fromString("mypipeline.step.f(0)")
+      val info = PipelineStateKey.fromString("mypipeline.step.f(0)")
       assert(info.pipelineId == "mypipeline")
       assert(info.stepId.isDefined)
       assert(info.stepId.get == "step")
@@ -53,7 +53,7 @@ class PipelineStateInfoTests extends AnyFunSpec {
     }
 
     it("should generate a step group key and fork data") {
-      val info = PipelineStateInfo.fromString("mypipeline.stepGroup.subPipeline.subStep.f(0)")
+      val info = PipelineStateKey.fromString("mypipeline.stepGroup.subPipeline.subStep.f(0)")
       assert(info.pipelineId == "subPipeline")
       assert(info.stepId.isDefined)
       assert(info.stepId.get == "subStep")
@@ -63,7 +63,7 @@ class PipelineStateInfoTests extends AnyFunSpec {
       assert(info.stepGroup.get.pipelineId == "mypipeline")
       assert(info.stepGroup.get.stepId.isDefined)
       assert(info.stepGroup.get.stepId.get == "stepGroup")
-      val info1 = PipelineStateInfo.fromString("mypipeline.stepGroup.subPipeline.subStep.f(1)")
+      val info1 = PipelineStateKey.fromString("mypipeline.stepGroup.subPipeline.subStep.f(1)")
       assert(info1.pipelineId == "subPipeline")
       assert(info1.stepId.isDefined)
       assert(info1.stepId.get == "subStep")
@@ -76,7 +76,7 @@ class PipelineStateInfoTests extends AnyFunSpec {
     }
 
     it("should generate step group key from within a fork") {
-      val info = PipelineStateInfo.fromString(
+      val info = PipelineStateKey.fromString(
         "mypipeline.stepGroup.subPipeline.subStep.f(0).forkPipeline.forkStep")
       assert(info.pipelineId == "forkPipeline")
       assert(info.stepId.isDefined)
@@ -96,7 +96,7 @@ class PipelineStateInfoTests extends AnyFunSpec {
     }
 
     it("should generate a pipeline and step key with fork and parent data") {
-      val info = PipelineStateInfo.fromString("mypipeline.step.f(1_5)")
+      val info = PipelineStateKey.fromString("mypipeline.step.f(1_5)")
       assert(info.pipelineId == "mypipeline")
       assert(info.stepId.isDefined)
       assert(info.stepId.get == "step")

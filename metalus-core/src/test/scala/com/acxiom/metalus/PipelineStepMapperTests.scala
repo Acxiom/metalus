@@ -21,7 +21,7 @@ class PipelineStepMapperTests extends AnyFunSpec with BeforeAndAfterAll with Giv
     val classMap = Map[String, Any]("string" -> "fred", "num" -> 3)
     val globalTestObject = TestObject(1, "2", boolField=false, Map("globalTestKey1" -> "globalTestValue1"))
     val pipelineParameters = List(
-      PipelineParameter(PipelineStateInfo("pipeline-id-1"),
+      PipelineParameter(PipelineStateKey("pipeline-id-1"),
         Map(
           "rawKey1" -> "rawValue1",
           "red" -> None,
@@ -29,24 +29,24 @@ class PipelineStepMapperTests extends AnyFunSpec with BeforeAndAfterAll with Giv
           "recursiveTest" -> "$pipeline-id-1.rawKey1"
         )
       ),
-      PipelineParameter(PipelineStateInfo("pipeline-id-2"), Map("rawInteger" -> 2, "rawDecimal" -> 15.65)),
-      PipelineParameter(PipelineStateInfo("pipeline-id-3"), Map("rawInteger" -> 3))
+      PipelineParameter(PipelineStateKey("pipeline-id-2"), Map("rawInteger" -> 2, "rawDecimal" -> 15.65)),
+      PipelineParameter(PipelineStateKey("pipeline-id-3"), Map("rawInteger" -> 3))
     )
 
     val stepResults = Map(
-      PipelineStateInfo("pipeline-id-1", Some("step1")) -> PipelineStepResponse(
+      PipelineStateKey("pipeline-id-1", Some("step1")) -> PipelineStepResponse(
         Some(Map("primaryKey1String" -> "primaryKey1Value", "primaryKey1Map" -> Map("childKey1Integer" -> 2))),
         Some(Map("namedKey1String" -> "namedValue1", "namedKey1Boolean" -> true, "nameKey1List" -> List(0, 1, 2)))),
-      PipelineStateInfo("pipeline-id-1", Some("step2")) -> PipelineStepResponse(None, Some(
+      PipelineStateKey("pipeline-id-1", Some("step2")) -> PipelineStepResponse(None, Some(
         Map("namedKey2String" -> "namedKey2Value",
           "namedKey2Map" -> Map(
             "childKey2String" -> "childValue2",
             "childKey2Integer" -> 2,
             "childKey2Map" -> Map("grandChildKey1Boolean" -> true))))),
-      PipelineStateInfo("pipeline-id-1", Some("step3")) -> PipelineStepResponse(Some("fred"), None),
-      PipelineStateInfo("pipeline-id-3", Some("step1")) -> PipelineStepResponse(Some(List(1, 2, 3)),
+      PipelineStateKey("pipeline-id-1", Some("step3")) -> PipelineStepResponse(Some("fred"), None),
+      PipelineStateKey("pipeline-id-3", Some("step1")) -> PipelineStepResponse(Some(List(1, 2, 3)),
         Some(Map("namedKey" -> "namedValue"))),
-      PipelineStateInfo("pipeline-id-3", Some("step3")) -> PipelineStepResponse(Some("fred_on_the_head"), None))
+      PipelineStateKey("pipeline-id-3", Some("step3")) -> PipelineStepResponse(Some("fred_on_the_head"), None))
 
     val broadCastGlobal = Map[String, Any](
       "link1" -> "!{pipelineId}::!{globalBoolean}::#{pipeline-id-1.step2.namedKey2Map.childKey2Integer}::@{pipeline-id-1.step3}",
@@ -83,7 +83,7 @@ class PipelineStepMapperTests extends AnyFunSpec with BeforeAndAfterAll with Giv
 
     val pipelineContext = PipelineContext(Some(globalParameters), pipelineParameters, None, PipelineStepMapper(), None, List(),
       PipelineManager(List(subPipeline)), Some(credentialProvider), new ContextManager(Map(), Map()),
-      stepResults, Some(PipelineStateInfo("pipeline-id-3")))
+      stepResults, Some(PipelineStateKey("pipeline-id-3")))
 
     it("should pull the appropriate value for given parameters") {
       val tests = List(
@@ -303,7 +303,7 @@ class PipelineStepMapperTests extends AnyFunSpec with BeforeAndAfterAll with Giv
       assert(parameterValue == ParameterTest(Some("globalValue1"), Some(Constants.FIVE)))
 
       val ctx = pipelineContext.setGlobal("pipelineId", "pipeline-id-1")
-        .setCurrentStateInfo(PipelineStateInfo("pipeline-id-1"))
+        .setCurrentStateInfo(PipelineStateKey("pipeline-id-1"))
       val nestedObjectMap = Map[String, Any](
         "parameterTest" -> Map[String, Any]("string" -> "!globalString", "num" -> "!globalInteger"),
         "testObject" -> Map[String, Any](
@@ -402,7 +402,7 @@ class PipelineStepMapperTests extends AnyFunSpec with BeforeAndAfterAll with Giv
       implicit val formats: Formats = DefaultFormats
       val params = org.json4s.native.JsonMethods.parse(mapJson).extract[Map[String, Any]]
       val param = JsonParser.parseJson(json, "com.acxiom.metalus.Parameter").asInstanceOf[Parameter]
-      val key = PipelineStateInfo("test-pipeline")
+      val key = PipelineStateKey("test-pipeline")
 
       val ctx = params.foldLeft(pipelineContext)((context, entry) => {
         context.setPipelineParameterByKey(key, entry._1, entry._2)

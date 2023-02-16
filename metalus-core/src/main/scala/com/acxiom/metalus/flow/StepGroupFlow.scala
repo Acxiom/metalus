@@ -10,7 +10,7 @@ case class StepGroupFlow(pipeline: Pipeline,
                          initialContext: PipelineContext,
                          step: FlowStep,
                          parameterValues: Map[String, Any],
-                         pipelineStateInfo: PipelineStateInfo) extends PipelineFlow {
+                         pipelineStateInfo: PipelineStateKey) extends PipelineFlow {
   override def execute(): FlowResult = {
     val stepState = initialContext.currentStateInfo
     val groupResult = processStepGroup(step, parameterValues, initialContext)
@@ -64,7 +64,7 @@ case class StepGroupFlow(pipeline: Pipeline,
     val updates = if (subPipeline.parameters.isDefined &&
       subPipeline.parameters.get.inputs.isDefined &&
       subPipeline.parameters.get.inputs.get.nonEmpty) {
-      val stateInfo = PipelineStateInfo(subPipeline.id.get)
+      val stateInfo = PipelineStateKey(subPipeline.id.get)
       val params = subPipeline.parameters.get.inputs.get
         .foldLeft((Map[String, Any](), PipelineParameter(stateInfo, Map()), parameterValues))((tuple, input) => {
         if (parameterValues.contains(input.name)) {

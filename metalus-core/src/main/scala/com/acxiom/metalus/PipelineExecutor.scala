@@ -13,7 +13,7 @@ object PipelineExecutor {
     sessionContext.startSession()
     try {
       val updatedCtx = pipelineListener.applicationStarted(initialContext).getOrElse(initialContext)
-      val stateInfo = PipelineStateInfo(pipeline.id.getOrElse("ROOT"))
+      val stateInfo = PipelineStateKey(pipeline.id.getOrElse("ROOT"))
       // Execute the flow
       val flowResult = PipelineStepFlow(pipeline, updatedCtx.setCurrentStateInfo(stateInfo)).execute()
       val ctx = flowResult.pipelineContext
@@ -39,7 +39,7 @@ object PipelineExecutor {
         sessionContext.completeSession("ERROR")
         PipelineExecutionResult(se.context.getOrElse(initialContext), success = false, paused = false, Some(se))
       case p: PauseException =>
-        logger.info(s"Paused pipeline flow at ${p.pipelineProgress.getOrElse(PipelineStateInfo("")).displayPipelineStepString}. ${p.message}")
+        logger.info(s"Paused pipeline flow at ${p.pipelineProgress.getOrElse(PipelineStateKey("")).displayPipelineStepString}. ${p.message}")
         pipelineListener.applicationComplete(initialContext).getOrElse(initialContext)
         sessionContext.completeSession("PAUSED")
         PipelineExecutionResult(p.context.getOrElse(initialContext), success = false, paused = true, Some(p))

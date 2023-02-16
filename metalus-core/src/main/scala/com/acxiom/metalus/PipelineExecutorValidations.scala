@@ -15,7 +15,7 @@ object PipelineExecutorValidations {
 
   @throws(classOf[PipelineException])
   private def validateStep(step: FlowStep, pipeline: Pipeline): Unit = {
-    val defaultStateInfo = Some(PipelineStateInfo(pipeline.id.getOrElse(""), step.id))
+    val defaultStateInfo = Some(PipelineStateKey(pipeline.id.getOrElse(""), step.id))
     validatePipelineStep(step, pipeline)
     step.`type`.getOrElse("").toLowerCase match {
       case s if s == PipelineStepType.PIPELINE || s == PipelineStepType.BRANCH =>
@@ -49,7 +49,7 @@ object PipelineExecutorValidations {
 
   @throws(classOf[PipelineException])
   private def validatePipelineStep(step: Step, pipeline: Pipeline): Unit = {
-    val defaultStateInfo = Some(PipelineStateInfo(pipeline.id.getOrElse(""), step.id))
+    val defaultStateInfo = Some(PipelineStateKey(pipeline.id.getOrElse(""), step.id))
     if(step.id.getOrElse("") == ""){
       throw PipelineException(
         message = Some(s"Step is missing id in pipeline [${pipeline.id.get}]."),
@@ -64,7 +64,7 @@ object PipelineExecutorValidations {
 
   @throws(classOf[PipelineException])
   private def validateForkStep(step: PipelineStep, pipeline: Pipeline): Unit ={
-    val defaultStateInfo = Some(PipelineStateInfo(pipeline.id.getOrElse(""), step.id))
+    val defaultStateInfo = Some(PipelineStateKey(pipeline.id.getOrElse(""), step.id))
     if(step.params.isEmpty) {
       throw PipelineException(
         message = Some(s"Parameters [forkByValues] and [forkMethod] is required for fork step [${step.id.get}] in pipeline [${pipeline.id.get}]."),

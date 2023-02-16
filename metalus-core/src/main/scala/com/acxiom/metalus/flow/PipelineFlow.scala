@@ -163,7 +163,7 @@ trait PipelineFlow {
     } else { sfContext }
   }
 
-  private def determineRestartLogic(pipelineContext: PipelineContext, stepState: PipelineStateInfo) = {
+  private def determineRestartLogic(pipelineContext: PipelineContext, stepState: PipelineStateKey) = {
     if (pipelineContext.restartPoints.isDefined) {
       val index = pipelineContext.restartPoints.get.steps.indexWhere(s => s.key.key == stepState.key && s.status == "RESTART")
       if (index != -1) {

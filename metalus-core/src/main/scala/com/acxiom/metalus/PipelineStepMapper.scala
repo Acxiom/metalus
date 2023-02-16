@@ -589,7 +589,7 @@ trait PipelineStepMapper {
   }
 
   @tailrec
-  private def determineKey(paths: Array[String], keys: List[PipelineStateInfo],
+  private def determineKey(paths: Array[String], keys: List[PipelineStateKey],
                            key: String, index: Int = 0, fork: Boolean = false): (String, Int, Boolean) = {
     // See if we have reached the last token
     if (index >= paths.length) {
@@ -612,7 +612,7 @@ trait PipelineStepMapper {
     }
   }
 
-  private def isLocalStep(value: String, keys: List[PipelineStateInfo]): Boolean = {
+  private def isLocalStep(value: String, keys: List[PipelineStateKey]): Boolean = {
     if (!keys.exists(_.pipelineId == value)) {
       keys.exists(_.stepId.getOrElse("MISSING") == value)
     } else {

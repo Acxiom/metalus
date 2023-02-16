@@ -245,12 +245,12 @@ class FlowRestartTests extends AnyFunSpec {
         assert(pipelineListener.getStepList.nonEmpty)
         assert(pipelineListener.getStepList.length == Constants.EIGHTEEN)
         var ctx = executionResult.pipelineContext
-        val results = ctx.getStepResultByKey(PipelineStateInfo("embedded_fork_pipeline", Some("FLATTEN_LIST")).key)
+        val results = ctx.getStepResultByKey(PipelineStateKey("embedded_fork_pipeline", Some("FLATTEN_LIST")).key)
         assert(results.isDefined)
         assert(results.get.primaryReturn.isDefined)
         val primary = results.get.primaryReturn.get.asInstanceOf[Int]
         assert(primary == 10)
-        val processValueAudits = ctx.getPipelineAudits(PipelineStateInfo("embedded_fork_pipeline", Some("PROCESS_VALUE")))
+        val processValueAudits = ctx.getPipelineAudits(PipelineStateKey("embedded_fork_pipeline", Some("PROCESS_VALUE")))
         assert(processValueAudits.isDefined)
         assert(processValueAudits.get.length == 6)
 
@@ -299,7 +299,7 @@ class FlowRestartTests extends AnyFunSpec {
   }
 
   describe("Recovery") {
-    it("should recover from a fail run within a step group") {
+    it("should recover from a failed run within a step group") {
       val settings = TestHelper.setupTestDB("recoveryStepGroupTest")
       val application = JsonParser.parseApplication(
         Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/step_group_restart_application.json")).mkString)
@@ -366,6 +366,117 @@ class FlowRestartTests extends AnyFunSpec {
       val step4Restart = result1.pipelineContext.getStepResultByKey("root.STEP_4")
       assert(step4Restart.isDefined)
       assert(step4Restart.get.primaryReturn.get.toString == "STEP1 -> STEP2 -> recovery -> STEP3 -> STEP4")
+
+      // Clean up the data
+      try {
+        stmt.close()
+        conn.close()
+        TestHelper.stopTestDB(settings.name)
+      } catch {
+        case _ => // Do nothing
+      }
+    }
+
+    it("should recover from a failed run within a fork") {
+      val settings = TestHelper.setupTestDB("recoverForkTest")
+      val application = JsonParser.parseApplication(
+        Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/fork_restart_application.json")).mkString)
+      val credentialProvider = TestHelper.getDefaultCredentialProvider
+      val pipelineListener = RestartPipelineListener()
+      val pipelineContext = ApplicationUtils.createPipelineContext(application,
+        Some(Map[String, Any]("rootLogLevel" -> true, "customLogLevels" -> "",
+          "connectionString" -> settings.url, "validateStepParameterTypes" -> true)), None, pipelineListener, Some(credentialProvider))
+
+      val sessionId = pipelineContext.currentSessionId
+      val executionResult = PipelineExecutor.executePipelines(pipelineContext.pipelineManager.getPipeline(application.pipelineId.get).get, pipelineContext)
+      assert(executionResult.success)
+      assert(pipelineListener.getStepList.nonEmpty)
+      assert(pipelineListener.getStepList.length == Constants.EIGHTEEN)
+      var ctx = executionResult.pipelineContext
+      val results = ctx.getStepResultByKey(PipelineStateKey("embedded_fork_pipeline", Some("FLATTEN_LIST")).key)
+      assert(results.isDefined)
+      assert(results.get.primaryReturn.isDefined)
+      val primary = results.get.primaryReturn.get.asInstanceOf[Int]
+      assert(primary == 10)
+      val processValueAudits = ctx.getPipelineAudits(PipelineStateKey("embedded_fork_pipeline", Some("PROCESS_VALUE")))
+      assert(processValueAudits.isDefined)
+      assert(processValueAudits.get.length == 6)
+
+      // Clean up the DB to simulate a failure
+      val conn = DriverManager.getConnection(settings.url, settings.connectionProperties)
+      val stmt = conn.createStatement
+      stmt.execute(
+        s"""UPDATE STEP_STATUS SET STATUS = 'RUNNING'
+           |WHERE SESSION_ID = '${sessionId.toString}' AND
+           |RESULT_KEY = 'embedded_fork_pipeline.PROCESS_VALUE.f(2_1)'""".stripMargin)
+      stmt.execute(
+        s"""DELETE FROM STEP_STATUS_STEPS
+           |WHERE SESSION_ID = '${sessionId.toString}' AND
+           |RESULT_KEY = 'embedded_fork_pipeline.PROCESS_VALUE.f(2_1)'""".stripMargin)
+      stmt.execute(
+        s"""DELETE FROM STEP_STATUS_STEPS
+           |WHERE SESSION_ID = '${sessionId.toString}' AND
+           |RESULT_KEY LIKE 'embedded_fork_pipeline.SUM_VALUES%'""".stripMargin)
+      stmt.execute(
+        s"""DELETE FROM STEP_STATUS
+           |WHERE SESSION_ID = '${sessionId.toString}' AND
+           |RESULT_KEY = 'embedded_fork_pipeline.SUM_VALUES.f(2)'""".stripMargin)
+      stmt.execute(
+        s"""DELETE FROM STEP_RESULTS
+           |WHERE SESSION_ID = '${sessionId.toString}' AND
+           |RESULT_KEY = 'embedded_fork_pipeline.SUM_VALUES.f(2)'""".stripMargin)
+      stmt.execute(
+        s"""DELETE FROM STEP_RESULTS
+           |WHERE SESSION_ID = '${sessionId.toString}' AND
+           |RESULT_KEY = 'embedded_fork_pipeline.FLATTEN_LIST'""".stripMargin)
+      stmt.execute(
+        s"""DELETE FROM STEP_STATUS
+           |WHERE SESSION_ID = '${sessionId.toString}' AND
+           |RESULT_KEY = 'root.FLATTEN_LIST'""".stripMargin)
+      stmt.execute(
+        s"""DELETE FROM STEP_STATUS_STEPS
+           |WHERE SESSION_ID = '${sessionId.toString}' AND
+           |RESULT_KEY = 'root.FLATTEN_LIST'""".stripMargin)
+
+      // Recover
+      pipelineListener.clear()
+      // "embedded_fork_pipeline.PROCESS_VALUE.f(2_1)"
+      ctx = ApplicationUtils.createPipelineContext(application,
+        Some(Map[String, Any]("rootLogLevel" -> true, "customLogLevels" -> "", "connectionString" -> settings.url)),
+        Some(Map("existingSessionId" -> sessionId.toString)), pipelineListener, Some(credentialProvider))
+
+      // Validate the session was restored
+      assert(ctx.contextManager.getContext("session").get.asInstanceOf[SessionContext].sessionId.toString == sessionId.toString)
+      val result1 = PipelineExecutor.executePipelines(ctx.pipelineManager.getPipeline(application.pipelineId.get).get, ctx)
+      assert(result1.success)
+      assert(pipelineListener.getStepList.nonEmpty)
+      assert(pipelineListener.getStepList.length == Constants.THREE)
+
+      val query =
+        s"""SELECT * FROM STEP_RESULTS WHERE SESSION_ID = '${sessionId.toString}'
+           |AND NAME = 'primaryKey'
+           |AND RESULT_KEY =""".stripMargin
+      var sqlResults = stmt.executeQuery(s"$query 'embedded_fork_pipeline.PROCESS_VALUE.f(2_1)'")
+      assert(sqlResults.next())
+      assert(sqlResults.getInt("RUN_ID") == Constants.TWO)
+      sqlResults = stmt.executeQuery(s"$query 'embedded_fork_pipeline.FLATTEN_LIST'")
+      assert(sqlResults.next())
+      assert(sqlResults.getInt("RUN_ID") == Constants.TWO)
+      sqlResults = stmt.executeQuery(s"$query 'embedded_fork_pipeline.SUM_VALUES.f(2)'")
+      assert(sqlResults.next())
+      assert(sqlResults.getInt("RUN_ID") == Constants.TWO)
+      sqlResults = stmt.executeQuery(s"$query 'embedded_fork_pipeline.SUM_VALUES.f(1)'")
+      assert(sqlResults.next())
+      assert(sqlResults.getInt("RUN_ID") == Constants.ONE)
+
+      // Clean up the data
+      try {
+        stmt.close()
+        conn.close()
+        TestHelper.stopTestDB(settings.name)
+      } catch {
+        case _ => // Do nothing
+      }
     }
   }
 }
@@ -377,7 +488,7 @@ case class RestartPipelineListener() extends PipelineListener {
 
   def getStepList: List[String] = results.toList
 
-  override def pipelineStepFinished(pipelineKey: PipelineStateInfo, pipelineContext: PipelineContext): Option[PipelineContext] = {
+  override def pipelineStepFinished(pipelineKey: PipelineStateKey, pipelineContext: PipelineContext): Option[PipelineContext] = {
     results += pipelineKey.key
     None
   }

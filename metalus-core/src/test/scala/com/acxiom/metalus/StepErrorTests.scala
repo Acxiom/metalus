@@ -1,9 +1,6 @@
 package com.acxiom.metalus
 
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
-import org.slf4j.event.Level
-import org.slf4j.{Logger, LoggerFactory}
 
 class StepErrorTests extends AnyFunSpec {
   describe("StepErrorHandling - Basic") {
@@ -20,7 +17,7 @@ class StepErrorTests extends AnyFunSpec {
       val context = TestHelper.generatePipelineContext().copy(globals = Some(Map[String, Any]("validateStepParameterTypes" -> true)))
       val executionResult = PipelineExecutor.executePipelines(pipeline, context)
       assert(executionResult.success)
-      val res = executionResult.pipelineContext.getStepResultByStateInfo(PipelineStateInfo("Simple_error_test", Some("HANDLE_ERROR")))
+      val res = executionResult.pipelineContext.getStepResultByStateInfo(PipelineStateKey("Simple_error_test", Some("HANDLE_ERROR")))
       assert(res.isDefined)
       assert(res.get.primaryReturn.get == "An unknown exception has occurred")
     }

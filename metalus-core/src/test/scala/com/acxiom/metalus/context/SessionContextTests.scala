@@ -1,7 +1,7 @@
 package com.acxiom.metalus.context
 
-import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
 import com.acxiom.metalus._
+import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
 import org.scalatest.funspec.AnyFunSpec
 
 import java.sql.DriverManager
@@ -9,7 +9,7 @@ import java.util.UUID
 
 // noinspection SqlNoDataSourceInspection
 class SessionContextTests extends AnyFunSpec {
-  private val pipelineKey: PipelineStateInfo = PipelineStateInfo("pipeline", Some("step"))
+  private val pipelineKey: PipelineStateKey = PipelineStateKey("pipeline", Some("step"))
 
   private val DEFAULT_OBJECT = new MockDefaultParam(true, "special string")
 
@@ -167,7 +167,7 @@ class SessionContextTests extends AnyFunSpec {
         // Globals
         assert(sessionContext.saveGlobals(pipelineKey, GLOBALS_MAP))
         val updatedMap = GLOBALS_MAP + ("int" -> Constants.SIX) + ("test" -> 50L)
-        val subPipelineKey = PipelineStateInfo("my-pipeline", None, stepGroup = Some(pipelineKey))
+        val subPipelineKey = PipelineStateKey("my-pipeline", None, stepGroup = Some(pipelineKey))
         assert(sessionContext.saveGlobals(subPipelineKey, updatedMap))
         // Main globals
         assert(sessionContext.loadGlobals(pipelineKey).nonEmpty)

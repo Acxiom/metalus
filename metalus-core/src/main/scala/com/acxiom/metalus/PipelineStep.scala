@@ -152,7 +152,7 @@ trait PipelineStepException extends Exception {
 case class PauseException(errorType: Option[String] = Some("pauseException"),
                           dateTime: Option[String] = Some(new Date().toString),
                           message: Option[String] = Some(""),
-                          pipelineProgress: Option[PipelineStateInfo],
+                          pipelineProgress: Option[PipelineStateKey],
                           cause: Throwable = None.orNull,
                           @transient context: Option[PipelineContext] = None)
   extends Exception(message.getOrElse(""), cause)
@@ -171,7 +171,7 @@ case class PauseException(errorType: Option[String] = Some("pauseException"),
 case class PipelineException(errorType: Option[String] = Some("pipelineException"),
                              dateTime: Option[String] = Some(new Date().toString),
                              message: Option[String] = Some(""),
-                             pipelineProgress: Option[PipelineStateInfo],
+                             pipelineProgress: Option[PipelineStateKey],
                              cause: Throwable = None.orNull,
                              @transient context: Option[PipelineContext] = None)
   extends Exception(message.getOrElse(""), cause)
