@@ -43,7 +43,7 @@ trait SqlBuildingDataReference[T] extends LogicalPlanDataReference[T, String] {
   protected final val queryRef = 'queryRef
 
   protected final lazy val defaultOrdering = List(
-    "as", "join", "where", "groupBy", "having", "orderby", "select"
+    "as", "join", "where", "groupBy", "having", "select", "orderby", "limit"
   )
 
   implicit class SQLString(sc: StringContext) {
@@ -75,13 +75,16 @@ trait SqlBuildingDataReference[T] extends LogicalPlanDataReference[T, String] {
 
   override protected def logicalPlanRules: LogicalPlanRules = {
     case As(alias) => sql"($queryRef) $alias"
-    case Select(expressions) => sql"SELECT ${expressions.map(parseExpression).mkString(",")} FROM $queryRef"
-    case Join(right: SqlBuildingDataReference[_], joinType, condition) if right.engine == engine =>
-      sql"${joinType.toUpperCase} JOIN ${right.toSql}${condition.map(c => s" ON ${parseExpression(c)}").mkString}"
+    case Select(expressions) => sql"SELECT ${expressions.map(parseExpression).mkString(", ")} FROM $queryRef"
+    case Join(right: SqlBuildingDataReference[_], joinType, condition, using) if right.engine == engine =>
+      val expression = condition.map(c => s" ON ${parseExpression(c)}")
+        .orElse(using.map(u => s" USING (${u.map(parseExpression).mkString(", ")})")).mkString
+      sql"${joinType.toUpperCase} JOIN ${right.toSql}$expression"
     case Where(expression) => sql"WHERE ${parseExpression(expression)}"
     case GroupBy(expressions) => sql"GROUP BY ${expressions.map(parseExpression).mkString(", ")}"
     case Having(expression) => sql"HAVING ${parseExpression(expression)}"
     case OrderBy(expressions) => sql"ORDER BY ${expressions.map(parseExpression).mkString(", ")}"
+    case Limit(limit) => sql"LIMIT $limit"
     case Delete() => sql"DELETE FROM $queryRef"
   }
 

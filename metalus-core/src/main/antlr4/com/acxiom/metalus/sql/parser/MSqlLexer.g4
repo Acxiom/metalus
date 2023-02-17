@@ -23,6 +23,9 @@ COMMA: ',';
 DOT: '.';
 L_BRACKET: '[';
 R_BRACKET: ']';
+L_CURLY: '{';
+R_CURLY: '}';
+COLON: ':';
 
 ADD: 'ADD';
 ADMIN: 'ADMIN';
@@ -30,6 +33,7 @@ ALL: 'ALL';
 ALTER: 'ALTER';
 ANALYZE: 'ANALYZE';
 AND: 'AND';
+ANTI: 'ANTI';
 ANY: 'ANY';
 ARRAY: 'ARRAY';
 AS: 'AS';
@@ -185,6 +189,7 @@ SCHEMAS: 'SCHEMAS';
 SECOND: 'SECOND';
 SECURITY: 'SECURITY';
 SELECT: 'SELECT';
+SEMI: 'SEMI';
 SERIALIZABLE: 'SERIALIZABLE';
 SESSION: 'SESSION';
 SET: 'SET';
@@ -245,6 +250,8 @@ PERCENT: '%';
 CONCAT: '||';
 
 ARG: '=>';
+STEP: 'STEP';
+VALUE: 'VALUE';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
@@ -312,7 +319,7 @@ fragment DIGIT
     ;
 
 fragment LETTER
-    : [a-zA-Z]
+    : [A-Z]
     ;
 
 SIMPLE_COMMENT
@@ -328,7 +335,13 @@ WS
     ;
 
 // metalus mapper prefixes
-MAPPING_SYMBOL: ('@'|'#'|'!'|'$'|'?');
+//MAPPING_SYMBOL: ('@'|'#'|'!'|'$'|'?');
+STEP_RETURN: '@';
+SECONDARY_RETURN: '#';
+GLOBAL: '!';
+PARAMETER: '$';
+R_PARAMETER: '?';
+PIPELINE: '&';
 
 // Catch-all for anything we can't recognize.
 // We use this to be able to ignore and recover all the text

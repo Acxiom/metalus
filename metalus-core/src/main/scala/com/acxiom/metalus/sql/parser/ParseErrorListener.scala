@@ -1,6 +1,6 @@
 package com.acxiom.metalus.sql.parser
 
-import org.antlr.v4.runtime.{BaseErrorListener, CommonToken, RecognitionException, Recognizer}
+import org.antlr.v4.runtime._
 
 case object ParseErrorListener extends BaseErrorListener {
   override def syntaxError(
