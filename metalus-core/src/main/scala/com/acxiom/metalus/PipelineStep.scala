@@ -30,8 +30,11 @@ trait FlowStep extends Step {
   def retryLimit: Option[Int]
   def nextSteps: Option[List[String]] = None
   def dependencies: Option[String] = None
-
   def value: Option[String] = None
+
+  def valueExpression: String = value.getOrElse("STEP")
+
+  def nextStepExpressions: Option[List[String]] = nextSteps.orElse(nextStepId.map(n => List(s"'$n'")))
 }
 
 /**
@@ -60,12 +63,10 @@ final case class PipelineStep(override val id: Option[String] = None,
                               override val stepTemplateId: Option[String] = None,
                               override val nextStepOnError: Option[String] = None,
                               override val retryLimit: Option[Int] = Some(-1),
-                              engineMeta: Option[EngineMeta] = None,
                               override val nextSteps: Option[List[String]] = None,
-                              override val value: Option[String] = None) extends FlowStep {
-  def valueExpression: String = value.getOrElse("STEP")
-  def nextStepExpressions: Option[List[String]] = nextSteps.orElse(nextStepId.map(n => List(s"'$n'")))
-}
+                              override val value: Option[String] = None,
+                              override val dependencies: Option[String] = None,
+                              engineMeta: Option[EngineMeta] = None) extends FlowStep
 
 final case class PipelineStepGroup(override val id: Option[String] = None,
                                    override val displayName: Option[String] = None,
@@ -77,6 +78,9 @@ final case class PipelineStepGroup(override val id: Option[String] = None,
                                    override val stepTemplateId: Option[String] = None,
                                    override val nextStepOnError: Option[String] = None,
                                    override val retryLimit: Option[Int] = Some(-1),
+                                   override val nextSteps: Option[List[String]] = None,
+                                   override val value: Option[String] = None,
+                                   override val dependencies: Option[String] = None,
                                    pipelineId: Option[String] = None) extends FlowStep
 
 /**

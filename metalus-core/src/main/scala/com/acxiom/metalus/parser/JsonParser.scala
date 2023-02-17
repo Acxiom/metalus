@@ -99,6 +99,7 @@ object JsonParser {
 
   /**
    * Takes a single Pipeline and serializes it to a json string
+   *
    * @param pipeline The pipeline to serialize
    * @return A string representing the JSON
    */
@@ -109,6 +110,7 @@ object JsonParser {
 
   /**
    * Takes a list of pipelines and serializes to a json string
+   *
    * @param pipelines The list of pipelines to serialize.
    * @return A string representing the JSON
    */
@@ -138,7 +140,12 @@ object JsonParser {
       (input \ "executeIfEmpty").extractOpt[String],
       (input \ "stepTemplateId").extractOpt[String],
       (input \ "nextStepOnError").extractOpt[String],
-      (input \ "retryLimit").extractOpt[Int])
+      (input \ "retryLimit").extractOpt[Int],
+      (input \ "nextSteps").extractOpt[List[String]],
+      (input \ "value").extractOpt[String],
+      (input \ "dependencies").extractOpt[String]
+    )
+
   }
 
   private def parseFlowStep(step: FlowStep, stepType: Option[String] = None): List[JField] = {
@@ -151,7 +158,10 @@ object JsonParser {
       JField("executeIfEmpty", Extraction.decompose(step.executeIfEmpty)),
       JField("stepTemplateId", Extraction.decompose(step.stepTemplateId)),
       JField("nextStepOnError", Extraction.decompose(step.nextStepOnError)),
-      JField("retryLimit", Extraction.decompose(step.retryLimit)))
+      JField("retryLimit", Extraction.decompose(step.retryLimit)),
+      JField("nextSteps", Extraction.decompose(step.nextSteps)),
+      JField("value", Extraction.decompose(step.value)),
+      JField("dependencies", Extraction.decompose(step.dependencies)))
   }
 
   private def generateFormats(json4sSerializers: Option[Json4sSerializers]): Formats = {

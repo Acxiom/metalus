@@ -124,7 +124,8 @@ final case class PipelineStateKey(pipelineId: String,
     * @return The state key.
     */
   lazy val key: String = {
-    (Some(pipelineId) ++ stepId ++ stepGroup.map(_.key) ++ forkData.map(_.generateForkKeyValue())).mkString(".")
+    (stepGroup.map(_.key) ++ Some(pipelineId) ++ stepId ++ forkData.map(f => s"f(${f.generateForkKeyValue()})"))
+      .mkString(".")
   }
 
   def displayPipelineStepString: String = {
