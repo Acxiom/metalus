@@ -12,7 +12,7 @@ object QueryingSteps {
     "Query DataReference",
     "Executes a script with the provided object and returns the result",
     "Pipeline",
-    "Scripting")
+    "DataReference")
   @StepParameters(Map(
     "dataReference" -> StepParameter(None, Some(true), None, None, None, None, Some("A data reference to query")),
     "queryOperator" -> StepParameter(None, Some(true), None, None, None, None, Some("An operator to query with."))))
@@ -40,9 +40,10 @@ object QueryingSteps {
   def join(left: DataReference[_],
            right: DataReference[_],
            condition: Option[Expression] = None,
+           using: Option[List[Expression]] = None,
            joinType: Option[String] = None,
            pipelineContext: PipelineContext): DataReference[_] =
-    applyQueryOperation(left, Join(right, joinType.getOrElse("inner"), condition, None), pipelineContext)
+    applyQueryOperation(left, Join(right, joinType.getOrElse("inner"), condition, using), pipelineContext)
 
   def groupBy(dataReference: DataReference[_], expressions: List[Expression],
               pipelineContext: PipelineContext): DataReference[_] =
