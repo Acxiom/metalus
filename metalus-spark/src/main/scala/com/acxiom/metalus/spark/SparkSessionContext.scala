@@ -1,8 +1,7 @@
 package com.acxiom.metalus.spark
 
-import com.acxiom.pipeline.Context
-import com.acxiom.pipeline.applications.ApplicationUtils.logger
-import com.acxiom.pipeline.utils.DriverUtils
+import com.acxiom.metalus.context.Context
+import org.apache.hadoop.io.LongWritable
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
@@ -10,15 +9,35 @@ import org.apache.spark.util.CollectionAccumulator
 
 import scala.jdk.CollectionConverters.asScalaBufferConverter
 
-class SparkSessionContext(sparkConfOptions: Map[String, Any]) extends Context {
+class SparkSessionContext(sparkConfOptions: Map[String, Any],
+                          appName: Option[String],
+                          sparkMaster: Option[String]) extends Context {
   private val logger = Logger.getLogger(getClass)
+
+  private val DEFAULT_KRYO_CLASSES: Array[Class[_]] = {
+    try {
+      val c = Class.forName("org.apache.http.client.entity.UrlEncodedFormEntity")
+      Array[Class[_]](classOf[LongWritable], c)
+    } catch {
+      case _: Throwable => Array[Class[_]](classOf[LongWritable])
+    }
+  }
+
+  private val SPARK_MASTER = "spark.master"
+
   // Configure the SparkConf
   private val kryoClasses: Array[Class[_]] = if (sparkConfOptions.contains("kryoClasses")) {
     sparkConfOptions("kryoClasses").asInstanceOf[List[String]].map(c => Class.forName(c)).toArray
   } else {
-    DriverUtils.DEFAULT_KRYO_CLASSES
+    DEFAULT_KRYO_CLASSES
   }
-  private val initialSparkConf: SparkConf = DriverUtils.createSparkConf(kryoClasses)
+
+  /* TODO
+   *  Allow the user to pass in the master and app name
+   *  Update createSparkConf to pull in properties.
+   *    Currently it checks the conf for this stuff
+   */
+  private val initialSparkConf: SparkConf = createSparkConf(kryoClasses)
   val sparkConf: SparkConf = if (sparkConfOptions.contains("setOptions")) {
     sparkConfOptions("setOptions").asInstanceOf[List[Map[String, String]]].foldLeft(initialSparkConf)((conf, map) => {
       conf.set(map("name"), map("value"))
@@ -42,24 +61,58 @@ class SparkSessionContext(sparkConfOptions: Map[String, Any]) extends Context {
     Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages"))
 
   /**
-    * Adds a new PipelineStepMessage to the context
-    *
-    * @param message The message to add.
-    */
+   * Adds a new PipelineStepMessage to the context
+   *
+   * @param message The message to add.
+   */
   def addStepMessage(message: PipelineStepMessage): Unit = {
     if (stepMessages.isDefined) stepMessages.get.add(message)
   }
 
   /**
-    * Returns a list of PipelineStepMessages.
-    *
-    * @return a list of PipelineStepMessages
-    */
+   * Returns a list of PipelineStepMessages.
+   *
+   * @return a list of PipelineStepMessages
+   */
   def getStepMessages: Option[List[PipelineStepMessage]] = {
     if (stepMessages.isDefined) {
       Some(stepMessages.get.value.asScala.toList)
     } else {
       None
+    }
+  }
+
+  /**
+   * Creates a SparkConf with the provided class array. This function will also set properties required to run on a cluster.
+   *
+   * @param kryoClasses An array of Class types that should be registered for serialization.
+   * @return A SparkConf
+   */
+  private def createSparkConf(kryoClasses: Array[Class[_]]): SparkConf = {
+    // Create the spark conf.
+    val tempConf = new SparkConf()
+      // This is required to ensure that certain classes can be serialized across the nodes
+      .registerKryoClasses(kryoClasses)
+      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+
+    // Handle test scenarios where the master was not set
+//    val sparkConf = if (!tempConf.contains(SPARK_MASTER)) {
+//      tempConf.setMaster("local")
+//    } else {
+//      tempConf
+//    }
+
+    // These properties are required when running the driver on the cluster so the executors
+    // will be able to communicate back to the driver.
+    val deployMode = tempConf.get("spark.submit.deployMode", "client")
+    val master = tempConf.get(SPARK_MASTER, "local")
+    if (deployMode == "cluster" || master == "yarn") {
+      logger.debug("Configuring driver to run against a cluster")
+      tempConf
+        .set("spark.local.ip", java.net.InetAddress.getLocalHost.getHostAddress)
+        .set("spark.driver.host", java.net.InetAddress.getLocalHost.getHostAddress)
+    } else {
+      tempConf
     }
   }
 

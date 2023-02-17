@@ -625,7 +625,7 @@ JSON body:
               }
             },
             "destinationTransforms": {
-              "className": "com.acxiom.pipeline.steps.Transformations",
+              "className": "com.acxiom.metalus.sql.Transformations",
               "value": {
                 "columnDetails": [
                   {
@@ -723,7 +723,7 @@ ACCOUNT_TYPE to uppercase:
       }
     },
     "creditCardTransforms": {
-      "className": "com.acxiom.pipeline.steps.Transformations",
+      "className": "com.acxiom.metalus.sql.Transformations",
       "object": {
         "columnDetails": [
           {
@@ -857,7 +857,7 @@ column names, and data types on output. Specifically, the ORDER_NUM field will b
       }
     },
     "orderTransforms": {
-      "className": "com.acxiom.pipeline.steps.Transformations",
+      "className": "com.acxiom.metalus.sql.Transformations",
       "object": {
         "columnDetails": [
           {

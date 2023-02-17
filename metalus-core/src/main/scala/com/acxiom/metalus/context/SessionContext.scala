@@ -159,14 +159,7 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
     }
   }
 
-  lazy val runId: Int = {
-    val history = this.sessionHistory
-    if (history.isEmpty) {
-      1
-    } else {
-      history.get.head.runId + 1
-    }
-  }
+  lazy val runId: Int = this.sessionHistory.flatMap(_.headOption).map(_.runId + 1).getOrElse(1)
 
   override def startSession(): Boolean =
     storage.startSession(sessionId, runId, System.currentTimeMillis(), "RUNNING")
@@ -798,7 +791,7 @@ case class JDBCSessionStorage(connectionString: String,
       None
     }
     val historyResults = connection.prepareStatement(s"select * from SESSION_HISTORY where SESSION_ID = '${sessionId.toString}'").executeQuery()
-    val historyRecords = Iterator.from(0).takeWhile(_ => historyResults.next()).map(_ => createSessionInformation(historyResults))
+    val historyRecords = historyResults.map(_ => createSessionInformation(historyResults))
     val finalList = if (mainRecord.isDefined) {
       historyRecords.foldLeft(mainRecord.get)((list, history) => list :+ history)
     } else {
@@ -833,7 +826,7 @@ case class JDBCSessionStorage(connectionString: String,
     val sharedWhere = s"where SESSION_ID = '${sessionRecord.sessionId}' AND RESULT_KEY = '${sessionRecord.resultKey}'"
     val results = connection.prepareStatement(s"select * from STEP_STATUS $sharedWhere").executeQuery()
     // Insert the next steps
-    if (sessionRecord.nextSteps.isDefined && sessionRecord.nextSteps.get.nonEmpty) {
+    if (sessionRecord.nextSteps.exists(_.nonEmpty)) {
       sessionRecord.nextSteps.get.foreach(step => {
         connection.prepareStatement(
           s"""INSERT INTO STEP_STATUS_STEPS VALUES('${sessionRecord.sessionId}', ${sessionRecord.runId},
@@ -866,7 +859,7 @@ case class JDBCSessionStorage(connectionString: String,
     // Steps Table  --> |SESSION_ID|RUN_ID|RESULT_KEY|STEP_ID
     val sharedWhere = s"WHERE SESSION_ID = '${sessionId.toString}'"
     val stepResults = connection.prepareStatement(s"SELECT * FROM STEP_STATUS_STEPS $sharedWhere").executeQuery()
-    val stepsList = Iterator.from(0).takeWhile(_ => stepResults.next()).map(_ => {
+    val stepsList = stepResults.map(_ => {
       (stepResults.getInt("RUN_ID"),
         stepResults.getString("RESULT_KEY"),
         stepResults.getString("STEP_ID"))
@@ -880,7 +873,7 @@ case class JDBCSessionStorage(connectionString: String,
       }
     })
     val results = connection.prepareStatement(s"SELECT * FROM STEP_STATUS $sharedWhere").executeQuery()
-    val list = Iterator.from(0).takeWhile(_ => results.next()).map(_ => {
+    val list = results.map(_ => {
       val key = s"${results.getInt("RUN_ID")}_${results.getString("RESULT_KEY")}"
       StatusSessionRecord(UUID.fromString(results.getString("SESSION_ID")),
         new Date(results.getLong("DATE")),
@@ -934,7 +927,7 @@ case class JDBCSessionStorage(connectionString: String,
     // Table --> |SESSION_ID|DATE|RUN_ID|CONVERTOR|AUDIT_KEY|START_TIME|END_TIME|DURATION|STATE
     val sharedWhere = s"WHERE SESSION_ID = '${sessionId.toString}'"
     val results = connection.prepareStatement(s"SELECT * FROM AUDITS $sharedWhere").executeQuery()
-    val list = Iterator.from(0).takeWhile(_ => results.next()).map(_ => {
+    val list = results.map(_ => {
       AuditSessionRecord(UUID.fromString(results.getString("SESSION_ID")),
         new Date(results.getLong("DATE")),
         results.getInt("RUN_ID"),
@@ -989,7 +982,7 @@ case class JDBCSessionStorage(connectionString: String,
     // Table --> |SESSION_ID|DATE|RUN_ID|CONVERTOR|RESULT_KEY|NAME|STATE
     val sharedWhere = s"WHERE SESSION_ID = '${sessionId.toString}'"
     val results = connection.prepareStatement(s"SELECT * FROM STEP_RESULTS $sharedWhere").executeQuery()
-    val list = Iterator.from(0).takeWhile(_ => results.next()).map(_ => {
+    val list = results.map(_ => {
       StepResultSessionRecord(UUID.fromString(results.getString("SESSION_ID")),
         new Date(results.getLong("DATE")),
         results.getInt("RUN_ID"),
@@ -1047,7 +1040,7 @@ case class JDBCSessionStorage(connectionString: String,
     // Table --> |SESSION_ID|DATE|RUN_ID|CONVERTOR|RESULT_KEY|NAME|STATE
     val sharedWhere = s"WHERE SESSION_ID = '${sessionId.toString}'"
     val results = connection.prepareStatement(s"SELECT * FROM GLOBALS $sharedWhere").executeQuery()
-    val list = Iterator.from(0).takeWhile(_ => results.next()).map(_ => {
+    val list = results.map(_ => {
       GlobalSessionRecord(UUID.fromString(results.getString("SESSION_ID")),
         new Date(results.getLong("DATE")),
         results.getInt("RUN_ID"),

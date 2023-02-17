@@ -89,17 +89,14 @@ object ApplicationUtils {
         val keyMap = stepList.map(step => {
           val info = PipelineStateKey.fromString(step)
           val pipeline = pipelineContext.pipelineManager.getPipeline(info.pipelineId)
-          if (pipeline.isDefined) {
-            val allowedRestarts = pipeline.get.parameters.getOrElse(Parameters()).restartableSteps
-            if (allowedRestarts.isEmpty ||
-              allowedRestarts.get.isEmpty ||
-              !allowedRestarts.get.contains(info.stepId.getOrElse("NOPE"))) {
-              throw new IllegalArgumentException(s"Step is not restartable: ${info.key}")
-            }
-            StepState(info, "RESTART")
-          } else {
+          if (pipeline.isEmpty) {
             throw new IllegalArgumentException(s"Unable to load pipeline ${info.pipelineId}!")
           }
+          val allowedRestarts = pipeline.get.parameters.getOrElse(Parameters()).restartableSteps
+          if ((!allowedRestarts.exists(_.contains(info.stepId.getOrElse("NOPE"))))) {
+            throw new IllegalArgumentException(s"Step is not restartable: ${info.key}")
+          }
+          StepState(info, "RESTART")
         })
         Some(RestartPoints(keyMap.toList))
       } else {

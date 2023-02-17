@@ -1,12 +1,12 @@
 package com.acxiom.metalus.spark
 
-import com.acxiom.pipeline.{ApplicationStats, Constants, Pipeline, PipelineContext, PipelineExecutionInfo, PipelineListener, PipelineStep}
+import com.acxiom.metalus.{PipelineContext, PipelineListener, PipelineStateKey}
 import org.apache.spark.scheduler.{SparkListener, SparkListenerJobEnd, SparkListenerJobStart, SparkListenerStageCompleted}
 
 import scala.collection.mutable
 
 trait SparkPipelineListener extends SparkListener with PipelineListener {
-  private var currentExecutionInfo: Option[PipelineExecutionInfo] = None
+  private var currentExecutionInfo: Option[PipelineStateKey] = None
   private val applicationStats: ApplicationStats = ApplicationStats(mutable.Map())
   private val sparkSettingToReport: List[String] = List(
     "spark.kryoserializer.buffer.max", "spark.driver.memory", "spark.executor.memory", "spark.sql.shuffle.partitions",
