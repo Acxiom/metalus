@@ -18,7 +18,7 @@ case class JDBCDataConnector(url: String,
       }
       tmp.get
     }
-    getTable(dbtable, properties.map(_.mapValues(_.toString).filterKeys(_ != "dbtable")), pipelineContext)
+    getTable(dbtable, properties.map(_.mapValues(_.toString).filterKeys(_ != "dbtable").toMap[String, String]), pipelineContext)
   }
 
   def getTable(dbtable: String, properties: Option[Map[String, String]], pipelineContext: PipelineContext): JDBCDataReference[_] = {
@@ -27,6 +27,6 @@ case class JDBCDataConnector(url: String,
       getCredential(pipelineContext).collect {
         case unc: UserNameCredential => Map("user" -> unc.name, "password" -> unc.password)
       }.getOrElse(Map())
-    BasicJDBCDataReference(dbtable, url, info, pipelineContext)
+    BasicJDBCDataReference(dbtable, url, info.toMap[String, String], pipelineContext)
   }
 }

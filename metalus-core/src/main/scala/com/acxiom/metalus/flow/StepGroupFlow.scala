@@ -10,14 +10,13 @@ case class StepGroupFlow(pipeline: Pipeline,
                          initialContext: PipelineContext,
                          step: FlowStep,
                          parameterValues: Map[String, Any],
-                         pipelineStateInfo: PipelineStateInfo) extends PipelineFlow {
+                         pipelineStateInfo: PipelineStateKey) extends PipelineFlow {
   override def execute(): FlowResult = {
     val stepState = initialContext.currentStateInfo
     val groupResult = processStepGroup(step, parameterValues, initialContext)
     val audit = initialContext.getPipelineAudit(stepState.get)
     val updatedCtx = (if (audit.isDefined) {
       val updatedAudit = audit.get.setEnd(System.currentTimeMillis())
-      sessionContext.saveAudit(audit.get.key, updatedAudit)
       initialContext.setPipelineAudit(updatedAudit)
     } else {
       initialContext
@@ -41,13 +40,12 @@ case class StepGroupFlow(pipeline: Pipeline,
     val pipelineAudit = ExecutionAudit(pipelineKey, AuditType.PIPELINE, Map[String, Any](),
       System.currentTimeMillis(), None, None)
     // Inject the mappings into the globals object of the PipelineContext
-    sessionContext.saveAudit(pipelineAudit.key, pipelineAudit)
     val ctx = preparePipelineContext(parameterValues, pipelineContext, subPipeline)
       .setPipelineAudit(pipelineAudit).setCurrentStateInfo(pipelineKey)
 
     val result = PipelineStepFlow(subPipeline, ctx).execute()
-    val resultCtx = result.pipelineContext
-    val response = extractStepGroupResponse(step, subPipeline, resultCtx)
+    val response = extractStepGroupResponse(step, subPipeline, result.pipelineContext)
+    val resultCtx = result.pipelineContext.setPipelineStepResponse(pipelineContext.currentStateInfo.get, response)
     val updates = subPipeline.steps.get
       .filter { step =>
         val r = resultCtx.getStepResultByStateInfo(pipelineKey.copy(stepId = step.id))
@@ -57,7 +55,6 @@ case class StepGroupFlow(pipeline: Pipeline,
       updates ++ gatherGlobalUpdates(r, step, subPipeline.id.get)
     })
     val updatePipelineAudit = ctx.getPipelineAudit(pipelineKey).get.setEnd(System.currentTimeMillis())
-    sessionContext.saveAudit(updatePipelineAudit.key, updatePipelineAudit)
     StepGroupResult(resultCtx.setPipelineAudit(updatePipelineAudit), response, updates)
   }
 
@@ -67,7 +64,7 @@ case class StepGroupFlow(pipeline: Pipeline,
     val updates = if (subPipeline.parameters.isDefined &&
       subPipeline.parameters.get.inputs.isDefined &&
       subPipeline.parameters.get.inputs.get.nonEmpty) {
-      val stateInfo = PipelineStateInfo(subPipeline.id.get)
+      val stateInfo = PipelineStateKey(subPipeline.id.get)
       val params = subPipeline.parameters.get.inputs.get
         .foldLeft((Map[String, Any](), PipelineParameter(stateInfo, Map()), parameterValues))((tuple, input) => {
         if (parameterValues.contains(input.name)) {
@@ -137,14 +134,20 @@ case class StepGroupFlow(pipeline: Pipeline,
   }
 
   private def getPipeline(step: FlowStep, parameterValues: Map[String, Any], pipelineContext: PipelineContext): Pipeline = {
-    val pipelineId = step match {
-      case group: PipelineStepGroup if group.pipelineId.isDefined => group.pipelineId
+    val (pipelineId, pipeline) = step match {
+      case group: PipelineStepGroup if group.pipelineId.isDefined =>
+        val p = Parameter(Some("text"), Some("pipelineId"), value = group.pipelineId)
+        val pipeline = pipelineContext.parameterMapper.mapParameter(p, pipelineContext)
+        pipeline match {
+          case pipeline1: Pipeline => (None, Some(pipeline1))
+          case _ => (Some(pipeline.toString), None)
+        }
       case _ => if (step.params.get.exists(_.name.getOrElse("") == "pipelineId")) {
-        Some(step.params.get.find(_.name.getOrElse("") == "pipelineId").get.value.getOrElse("").toString)
+        (Some(step.params.get.find(_.name.getOrElse("") == "pipelineId").get.value.getOrElse("").toString), None)
       } else if (parameterValues.contains("pipelineId")) {
-        parameterValues.get("pipelineId").asInstanceOf[Option[String]]
+        (parameterValues.get("pipelineId").asInstanceOf[Option[String]], None)
       } else {
-        None
+        (None, None)
       }
     }
 
@@ -153,6 +156,8 @@ case class StepGroupFlow(pipeline: Pipeline,
         .getOrElse(throw PipelineException(message = Some(s"Unable to retrieve required step group id ${pipelineId.get}"),
           context = Some(pipelineContext),
           pipelineProgress = pipelineContext.currentStateInfo))
+    } else if (pipeline.isDefined) {
+      pipeline.get
     } else {
       parameterValues("pipeline").asInstanceOf[Pipeline]
     }

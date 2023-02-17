@@ -32,11 +32,6 @@ trait DriverSetup {
     */
   def pipelineContext: PipelineContext
 
-  // TODO [2.0 Follow Up] Is this still needed?
-  def refreshContext(pipelineContext: PipelineContext): PipelineContext = {
-    pipelineContext
-  }
-
   /**
     * Returns the CredentialProvider to use during for this job.
     * @return The credential provider.

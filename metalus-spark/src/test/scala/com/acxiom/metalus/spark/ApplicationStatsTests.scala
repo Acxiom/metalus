@@ -1,5 +1,7 @@
 package com.acxiom.metalus.spark
 
+import org.scalatest.funspec.AnyFunSpec
+
 //import com.acxiom.pipeline.utils.ReflectionUtils
 //import org.apache.spark.scheduler._
 //import org.joda.time.DateTime

@@ -1,9 +1,4 @@
-package com.acxiom.pipeline.steps
-
-
-case class ColumnDetails(outputField: String,
-                         inputAliases: List[String] = List(),
-                         expression: Option[String] = None)
+package com.acxiom.metalus.sql
 
 case class Transformations(columnDetails: List[ColumnDetails],
                            filter: Option[String] = None,

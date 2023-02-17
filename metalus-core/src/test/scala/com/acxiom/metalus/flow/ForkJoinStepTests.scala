@@ -158,12 +158,12 @@ class ForkJoinStepTests extends AnyFunSpec {
       val executionResult = PipelineExecutor.executePipelines(pipeline.get, TestHelper.generatePipelineContext())
       assert(executionResult.success)
       val ctx = executionResult.pipelineContext
-      val results = ctx.getStepResultByKey(PipelineStateInfo("embedded_fork_pipeline", Some("FLATTEN_LIST")).key)
+      val results = ctx.getStepResultByKey(PipelineStateKey("embedded_fork_pipeline", Some("FLATTEN_LIST")).key)
       assert(results.isDefined)
       assert(results.get.primaryReturn.isDefined)
       val primary = results.get.primaryReturn.get.asInstanceOf[Int]
       assert(primary == 10)
-      val processValueAudits = ctx.getPipelineAudits(PipelineStateInfo("embedded_fork_pipeline", Some("PROCESS_VALUE")))
+      val processValueAudits = ctx.getPipelineAudits(PipelineStateKey("embedded_fork_pipeline", Some("PROCESS_VALUE")))
       assert(processValueAudits.isDefined)
       assert(processValueAudits.get.length == 6)
     }
@@ -239,7 +239,7 @@ class ForkJoinStepTests extends AnyFunSpec {
       val pipeline = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineSteps))
       val results = new ListenerValidations
       TestHelper.pipelineListener = new PipelineListener {
-        override def registerStepException(pipelineKey: PipelineStateInfo, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+        override def registerStepException(pipelineKey: PipelineStateKey, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
             case _ =>
               val e = Option(exception.getCause).getOrElse(exception)
@@ -260,7 +260,7 @@ class ForkJoinStepTests extends AnyFunSpec {
       val pipeline = Pipeline(Some("SERIAL_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineSteps))
       val results = new ListenerValidations
       TestHelper.pipelineListener = new PipelineListener {
-        override def registerStepException(pipelineKey: PipelineStateInfo, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+        override def registerStepException(pipelineKey: PipelineStateKey, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
             case _ =>
               val e = Option(exception.getCause).getOrElse(exception)
@@ -287,7 +287,7 @@ class ForkJoinStepTests extends AnyFunSpec {
       val pipeline = Pipeline(Some("ON_ERROR_FORK_TEST"), Some("Serial Fork Test"), Some(pipelineSteps))
       val results = new ListenerValidations
       TestHelper.pipelineListener = new PipelineListener {
-        override def registerStepException(pipelineKey: PipelineStateInfo, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+        override def registerStepException(pipelineKey: PipelineStateKey, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
           exception match {
             case _ =>
               val e = Option(exception.getCause).getOrElse(exception)
@@ -299,7 +299,7 @@ class ForkJoinStepTests extends AnyFunSpec {
       }
       val executionResult = PipelineExecutor.executePipelines(pipeline, TestHelper.generatePipelineContext())
       assert(executionResult.success)
-      val result = executionResult.pipelineContext.getStepResultsByStateInfo(PipelineStateInfo("ON_ERROR_FORK_TEST", Some("ON_ERROR")))
+      val result = executionResult.pipelineContext.getStepResultsByStateInfo(PipelineStateKey("ON_ERROR_FORK_TEST", Some("ON_ERROR")))
       assert(result.isDefined)
       assert(result.get.length == Constants.TWO)
       assert(result.get.isInstanceOf[List[PipelineStepResponse]])
@@ -312,7 +312,7 @@ class ForkJoinStepTests extends AnyFunSpec {
     assert(executionResult.success)
     val ctx = executionResult.pipelineContext
     assert(ctx.getGlobalString("groupId").isEmpty)
-    val stateKey = PipelineStateInfo(pipeline.id.getOrElse(""))
+    val stateKey = PipelineStateKey(pipeline.id.getOrElse(""))
     val generateDataResult = ctx.getStepResultByStateInfo(stateKey.copy(stepId = Some("GENERATE_DATA")))
     val processValueResult = ctx.getStepResultsByStateInfo(stateKey.copy(stepId = Some("PROCESS_VALUE")))
     assert(generateDataResult.isDefined)
@@ -358,7 +358,7 @@ class ForkJoinStepTests extends AnyFunSpec {
     assert(result.namedReturns.get("string") == stringValue)
   }
 
-  private def verifyForkAudits(ctx: PipelineContext, stateKey: PipelineStateInfo) = {
+  private def verifyForkAudits(ctx: PipelineContext, stateKey: PipelineStateKey) = {
     val audits = ctx.getPipelineAudits(stateKey.copy(stepId = Some("PROCESS_VALUE")))
     assert(audits.isDefined)
     assert(audits.get.length == Constants.THREE)
@@ -367,7 +367,7 @@ class ForkJoinStepTests extends AnyFunSpec {
   private def verifyEmbeddedForkResults(pipeline: Pipeline, executionResult: PipelineExecutionResult) = {
     assert(executionResult.success)
     val ctx = executionResult.pipelineContext
-    val result = ctx.getStepResultByStateInfo(PipelineStateInfo(pipeline.id.getOrElse(""), Some("FLATTEN_LIST")))
+    val result = ctx.getStepResultByStateInfo(PipelineStateKey(pipeline.id.getOrElse(""), Some("FLATTEN_LIST")))
     assert(result.isDefined)
     val results = result.get
     assert(results.primaryReturn.isDefined)

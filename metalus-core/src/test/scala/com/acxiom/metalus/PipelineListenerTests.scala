@@ -20,7 +20,7 @@ class PipelineListenerTests extends AnyFunSpec with Suite {
       combined.applicationStarted(pipelineContext)
       combined.applicationComplete(pipelineContext)
       combined.applicationStopped(pipelineContext)
-      val pipelineKey = PipelineStateInfo(pipelines.head.id.get)
+      val pipelineKey = PipelineStateKey(pipelines.head.id.get)
       combined.pipelineStarted(pipelineKey, pipelineContext)
       combined.pipelineFinished(pipelineKey, pipelineContext)
       combined.pipelineStepStarted(pipelineKey.copy(stepId =  PipelineDefs.GLOBAL_SINGLE_STEP.id), pipelineContext)
@@ -44,7 +44,7 @@ class PipelineListenerTests extends AnyFunSpec with Suite {
       assert(pipelineMap("key") == "event-test")
       assert(pipelineMap("event") == "pipeMessage")
       assert(pipelineMap("pipeline").asInstanceOf[Map[String, String]]("id") == pipelines.head.id.get)
-      val pipelineContext = TestHelper.generatePipelineContext().setCurrentStateInfo(PipelineStateInfo(pipelines.head.id.get, pipelines.head.steps.get.head.id))
+      val pipelineContext = TestHelper.generatePipelineContext().setCurrentStateInfo(PipelineStateKey(pipelines.head.id.get, pipelines.head.steps.get.head.id))
       val stepMessage = test.generatePipelineStepMessage("stepMessage", pipelines.head, pipelines.head.steps.get.head, pipelineContext)
       val stepMap = parse(stepMessage).extract[Map[String, Any]]
       assert(stepMap("key") == "event-test")
@@ -52,7 +52,7 @@ class PipelineListenerTests extends AnyFunSpec with Suite {
       assert(stepMap("pipeline").asInstanceOf[Map[String, String]]("id") == pipelines.head.id.get)
       assert(stepMap("step").asInstanceOf[Map[String, String]]("id") == pipelines.head.steps.get.head.id.get)
 
-      val ctx = pipelineContext.setCurrentStateInfo(PipelineStateInfo("pipeline1", Some("step1"), Some(ForkData(0, None, None))))
+      val ctx = pipelineContext.setCurrentStateInfo(PipelineStateKey("pipeline1", Some("step1"), Some(ForkData(0, None, None))))
       val simpleExceptionMessage = test.generateExceptionMessage("simple-exception",
         PipelineException(message = Some("Test  Message"),
           cause = new IllegalArgumentException("Stinky Pete"),
@@ -66,7 +66,7 @@ class PipelineListenerTests extends AnyFunSpec with Suite {
       assert(simpleExceptionMap("groupId") == "0")
       assert(simpleExceptionMap("messages").asInstanceOf[List[String]].head == "Test  Message")
 
-      val splitCtx = pipelineContext.setCurrentStateInfo(PipelineStateInfo("pipeline2", Some("step2"), Some(ForkData(1, None, None))))
+      val splitCtx = pipelineContext.setCurrentStateInfo(PipelineStateKey("pipeline2", Some("step2"), Some(ForkData(1, None, None))))
       val splitExceptionMessage = test.generateExceptionMessage("split-exception",
         SplitStepException(exceptions =
         Map("" -> PipelineException(message = Some("Split  Message"),
@@ -82,7 +82,7 @@ class PipelineListenerTests extends AnyFunSpec with Suite {
       assert(splitExceptionMap("groupId") == "1")
       assert(splitExceptionMap("messages").asInstanceOf[List[String]].head == "Split  Message")
 
-      val forkCtx = pipelineContext.setCurrentStateInfo(PipelineStateInfo("pipeline3", Some("step3")))
+      val forkCtx = pipelineContext.setCurrentStateInfo(PipelineStateKey("pipeline3", Some("step3")))
       val forkExceptionMessage = test.generateExceptionMessage("fork-exception",
         ForkedPipelineStepException(exceptions =
           Map(1 -> PipelineException(message = Some("Fork  Message"),
@@ -96,7 +96,7 @@ class PipelineListenerTests extends AnyFunSpec with Suite {
       assert(forkExceptionMap("stepId") == "step3")
       assert(forkExceptionMap("groupId") == "-1")
       assert(forkExceptionMap("messages").asInstanceOf[List[String]].head == "Fork  Message")
-      val pipelineKey = PipelineStateInfo("pipeline")
+      val pipelineKey = PipelineStateKey("pipeline")
       val step1Audit = ExecutionAudit(pipelineKey.copy(stepId = Some("step1")), AuditType.STEP, Map[String, Any](), Constants.THREE, Some(Constants.FIVE))
       val pipelineAudit = ExecutionAudit(pipelineKey, AuditType.PIPELINE, Map[String, Any](), Constants.TWO, Some(Constants.NINE))
       var auditMessage = test.generateAuditMessage("audit-message", pipelineAudit)
@@ -126,27 +126,27 @@ class TestPipelineListener(val key: String,
                            val credentialProvider: CredentialProvider) extends EventBasedPipelineListener {
   val results = new ListenerValidations
 
-  override def pipelineStarted(key: PipelineStateInfo, pipelineContext: PipelineContext): Option[PipelineContext] = {
+  override def pipelineStarted(key: PipelineStateKey, pipelineContext: PipelineContext): Option[PipelineContext] = {
     results.addValidation("pipelineStarted", valid = true)
     None
   }
 
-  override def pipelineFinished(key: PipelineStateInfo, pipelineContext: PipelineContext): Option[PipelineContext] = {
+  override def pipelineFinished(key: PipelineStateKey, pipelineContext: PipelineContext): Option[PipelineContext] = {
     results.addValidation("pipelineFinished", valid = true)
     None
   }
 
-  override def pipelineStepStarted(key: PipelineStateInfo, pipelineContext: PipelineContext): Option[PipelineContext] = {
+  override def pipelineStepStarted(key: PipelineStateKey, pipelineContext: PipelineContext): Option[PipelineContext] = {
     results.addValidation("pipelineStepStarted", valid = true)
     None
   }
 
-  override def pipelineStepFinished(key: PipelineStateInfo, pipelineContext: PipelineContext): Option[PipelineContext] = {
+  override def pipelineStepFinished(key: PipelineStateKey, pipelineContext: PipelineContext): Option[PipelineContext] = {
     results.addValidation("pipelineStepFinished", valid = true)
     None
   }
 
-  override def registerStepException(key: PipelineStateInfo, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+  override def registerStepException(key: PipelineStateKey, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
     results.addValidation("registerStepException", valid = true)
   }
 

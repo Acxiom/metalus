@@ -1,10 +1,12 @@
 package com.acxiom.metalus.applications
 
 import com.acxiom.metalus._
-import com.acxiom.metalus.context.{ContextManager, Json4sContext, SessionContext}
+import com.acxiom.metalus.context.{ContextManager, Json4sContext, SessionContext, StepStatus}
 import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.utils.ReflectionUtils
 import org.slf4j.LoggerFactory
+
+import scala.annotation.tailrec
 
 /**
  * Provides a set of utility functions for working with Application metadata
@@ -46,8 +48,9 @@ object ApplicationUtils {
     val sessionContext = contextManager.getContext("session").get.asInstanceOf[SessionContext]
     val audits = sessionContext.loadAudits().getOrElse(List())
     val stepResults = sessionContext.loadStepResults().getOrElse(Map())
-      .map(r => (PipelineStateInfo.fromString(r._1), r._2))
-    val sessionGlobals = sessionContext.loadGlobals(PipelineStateInfo(application.pipelineId.getOrElse(""))).getOrElse(Map())
+      .map(r => (PipelineStateKey.fromString(r._1), r._2))
+    val stepStatus = sessionContext.loadStepStatus()
+    val sessionGlobals = sessionContext.loadGlobals(PipelineStateKey(application.pipelineId.getOrElse(""))).getOrElse(Map())
     val tempCtx = PipelineContext(globals, List(), contextManager = contextManager)
     val globalStepMapper = generateStepMapper(application.stepMapper, Some(PipelineStepMapper()),
       validateArgumentTypes, credentialProvider, tempCtx)
@@ -60,33 +63,91 @@ object ApplicationUtils {
       validateArgumentTypes, credentialProvider, tempCtx).get
     val initialContext = PipelineContext(Some(rootGlobals), globalPipelineParameters.get, application.stepPackages,
       globalStepMapper.get, globalListener, audits, pipelineManager, credentialProvider, contextManager, stepResults, None,
-      executionEngines = Some(executionEngines.toList))
-    val restartPoints = getRestartPoints(parameters.getOrElse(Map()), initialContext)
+      executionEngines = Some(executionEngines.toList), stepStatus = stepStatus)
+    val restartPoints = getRestartPoints(parameters.getOrElse(Map()), sessionContext, initialContext)
     val defaultGlobals = generateGlobals(application.globals, rootGlobals , Some(rootGlobals), initialContext)
     initialContext.copy(globals = Some(sessionGlobals ++ defaultGlobals.get), restartPoints = restartPoints)
   }
 
-  private def getRestartPoints(parameters: Map[String, Any], pipelineContext: PipelineContext): Option[RestartPoints] = {
-    // TODO [2.0 RESTARTS] Try and recover from session state
-    // See if this run is needs to start at certain points
-    val stepList = parameters.getOrElse("restartSteps", "").toString.split(",")
-    if (stepList.nonEmpty && stepList.head.nonEmpty) {
-      val keyMap = stepList.map(step => {
-        val info = PipelineStateInfo.fromString(step)
-        val pipeline = pipelineContext.pipelineManager.getPipeline(info.pipelineId)
-        if (pipeline.isDefined) {
+  private def getRestartPoints(parameters: Map[String, Any], sessionContext: SessionContext, pipelineContext: PipelineContext): Option[RestartPoints] = {
+    val history = sessionContext.sessionHistory
+    val stepStatus = pipelineContext.stepStatus.getOrElse(List())
+    val failedSteps = stepStatus.filter(_.status == "RUNNING")
+    if (!parameters.getOrElse("disableRecovery", false).toString.toBoolean && history.isDefined && history.get.nonEmpty &&
+      pipelineContext.stepStatus.isDefined && pipelineContext.stepStatus.get.nonEmpty && failedSteps.nonEmpty) {
+      // Walk each step back to the restartable step
+      val restarts = failedSteps.flatMap(step => getRestartableStep(pipelineContext, PipelineStateKey.fromString(step.stepKey)))
+      if (restarts.nonEmpty) {
+        Some(RestartPoints(restarts))
+      } else {
+        None
+      }
+    } else {
+      // See if this run is needs to start at certain points
+      val stepList = parameters.getOrElse("restartSteps", "").toString.split(",")
+      if (stepList.nonEmpty && stepList.head.nonEmpty) {
+        val keyMap = stepList.map(step => {
+          val info = PipelineStateKey.fromString(step)
+          val pipeline = pipelineContext.pipelineManager.getPipeline(info.pipelineId)
+          if (pipeline.isEmpty) {
+            throw new IllegalArgumentException(s"Unable to load pipeline ${info.pipelineId}!")
+          }
           val allowedRestarts = pipeline.get.parameters.getOrElse(Parameters()).restartableSteps
-          if (allowedRestarts.isEmpty ||
-            allowedRestarts.get.isEmpty ||
-            !allowedRestarts.get.contains(info.stepId.getOrElse("NOPE"))) {
+          if ((!allowedRestarts.exists(_.contains(info.stepId.getOrElse("NOPE"))))) {
             throw new IllegalArgumentException(s"Step is not restartable: ${info.key}")
           }
           StepState(info, "RESTART")
-        } else {
-          throw new IllegalArgumentException(s"Unable to load pipeline ${info.pipelineId}!")
-        }
-      })
-      Some(RestartPoints(keyMap.toList))
+        })
+        Some(RestartPoints(keyMap.toList))
+      } else {
+        None
+      }
+    }
+  }
+
+  /**
+   * This function will take the provided StepStatus and find the step that can be used as a restart point.
+   *
+   * @param pipelineContext The current PipelineContext
+   * @param stepKey         The unique key fo the step.
+   * @return A StepState object to be used for restarts.
+   */
+  @tailrec
+  private def getRestartableStep(pipelineContext: PipelineContext, stepKey: PipelineStateKey): Option[StepState] = {
+    val pipeline = pipelineContext.pipelineManager.getPipeline(stepKey.pipelineId)
+    if (pipeline.isEmpty) {
+      throw PipelineException(
+        message = Some(s"Unable to load pipeline by id (${stepKey.pipelineId}) while determining restart points!"), pipelineProgress = None)
+    }
+    val stepStatus = pipelineContext.stepStatus.get
+    val allowedSteps = pipeline.get.parameters.getOrElse(Parameters()).restartableSteps.getOrElse(List())
+      .map(s => stepKey.copy(stepId = Some(s), forkData = None).key)
+    // Walk the stepStatus
+    if (allowedSteps.contains(stepKey.copy(forkData = None).key)) {
+      Some(StepState(stepKey, "RESTART"))
+    } else {
+      val state = findRestartableStep(stepKey, allowedSteps, stepStatus)
+      if (state.isDefined) {
+        Some(StepState(state.get, "RESTART"))
+      } else if (stepKey.stepGroup.isEmpty) {
+        None
+      } else {
+        getRestartableStep(pipelineContext, stepKey.stepGroup.get)
+      }
+    }
+  }
+
+  @tailrec
+  private def findRestartableStep(stepKey: PipelineStateKey, allowedSteps: List[String], stepStatus: List[StepStatus]): Option[PipelineStateKey] = {
+    val forkLessStepKey = stepKey.copy(forkData = None)
+    val previous = stepStatus.find(status => status.nextSteps.isDefined && status.nextSteps.get.contains(forkLessStepKey.stepId.getOrElse("")))
+    if (previous.isDefined) {
+      val key = PipelineStateKey.fromString(previous.get.stepKey).copy(forkData = stepKey.forkData)
+      if (allowedSteps.contains(previous.get.stepKey)) {
+        Some(key)
+      } else {
+        findRestartableStep(key, allowedSteps, stepStatus)
+      }
     } else {
       None
     }

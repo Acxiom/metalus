@@ -1,8 +1,8 @@
 package com.acxiom.metalus.spark
 
+import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Suite}
 
-// TODO [2.0 Review] Move to spark project and extract valuable tests for core
 class SparkSuiteTests extends AnyFunSpec with BeforeAndAfterAll with GivenWhenThen with Suite {
 //  override def beforeAll() {
 //    Logger.getLogger("org.apache.spark").setLevel(Level.WARN)

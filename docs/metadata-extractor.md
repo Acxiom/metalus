@@ -654,8 +654,8 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
           "type": "object",
           "name": "transforms",
           "required": false,
-          "className": "com.acxiom.pipeline.steps.Transformations",
-          "parameterType": "com.acxiom.pipeline.steps.Transformations"
+          "className": "com.acxiom.metalus.sql.Transformations",
+          "parameterType": "com.acxiom.metalus.sql.Transformations"
         },
         {
           "type": "boolean",
@@ -699,8 +699,8 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
           "type": "object",
           "name": "transforms",
           "required": false,
-          "className": "com.acxiom.pipeline.steps.Transformations",
-          "parameterType": "com.acxiom.pipeline.steps.Transformations"
+          "className": "com.acxiom.metalus.sql.Transformations",
+          "parameterType": "com.acxiom.metalus.sql.Transformations"
         },
         {
           "type": "boolean",
@@ -743,8 +743,8 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
           "type": "object",
           "name": "transforms",
           "required": false,
-          "className": "com.acxiom.pipeline.steps.Transformations",
-          "parameterType": "com.acxiom.pipeline.steps.Transformations"
+          "className": "com.acxiom.metalus.sql.Transformations",
+          "parameterType": "com.acxiom.metalus.sql.Transformations"
         },
         {
           "type": "boolean",
@@ -781,8 +781,8 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
           "type": "object",
           "name": "transforms",
           "required": false,
-          "className": "com.acxiom.pipeline.steps.Transformations",
-          "parameterType": "com.acxiom.pipeline.steps.Transformations"
+          "className": "com.acxiom.metalus.sql.Transformations",
+          "parameterType": "com.acxiom.metalus.sql.Transformations"
         }
       ],
       "engineMeta": {
@@ -1461,7 +1461,7 @@ bin/metadata-extractor.sh --jar-files /tmp/steps.jar,/tmp/common-steps.jar --out
       "schema": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"title\":\"Data Frame Reader Options\",\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"format\":{\"type\":\"string\"},\"options\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"schema\":{\"$ref\":\"#/definitions/Schema\"}},\"definitions\":{\"Schema\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"attributes\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/definitions/Attribute\"}}}},\"Attribute\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"name\":{\"type\":\"string\"},\"dataType\":{\"$ref\":\"#/definitions/AttributeType\"}}},\"AttributeType\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"baseType\":{\"type\":\"string\"},\"valueType\":{\"$ref\":\"#/definitions/AttributeType\"},\"nameType\":{\"$ref\":\"#/definitions/AttributeType\"},\"schema\":{\"$ref\":\"#/definitions/Schema\"}}}}}"
     },
     {
-      "id": "com.acxiom.pipeline.steps.Transformations",
+      "id": "com.acxiom.metalus.sql.Transformations",
       "schema": "{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"title\":\"Transformations\",\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"columnDetails\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/definitions/ColumnDetails\"}},\"filter\":{\"type\":\"string\"},\"standardizeColumnNames\":{}},\"definitions\":{\"ColumnDetails\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"outputField\":{\"type\":\"string\"},\"inputAliases\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"expression\":{\"type\":\"string\"}}}}}"
     },
     {

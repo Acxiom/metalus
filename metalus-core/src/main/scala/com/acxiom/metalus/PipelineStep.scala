@@ -78,7 +78,6 @@ final case class PipelineStepGroup(override val id: Option[String] = None,
                                    override val nextStepOnError: Option[String] = None,
                                    override val retryLimit: Option[Int] = Some(-1),
                                    pipelineId: Option[String] = None) extends FlowStep
-// TODO [2.0 Review] Look into creating a PipelineForkStep which exposes the fork method and fork by values attributes
 
 /**
   * Represents a template fora step to be used when creating a pipeline.
@@ -162,7 +161,7 @@ trait PipelineStepException extends Exception {
 case class PauseException(errorType: Option[String] = Some("pauseException"),
                           dateTime: Option[String] = Some(new Date().toString),
                           message: Option[String] = Some(""),
-                          pipelineProgress: Option[PipelineStateInfo],
+                          pipelineProgress: Option[PipelineStateKey],
                           cause: Throwable = None.orNull,
                           @transient context: Option[PipelineContext] = None)
   extends Exception(message.getOrElse(""), cause)
@@ -181,7 +180,7 @@ case class PauseException(errorType: Option[String] = Some("pauseException"),
 case class PipelineException(errorType: Option[String] = Some("pipelineException"),
                              dateTime: Option[String] = Some(new Date().toString),
                              message: Option[String] = Some(""),
-                             pipelineProgress: Option[PipelineStateInfo],
+                             pipelineProgress: Option[PipelineStateKey],
                              cause: Throwable = None.orNull,
                              @transient context: Option[PipelineContext] = None)
   extends Exception(message.getOrElse(""), cause)

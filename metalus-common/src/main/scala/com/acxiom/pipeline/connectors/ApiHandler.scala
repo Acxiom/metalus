@@ -1,7 +1,7 @@
 package com.acxiom.pipeline.connectors
 
 import com.acxiom.pipeline.api.{Authorization, HttpRestClient}
-import com.acxiom.pipeline.steps.{Schema, Transformations}
+import com.acxiom.pipeline.steps.Schema
 import com.acxiom.pipeline.utils.ReflectionUtils
 import com.acxiom.pipeline.{Constants, Credential}
 import org.apache.spark.sql.{DataFrame, ForeachWriter, Row, SparkSession}

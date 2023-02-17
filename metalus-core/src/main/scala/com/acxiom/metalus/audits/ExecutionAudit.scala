@@ -1,9 +1,9 @@
 package com.acxiom.metalus.audits
 
-import com.acxiom.metalus.PipelineStateInfo
+import com.acxiom.metalus.PipelineStateKey
 import com.acxiom.metalus.audits.AuditType.AuditType
 
-/** TODO Use the stateinfo as the key and remove the graph
+/**
   * Creates a new Audit with the appropriate information,
   *
   * @param key The pipeline state associated with this audit
@@ -12,7 +12,7 @@ import com.acxiom.metalus.audits.AuditType.AuditType
   * @param start A long indicating the start time
   * @param end An optional long indicating the end time
   */
-case class ExecutionAudit(key: PipelineStateInfo,
+case class ExecutionAudit(key: PipelineStateKey,
                           auditType: AuditType,
                           metrics: Map[String, Any] = Map[String, Any](),
                           start: Long,

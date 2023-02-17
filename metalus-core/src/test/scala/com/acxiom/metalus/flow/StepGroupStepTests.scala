@@ -86,14 +86,12 @@ class StepGroupStepTests extends AnyFunSpec {
       validateResults(executionResult.pipelineContext, "globalOne", "gtwo", "3")
     }
 
-    it("Should execute step with pipelineMappings pulled from PipelineManager") {
+    it("Should execute step with pipeline pulled from PipelineManager") {
       TestHelper.pipelineListener = PipelineListener()
       val mappingPipelineStepTwo = PipelineStepGroup(Some("PIPELINE_STEP_TWO"), None, None, Some("step-group"),
-        Some(List(Parameter(Some("text"), Some("pipelineId"),
-          value = Some("subPipelineId")),
-          Parameter(Some("object"), Some("pipelineMappings"),
+        Some(List(Parameter(Some("object"), Some("pipelineMappings"),
             value = Some(Map[String, Any]("globalOne" -> "globalOne", "globalTwo" -> "gtwo", "globalThree" -> "3"))))),
-        pipelineId = None, nextStepId = Some("PIPELINE_STEP_THREE"))
+        pipelineId = Some("subPipelineId"), nextStepId = Some("PIPELINE_STEP_THREE"))
 
       val context = TestHelper.generatePipelineContext()
         .copy(pipelineManager = PipelineManager(List(subPipeline)))
@@ -103,7 +101,7 @@ class StepGroupStepTests extends AnyFunSpec {
       validateResults(executionResult.pipelineContext, "globalOne", "gtwo", "3")
     }
 
-    it("Should execute step with pipelineMappings pulled from PipelineManager using special character") {
+    it("Should execute step with pipeline pulled from PipelineManager using special character") {
       TestHelper.pipelineListener = PipelineListener()
       val mappingPipelineStepTwo = PipelineStepGroup(Some("PIPELINE_STEP_TWO"), None, None, Some("step-group"),
         Some(List(Parameter(Some("text"), Some("pipeline"),
@@ -123,13 +121,11 @@ class StepGroupStepTests extends AnyFunSpec {
     it("Should execute step with result parameter") {
       TestHelper.pipelineListener = PipelineListener()
       val mappingPipelineStepTwo = PipelineStepGroup(Some("PIPELINE_STEP_TWO"), None, None, Some("step-group"),
-        Some(List(Parameter(Some("text"), Some("pipeline"),
-          value = Some("!subPipeline")),
-          Parameter(Some("boolean"), Some("useParentGlobals"), value = Some(true)),
+        Some(List(Parameter(Some("boolean"), Some("useParentGlobals"), value = Some(true)),
           Parameter(Some("object"), Some("pipelineMappings"),
             value = Some(Map[String, Any]("globalTwo" -> "gtwo", "globalThree" -> "3"))),
         Parameter(Some("result"), Some("output"), None, None, Some("@SUB_PIPELINE_STEP_TWO")))),
-        pipelineId = None, nextStepId = Some("PIPELINE_STEP_THREE"))
+        pipelineId = Some("!subPipeline"), nextStepId = Some("PIPELINE_STEP_THREE"))
 
       val context = TestHelper.generatePipelineContext()
         .setGlobal("subPipeline", subPipeline)
@@ -138,7 +134,7 @@ class StepGroupStepTests extends AnyFunSpec {
         pipelineStepOne, mappingPipelineStepTwo, pipelineStepThree))), context)
       assert(executionResult.success)
       val ctx = executionResult.pipelineContext
-      val result = ctx.getStepResultByStateInfo(PipelineStateInfo("pipelineId", Some("PIPELINE_STEP_TWO")))
+      val result = ctx.getStepResultByStateInfo(PipelineStateKey("pipelineId", Some("PIPELINE_STEP_TWO")))
       assert(result.isDefined)
       assert(result.get.isInstanceOf[PipelineStepResponse])
       val response = result.get
@@ -164,7 +160,7 @@ class StepGroupStepTests extends AnyFunSpec {
         pipelineStepOne, mappingPipelineStepTwo, pipelineStepThree))), context)
       assert(executionResult.success)
       val ctx = executionResult.pipelineContext
-      val result = ctx.getStepResultByStateInfo(PipelineStateInfo("pipelineId", Some("PIPELINE_STEP_TWO")))
+      val result = ctx.getStepResultByStateInfo(PipelineStateKey("pipelineId", Some("PIPELINE_STEP_TWO")))
       assert(result.isDefined)
       assert(result.get.isInstanceOf[PipelineStepResponse])
       val response = result.get
@@ -203,7 +199,7 @@ class StepGroupStepTests extends AnyFunSpec {
         pipelineStepOne, mappingPipelineStepTwo, pipelineStepThree))), context)
       assert(executionResult.success)
       val ctx = executionResult.pipelineContext
-      val result = ctx.getStepResultByStateInfo(PipelineStateInfo("pipelineId", Some("PIPELINE_STEP_TWO")))
+      val result = ctx.getStepResultByStateInfo(PipelineStateKey("pipelineId", Some("PIPELINE_STEP_TWO")))
       assert(result.isDefined)
       assert(result.get.isInstanceOf[PipelineStepResponse])
       val response = result.get
@@ -248,7 +244,7 @@ class StepGroupStepTests extends AnyFunSpec {
     it ("Should detect result script") {
       val context = TestHelper.generatePipelineContext()
         .setGlobal("globalResult", "globalResult")
-        .setCurrentStateInfo(PipelineStateInfo("", Some("")))
+        .setCurrentStateInfo(PipelineStateKey("", Some("")))
       val mapper = PipelineStepMapper()
       assert(mapper.mapParameter(Parameter(Some("result"), value = Some(" (value:!globalResult:String) value")), context)
         == "globalResult")
@@ -259,7 +255,7 @@ class StepGroupStepTests extends AnyFunSpec {
                         subStepOneValue: String = "ONE",
                         subStepTwoValue: String = "TWO",
                         subStepThreeValue: String = "THREE"): Unit = {
-      val key = PipelineStateInfo("pipelineId")
+      val key = PipelineStateKey("pipelineId")
       var stepResult = ctx.getStepResultByStateInfo(key.copy(stepId = Some("PIPELINE_STEP_ONE")))
       assert(stepResult.isDefined)
       assert(stepResult.get.isInstanceOf[PipelineStepResponse])
@@ -284,7 +280,7 @@ class StepGroupStepTests extends AnyFunSpec {
       assert(subResponse("SUB_PIPELINE_STEP_THREE").primaryReturn.contains(subStepThreeValue))
 
       // Verify audits are handled properly
-      val embeddedKey = PipelineStateInfo("subPipelineId", None, None, Some(key.copy(stepId = Some("PIPELINE_STEP_TWO"))))
+      val embeddedKey = PipelineStateKey("subPipelineId", None, None, Some(key.copy(stepId = Some("PIPELINE_STEP_TWO"))))
       assert(ctx.getPipelineAudit(embeddedKey.copy(stepId = Some("SUB_PIPELINE_STEP_ONE"))).isDefined)
       assert(ctx.getPipelineAudit(embeddedKey.copy(stepId = Some("SUB_PIPELINE_STEP_TWO"))).isDefined)
       assert(ctx.getPipelineAudit(embeddedKey.copy(stepId = Some("SUB_PIPELINE_STEP_THREE"))).isDefined)
