@@ -15,9 +15,12 @@ case class CreateTableAs(tableName: String, view: Boolean = false) extends Query
 case class Select(expressions: List[Expression]) extends QueryOperator("Select")
 case class Where(expression: Expression) extends QueryOperator("Where")
 case class OrderBy(expressions: List[Expression]) extends QueryOperator("OrderBy")
+case class Limit(limit: Int) extends QueryOperator("Limit")
 case class GroupBy(expressions: List[Expression]) extends QueryOperator("GroupBy")
 case class Having(expression: Expression) extends QueryOperator("Having")
-case class Join(right: DataReference[_], joinType: String, condition: Option[Expression]) extends QueryOperator("Join")
+case class Join(right: DataReference[_], joinType: String, condition: Option[Expression], using: Option[List[Expression]])
+  extends QueryOperator("Join")
+case class Union(right: DataReference[_], all: Boolean) extends QueryOperator("Union")
 case class As(alias: String) extends QueryOperator("As")
 
 // non-standard
@@ -29,7 +32,7 @@ case class ConvertEngine(engine: String) extends QueryOperator("Convert")
 
 object CrossJoin {
   def unapply(join: Join): Option[DataReference[_]] = join match {
-    case Join(right, _, None) => Some(right)
+    case Join(right, _, None, None) => Some(right)
     case _ => None
   }
 }

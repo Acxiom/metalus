@@ -1,6 +1,8 @@
 
 parser grammar MSqlParser;
 
+import MExprParser;
+
 options { tokenVocab = MSqlLexer; caseInsensitive = true;}
 
 //tokens {
@@ -46,8 +48,10 @@ statement
     | EXECUTE identifier (USING expression (COMMA expression)*)?         #execute
     ;
 
+// disable with support for now
 query
-    :  with? queryNoWith
+//    :  with? queryNoWith
+    : queryNoWith
     ;
 
 with
@@ -154,7 +158,7 @@ sortItem
 
 querySpecification
     : SELECT setQuantifier? selectItem (COMMA selectItem)*
-      (FROM relation (COMMA relation)*) //FROM is required in metalus sql
+      (FROM relation) //FROM is required in metalus sql, also legacy joins not supported
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
       (HAVING having=booleanExpression)?
@@ -205,6 +209,8 @@ joinType
     | LEFT OUTER?
     | RIGHT OUTER?
     | FULL OUTER?
+    | LEFT? SEMI
+    | LEFT? ANTI
     ;
 
 joinCriteria
@@ -233,7 +239,7 @@ columnAliases
 
 relationPrimary
     : mapping                                                         #dataReference
-    | step                                                            #dataReference
+    | step                                                            #stepRelation
     | qualifiedName                                                   #tableName
     | L_PAREN query R_PAREN                                                   #subqueryRelation
     | UNNEST L_PAREN expression (COMMA expression)* R_PAREN (WITH ORDINALITY)?  #unnest
@@ -315,10 +321,10 @@ primaryExpression
     | GROUPING L_PAREN (qualifiedName (COMMA qualifiedName)*)? R_PAREN                              #groupingOperation
     ;
 
-string
-    : STRING                                #basicStringLiteral
-    | UNICODE_STRING (UESCAPE STRING)?      #unicodeStringLiteral
-    ;
+//string
+//    : STRING                                #basicStringLiteral
+//    | UNICODE_STRING (UESCAPE STRING)?      #unicodeStringLiteral
+//    ;
 
 nullTreatment
     : IGNORE NULLS
@@ -330,17 +336,17 @@ timeZoneSpecifier
     | TIME ZONE string    #timeZoneString
     ;
 
-comparisonOperator
-    : EQ | NEQ | LT | LTE | GT | GTE
-    ;
+//comparisonOperator
+//    : EQ | NEQ | LT | LTE | GT | GTE
+//    ;
 
 comparisonQuantifier
     : ALL | SOME | ANY
     ;
 
-booleanValue
-    : TRUE | FALSE
-    ;
+//booleanValue
+//    : TRUE | FALSE
+//    ;
 
 interval
     : INTERVAL sign=(PLUS | MINUS)? string from=intervalField (TO to=intervalField)?
@@ -439,23 +445,16 @@ qualifiedName
     : identifier (DOT identifier)*
     ;
 
-mapping
-    : MAPPING_SYMBOL qualifiedName
-    ;
+//mapping
+//    : MAPPING_SYMBOL qualifiedName
+//    ;
 
 step
     : stepName=IDENTIFIER L_PAREN (stepParam (COMMA stepParam)*)* R_PAREN
     ;
 
 stepParam
-    : (stepParamName=string ARG)? stepParamValue
-    ;
-
-stepParamValue
-    : mapping      #pipelineMapping
-    | string       #stringLit
-    | number       #numericLit
-    | booleanValue #booleanLit
+    : (stepParamName=string ARG)? stepValue
     ;
 
 identifier
@@ -466,11 +465,11 @@ identifier
     | DIGIT_IDENTIFIER       #digitIdentifier
     ;
 
-number
-    : DECIMAL_VALUE  #decimalLiteral
-    | DOUBLE_VALUE   #doubleLiteral
-    | INTEGER_VALUE  #integerLiteral
-    ;
+//number
+//    : DECIMAL_VALUE  #decimalLiteral
+//    | DOUBLE_VALUE   #doubleLiteral
+//    | INTEGER_VALUE  #integerLiteral
+//    ;
 
 nonReserved
     // IMPORTANT: this rule must only contain tokens. Nested rules are not supported. See SqlParser.exitNonReserved

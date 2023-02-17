@@ -125,21 +125,7 @@ final case class PipelineStateInfo(pipelineId: String,
     * @return The state key.
     */
   lazy val key: String = {
-    val key = if (stepId.isDefined) {
-      s"$pipelineId.${stepId.getOrElse("")}"
-    } else {
-      pipelineId
-    }
-    val forkKey = if (forkData.isDefined) {
-      s"$key.f(${forkData.get.generateForkKeyValue()})"
-    } else {
-      key
-    }
-    if (stepGroup.isEmpty) {
-      forkKey
-    } else {
-      s"${stepGroup.get.key}.$forkKey"
-    }
+    (Some(pipelineId) ++ stepId ++ stepGroup.map(_.key) ++ forkData.map(_.generateForkKeyValue())).mkString(".")
   }
 
   def displayPipelineStepString: String = {
@@ -303,7 +289,7 @@ case class PipelineContext(globals: Option[Map[String, Any]],
       x.collectFirst{
         case ("GlobalLinks", v:Map[_,_]) if v.isInstanceOf[Map[String, Any]] && v.asInstanceOf[Map[String, Any]].contains(globalName) =>
           v.asInstanceOf[Map[String, Any]].getOrElse(globalName, "")
-        case (k, v:Some[_]) if k == globalName => v.get
+        case (k, Some(v)) if k == globalName => v
         case (k, v) if k == globalName && !v.isInstanceOf[Option[_]] => v
       }
     })
