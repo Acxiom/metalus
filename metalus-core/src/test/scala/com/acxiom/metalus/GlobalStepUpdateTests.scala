@@ -3,8 +3,8 @@ package com.acxiom.metalus
 import com.acxiom.metalus.parser.JsonParser
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.{BeforeAndAfterAll, Suite}
-import org.slf4j.{Logger, LoggerFactory}
 import org.slf4j.event.Level
+import org.slf4j.{Logger, LoggerFactory}
 
 class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite {
   override def beforeAll() {
@@ -399,7 +399,7 @@ class GlobalStepUpdateTests extends AnyFunSpec with BeforeAndAfterAll with Suite
       val result = PipelineExecutor.executePipelines(pipelines.get.head, context)
       assert(result.success)
       val ctx = result.pipelineContext
-      val pipelineKey = PipelineStateInfo("Pipeline1", Some("Pipeline1Step4"))
+      val pipelineKey = PipelineStateKey("Pipeline1", Some("Pipeline1Step4"))
       val stepAudit = ctx.getPipelineAudit(pipelineKey)
       assert(stepAudit.isDefined)
       val metric = stepAudit.get.getMetric("chickenCount")

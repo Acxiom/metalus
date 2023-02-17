@@ -80,10 +80,11 @@ trait PipelineStepMapper {
 
   /**
    * This function will map a parameter based on its type. String values will also be run through the castToType
-   * method. This function can be overridden to provide more control over how "None" values are mappped to step params.
+   * method. This function can be overridden to provide more control over how "None" values are mapped to step params.
    *
-   * @param value     The value to convert
-   * @param parameter The step parameter
+   * @param value           The value to convert
+   * @param parameter       The step parameter
+   * @param pipelineContext The current context.
    * @return
    */
   def mapByType(value: Option[String], parameter: Parameter, pipelineContext: PipelineContext): Any = {
@@ -588,7 +589,7 @@ trait PipelineStepMapper {
   }
 
   @tailrec
-  private def determineKey(paths: Array[String], keys: List[PipelineStateInfo],
+  private def determineKey(paths: Array[String], keys: List[PipelineStateKey],
                            key: String, index: Int = 0, fork: Boolean = false): (String, Int, Boolean) = {
     // See if we have reached the last token
     if (index >= paths.length) {
@@ -611,7 +612,7 @@ trait PipelineStepMapper {
     }
   }
 
-  private def isLocalStep(value: String, keys: List[PipelineStateInfo]): Boolean = {
+  private def isLocalStep(value: String, keys: List[PipelineStateKey]): Boolean = {
     if (!keys.exists(_.pipelineId == value)) {
       keys.exists(_.stepId.getOrElse("MISSING") == value)
     } else {

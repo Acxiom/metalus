@@ -13,10 +13,8 @@ import org.json4s.ext.EnumNameSerializer
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
 import org.json4s.{CustomSerializer, DefaultFormats, Formats, JObject}
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
 import org.slf4j.LoggerFactory
-import org.slf4j.event.Level
 
 import java.io.{File, FileOutputStream, OutputStreamWriter}
 import java.net.HttpURLConnection
@@ -222,13 +220,6 @@ class ApplicationTests extends AnyFunSpec {
 //      }
 //      assert(thrown.getMessage == "Unable to instantiate SparkSession with Hive support because Hive classes are not found.")
 //    }
-
-    it("Should refresh an application") {
-      val setup = ApplicationDriverSetup(Map[String, Any]("applicationJson" -> applicationJson,
-        "rootLogLevel" -> "DEBUG",
-        "customLogLevels" -> ""))
-      verifyApplication(setup.application, setup.refreshContext(setup.pipelineContext))
-    }
 
     it("Should detect a missing parameter") {
       val thrown = intercept[RuntimeException] {

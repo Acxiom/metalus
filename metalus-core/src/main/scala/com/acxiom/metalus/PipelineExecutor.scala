@@ -13,7 +13,7 @@ object PipelineExecutor {
     sessionContext.startSession()
     try {
       val updatedCtx = pipelineListener.applicationStarted(initialContext).getOrElse(initialContext)
-      val stateInfo = PipelineStateInfo(pipeline.id.getOrElse("ROOT"))
+      val stateInfo = PipelineStateKey(pipeline.id.getOrElse("ROOT"))
       // Execute the flow
       val flowResult = PipelineStepFlow(pipeline, updatedCtx.setCurrentStateInfo(stateInfo)).execute()
       val ctx = flowResult.pipelineContext
@@ -25,29 +25,29 @@ object PipelineExecutor {
         logger.warn(s"Stopping pipeline because of a skip exception: ${see.getMessage}")
         pipelineListener.applicationStopped(initialContext).getOrElse(initialContext)
         sessionContext.completeSession("SKIPPED")
-        PipelineExecutionResult(see.context.getOrElse(initialContext), success = true, paused = false, None, ExecutionEvaluationResult.SKIP)
+        PipelineExecutionResult(see.context.getOrElse(initialContext), success = true, paused = false, None)
       case fe: ForkedPipelineStepException =>
         fe.exceptions.foreach(entry =>
           logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
         pipelineListener.applicationStopped(initialContext).getOrElse(initialContext)
         sessionContext.completeSession("ERROR")
-        PipelineExecutionResult(fe.context.getOrElse(initialContext), success = false, paused = false, Some(fe), ExecutionEvaluationResult.STOP)
+        PipelineExecutionResult(fe.context.getOrElse(initialContext), success = false, paused = false, Some(fe))
       case se: SplitStepException =>
         se.exceptions.foreach(entry =>
           logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
         pipelineListener.applicationStopped(initialContext).getOrElse(initialContext)
         sessionContext.completeSession("ERROR")
-        PipelineExecutionResult(se.context.getOrElse(initialContext), success = false, paused = false, Some(se), ExecutionEvaluationResult.STOP)
+        PipelineExecutionResult(se.context.getOrElse(initialContext), success = false, paused = false, Some(se))
       case p: PauseException =>
-        logger.info(s"Paused pipeline flow at ${p.pipelineProgress.getOrElse(PipelineStateInfo("")).displayPipelineStepString}. ${p.message}")
+        logger.info(s"Paused pipeline flow at ${p.pipelineProgress.getOrElse(PipelineStateKey("")).displayPipelineStepString}. ${p.message}")
         pipelineListener.applicationComplete(initialContext).getOrElse(initialContext)
         sessionContext.completeSession("PAUSED")
-        PipelineExecutionResult(p.context.getOrElse(initialContext), success = false, paused = true, Some(p), ExecutionEvaluationResult.STOP)
+        PipelineExecutionResult(p.context.getOrElse(initialContext), success = false, paused = true, Some(p))
       case pse: PipelineStepException =>
         logger.error(s"Stopping pipeline because of an exception", pse)
         pipelineListener.applicationStopped(initialContext).getOrElse(initialContext)
         sessionContext.completeSession("ERROR")
-        PipelineExecutionResult(pse.context.getOrElse(initialContext), success = false, paused = false, Some(pse), ExecutionEvaluationResult.STOP)
+        PipelineExecutionResult(pse.context.getOrElse(initialContext), success = false, paused = false, Some(pse))
     }
   }
 }

@@ -63,7 +63,7 @@ trait PipelineListener {
     * @param pipelineContext The PipelineContext. This is used to fetch the pipeline template.
     * @return A modified PipelineContext or None if no changes were made.
     */
-  def pipelineStarted(pipelineKey: PipelineStateInfo, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+  def pipelineStarted(pipelineKey: PipelineStateKey, pipelineContext: PipelineContext):  Option[PipelineContext] = {
     val pipeline = getPipeline(pipelineKey, pipelineContext)
     if (pipeline.isDefined) {
       logger.info(s"Starting pipeline ${pipeline.get.name.getOrElse(pipeline.get.id.getOrElse(""))}")
@@ -79,7 +79,7 @@ trait PipelineListener {
     * @param pipelineContext The PipelineContext. This is used to fetch the pipeline template.
     * @return A modified PipelineContext or None if no changes were made.
     */
-  def pipelineFinished(pipelineKey: PipelineStateInfo, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+  def pipelineFinished(pipelineKey: PipelineStateKey, pipelineContext: PipelineContext):  Option[PipelineContext] = {
     val pipeline = getPipeline(pipelineKey, pipelineContext)
     if (pipeline.isDefined) {
       logger.info(s"Finished pipeline ${pipeline.get.name.getOrElse(pipeline.get.id.getOrElse(""))}")
@@ -95,7 +95,7 @@ trait PipelineListener {
     * @param pipelineContext The PipelineContext. This is used to fetch the pipeline template.
     * @return A modified PipelineContext or None if no changes were made.
     */
-  def pipelineStepStarted(pipelineKey: PipelineStateInfo, pipelineContext: PipelineContext): Option[PipelineContext] = {
+  def pipelineStepStarted(pipelineKey: PipelineStateKey, pipelineContext: PipelineContext): Option[PipelineContext] = {
     val pipeline = getPipeline(pipelineKey, pipelineContext)
     if (pipeline.isDefined) {
       val step = getStep(pipelineKey, pipeline.get)
@@ -116,7 +116,7 @@ trait PipelineListener {
     * @param pipelineContext The PipelineContext. This is used to fetch the pipeline template.
     * @return A modified PipelineContext or None if no changes were made.
     */
-  def pipelineStepFinished(pipelineKey: PipelineStateInfo, pipelineContext: PipelineContext): Option[PipelineContext] = {
+  def pipelineStepFinished(pipelineKey: PipelineStateKey, pipelineContext: PipelineContext): Option[PipelineContext] = {
     val pipeline = getPipeline(pipelineKey, pipelineContext)
     if (pipeline.isDefined) {
       val step = getStep(pipelineKey, pipeline.get)
@@ -137,7 +137,7 @@ trait PipelineListener {
     * @param exception The exception.
     * @param pipelineContext The Current PipelineContext.
     */
-  def registerStepException(pipelineKey: PipelineStateInfo, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+  def registerStepException(pipelineKey: PipelineStateKey, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
     // Base implementation does nothing
   }
 
@@ -147,7 +147,7 @@ trait PipelineListener {
     * @param pipelineContext The PipelineContext.
     * @return The pipeline template if is found.
     */
-  protected def getPipeline(pipelineKey: PipelineStateInfo, pipelineContext: PipelineContext): Option[Pipeline] =
+  protected def getPipeline(pipelineKey: PipelineStateKey, pipelineContext: PipelineContext): Option[Pipeline] =
     pipelineContext.pipelineManager.getPipeline(pipelineKey.pipelineId)
 
   /**
@@ -156,7 +156,7 @@ trait PipelineListener {
     * @param pipeline The pipeline that contains the step.
     * @return The step if it is found.
     */
-  protected def getStep(pipelineKey: PipelineStateInfo, pipeline: Pipeline): Option[Step] =
+  protected def getStep(pipelineKey: PipelineStateKey, pipeline: Pipeline): Option[Step] =
     pipeline.steps.get.find(_.id.getOrElse("NONE") == pipelineKey.stepId.getOrElse("BUG"))
 
   protected def getSessionContext(pipelineContext: PipelineContext): SessionContext =
@@ -241,35 +241,35 @@ case class EventPipelineRecord(id: String, name: String)
 case class EventPipelineStepRecord(id: String, stepId: String, group: String)
 case class MessageLists(messages: List[String], stacks: List[Array[StackTraceElement]])
 case class CombinedPipelineListener(listeners: List[PipelineListener]) extends PipelineListener {
-  override def pipelineStarted(key: PipelineStateInfo, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+  override def pipelineStarted(key: PipelineStateKey, pipelineContext: PipelineContext):  Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
       val updatedCtx = listener.pipelineStarted(key, ctx)
       handleContext(updatedCtx, pipelineContext)
     }))
   }
 
-  override def pipelineFinished(key: PipelineStateInfo, pipelineContext: PipelineContext):  Option[PipelineContext] = {
+  override def pipelineFinished(key: PipelineStateKey, pipelineContext: PipelineContext):  Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
       val updatedCtx = listener.pipelineFinished(key, ctx)
       handleContext(updatedCtx, pipelineContext)
     }))
   }
 
-  override def pipelineStepStarted(key: PipelineStateInfo, pipelineContext: PipelineContext): Option[PipelineContext] = {
+  override def pipelineStepStarted(key: PipelineStateKey, pipelineContext: PipelineContext): Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
       val updatedCtx = listener.pipelineStepStarted(key, ctx)
       handleContext(updatedCtx, pipelineContext)
     }))
   }
 
-  override def pipelineStepFinished(key: PipelineStateInfo, pipelineContext: PipelineContext): Option[PipelineContext] = {
+  override def pipelineStepFinished(key: PipelineStateKey, pipelineContext: PipelineContext): Option[PipelineContext] = {
     Some(listeners.foldLeft(pipelineContext)((ctx, listener) => {
       val updatedCtx = listener.pipelineStepFinished(key, ctx)
       handleContext(updatedCtx, pipelineContext)
     }))
   }
 
-  override def registerStepException(key: PipelineStateInfo, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
+  override def registerStepException(key: PipelineStateKey, exception: PipelineStepException, pipelineContext: PipelineContext): Unit = {
     listeners.foreach(_.registerStepException(key, exception, pipelineContext))
   }
 

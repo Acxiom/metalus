@@ -1,20 +1,37 @@
-package com.acxiom.pipeline.streaming
+package com.acxiom.metalus.spark.streaming
 
-import com.acxiom.pipeline.utils.StreamingUtils
-import com.acxiom.pipeline.{Constants, PipelineContext, PipelineException}
+import com.acxiom.metalus.{Constants, PipelineContext, PipelineException}
 import org.apache.log4j.Logger
 import org.apache.spark.sql.streaming.StreamingQuery
+import org.apache.spark.streaming.{Duration, Milliseconds, Minutes, Seconds}
 
 import java.text.SimpleDateFormat
 import java.util.Date
 
 trait StreamingQueryMonitor extends Thread {
+  private val DEFAULT_DURATION_TYPE = "seconds"
+  private val DEFAULT_DURATION = "10"
+
   protected val logger: Logger = Logger.getLogger(getClass)
 
   def query: StreamingQuery
+
   def pipelineContext: PipelineContext
+
   def getGlobalUpdates: Map[String, Any] = Map()
+
   def continue: Boolean = false
+
+  def getDuration(durationType: Option[String] = None,
+                  duration: Option[String] = None): Duration = {
+    val finalDuration = duration.getOrElse(DEFAULT_DURATION).toInt
+    durationType.getOrElse(DEFAULT_DURATION_TYPE).toLowerCase match {
+      case "milliseconds" => Milliseconds(finalDuration)
+      case "seconds" => Seconds(finalDuration)
+      case "minutes" => Minutes(finalDuration)
+      case _ => Seconds(finalDuration)
+    }
+  }
 }
 
 class BaseStreamingQueryMonitor(override val query: StreamingQuery, override val pipelineContext: PipelineContext)
@@ -29,7 +46,7 @@ abstract class BatchWriteStreamingQueryMonitor(override val query: StreamingQuer
     if (monitorType == "duration") {
       // Set the sleep for the duration specified
       val durationType = pipelineContext.getGlobalAs[String]("STREAMING_BATCH_MONITOR_DURATION_TYPE").getOrElse("milliseconds")
-      StreamingUtils.getDuration(Some(durationType), Some(duration.toString)).milliseconds
+      getDuration(Some(durationType), Some(duration.toString)).milliseconds
     } else {
       0L
     }
@@ -42,10 +59,13 @@ abstract class BatchWriteStreamingQueryMonitor(override val query: StreamingQuer
   protected var continueProcessing = false
 
   override def getGlobalUpdates: Map[String, Any] = globals
+
   override def continue: Boolean = continueProcessing
 
   protected var processing = true
+
   def keepProcessing: Boolean = processing
+
   def checkCurrentStatus(): Unit = {
     // See if we have reached the specified duration
     processing = if ((monitorType == "duration" && currentDuration >= sleepDuration) ||
@@ -95,7 +115,7 @@ abstract class BatchWriteStreamingQueryMonitor(override val query: StreamingQuer
 class BatchPartitionedStreamingQueryMonitor(override val query: StreamingQuery, override val pipelineContext: PipelineContext)
   extends BatchWriteStreamingQueryMonitor(query, pipelineContext) {
   logger.info("Created BatchPartitionedStreamingQueryMonitor")
-  private val dateFormat =new SimpleDateFormat("yyyy-dd-MM HH:mm:ssZ")
+  private val dateFormat = new SimpleDateFormat("yyyy-dd-MM HH:mm:ssZ")
 
   override def manageQueryShutdown(): Unit = {
     val counter = pipelineContext.getGlobalAs[Int]("STREAMING_BATCH_PARTITION_COUNTER").getOrElse(0) + 1
@@ -136,7 +156,7 @@ class BatchFileStreamingQueryMonitor(override val query: StreamingQuery, overrid
     if (originalPath.isEmpty) {
       // Set the original path for use later and use the existing destination
       globals = Map[String, Any]("STREAMING_BATCH_OUTPUT_COUNTER" -> counter,
-      "STREAMING_BATCH_OUTPUT_GLOBAL_ORIGINAL_PATH" -> globalDestination,
+        "STREAMING_BATCH_OUTPUT_GLOBAL_ORIGINAL_PATH" -> globalDestination,
         globalDestinationKey -> updatePath(globalDestination, destinationKey, temp, globalDestinationKey))
     } else {
       // Use the stored original path so we don't stack the increment values
@@ -159,18 +179,18 @@ class BatchFileStreamingQueryMonitor(override val query: StreamingQuery, overrid
     if (!globals.contains("STREAMING_BATCH_OUTPUT_GLOBAL")) {
       logger.error("The STREAMING_BATCH_OUTPUT_GLOBAL value must be set!")
       throw PipelineException(message = Some("The STREAMING_BATCH_OUTPUT_GLOBAL value must be set!"),
-        pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+        pipelineProgress = pipelineContext.currentStateInfo)
     }
     if (!globals.contains("STREAMING_BATCH_OUTPUT_PATH_KEY")) {
       logger.error("The STREAMING_BATCH_OUTPUT_PATH_KEY value must be set!")
       throw PipelineException(message = Some("The STREAMING_BATCH_OUTPUT_PATH_KEY value must be set!"),
-        pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+        pipelineProgress = pipelineContext.currentStateInfo)
     }
     val destinationKey = pipelineContext.getGlobalAs[String]("STREAMING_BATCH_OUTPUT_PATH_KEY")
     if (destinationKey.isEmpty) {
       logger.error(s"The $destinationKey is required!")
       throw PipelineException(message = Some(s"The $destinationKey is required!"),
-        pipelineProgress = Some(pipelineContext.getPipelineExecutionInfo))
+        pipelineProgress = pipelineContext.currentStateInfo)
     }
   }
 }
