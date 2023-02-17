@@ -1,7 +1,7 @@
 package com.acxiom.metalus.sql.parser
 
 import com.acxiom.metalus.context.ContextManager
-import com.acxiom.metalus.{DefaultPipelineListener, Parameter, PipelineContext, PipelineParameter, PipelineStateInfo, PipelineStepMapper}
+import com.acxiom.metalus.{DefaultPipelineListener, Parameter, PipelineContext, PipelineParameter, PipelineStateKey, PipelineStepMapper}
 import org.scalatest.funspec.AnyFunSpec
 
 class ExpressionParserTests extends AnyFunSpec {
@@ -12,8 +12,8 @@ class ExpressionParserTests extends AnyFunSpec {
       "bird" -> "chicken",
       "nested" -> Map("chicken" -> Some("gamecock"))
     )),
-      List(PipelineParameter(PipelineStateInfo("0"), Map[String, Any]()),
-        PipelineParameter(PipelineStateInfo("1"), Map[String, Any]())),
+      List(PipelineParameter(PipelineStateKey("0"), Map[String, Any]()),
+        PipelineParameter(PipelineStateKey("1"), Map[String, Any]())),
       Some(List("com.acxiom.metalus.steps")),
       PipelineStepMapper(),
       Some(DefaultPipelineListener()),

@@ -1,6 +1,6 @@
 package com.acxiom.metalus.spark
 
-import com.acxiom.metalus.sql.{Schema, SchemaObj}
+import com.acxiom.metalus.sql.Schema
 import org.apache.spark.sql.streaming.Trigger
 
 /**

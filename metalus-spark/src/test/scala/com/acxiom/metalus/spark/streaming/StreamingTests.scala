@@ -1,10 +1,11 @@
 package com.acxiom.metalus.spark.streaming
 
 import com.acxiom.metalus.context.ContextManager
-import com.acxiom.metalus.spark.{DataFrameReaderOptions, DataFrameWriterOptions, PipelineStepMessage, SparkSessionContext}
+import com.acxiom.metalus.spark.connectors.{DataConnectorUtilities, DefaultSparkDataConnector}
+import com.acxiom.metalus.spark.sql._
+import com.acxiom.metalus.spark.{DataFrameReaderOptions, DataFrameWriterOptions, SparkSessionContext}
 import com.acxiom.metalus.spark.steps.StreamingSteps
-import com.acxiom.metalus.sql.SchemaObj
-import com.acxiom.metalus.{ClassInfo, Constants, DefaultPipelineListener, PipelineContext, PipelineParameter, PipelineStateKey, PipelineStepMapper}
+import com.acxiom.metalus._
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
@@ -111,8 +112,8 @@ class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
       fs.listStatus(new org.apache.hadoop.fs.Path(path)).foreach(status => {
         assert(!status.isDirectory || status.getPath.toString == s"$path/_spark_metadata")
       })
-      val hdfs = HDFSDataConnector("TestConnector", None, None)
-      val df = hdfs.load(Some(path), ctx)
+      val hdfs = DefaultSparkDataConnector("TestConnector", None, None)
+      val df = hdfs.load(Some(path), ctx).execute
       assert(df.count() == Constants.FIFTY)
     }
 
@@ -169,9 +170,9 @@ class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
         assert(status.isDirectory)
       })
       assert(fs.exists(new org.apache.hadoop.fs.Path(checkpointLocation)))
-      val hdfs = HDFSDataConnector("TestConnector", None, None)
-      val readOptions = DataFrameReaderOptions(schema = Some(SchemaObj.fromStructType(dataFrame.schema)))
-      val df = hdfs.load(Some(path), ctx, readOptions)
+      val hdfs = DefaultSparkDataConnector("TestConnector", None, None)
+      val readOptions = DataFrameReaderOptions(schema = Some(dataFrame.schema.toSchema))
+      val df = hdfs.load(Some(path), ctx, readOptions).execute
       assert(df.count() == Constants.TWENTY)
     }
 
@@ -218,9 +219,9 @@ class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
       assert(updatedPath.substring(updatedPath.lastIndexOf("/") + 1).startsWith("socket_file_"))
       assert(updatedPath.substring(updatedPath.lastIndexOf("/") + 1).endsWith(".parquet"))
       assert(fs.exists(new org.apache.hadoop.fs.Path(checkpointLocation)))
-      val hdfs = HDFSDataConnector("TestConnector", None, None)
-      val readOptions = DataFrameReaderOptions(schema = Some(SchemaObj.fromStructType(dataFrame.schema)))
-      val df = hdfs.load(Some(path), ctx, readOptions)
+      val hdfs = DefaultSparkDataConnector("TestConnector", None, None)
+      val readOptions = DataFrameReaderOptions(schema = Some(dataFrame.schema.toSchema))
+      val df = hdfs.load(Some(path), ctx, readOptions).execute
       assert(df.count() == Constants.TEN)
     }
   }

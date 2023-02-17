@@ -1,7 +1,7 @@
 package com.acxiom.metalus.sql.parser
 
 import com.acxiom.metalus.sql.parser.ExpressionParser.KeywordExecutor
-import com.acxiom.metalus.{Parameter, PipelineContext, PipelineStateInfo}
+import com.acxiom.metalus.{Parameter, PipelineContext, PipelineStateKey}
 import com.acxiom.metalus.sql.parser.MExprParser._
 import com.acxiom.metalus.utils.ReflectionUtils
 import org.antlr.v4.runtime._
@@ -131,7 +131,7 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
   }
 
   @tailrec
-  private def determineParameterKey(paths: List[String], keys: List[PipelineStateInfo],
+  private def determineParameterKey(paths: List[String], keys: List[PipelineStateKey],
                                     key: String, index: Int = 0, fork: Boolean = false): (String, Int, Boolean) = {
     // See if we have reached the last token
     if (index >= paths.length) {

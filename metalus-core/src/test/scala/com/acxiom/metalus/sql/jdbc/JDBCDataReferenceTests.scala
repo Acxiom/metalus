@@ -2,7 +2,7 @@ package com.acxiom.metalus.sql.jdbc
 
 import com.acxiom.metalus.context.ContextManager
 import com.acxiom.metalus.sql._
-import com.acxiom.metalus.{DefaultPipelineListener, PipelineContext, PipelineParameter, PipelineStateInfo, PipelineStepMapper}
+import com.acxiom.metalus.{DefaultPipelineListener, PipelineContext, PipelineParameter, PipelineStateKey, PipelineStepMapper}
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
 import org.slf4j.LoggerFactory
@@ -12,8 +12,8 @@ class JDBCDataReferenceTests extends AnyFunSpec with BeforeAndAfterAll with Give
 
   lazy val pipelineContext: PipelineContext = {
     PipelineContext(Some(Map[String, Any]()),
-      List(PipelineParameter(PipelineStateInfo("0"), Map[String, Any]()),
-        PipelineParameter(PipelineStateInfo("1"), Map[String, Any]())),
+      List(PipelineParameter(PipelineStateKey("0"), Map[String, Any]()),
+        PipelineParameter(PipelineStateKey("1"), Map[String, Any]())),
       Some(List("com.acxiom.metalus.steps")),
       PipelineStepMapper(),
       Some(DefaultPipelineListener()),

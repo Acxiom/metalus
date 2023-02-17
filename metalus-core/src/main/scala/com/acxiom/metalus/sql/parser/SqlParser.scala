@@ -27,16 +27,18 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
 
   private val stepIds: ListBuffer[String] = ListBuffer()
 
-  private def buildAndChainStep(operation: String,
-                                steps: List[PipelineStep],
-                                extraParameters: Option[List[Parameter]] = None,
-                                value: Option[String] = None,
-                                idSuffix: Option[String] = None,
-                                drParamName: Option[String] = None): List[PipelineStep] = {
-    val lastId = steps.last.id.mkString
-    val id = buildStepId(operation.toUpperCase, idSuffix.getOrElse(lastId))
+  private def buildAndChainStep(operation: String, left: List[PipelineStep],
+                   right: Option[List[PipelineStep]] = None,
+                   parameters: Option[List[Parameter]] = None,
+                   value: Option[String] = None,
+                   idSuffix: Option[String] = None): List[PipelineStep] = {
+    val leftId = left.last.id.mkString
+    val rightId = right.map(_.last.id.mkString)
+    val id = idSuffix.map(id => buildStepId(operation.toUpperCase, id))
+      .getOrElse(buildStepId(operation.toUpperCase, leftId, rightId))
     stepIds += id
-    val params = buildStepParameter(drParamName.getOrElse("dataReference"), "@" + lastId) +: extraParameters.getOrElse(List())
+    val params = (buildStepParameter(if(right.isDefined) "left" else "dataReference", "@" + leftId) +:
+      parameters.getOrElse(List())) ++ rightId.map(id => buildStepParameter("right", "@" + id))
     val step = PipelineStep(
       Some(id),
       `type` = Some("pipeline"),
@@ -44,28 +46,48 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
       value = value.orElse(Some("STEP")),
       engineMeta = Some(EngineMeta(Some("QueryingSteps." + operation)))
     )
-    aggregateResult(steps, List(step))
+    aggregateResult(right.map(aggregateResult(left, _)).getOrElse(left), List(step))
   }
+
+//  private def buildAndChainStep(operation: String,
+//                                steps: List[PipelineStep],
+//                                extraParameters: Option[List[Parameter]] = None,
+//                                value: Option[String] = None,
+//                                idSuffix: Option[String] = None,
+//                                drParamName: Option[String] = None): List[PipelineStep] = {
+//    val lastId = steps.last.id.mkString
+//    val id = buildStepId(operation.toUpperCase, idSuffix.getOrElse(lastId))
+//    stepIds += id
+//    val params = buildStepParameter(drParamName.getOrElse("dataReference"), "@" + lastId) +: extraParameters.getOrElse(List())
+//    val step = PipelineStep(
+//      Some(id),
+//      `type` = Some("pipeline"),
+//      params = Some(params),
+//      value = value.orElse(Some("STEP")),
+//      engineMeta = Some(EngineMeta(Some("QueryingSteps." + operation)))
+//    )
+//    aggregateResult(steps, List(step))
+//  }
 
   // handle select, where, groupBy, and having
   override def visitQuerySpecification(ctx: QuerySpecificationContext): List[PipelineStep] = {
     val fromJoinSteps = visit(ctx.relation())
     val where = Option(ctx.where).map{ where =>
-      buildAndChainStep("where", fromJoinSteps, Some(List(
+      buildAndChainStep("where", fromJoinSteps, parameters = Some(List(
         buildStepParameter("expression", getText(where), Some("expression"))
       )))
     }.getOrElse(fromJoinSteps)
     val groupBy = Option(ctx.groupBy()).map { groupBy =>
-      buildAndChainStep("groupBy", where, Some(List(
+      buildAndChainStep("groupBy", where, parameters = Some(List(
         buildStepParameter("expressions", groupBy.groupingElement().asScala.map(getText), Some("expression"))
       )))
     }.getOrElse(where)
     val having = Option(ctx.having).map { having =>
-      buildAndChainStep("having", groupBy, Some(List(
+      buildAndChainStep("having", groupBy, parameters = Some(List(
         buildStepParameter("expression", getText(having), Some("expression"))
       )))
     }.getOrElse(groupBy)
-    buildAndChainStep("select", having, Some(List(
+    buildAndChainStep("select", having, parameters = Some(List(
       buildStepParameter("expressions", ctx.selectItem().asScala.map(getText), Some("expression"))
     )))
   }
@@ -74,7 +96,7 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
   override def visitAliasedRelation(ctx: AliasedRelationContext): List[PipelineStep] = {
     val steps = visit(ctx.relationPrimary())
     Option(ctx.identifier()).map{ alias =>
-      buildAndChainStep("as", steps, Some(List(
+      buildAndChainStep("as", steps, parameters = Some(List(
         buildStepParameter("alias", alias.getText, Some("string")))),
         idSuffix = Some(alias.getText)
       )
@@ -117,10 +139,11 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
     val left = visit(ctx.left)
     val right = visit(Option(ctx.right).getOrElse(ctx.rightRelation))
 
-    val rightParam = buildStepParameter("left", "@" + left.last.id.mkString)
+//    val rightParam = buildStepParameter("left", "@" + left.last.id.mkString)
     val joinTypeParam = Option(ctx.CROSS()).map(_.getText)
       .orElse(Option(ctx.NATURAL()).map( _.getText + " " + Option(ctx.joinType()).mkString))
       .orElse(Option(ctx.joinType()).map(getText))
+      .filter(_.nonEmpty)
       .map(jt => buildStepParameter("joinType", jt, Some("string")))
 
     val expressionParam = Option(ctx.joinCriteria()).flatMap { jc =>
@@ -130,9 +153,8 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
         buildStepParameter("using", i.asScala.map(getText), Some("expression"))
       }
     }
-    val params = Some(rightParam) ++ joinTypeParam ++ expressionParam
-    val steps = aggregateResult(left, right)
-    buildAndChainStep("join", steps, Some(params.toList),drParamName = Some("right"))
+    val params = joinTypeParam ++ expressionParam
+    buildAndChainStep("join", left, Some(right), Some(params.toList))
   }
 
   override def defaultResult(): List[PipelineStep] = List()

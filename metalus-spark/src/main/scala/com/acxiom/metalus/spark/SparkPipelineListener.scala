@@ -77,14 +77,8 @@ trait SparkPipelineListener extends SparkListener with PipelineListener {
   }
 
   def getSparkSettingsForAudit(pipelineContext: PipelineContext): Map[String, Any] = {
-    val sparkContext = pipelineContext.contextManager.getContext("spark").asInstanceOf[Option[SparkSessionContext]]
-    if (sparkContext.isEmpty) {
-      Map()
-    } else {
-      this.sparkSettingToReport.map(s => {
-        val setting = sparkContext.get.sparkSession.sparkContext.getConf.getOption(s)
-        s -> setting.getOrElse("")
-      }).toMap
-    }
+    pipelineContext.sparkSessionOption.map{ spark =>
+      this.sparkSettingToReport.map(s => s -> spark.sparkContext.getConf.getOption(s)).toMap
+    }.getOrElse(Map())
   }
 }
