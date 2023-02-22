@@ -1,6 +1,6 @@
 package com.acxiom.metalus.parser
 
-import com.acxiom.metalus.PipelineDefs.TWO_PIPELINE
+import com.acxiom.metalus.PipelineDefs.{BASIC_PIPELINE, RETRY_PIPELINE, TWO_PIPELINE}
 import com.acxiom.metalus._
 import org.scalatest.funspec.AnyFunSpec
 
@@ -8,14 +8,13 @@ class JsonParserTests extends AnyFunSpec {
 
   describe("DriverUtils - parsePipelineJson") {
     it("Should parse a basic pipeline json returning a list of Pipeline objects") {
-      val json = JsonParser.serializePipelines(List(TWO_PIPELINE))
+      val json = JsonParser.serializePipelines(List(BASIC_PIPELINE, RETRY_PIPELINE))
       val pipelineList = JsonParser.parsePipelineJson(json)
       assert(pipelineList.isDefined)
       assert(pipelineList.get.lengthCompare(2) == 0)
-      verifyParsedPipelines(pipelineList.get.head,
-        TWO_PIPELINE.steps.get.head.params.get.find(_.name.getOrElse("") == "pipeline").get.value.get.asInstanceOf[Pipeline])
-      verifyParsedPipelines(pipelineList.get(1),
-        TWO_PIPELINE.steps.get(1).params.get.find(_.name.getOrElse("") == "pipeline").get.value.get.asInstanceOf[Pipeline])
+
+      verifyParsedPipelines(pipelineList.get.head, BASIC_PIPELINE)
+      verifyParsedPipelines(pipelineList.get(1), RETRY_PIPELINE)
     }
 
     def verifyParsedPipelines(pipeline1: Pipeline, pipeline2: Pipeline): Unit = {
