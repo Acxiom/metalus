@@ -1,6 +1,6 @@
 package com.acxiom.metalus.parser
 
-import com.acxiom.metalus.PipelineDefs.{BASIC_PIPELINE, RETRY_PIPELINE, TWO_PIPELINE}
+import com.acxiom.metalus.PipelineDefs.{BASIC_PIPELINE, RETRY_PIPELINE}
 import com.acxiom.metalus._
 import org.scalatest.funspec.AnyFunSpec
 
