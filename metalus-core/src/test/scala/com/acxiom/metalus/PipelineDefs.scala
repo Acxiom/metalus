@@ -26,29 +26,36 @@ object PipelineDefs {
     Some(List(Parameter(Some("text"), Some("value"), Some(true), None, Some("error step called!")))),
     engineMeta = Some(EngineMeta(Some("MockPipelineSteps.parrotStep"))))
 
-  val BASIC_PIPELINE = List(Pipeline(Some("1"), Some("Basic Pipeline"),
-    Some(List(GLOBAL_VALUE_STEP.copy(nextStepId = Some("PAUSESTEP")), PAUSE_STEP))))
+  val BASIC_PIPELINE: Pipeline = Pipeline(Some("1"), Some("Basic Pipeline"),
+    Some(List(GLOBAL_VALUE_STEP.copy(nextStepId = Some("PAUSESTEP")), PAUSE_STEP)))
 
-  val RETRY_PIPELINE = List(Pipeline(Some("1"), Some("Retry Pipeline"),
-    Some(List(RETRY_STEP.copy(nextStepId = Some("RETURNNONESTEP")), RETURN_NOTHING_STEP))))
+  val RETRY_PIPELINE: Pipeline = Pipeline(Some("1"), Some("Retry Pipeline"),
+    Some(List(RETRY_STEP.copy(nextStepId = Some("RETURNNONESTEP")), RETURN_NOTHING_STEP)))
 
-  val RETRY_FAILURE_PIPELINE = List(Pipeline(Some("1"), Some("Retry Failure Pipeline"),
-    Some(List(RETRY_STEP.copy(nextStepId = Some("RETURNNONESTEP"), nextStepOnError = Some("PARROTSTEP")), RETURN_NOTHING_STEP, PARROT_STEP))))
+  val RETRY_FAILURE_PIPELINE: Pipeline = Pipeline(Some("1"), Some("Retry Failure Pipeline"),
+    Some(List(RETRY_STEP.copy(nextStepId = Some("RETURNNONESTEP"), nextStepOnError = Some("PARROTSTEP")), RETURN_NOTHING_STEP, PARROT_STEP)))
 
-  val TWO_PIPELINE = List(Pipeline(Some("0"), Some("First Pipeline"), Some(List(GLOBAL_SINGLE_STEP))),
-    Pipeline(Some("1"), Some("Second Pipeline"), Some(List(GLOBAL_SINGLE_STEP))))
 
-  val THREE_PIPELINE = List(Pipeline(Some("0"), Some("Basic Pipeline"),
-    Some(List(GLOBAL_VALUE_STEP.copy(nextStepId = Some("PAUSESTEP")), PAUSE_STEP))),
-    Pipeline(Some("1"), Some("Second Pipeline"), Some(List(GLOBAL_SINGLE_STEP))))
+  val TWO_PIPELINE: Pipeline = Pipeline(Some("root"), Some("TWO_PIPELINE"), Some(List(
+    PipelineStepGroup(Some("ZERO"), nextStepId = Some("ONE"),
+      params = Some(List(Parameter(name = Some("pipeline"), value = Some(Some("0"), Some("First Pipeline"), Some(List(GLOBAL_SINGLE_STEP))))))),
+    PipelineStepGroup(Some("ONE"), params = Some(List(Parameter(name = Some("pipeline"), value = Some(Some("1"), Some("Second Pipeline"), Some(List(GLOBAL_SINGLE_STEP)))))))
+  )))
 
-  val FOUR_PIPELINE = List(Pipeline(Some("1"), Some("First Pipeline"),
+  val THREE_PIPELINE: Pipeline = Pipeline(Some("root"), Some("THREE_PIPELINE"), Some(List(
+    PipelineStepGroup(Some("ZERO"), nextStepId = Some("ONE"),
+      params = Some(List(Parameter(name = Some("pipeline"), value = Some(Pipeline(Some("0"), Some("Basic Pipeline"),
+        Some(List(GLOBAL_VALUE_STEP.copy(nextStepId = Some("PAUSESTEP")), PAUSE_STEP)))))))),
+    PipelineStepGroup(Some("ONE"), params = Some(List(Parameter(name = Some("pipeline"), value = Some(Pipeline(Some("1"), Some("Second Pipeline"), Some(List(GLOBAL_SINGLE_STEP))))))))
+  )))
+
+  val FOUR_PIPELINE: Pipeline = Pipeline(Some("1"), Some("First Pipeline"),
     Some(List(RETURN_NOTHING_STEP.copy(nextStepId = Some("DYNAMICBRANCHSTEP")),
       DYNAMIC_BRANCH_STEP.copy(nextStepId = Some("DYNAMICBRANCH2STEP")),
-      DYNAMIC_BRANCH2_STEP))))
+      DYNAMIC_BRANCH2_STEP)))
 
-  val BASIC_NOPAUSE = List(Pipeline(Some("1"), Some("Basic Pipeline"),
-    Some(List(GLOBAL_VALUE_STEP.copy(nextStepId = Some("RETURNNONESTEP")), RETURN_NOTHING_STEP))))
+  val BASIC_NOPAUSE: Pipeline = Pipeline(Some("1"), Some("Basic Pipeline"),
+    Some(List(GLOBAL_VALUE_STEP.copy(nextStepId = Some("RETURNNONESTEP")), RETURN_NOTHING_STEP)))
 
   val ERROR_STEP: PipelineStep = PipelineStep(Some("THROW_ERROR"), Some("Throws an error"), None, Some("Pipeline"),
     Some(List()), engineMeta = Some(EngineMeta(Some("MockPipelineSteps.throwError"))))
@@ -57,5 +64,5 @@ object PipelineDefs {
       Parameter(`type` = Some("result"), name = Some("true"), value = Some("RETURNNONESTEP")),
       Parameter(`type` = Some("result"), name = Some("false"), value = Some("THROW_ERROR")))),
     engineMeta = Some(EngineMeta(Some("MockPipelineSteps.parrotStep"))))
-  val ERROR_PIPELINE = List(Pipeline(Some("1"), Some("Error Pipeline"), Some(List(BRANCH_STEP,ERROR_STEP,RETURN_NOTHING_STEP))))
+  val ERROR_PIPELINE: Pipeline = Pipeline(Some("1"), Some("Error Pipeline"), Some(List(BRANCH_STEP, ERROR_STEP, RETURN_NOTHING_STEP)))
 }

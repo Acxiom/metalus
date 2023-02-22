@@ -1,11 +1,9 @@
 package com.acxiom.metalus
 
-import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
+import com.acxiom.metalus.audits.ExecutionAudit
 import com.acxiom.metalus.context.SessionContext
 import com.acxiom.metalus.flow.SplitStepException
-import org.json4s.ext.EnumNameSerializer
-import org.json4s.native.{JsonParser, Serialization}
-import org.json4s.{DefaultFormats, Formats}
+import com.acxiom.metalus.parser.JsonParser
 import org.slf4j.LoggerFactory
 
 import java.util.Date
@@ -17,8 +15,6 @@ object PipelineListener {
 case class DefaultPipelineListener() extends PipelineListener
 
 trait PipelineListener {
-  implicit val formats: Formats = DefaultFormats +
-    new EnumNameSerializer(AuditType)
   private val logger = LoggerFactory.getLogger(getClass)
 
   /**
@@ -170,7 +166,7 @@ trait EventBasedPipelineListener extends PipelineListener {
   def credentialProvider: CredentialProvider
 
   def generateExecutionMessage(event: String, pipelines: List[Pipeline]): String = {
-    Serialization.write(Map[String, Any](
+    JsonParser.serialize(Map[String, Any](
       "key" -> key,
       "event" -> event,
       "eventTime" -> new Date().getTime,
@@ -181,9 +177,9 @@ trait EventBasedPipelineListener extends PipelineListener {
   def generateAuditMessage(event: String, audit: ExecutionAudit): String = {
     // Must cast to Long or it won't compile
     val duration = audit.end.getOrElse(Constants.ZERO).asInstanceOf[Long] - audit.start
-    val auditString = Serialization.write(audit)
-    val auditMap = JsonParser.parse(auditString).extract[Map[String, Any]]
-    Serialization.write(Map[String, Any](
+    val auditString = JsonParser.serialize(audit)
+    val auditMap = JsonParser.parseMap(auditString)
+    JsonParser.serialize(Map[String, Any](
       "key" -> key,
       "event" -> event,
       "eventTime" -> new Date().getTime,
@@ -192,7 +188,7 @@ trait EventBasedPipelineListener extends PipelineListener {
   }
 
   def generatePipelineMessage(event: String, pipeline: Pipeline): String = {
-    Serialization.write(Map[String, Any](
+    JsonParser.serialize(Map[String, Any](
       "key" -> key,
       "event" -> event,
       "eventTime" -> new Date().getTime,
@@ -201,7 +197,7 @@ trait EventBasedPipelineListener extends PipelineListener {
   }
 
   def generatePipelineStepMessage(event: String, pipeline: Pipeline, step: FlowStep, pipelineContext: PipelineContext): String = {
-    Serialization.write(Map[String, Any](
+    JsonParser.serialize(Map[String, Any](
       "key" -> key,
       "event" -> event,
       "eventTime" -> new Date().getTime,
@@ -223,7 +219,7 @@ trait EventBasedPipelineListener extends PipelineListener {
       case p: PauseException => MessageLists(List(s"Paused: ${p.getMessage}"), List())
       case _ => MessageLists(List(exception.getMessage), List(exception.getStackTrace))
     }
-    Serialization.write(Map[String, Any](
+    JsonParser.serialize(Map[String, Any](
       "key" -> key,
       "event" -> event,
       "eventTime" -> new Date().getTime,

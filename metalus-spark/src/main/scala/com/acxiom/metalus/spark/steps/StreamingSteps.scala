@@ -20,7 +20,7 @@ object StreamingSteps {
     "streamingMonitorClassName" -> StepParameter(None, Some(false), None, None, None, None, Some("Fully qualified classname of the monitor class"))))
   @StepResults(primaryType = "String", secondaryTypes = Some(Map("$globals.$*" -> "Any")))
   def monitorStreamingQuery(query: Option[StreamingQuery],
-                            streamingMonitorClassName: Option[String] = Some("com.acxiom.pipeline.streaming.BaseStreamingQueryMonitor"),
+                            streamingMonitorClassName: Option[String] = Some("com.acxiom.metalus.spark.streaming.BaseStreamingQueryMonitor"),
                             pipelineContext: PipelineContext): PipelineStepResponse = {
     if (query.isDefined) {
       logger.info("StreamingQuery defined, preparing monitor")
@@ -28,7 +28,7 @@ object StreamingSteps {
       val ctx = pipelineContext
         .setGlobal("STREAMING_MONITOR_START_DATE", new Date())
         .setGlobal("STREAMING_MONITOR_ITERATION", iteration.getOrElse(0) + 1)
-      val streamingClassName = streamingMonitorClassName.getOrElse("com.acxiom.pipeline.streaming.BaseStreamingQueryMonitor")
+      val streamingClassName = streamingMonitorClassName.getOrElse("com.acxiom.metalus.spark.streaming.BaseStreamingQueryMonitor")
       logger.info(s"Using monitor class: $streamingClassName")
       val queryMonitor = ReflectionUtils.loadClass(streamingClassName,
         Some(Map("query" -> query, "pipelineContext" -> ctx)))

@@ -93,7 +93,7 @@ object ApplicationUtils {
             throw new IllegalArgumentException(s"Unable to load pipeline ${info.pipelineId}!")
           }
           val allowedRestarts = pipeline.get.parameters.getOrElse(Parameters()).restartableSteps
-          if ((!allowedRestarts.exists(_.contains(info.stepId.getOrElse("NOPE"))))) {
+          if (!allowedRestarts.exists(_.contains(info.stepId.getOrElse("NOPE")))) {
             throw new IllegalArgumentException(s"Step is not restartable: ${info.key}")
           }
           StepState(info, "RESTART")

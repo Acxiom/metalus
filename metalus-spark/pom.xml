@@ -169,19 +169,19 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
-                        <configuration>
-                            <relocations>
-                                <!-- This is required to prevent certain distributions from overriding with an older version -->
-                                <relocation>
-                                    <pattern>com.jcraft</pattern>
-                                    <shadedPattern>metalus.com.jcraft</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.json4s</pattern>
-                                    <shadedPattern>metalus.org.json4s</shadedPattern>
-                                </relocation>
-                            </relocations>
-                        </configuration>
+<!--                        <configuration>-->
+<!--                            <relocations>-->
+<!--                                &lt;!&ndash; This is required to prevent certain distributions from overriding with an older version &ndash;&gt;-->
+<!--                                <relocation>-->
+<!--                                    <pattern>com.jcraft</pattern>-->
+<!--                                    <shadedPattern>metalus.com.jcraft</shadedPattern>-->
+<!--                                </relocation>-->
+<!--                                <relocation>-->
+<!--                                    <pattern>org.json4s</pattern>-->
+<!--                                    <shadedPattern>metalus.org.json4s</shadedPattern>-->
+<!--                                </relocation>-->
+<!--                            </relocations>-->
+<!--                        </configuration>-->
                     </execution>
                 </executions>
             </plugin>
@@ -215,6 +215,7 @@
                 <aws-sdk-version>1.11.655</aws-sdk-version>
                 <hadoop-aws-version>2.7.7</hadoop-aws-version>
                 <delta-lake-version>1.0.1</delta-lake-version>
+                <hadoop.minicluster.version>3.3.1</hadoop.minicluster.version>
             </properties>
             <dependencies>
                 <dependency>
