@@ -206,7 +206,6 @@
             <properties>
                 <spark.compat.version>3.1</spark.compat.version>
                 <spark.version>3.1.3</spark.version>
-                <json4s.version>3.6.6</json4s.version>
                 <mongo.version>3.0.1</mongo.version>
                 <scala.compat.version>2.12</scala.compat.version>
                 <scala.version>2.12.13</scala.version>
@@ -240,7 +239,6 @@
             <properties>
                 <spark.compat.version>3.2</spark.compat.version>
                 <spark.version>3.2.1</spark.version>
-                <json4s.version>3.7.0-M11</json4s.version>
                 <mongo.version>3.0.2</mongo.version>
                 <scala.compat.version>2.12</scala.compat.version>
                 <scala.version>2.12.13</scala.version>
@@ -252,11 +250,6 @@
                 <hadoop.minicluster.version>3.3.1</hadoop.minicluster.version>
             </properties>
             <dependencies>
-                <dependency>
-                    <groupId>org.json4s</groupId>
-                    <artifactId>json4s-ast_${scala.compat.version}</artifactId>
-                    <version>${json4s.version}</version>
-                </dependency>
                 <dependency>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-minicluster</artifactId>
@@ -305,7 +298,6 @@
             <properties>
                 <spark.compat.version>3.3</spark.compat.version>
                 <spark.version>3.3.0</spark.version>
-                <json4s.version>3.7.0-M11</json4s.version>
                 <mongo.version>3.0.2</mongo.version>
                 <scala.compat.version>2.12</scala.compat.version>
                 <scala.version>2.12.13</scala.version>
@@ -317,35 +309,6 @@
                 <hadoop.minicluster.version>3.3.3</hadoop.minicluster.version>
             </properties>
             <dependencies>
-                <dependency>
-                    <groupId>org.json4s</groupId>
-                    <artifactId>json4s-ast_${scala.compat.version}</artifactId>
-                    <version>${json4s.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.logging.log4j</groupId>
-                    <artifactId>log4j-1.2-api</artifactId>
-                    <version>2.17.2</version>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.logging.log4j</groupId>
-                    <artifactId>log4j-api</artifactId>
-                    <version>2.17.2</version>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.logging.log4j</groupId>
-                    <artifactId>log4j-core</artifactId>
-                    <version>2.17.2</version>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.logging.log4j</groupId>
-                    <artifactId>log4j-slf4j-impl</artifactId>
-                    <version>2.17.2</version>
-                    <scope>provided</scope>
-                </dependency>
                 <dependency>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-minicluster</artifactId>

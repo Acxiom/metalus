@@ -10,6 +10,26 @@ object FileManager {
   val DEFAULT_BUFFER_SIZE: Int = 65536
   val DEFAULT_COPY_BUFFER_SIZE: Int = 32768
   def apply(): FileManager = new LocalFileManager
+
+  def deleteNio(file: File): Unit = {
+    Files.walkFileTree(file.toPath,
+      new SimpleFileVisitor[Path] {
+        override def visitFile(file: Path,
+                               attrs: BasicFileAttributes
+                              ): FileVisitResult = {
+          Files.delete(file)
+          FileVisitResult.CONTINUE
+        }
+
+        override def postVisitDirectory(dir: Path,
+                                        exc: IOException
+                                       ): FileVisitResult = {
+          Files.delete(dir)
+          FileVisitResult.CONTINUE
+        }
+      }
+    )
+  }
 }
 
 /**
@@ -205,7 +225,7 @@ case class LocalFileResource(file: File) extends FileResource {
    */
   override def delete: Boolean = {
     if (file.isDirectory) {
-      deleteNio()
+      FileManager.deleteNio(file)
       true
     } else {
       file.delete()
@@ -243,25 +263,6 @@ case class LocalFileResource(file: File) extends FileResource {
       case resource: LocalFileResource => Files.copy(file.toPath, resource.file.toPath).toFile.exists()
       case _ => super.copy(destination)
     }
-  }
-  private def deleteNio(): Unit = {
-    Files.walkFileTree(file.toPath,
-      new SimpleFileVisitor[Path] {
-        override def visitFile(file: Path,
-                                attrs: BasicFileAttributes
-                              ): FileVisitResult = {
-          Files.delete(file)
-          FileVisitResult.CONTINUE
-        }
-
-        override def postVisitDirectory(dir: Path,
-                                         exc: IOException
-                                       ): FileVisitResult = {
-          Files.delete(dir)
-          FileVisitResult.CONTINUE
-        }
-      }
-    )
   }
 }
 
