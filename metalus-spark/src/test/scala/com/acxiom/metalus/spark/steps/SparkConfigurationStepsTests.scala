@@ -1,41 +1,36 @@
-package com.acxiom.pipeline.steps
+package com.acxiom.metalus.spark.steps
 
-import com.acxiom.pipeline._
+import com.acxiom.metalus.context.ContextManager
+import com.acxiom.metalus.spark.SparkSessionContext
+import com.acxiom.metalus.{ClassInfo, DefaultPipelineListener, PipelineContext, PipelineStepMapper}
 import org.apache.commons.io.FileUtils
-import org.apache.log4j.{Level, Logger}
-import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
-import org.scalatest.{BeforeAndAfterAll, FunSpec, GivenWhenThen}
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
 
 import java.nio.file.{Files, Path}
 import scala.language.postfixOps
 
-class SparkConfigurationStepsTests extends FunSpec with BeforeAndAfterAll with GivenWhenThen {
+class SparkConfigurationStepsTests extends AnyFunSpec with BeforeAndAfterAll with GivenWhenThen {
   private val MASTER = "local[2]"
   private val APPNAME = "spark-config-steps-spark"
-  private var sparkConf: SparkConf = _
   private var sparkSession: SparkSession = _
   private val sparkLocalDir: Path = Files.createTempDirectory("sparkLocal")
   private var pipelineContext: PipelineContext = _
 
   override def beforeAll(): Unit = {
-    Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
-    Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
-    Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
+    val contextManager = new ContextManager(Map("spark" ->
+      ClassInfo(Some("com.acxiom.metalus.spark.SparkSessionContext"),
+        Some(Map[String, Any]("sparkConfOptions" -> Map[String, Any](
+          "setOptions" -> List(Map("name" -> "spark.local.dir", "value" -> sparkLocalDir.toFile.getAbsolutePath))),
+          "appName" -> APPNAME,
+          "sparkMaster" -> MASTER)))),
+      Map())
+    sparkSession = contextManager.getContext("spark").get.asInstanceOf[SparkSessionContext].sparkSession
 
-    sparkConf = new SparkConf()
-      .setMaster(MASTER)
-      .setAppName(APPNAME)
-      .set("spark.local.dir", sparkLocalDir.toFile.getAbsolutePath)
-    sparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
-
-    pipelineContext = PipelineContext(Some(sparkConf), Some(sparkSession), Some(Map[String, Any]()),
-      PipelineSecurityManager(),
-      PipelineParameters(List(PipelineParameter("0", Map[String, Any]()), PipelineParameter("1", Map[String, Any]()))),
-      Some(List("com.acxiom.pipeline.steps")),
-      PipelineStepMapper(),
-      Some(DefaultPipelineListener()),
-      Some(sparkSession.sparkContext.collectionAccumulator[PipelineStepMessage]("stepMessages")))
+    pipelineContext = PipelineContext(Some(Map[String, Any]()),
+      List(), Some(List("com.acxiom.metalus.spark.steps")), PipelineStepMapper(),
+      Some(DefaultPipelineListener()), contextManager = contextManager)
   }
 
   override def afterAll(): Unit = {
@@ -43,7 +38,6 @@ class SparkConfigurationStepsTests extends FunSpec with BeforeAndAfterAll with G
     sparkSession.sparkContext.stop()
     sparkSession.stop()
 
-    Logger.getRootLogger.setLevel(Level.INFO)
     // cleanup spark directories
     FileUtils.deleteDirectory(sparkLocalDir.toFile)
   }

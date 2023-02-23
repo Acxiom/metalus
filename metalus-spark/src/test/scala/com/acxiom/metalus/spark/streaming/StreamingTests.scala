@@ -1,16 +1,14 @@
 package com.acxiom.metalus.spark.streaming
 
+import com.acxiom.metalus._
 import com.acxiom.metalus.context.ContextManager
 import com.acxiom.metalus.spark.connectors.{DataConnectorUtilities, DefaultSparkDataConnector}
 import com.acxiom.metalus.spark.sql._
-import com.acxiom.metalus.spark.{DataFrameReaderOptions, DataFrameWriterOptions, SparkSessionContext}
 import com.acxiom.metalus.spark.steps.StreamingSteps
-import com.acxiom.metalus._
+import com.acxiom.metalus.spark.{DataFrameReaderOptions, DataFrameWriterOptions, SparkSessionContext}
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}
-import org.apache.log4j.{Level, Logger}
-import org.apache.spark.SparkConf
 import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.scalatest.BeforeAndAfterAll
@@ -26,9 +24,6 @@ import scala.util.Random
 
 class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
   implicit val executionContext: ExecutionContext = ExecutionContext.Implicits.global
-  private val MASTER = "local[2]"
-  private val APPNAME = "spark-streaming-steps-spark"
-  private var sparkConf: SparkConf = _
   private var sparkSession: SparkSession = _
   private val sparkLocalDir: Path = Files.createTempDirectory("sparkLocal")
   private var pipelineContext: PipelineContext = _
@@ -38,10 +33,6 @@ class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
   val file = new File(sparkLocalDir.toFile.getAbsolutePath, "cluster")
 
   override def beforeAll(): Unit = {
-    Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
-    Logger.getLogger("org.apache.hadoop").setLevel(Level.WARN)
-    Logger.getLogger("com.acxiom.pipeline").setLevel(Level.DEBUG)
-
     // set up mini hadoop cluster
     config = new HdfsConfiguration()
     config.set(MiniDFSCluster.HDFS_MINIDFS_BASEDIR, file.getAbsolutePath)
@@ -50,17 +41,11 @@ class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
     // Only pull the fs object from the mini cluster
     fs = miniCluster.getFileSystem
 
-    //    sparkConf = new SparkConf()
-    //      .setMaster(MASTER)
-    //      .setAppName(APPNAME)
-    //      .set("spark.local.dir", sparkLocalDir.toFile.getAbsolutePath)
-    //      // Force Spark to use the HDFS cluster
-    //      .set("spark.hadoop.fs.defaultFS", miniCluster.getFileSystem().getUri.toString)
     val contextManager = new ContextManager(Map("spark" ->
       ClassInfo(Some("com.acxiom.metalus.spark.SparkSessionContext"),
         Some(Map[String, Any]("sparkConfOptions" -> Map[String, Any](
-          "spark.local.dir" -> sparkLocalDir.toFile.getAbsolutePath,
-          "spark.hadoop.fs.defaultFS" -> miniCluster.getFileSystem().getUri.toString),
+          "setOptions" -> List(Map("name" -> "spark.local.dir", "value" -> sparkLocalDir.toFile.getAbsolutePath),
+            Map("name" -> "spark.hadoop.fs.defaultFS", "value" -> miniCluster.getFileSystem().getUri.toString))),
           "appName" -> "spark-streaming-steps-spark",
           "sparkMaster" -> "local[2]")))),
       Map())
@@ -68,7 +53,7 @@ class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
     pipelineContext = PipelineContext(Some(Map[String, Any]()),
       List(PipelineParameter(PipelineStateKey("0"), Map[String, Any]()),
         PipelineParameter(PipelineStateKey("1"), Map[String, Any]())),
-      Some(List("com.acxiom.pipeline.steps")),
+      Some(List("com.acxiom.metalus.steps", "com.acxiom.metalus.spark.steps")),
       PipelineStepMapper(),
       Some(DefaultPipelineListener()), contextManager = contextManager)
   }
@@ -79,7 +64,6 @@ class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
     sparkSession.stop()
     miniCluster.shutdown()
 
-    Logger.getRootLogger.setLevel(Level.INFO)
     // cleanup spark directories
     FileUtils.deleteDirectory(sparkLocalDir.toFile)
   }
@@ -137,7 +121,7 @@ class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
       val query = Some(DataConnectorUtilities.buildDataStreamWriter(dataFrame, writeOptions, path).start())
       // Write Data
       val socket = sendRecords(server, Constants.TEN)
-      val monitor = Some("com.acxiom.pipeline.streaming.BatchPartitionedStreamingQueryMonitor")
+      val monitor = Some("com.acxiom.metalus.spark.streaming.BatchPartitionedStreamingQueryMonitor")
       // Thread the step
       val future = Future {
         val response = StreamingSteps.monitorStreamingQuery(query, monitor, ctx)
@@ -197,7 +181,7 @@ class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
       val query = Some(DataConnectorUtilities.buildDataStreamWriter(dataFrame, writeOptions, path).start())
       // Write Data
       val socket = sendRecords(server, Constants.TEN)
-      val monitor = Some("com.acxiom.pipeline.streaming.BatchFileStreamingQueryMonitor")
+      val monitor = Some("com.acxiom.metalus.spark.streaming.BatchFileStreamingQueryMonitor")
       // Thread the step
       val future = Future {
         StreamingSteps.monitorStreamingQuery(query, monitor, ctx)
