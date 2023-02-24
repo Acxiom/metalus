@@ -6,7 +6,6 @@ import com.acxiom.metalus.sql.{ConvertableReference, DataReferenceOrigin, QueryO
 import java.sql.{Connection, DriverManager, ResultSet}
 import java.util.Properties
 import scala.collection.immutable.Queue
-import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 trait JDBCDataReference[T] extends SqlBuildingDataReference[T] {
@@ -20,10 +19,9 @@ trait JDBCDataReference[T] extends SqlBuildingDataReference[T] {
 
   protected def createConnection(): Connection = {
     val props = new Properties()
-    props.putAll(properties.asJava)
+    properties.foreach(entry => props.put(entry._1, entry._2))
     DriverManager.getConnection(uri, props)
   }
-
 }
 
 final case class BasicJDBCDataReference(initialReference: String,

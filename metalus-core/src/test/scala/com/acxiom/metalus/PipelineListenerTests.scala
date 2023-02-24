@@ -1,5 +1,6 @@
 package com.acxiom.metalus
 
+import com.acxiom.metalus.PipelineDefs.{BASIC_PIPELINE, GLOBAL_SINGLE_STEP}
 import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
 import com.acxiom.metalus.flow.SplitStepException
 import org.json4s.native.JsonMethods.parse
@@ -8,11 +9,12 @@ import org.scalatest.Suite
 import org.scalatest.funspec.AnyFunSpec
 
 class PipelineListenerTests extends AnyFunSpec with Suite {
-  private val pipelines = PipelineDefs.BASIC_PIPELINE
   private implicit val formats: Formats = DefaultFormats
 
+  private val pipelines = List(BASIC_PIPELINE)
+
   describe("CombinedPipelineListener") {
-    it ("Should call multiple listeners") {
+    it("Should call multiple listeners") {
       val pipelineContext = TestHelper.generatePipelineContext()
       val test1 = new TestPipelineListener("", "", None.orNull)
       val test2 = new TestPipelineListener("", "", None.orNull)
@@ -23,8 +25,8 @@ class PipelineListenerTests extends AnyFunSpec with Suite {
       val pipelineKey = PipelineStateKey(pipelines.head.id.get)
       combined.pipelineStarted(pipelineKey, pipelineContext)
       combined.pipelineFinished(pipelineKey, pipelineContext)
-      combined.pipelineStepStarted(pipelineKey.copy(stepId =  PipelineDefs.GLOBAL_SINGLE_STEP.id), pipelineContext)
-      combined.pipelineStepFinished(pipelineKey.copy(stepId =  PipelineDefs.GLOBAL_SINGLE_STEP.id), pipelineContext)
+      combined.pipelineStepStarted(pipelineKey.copy(stepId = GLOBAL_SINGLE_STEP.id), pipelineContext)
+      combined.pipelineStepFinished(pipelineKey.copy(stepId = GLOBAL_SINGLE_STEP.id), pipelineContext)
       combined.registerStepException(pipelineKey, PipelineException(None, None, None, None, new IllegalArgumentException("")), pipelineContext)
       assert(test1.results.count == 8)
       assert(test1.results.count == test2.results.count)
@@ -69,10 +71,10 @@ class PipelineListenerTests extends AnyFunSpec with Suite {
       val splitCtx = pipelineContext.setCurrentStateInfo(PipelineStateKey("pipeline2", Some("step2"), Some(ForkData(1, None, None))))
       val splitExceptionMessage = test.generateExceptionMessage("split-exception",
         SplitStepException(exceptions =
-        Map("" -> PipelineException(message = Some("Split  Message"),
-          cause = new IllegalArgumentException("Stinky Pete"),
-          context = Some(splitCtx),
-          pipelineProgress = splitCtx.currentStateInfo))),
+          Map("" -> PipelineException(message = Some("Split  Message"),
+            cause = new IllegalArgumentException("Stinky Pete"),
+            context = Some(splitCtx),
+            pipelineProgress = splitCtx.currentStateInfo))),
         splitCtx)
       val splitExceptionMap = parse(splitExceptionMessage).extract[Map[String, Any]]
       assert(splitExceptionMap("key") == "event-test")

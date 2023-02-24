@@ -1,7 +1,8 @@
-package com.acxiom.pipeline.steps
+package com.acxiom.metalus.spark.steps
 
-import com.acxiom.pipeline.PipelineContext
-import com.acxiom.pipeline.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.metalus.PipelineContext
+import com.acxiom.metalus.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
+import com.acxiom.metalus.spark._
 
 import scala.annotation.tailrec
 
@@ -27,7 +28,7 @@ object SparkConfigurationSteps {
     "keySeparator" -> StepParameter(None, Some(false), Some("__"), None, None, None,
       Some("String that will be replaced with a period character"))))
   def setLocalProperties(properties: Map[String, Any], keySeparator: Option[String] = None, pipelineContext: PipelineContext): Unit = {
-    val sc = pipelineContext.sparkSession.get.sparkContext
+    val sc = pipelineContext.sparkSession.sparkContext
     cleanseMap(properties, keySeparator).foreach {
       case (key, Some(value)) => sc.setLocalProperty(key, value.toString)
       case (key, None) => sc.setLocalProperty(key, None.orNull)
@@ -45,7 +46,7 @@ object SparkConfigurationSteps {
       Some("String that will be replaced with a period character"))))
   def setHadoopConfigurationProperties(properties: Map[String, Any], keySeparator: Option[String] = None,
                                        pipelineContext: PipelineContext): Unit = {
-    val hc = pipelineContext.sparkSession.get.sparkContext.hadoopConfiguration
+    val hc = pipelineContext.sparkSession.sparkContext.hadoopConfiguration
     cleanseMap(properties, keySeparator).foreach {
       case (key, Some(value)) => hc.set(key, value.toString)
       case (key, None) => hc.unset(key)
@@ -59,10 +60,8 @@ object SparkConfigurationSteps {
     "Pipeline", "Spark")
   @StepParameters(Map("key" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the property to set")),
     "value" -> StepParameter(None, Some(true), None, None, None, None, Some("The value to set"))))
-  def setHadoopConfigurationProperty(key: String, value: Any,
-                                       pipelineContext: PipelineContext): Unit = {
+  def setHadoopConfigurationProperty(key: String, value: Any, pipelineContext: PipelineContext): Unit =
     setHadoopConfigurationProperties(Map(key -> value), None, pipelineContext)
-  }
 
   @StepFunction("b7373f02-4d1e-44cf-a9c9-315a5c1ccecc",
     "Set Job Group",
@@ -74,16 +73,14 @@ object SparkConfigurationSteps {
       Some("When true, will trigger Thread.interrupt getting called on executor threads"))))
   def setJobGroup(groupId: String, description: String, interruptOnCancel: Option[Boolean] = None,
                   pipelineContext: PipelineContext): Unit = {
-    pipelineContext.sparkSession.get.sparkContext.setJobGroup(groupId, description, interruptOnCancel.getOrElse(false))
+    pipelineContext.sparkSession.sparkContext.setJobGroup(groupId, description, interruptOnCancel.getOrElse(false))
   }
 
   @StepFunction("7394ff4d-f74d-4c9f-a55c-e0fd398fa264",
     "Clear Job Group",
     "Clear the current thread's job group",
     "Pipeline", "Spark")
-  def clearJobGroup(pipelineContext: PipelineContext): Unit = {
-    pipelineContext.sparkSession.get.sparkContext.clearJobGroup()
-  }
+  def clearJobGroup(pipelineContext: PipelineContext): Unit = pipelineContext.sparkSession.sparkContext.clearJobGroup()
 
 
   @tailrec
@@ -96,7 +93,7 @@ object SparkConfigurationSteps {
 
   private def cleanseMap(map: Map[String, Any], keySeparator: Option[String] = None): Map[String, Any] = {
     val sep = keySeparator.getOrElse("__")
-    map.map{ case (key, value) =>
+    map.map { case (key, value) =>
       key.replaceAllLiterally(sep, ".") -> unwrapOptions(value)
     }
   }

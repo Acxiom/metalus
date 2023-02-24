@@ -20,6 +20,8 @@ package object spark {
 
     def sparkSessionContextOption: Option[SparkSessionContext] = pipelineContext.contextManager.getContext("spark")
       .map(_.asInstanceOf[SparkSessionContext])
+
+    def addStepMessage(message: PipelineStepMessage): Unit = sparkSessionContext.addStepMessage(message)
   }
 
 }

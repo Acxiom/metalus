@@ -2,7 +2,7 @@ package com.acxiom.pipeline.streaming
 
 import com.acxiom.pipeline._
 import com.acxiom.pipeline.connectors.{DataConnectorUtilities, HDFSDataConnector}
-import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions, FlowUtilsSteps, Schema}
+import com.acxiom.pipeline.steps.{DataFrameReaderOptions, DataFrameWriterOptions, Schema}
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hdfs.{HdfsConfiguration, MiniDFSCluster}

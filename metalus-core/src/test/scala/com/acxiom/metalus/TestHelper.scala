@@ -7,7 +7,7 @@ import java.util.Properties
 
 object TestHelper {
   var pipelineListener: PipelineListener = _
-
+  var contextManager: ContextManager = new ContextManager(Map(), Map())
   def generatePipelineContext(): PipelineContext = {
     val parameters = Map[String, Any]()
     PipelineContext(Some(parameters),
@@ -21,7 +21,7 @@ object TestHelper {
       }),
       PipelineStepMapper(),
       Some(TestHelper.pipelineListener),
-      List(), PipelineManager(List()), None, new ContextManager(Map(), Map()))
+      List(), PipelineManager(List()), None, contextManager)
   }
 
   def getDefaultCredentialProvider: CredentialProvider = {

@@ -7,7 +7,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.util.CollectionAccumulator
 
-import scala.jdk.CollectionConverters.asScalaBufferConverter
+import scala.jdk.CollectionConverters._
 
 class SparkSessionContext(sparkConfOptions: Map[String, Any],
                           appName: Option[String],
@@ -32,13 +32,8 @@ class SparkSessionContext(sparkConfOptions: Map[String, Any],
     DEFAULT_KRYO_CLASSES
   }
 
-  /* TODO
-   *  Allow the user to pass in the master and app name
-   *  Update createSparkConf to pull in properties.
-   *    Currently it checks the conf for this stuff
-   */
   private val initialSparkConf: SparkConf = createSparkConf(kryoClasses)
-  val sparkConf: SparkConf = if (sparkConfOptions.contains("setOptions")) {
+  private val sparkConf: SparkConf = if (sparkConfOptions.contains("setOptions")) {
     sparkConfOptions("setOptions").asInstanceOf[List[Map[String, String]]].foldLeft(initialSparkConf)((conf, map) => {
       conf.set(map("name"), map("value"))
     })
@@ -94,25 +89,26 @@ class SparkSessionContext(sparkConfOptions: Map[String, Any],
       // This is required to ensure that certain classes can be serialized across the nodes
       .registerKryoClasses(kryoClasses)
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      .setAppName(appName.getOrElse(s"metalus2 application"))
 
     // Handle test scenarios where the master was not set
-//    val sparkConf = if (!tempConf.contains(SPARK_MASTER)) {
-//      tempConf.setMaster("local")
-//    } else {
-//      tempConf
-//    }
+    val sparkConf = if (sparkMaster.isDefined) {
+      tempConf.setMaster(sparkMaster.get)
+    } else {
+      tempConf
+    }
 
     // These properties are required when running the driver on the cluster so the executors
     // will be able to communicate back to the driver.
-    val deployMode = tempConf.get("spark.submit.deployMode", "client")
-    val master = tempConf.get(SPARK_MASTER, "local")
+    val deployMode = sparkConf.get("spark.submit.deployMode", "client")
+    val master = sparkConf.get(SPARK_MASTER, "local")
     if (deployMode == "cluster" || master == "yarn") {
       logger.debug("Configuring driver to run against a cluster")
-      tempConf
+      sparkConf
         .set("spark.local.ip", java.net.InetAddress.getLocalHost.getHostAddress)
         .set("spark.driver.host", java.net.InetAddress.getLocalHost.getHostAddress)
     } else {
-      tempConf
+      sparkConf
     }
   }
 

@@ -87,8 +87,7 @@ object DriverUtils {
       "com.acxiom.metalus.applications.ApplicationDriverSetup").asInstanceOf[String],
       parameters.getOrElse("maxRetryAttempts", "0").toString.toInt,
       parameters.getOrElse("terminateAfterFailures", "false").toString.toBoolean,
-      parameters.getOrElse("streaming-job", "false").toString.toBoolean,
-      parameters.getOrElse("root-executions", "").toString.split(",").toList)
+      parameters.getOrElse("streaming-job", "false").toString.toBoolean)
 
   def loadJsonFromFile(path: String,
                        fileLoaderClassName: String = "com.acxiom.metalus.fs.LocalFileManager",
@@ -118,5 +117,4 @@ object DriverUtils {
 case class CommonParameters(initializationClass: String,
                             maxRetryAttempts: Int,
                             terminateAfterFailures: Boolean,
-                            streamingJob: Boolean,
-                            rootExecutions: List[String] = List())
+                            streamingJob: Boolean) // TODO [2.0 Review] Should be removed or replaced with something like "consumer"
