@@ -1,4 +1,18 @@
-
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * This file is an adaptation of Presto's presto-parser/src/main/antlr4/com/facebook/presto/sql/parser/SqlBase.g4 grammar.
+ */
 parser grammar MSqlParser;
 
 import MExprParser;
@@ -27,7 +41,6 @@ statement
 //    | USE catalog=identifier DOT schema=identifier                     #use
 //    | CREATE SCHEMA (IF NOT EXISTS)? qualifiedName
 //        (WITH properties)?                                             #createSchema
-//    | DROP SCHEMA (IF EXISTS)? qualifiedName (CASCADE | RESTRICT)?     #dropSchema
 //    | ALTER SCHEMA qualifiedName RENAME TO identifier                  #renameSchema
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName columnAliases?
         (COMMENT string)?
@@ -37,15 +50,15 @@ statement
 //        L_PAREN tableElement (COMMA tableElement)* R_PAREN
 //         (COMMENT string)?
 //         (WITH properties)?                                            #createTable
-    | DROP TABLE (IF EXISTS)? qualifiedName                            #dropTable
-    | INSERT INTO qualifiedName columnAliases? query                   #insertInto
-    | DELETE FROM qualifiedName (WHERE booleanExpression)?             #delete
-    | TRUNCATE TABLE qualifiedName                                     #truncateTable
-    | CREATE (OR REPLACE)? VIEW qualifiedName
-            (SECURITY (DEFINER | INVOKER))? AS query                   #createView
-    | DROP VIEW (IF EXISTS)? qualifiedName                             #dropView
+    | DROP dropType=(TABLE|VIEW) (IF EXISTS)? dataReference            #dropTable
+    | INSERT INTO dataReference columnAliases? query                   #insertInto
+    | UPDATE dataReference SET setExpression (COMMA setExpression)*
+        where?                                                         #update
+    | DELETE FROM dataReference where?                                 #delete
+    | TRUNCATE TABLE dataReference                                     #truncateTable
+    | CREATE (OR REPLACE)? VIEW dataReference AS query                 #createView
     | CALL qualifiedName L_PAREN (callArgument (COMMA callArgument)*)? R_PAREN   #call
-    | EXECUTE identifier (USING expression (COMMA expression)*)?         #execute
+    | EXECUTE identifier (USING expression (COMMA expression)*)?       #execute
     ;
 
 // disable with support for now
@@ -136,7 +149,7 @@ queryNoWith:
       queryTerm
       (ORDER BY sortItem (COMMA sortItem)*)?
       (OFFSET offset=INTEGER_VALUE (ROW | ROWS)?)?
-      ((LIMIT limit=(INTEGER_VALUE | ALL) | (FETCH FIRST fetchFirstNRows=INTEGER_VALUE ROWS ONLY))?)?
+      ((LIMIT limit=INTEGER_VALUE | (FETCH FIRST fetchFirstNRows=INTEGER_VALUE ROWS ONLY))?)?
     ;
 
 queryTerm
@@ -146,10 +159,10 @@ queryTerm
     ;
 
 queryPrimary
-    : querySpecification                   #queryPrimaryDefault
-    | TABLE qualifiedName                  #table
-    | VALUES expression (COMMA expression)*  #inlineTable
-    | L_PAREN queryNoWith  R_PAREN                 #subquery
+    : querySpecification                    #queryPrimaryDefault
+    | TABLE qualifiedName                   #table
+    | VALUES expression (COMMA expression)* #inlineTable
+    | L_PAREN queryNoWith  R_PAREN          #subquery
     ;
 
 sortItem
@@ -159,9 +172,13 @@ sortItem
 querySpecification
     : SELECT setQuantifier? selectItem (COMMA selectItem)*
       (FROM relation) //FROM is required in metalus sql, also legacy joins not supported
-      (WHERE where=booleanExpression)?
+      where?
       (GROUP BY groupBy)?
       (HAVING having=booleanExpression)?
+    ;
+
+where
+    : WHERE booleanExpression
     ;
 
 groupBy
@@ -238,13 +255,17 @@ columnAliases
     ;
 
 relationPrimary
-    : mapping                                                         #dataReference
-    | step                                                            #stepRelation
-    | qualifiedName                                                   #tableName
+    : dataReference                                                   #dataReferenceRelation
+//    | qualifiedName                                                   #tableName
     | L_PAREN query R_PAREN                                                   #subqueryRelation
     | UNNEST L_PAREN expression (COMMA expression)* R_PAREN (WITH ORDINALITY)?  #unnest
     | LATERAL L_PAREN query R_PAREN                                           #lateral
     | L_PAREN relation R_PAREN                                                #parenthesizedRelation
+    ;
+
+dataReference
+    : mapping
+    | step
     ;
 
 expression
@@ -256,6 +277,10 @@ booleanExpression
     | NOT booleanExpression                                        #logicalNot
     | left=booleanExpression operator=AND right=booleanExpression  #logicalBinary
     | left=booleanExpression operator=OR right=booleanExpression   #logicalBinary
+    ;
+
+setExpression
+    : identifier EQ expression
     ;
 
 // workaround for https://github.com/antlr/antlr4/issues/780
@@ -321,11 +346,6 @@ primaryExpression
     | GROUPING L_PAREN (qualifiedName (COMMA qualifiedName)*)? R_PAREN                              #groupingOperation
     ;
 
-//string
-//    : STRING                                #basicStringLiteral
-//    | UNICODE_STRING (UESCAPE STRING)?      #unicodeStringLiteral
-//    ;
-
 nullTreatment
     : IGNORE NULLS
     | RESPECT NULLS
@@ -336,17 +356,9 @@ timeZoneSpecifier
     | TIME ZONE string    #timeZoneString
     ;
 
-//comparisonOperator
-//    : EQ | NEQ | LT | LTE | GT | GTE
-//    ;
-
 comparisonQuantifier
     : ALL | SOME | ANY
     ;
-
-//booleanValue
-//    : TRUE | FALSE
-//    ;
 
 interval
     : INTERVAL sign=(PLUS | MINUS)? string from=intervalField (TO to=intervalField)?
@@ -445,10 +457,6 @@ qualifiedName
     : identifier (DOT identifier)*
     ;
 
-//mapping
-//    : MAPPING_SYMBOL qualifiedName
-//    ;
-
 step
     : stepName=IDENTIFIER L_PAREN (stepParam (COMMA stepParam)*)* R_PAREN
     ;
@@ -464,12 +472,6 @@ identifier
     | BACKQUOTED_IDENTIFIER  #backQuotedIdentifier
     | DIGIT_IDENTIFIER       #digitIdentifier
     ;
-
-//number
-//    : DECIMAL_VALUE  #decimalLiteral
-//    | DOUBLE_VALUE   #doubleLiteral
-//    | INTEGER_VALUE  #integerLiteral
-//    ;
 
 nonReserved
     // IMPORTANT: this rule must only contain tokens. Nested rules are not supported. See SqlParser.exitNonReserved
