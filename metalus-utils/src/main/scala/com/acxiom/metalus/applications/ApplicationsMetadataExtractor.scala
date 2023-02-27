@@ -1,7 +1,7 @@
 package com.acxiom.metalus.applications
 
+import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.{Extractor, MapMetadata, Metadata, Output}
-import org.json4s.native.Serialization
 
 class ApplicationsMetadataExtractor extends Extractor {
   /**
@@ -26,9 +26,9 @@ class ApplicationsMetadataExtractor extends Extractor {
         val headers =
           Some(Map[String, String]("User-Agent" -> s"Metalus / ${System.getProperty("user.name")} / $jarList"))
         if (http.exists(s"$getMetaDataType/${map.getOrElse("id", "none")}")) {
-          http.putJsonContent(s"$getMetaDataType/${map.getOrElse("id", "none")}", Serialization.write(map), headers)
+          http.putJsonContent(s"$getMetaDataType/${map.getOrElse("id", "none")}", JsonParser.serialize(map), headers)
         } else {
-          http.postJsonContent(getMetaDataType, Serialization.write(map), headers)
+          http.postJsonContent(getMetaDataType, JsonParser.serialize(map), headers)
         }
       })
     } else {

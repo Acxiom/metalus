@@ -1,16 +1,18 @@
 package com.acxiom.metalus.spark.steps
 
 import com.acxiom.metalus.annotations._
-import com.acxiom.metalus.drivers.DefaultPipelineDriver.logger
 import com.acxiom.metalus.spark.streaming.StreamingQueryMonitor
 import com.acxiom.metalus.utils.ReflectionUtils
 import com.acxiom.metalus.{PipelineContext, PipelineStepResponse}
 import org.apache.spark.sql.streaming.StreamingQuery
+import org.slf4j.LoggerFactory
 
 import java.util.Date
 
 @StepObject
 object StreamingSteps {
+  private val logger = LoggerFactory.getLogger(getClass)
+
   @StepFunction("64c983e2-5eac-4fb6-87b2-024b69aa0ded",
     "Streaming Monitor",
     "Given a StreamingQuery, this step will invoke the monitor thread and wait while records are processed. The monitor class will be used to stop the query and determine if further processing should occur.",

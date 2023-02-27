@@ -1,22 +1,22 @@
 package com.acxiom.metalus.resolvers
 
+import com.acxiom.metalus.api.HttpRestClient
+import com.acxiom.metalus.fs.{FileManager, FileResource}
+import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.resolvers.HashType.HashType
-import com.acxiom.pipeline.api.HttpRestClient
-import com.acxiom.pipeline.fs.FileManager
-import com.acxiom.pipeline.utils.DriverUtils
-import org.apache.log4j.Logger
-import org.json4s.native.JsonMethods.parse
-import org.json4s.{DefaultFormats, Formats}
+import com.acxiom.metalus.utils.DriverUtils
+import org.slf4j.LoggerFactory
 
-import java.io.{File, FileInputStream, InputStream}
+import java.io.{BufferedInputStream, File, FileInputStream, InputStream}
 import java.nio.file.{Files, StandardCopyOption}
 import java.security.MessageDigest
+import java.util.Date
 import java.util.jar.JarFile
 import scala.annotation.tailrec
 import scala.io.Source
 
 object DependencyResolver {
-  private val logger = Logger.getLogger(getClass)
+  private val logger = LoggerFactory.getLogger(getClass)
 
   def getHttpClientForPath(path: String, parameters: Map[String, Any]): HttpRestClient = {
     val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).toString.toLowerCase == "true"
@@ -29,7 +29,11 @@ object DependencyResolver {
     val MD5 = MessageDigest.getInstance(HashType.getAlgorithm(hashType))
     Stream.continually(input.read).takeWhile(_ != -1).foreach(b => MD5.update(b.toByte))
     input.close()
-    MD5.digest().map(0xFF & _).map { "%02x".format(_) }.foldLeft(""){_ + _}
+    MD5.digest().map(0xFF & _).map {
+      "%02x".format(_)
+    }.foldLeft("") {
+      _ + _
+    }
   }
 
   def getRemoteHash(path: String, parameters: Map[String, Any]): Option[DependencyHash] = {
@@ -40,7 +44,7 @@ object DependencyResolver {
     } else if (httpSha1.exists("")) {
       Some(DependencyHash(loadRemoteHash(httpSha1), HashType.SHA1))
     } else {
-        None
+      None
     }
   }
 
@@ -66,9 +70,8 @@ object DependencyResolver {
     if (Option(jarEntry).isEmpty) {
       None
     } else {
-      implicit val formats: Formats = DefaultFormats
       val json = Source.fromInputStream(jar.getInputStream(jarEntry)).mkString
-      val map = parse(json).extract[Map[String, Any]]
+      val map = JsonParser.parseMap(json)
       // Apply any overrides
       val updatedMap = map.map(entry => {
         val overrides = parameters.filter(e => e._1.startsWith(entry._1))
@@ -86,27 +89,25 @@ object DependencyResolver {
   }
 
   /**
-    * Function to perform a copy a jar from the source to the local file. This function will retry 5 times before
-    * it fails.
-    *
-    * @param fileManager The file manager to use for the copy operation
-    * @param input       The input stream to read the data
-    * @param fileName    The name of the file being copied
-    * @param outputPath  The local path where data is to be copied
-    * @param hash     An optional md5 hash to compare with the copied file to ensure the copy was succesful
-    * @param attempt     The attempt number
-    * @return true if the Jar file could be copied
-    */
+   * Function to perform a copy a jar from the source to the local file. This function will retry 5 times before
+   * it fails.
+   *
+   * @param input      The input stream to read the data
+   * @param fileName   The name of the file being copied
+   * @param outputPath The local path where data is to be copied
+   * @param hash       An optional md5 hash to compare with the copied file to ensure the copy was succesful
+   * @param attempt    The attempt number
+   * @return true if the Jar file could be copied
+   */
   @tailrec
-  def copyJarWithRetry(fileManager: FileManager,
-                       input: () => InputStream,
+  def copyJarWithRetry(input: FileResource,
                        fileName: String,
                        outputPath: String,
                        hash: Option[DependencyHash],
                        attempt: Int = 1): Boolean = {
-    val output = fileManager.getOutputStream(outputPath, append = false)
+    val output = Repo.localFileManager.getFileResource(outputPath)
     val outputFile = new File(outputPath)
-    fileManager.copy(input(), output, FileManager.DEFAULT_COPY_BUFFER_SIZE, closeStreams = true)
+    input.copy(output, FileManager.DEFAULT_COPY_BUFFER_SIZE)
     val result = try {
       if (hash.isDefined) {
         val hashString = generateHash(new FileInputStream(new File(outputPath)), hash.get.hashType)
@@ -130,10 +131,49 @@ object DependencyResolver {
         false
     }
     if (!result && attempt <= 5) {
-      copyJarWithRetry(fileManager, input, fileName, outputPath, hash, attempt + 1)
+      copyJarWithRetry(input, fileName, outputPath, hash, attempt + 1)
     } else {
       result
     }
+  }
+
+  def shouldCopyFile(dependencyFile: File, repoResult: RepoResult, checkDate: Boolean = false): Boolean = {
+    val hashCheck = if (repoResult.hash.isDefined && dependencyFile.exists()) {
+      val localHash = DependencyResolver.generateHash(
+        new BufferedInputStream(new FileInputStream(dependencyFile)), repoResult.hash.get.hashType)
+      localHash != repoResult.hash.get.hash
+    } else {
+      checkDate && repoResult.lastModifiedDate.get.getTime > dependencyFile.lastModified()
+    }
+    if (!dependencyFile.exists()) {
+      logger.info(s"Copying file because it does not exist: ${dependencyFile.getName}")
+      true
+    } else if (dependencyFile.length() == 0) {
+      logger.info(s"Copying file because it has a length of 0: ${dependencyFile.getName}")
+      true
+    } else if (hashCheck) {
+      logger.info(s"Copying file because source has been modified: ${dependencyFile.getName}")
+      true
+    } else {
+      false
+    }
+  }
+
+  def getRepoResult(repos: List[Repo], path: String): RepoResult = {
+    val initial: RepoResult = RepoResult(None, None, None)
+    repos.foldLeft(initial)((result, repo) => {
+      if (result.file.isDefined) {
+        result
+      } else {
+        try {
+          logger.info(s"Resolving maven dependency path: $path against $repo")
+          // Make this call to see if we are able to get an input stream
+          RepoResult(Some(repo.getFileResource(path)), Some(repo.getLastModifiedDate(path)), repo.getHash(path))
+        } catch {
+          case _: Throwable => initial
+        }
+      }
+    })
   }
 }
 
@@ -163,3 +203,5 @@ object HashType extends Enumeration {
 }
 
 case class DependencyHash(hash: String, hashType: HashType)
+
+case class RepoResult(file: Option[FileResource], lastModifiedDate: Option[Date], hash: Option[DependencyHash])

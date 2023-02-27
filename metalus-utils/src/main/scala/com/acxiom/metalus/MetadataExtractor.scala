@@ -1,10 +1,8 @@
 package com.acxiom.metalus
 
-import com.acxiom.pipeline.api.HttpRestClient
-import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
-import org.json4s.native.JsonMethods.parse
-import org.json4s.native.Serialization
-import org.json4s.{DefaultFormats, Formats}
+import com.acxiom.metalus.api.HttpRestClient
+import com.acxiom.metalus.parser.JsonParser
+import com.acxiom.metalus.utils.{DriverUtils, ReflectionUtils}
 
 import java.io.{File, FileWriter}
 import java.net.URI
@@ -51,16 +49,13 @@ object MetadataExtractor {
 }
 
 trait Extractor {
-  implicit val formats: Formats = DefaultFormats
-  val apiPath: String = ""
-
   /**
     * Called by the MetadataExtractor to extract metadata from the provided jar files and write the data using the provided output.
     * @param jarFiles A list of JarFile objects that should be scanned.
     */
   def extractMetadata(jarFiles: List[JarFile]): Metadata = {
     val executionsList = parseJsonMaps(s"metadata/$getMetaDataType", jarFiles)
-    MapMetadata(Serialization.write(executionsList), executionsList)
+    MapMetadata(JsonParser.serialize(executionsList), executionsList)
   }
 
   private[metalus] def parseJsonMaps(path: String, jarFiles: List[JarFile], addFileName: Boolean = false) = {
@@ -68,7 +63,7 @@ trait Extractor {
       file.entries().asScala.toList
         .filter(f => f.getName.startsWith(path) && f.getName.endsWith(".json"))
         .foldLeft(maps)((mapList, json) => {
-          val map = parse(Source.fromInputStream(file.getInputStream(json)).mkString).extract[Map[String, Any]]
+          val map = JsonParser.parseMap(Source.fromInputStream(file.getInputStream(json)).mkString)
           if (addFileName) {
             mapList :+ (map + ("fileName" -> file.getName, "path" -> json.getName))
           } else {
@@ -111,7 +106,7 @@ trait Metadata {
   def value: String
 }
 
-case class JsonMetaData(value: String) extends Metadata
+// case class JsonMetaData(value: String) extends Metadata
 
 case class MapMetadata(value: String, mapList: List[Map[String, Any]]) extends Metadata
 

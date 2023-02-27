@@ -1,10 +1,8 @@
 package com.acxiom.metalus.steps
 
-import com.acxiom.metalus.{Extractor, Metadata, Output}
-import com.acxiom.pipeline.annotations._
-import com.acxiom.pipeline.{Constants, EngineMeta, StepResults}
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.json4s.native.Serialization
+import com.acxiom.metalus.annotations.{BranchResults, PrivateObject, StepFunction, StepObject, StepParameter, StepParameters, StepResults}
+import com.acxiom.metalus.parser.JsonParser
+import com.acxiom.metalus.{Constants, EngineMeta, Extractor, Metadata, Output, Results}
 
 import java.io.{File, FileWriter}
 import java.util.jar.JarFile
@@ -38,9 +36,10 @@ class StepMetadataExtractor extends Extractor {
     val definition = PipelineStepsDefinition(
       stepMappings._1.map(_.engineMeta.pkg.getOrElse("")).distinct,
       stepMappings._1,
-      buildPackageObjects(stepMappings._2, jarFiles)
+      List()
+//      buildPackageObjects(stepMappings._2, jarFiles)
     )
-    StepMetadata(Serialization.write(definition),
+    StepMetadata(JsonParser.serialize(definition),
       definition.pkgs,
       definition.steps,
       definition.pkgObjs,
@@ -61,9 +60,9 @@ class StepMetadataExtractor extends Extractor {
       if (http.exists("package-objects")) {
         definition.pkgObjs.foreach(pkg => {
           if (http.exists(s"package-objects/${pkg.id}")) {
-            http.putJsonContent(s"package-objects/${pkg.id}", Serialization.write(pkg))
+            http.putJsonContent(s"package-objects/${pkg.id}", JsonParser.serialize(pkg))
           } else {
-            http.postJsonContent("package-objects", Serialization.write(pkg))
+            http.postJsonContent("package-objects", JsonParser.serialize(pkg))
           }
         })
       }
@@ -72,9 +71,9 @@ class StepMetadataExtractor extends Extractor {
         val headers =
           Some(Map[String, String]("User-Agent" -> s"Metalus / ${System.getProperty("user.name")} / $jarList"))
         if (http.getContentLength(s"steps/${step.id}") > 0) {
-          http.putJsonContent(s"steps/${step.id}", Serialization.write(step), headers)
+          http.putJsonContent(s"steps/${step.id}", JsonParser.serialize(step), headers)
         } else {
-          http.postJsonContent("steps", Serialization.write(step), headers)
+          http.postJsonContent("steps", JsonParser.serialize(step), headers)
         }
       })
       definition.stepForms.foreach(map => {
@@ -83,7 +82,7 @@ class StepMetadataExtractor extends Extractor {
         val id = name.substring(name.indexOf(path) + path.length + 1, name.indexOf(".json"))
         val headers =
           Some(Map[String, String]("User-Agent" -> s"Metalus / ${System.getProperty("user.name")} / $jarList"))
-        http.putJsonContent(s"steps/$id/template", Serialization.write(map), headers)
+        http.putJsonContent(s"steps/$id/template", JsonParser.serialize(map), headers)
       })
     } else {
       super.writeOutput(metadata, output)
@@ -92,7 +91,7 @@ class StepMetadataExtractor extends Extractor {
       if (definition.stepForms.nonEmpty && output.path.nonEmpty) {
         val file = new File(output.path.get, "stepForms.json")
         val writer = new FileWriter(file)
-        writer.write(Serialization.write(definition.stepForms.map(m => {
+        writer.write(JsonParser.serialize(definition.stepForms.map(m => {
           val id = m.getOrElse("fileName", "none").asInstanceOf[String]
           val updatedMap = m + ("stepId" -> id)
           updatedMap - "fileName"
@@ -125,30 +124,28 @@ class StepMetadataExtractor extends Extractor {
     }
   }
 
-  private def buildPackageObjects(caseClasses: Set[String], jarFiles: List[JarFile]): List[PackageObject] = {
-    import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
-    import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator
-
-    val forms = parseJsonMaps("metadata/packageForms", jarFiles, addFileName = true)
-    caseClasses.map(x => {
-      val xClass = Class.forName(x)
-      val objectMapper = new ObjectMapper
-      objectMapper.registerModule(new DefaultScalaModule)
-      import com.kjetland.jackson.jsonSchema.JsonSchemaConfig
-      val config = JsonSchemaConfig.vanillaJsonSchemaDraft4
-      val jsonSchemaGenerator = new JsonSchemaGenerator(objectMapper, debug = true, config)
-      val jsonSchema: JsonNode = jsonSchemaGenerator.generateJsonSchema(xClass)
-      val schema = objectMapper.writeValueAsString(jsonSchema).replaceFirst("draft-04", "draft-07")
-      val form = forms.find(f => f.contains("path") && f("path").asInstanceOf[String].contains(x.replaceAll("\\.", "_")))
-      val template = if (form.isDefined) {
-        val map = form.asInstanceOf[Option[Map[String, Any]]].get - "path" - "fileName"
-        Some(Serialization.write(map))
-      } else {
-        None
-      }
-      PackageObject(x, schema, template)
-    }).toList
-  }
+  // TODO Try and find a better way to do this
+//  private def buildPackageObjects(caseClasses: Set[String], jarFiles: List[JarFile]): List[PackageObject] = {
+//
+//    val forms = parseJsonMaps("metadata/packageForms", jarFiles, addFileName = true)
+//    caseClasses.map(x => {
+//      val xClass = Class.forName(x)
+//      val objectMapper = new ObjectMapper
+//      objectMapper.registerModule(new DefaultScalaModule)
+//      val config = JsonSchemaConfig.vanillaJsonSchemaDraft4
+//      val jsonSchemaGenerator = new JsonSchemaGenerator(objectMapper, debug = true, config)
+//      val jsonSchema: JsonNode = jsonSchemaGenerator.generateJsonSchema(xClass)
+//      val schema = objectMapper.writeValueAsString(jsonSchema).replaceFirst("draft-04", "draft-07")
+//      val form = forms.find(f => f.contains("path") && f("path").asInstanceOf[String].contains(x.replaceAll("\\.", "_")))
+//      val template = if (form.isDefined) {
+//        val map = form.asInstanceOf[Option[Map[String, Any]]].get - "path" - "fileName"
+//        Some(JsonParser.serialize(map))
+//      } else {
+//        None
+//      }
+//      PackageObject(x, schema, template)
+//    }).toList
+//  }
 
   private def reconcileSteps(existingSteps: List[StepDefinition], newSteps: List[StepDefinition]): List[StepDefinition] = {
     newSteps.foldLeft(existingSteps)((updatedSteps, step) => {
@@ -273,7 +270,7 @@ class StepMetadataExtractor extends Extractor {
     }
   }
 
-  private def getReturnType(method: ru.MethodSymbol): Option[com.acxiom.pipeline.StepResults] = {
+  private def getReturnType(method: ru.MethodSymbol): Option[Results] = {
     val returnTypeString = method.returnType.toString
     val annotations = method.annotations
     if (annotations.exists(_.tree.tpe =:= ru.typeOf[StepResults])) {
@@ -288,11 +285,11 @@ class StepMetadataExtractor extends Extractor {
             )
         }))
       }
-      Some(com.acxiom.pipeline.StepResults(primaryType, secondaryTypes))
+      Some(Results(primaryType, secondaryTypes))
     } else if (returnTypeString.startsWith("Option[")) {
-      Some(com.acxiom.pipeline.StepResults(returnTypeString.substring(Constants.SEVEN, returnTypeString.length - 1)))
+      Some(Results(returnTypeString.substring(Constants.SEVEN, returnTypeString.length - 1), None))
     } else if (returnTypeString != "Unit") {
-      Some(com.acxiom.pipeline.StepResults(returnTypeString))
+      Some(Results(returnTypeString, None))
     } else {
       None
     }

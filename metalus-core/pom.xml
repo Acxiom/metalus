@@ -205,7 +205,7 @@
                             <exclude>junit:junit</exclude>
                             <exclude>jmock:*</exclude>
                             <exclude>*:xml-apis</exclude>
-                            <exclude>com.thoughtworks.paranamer:*:jar:</exclude>
+<!--                            <exclude>com.thoughtworks.paranamer:*:jar:</exclude>-->
                             <exclude>com.fasterxml:*:jar:</exclude>
                             <exclude>org.apache.maven:lib:tests</exclude>
                             <exclude>org.apache.kafka:*:jar:</exclude>
@@ -236,6 +236,10 @@
                                 <relocation>
                                     <pattern>org.json4s</pattern>
                                     <shadedPattern>metalus.org.json4s</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.thoughtworks.paranamer</pattern>
+                                    <shadedPattern>metalus.com.thoughtworks.paranamer</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>

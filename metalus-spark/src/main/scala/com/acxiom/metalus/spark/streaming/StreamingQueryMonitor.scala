@@ -1,9 +1,9 @@
 package com.acxiom.metalus.spark.streaming
 
 import com.acxiom.metalus.{Constants, PipelineContext, PipelineException}
-import org.apache.log4j.Logger
 import org.apache.spark.sql.streaming.StreamingQuery
 import org.apache.spark.streaming.{Duration, Milliseconds, Minutes, Seconds}
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -12,7 +12,7 @@ trait StreamingQueryMonitor extends Thread {
   private val DEFAULT_DURATION_TYPE = "seconds"
   private val DEFAULT_DURATION = "10"
 
-  protected val logger: Logger = Logger.getLogger(getClass)
+  protected val logger: Logger = LoggerFactory.getLogger(getClass)
 
   def query: StreamingQuery
 

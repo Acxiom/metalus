@@ -1,9 +1,8 @@
 package com.acxiom.metalus.pipelines
 
-import com.acxiom.metalus.{Extractor, Metadata, Output}
-import com.acxiom.pipeline.utils.DriverUtils
-import com.acxiom.pipeline.{DefaultPipeline, Pipeline}
-import org.json4s.native.Serialization
+import com.acxiom.metalus.parser.JsonParser
+import com.acxiom.metalus.utils.DriverUtils
+import com.acxiom.metalus.{Extractor, Metadata, Output, Pipeline}
 
 import java.util.jar.JarFile
 import scala.io.Source
@@ -22,7 +21,7 @@ class PipelineMetadataExtractor extends Extractor {
       val updatedPipelines = file.entries().asScala.toList
         .filter(f => f.getName.startsWith("metadata/pipelines") && f.getName.endsWith(".json"))
         .foldLeft(pipelines)((pipelineList, json) => {
-          val extractedPipelines = DriverUtils.parsePipelineJson(Source.fromInputStream(file.getInputStream(file.getEntry(json.getName))).mkString)
+          val extractedPipelines = JsonParser.parsePipelineJson(Source.fromInputStream(file.getInputStream(file.getEntry(json.getName))).mkString)
           if (extractedPipelines.isDefined) {
             // This loop should be looking for duplicate pipelines and merging the tags
             pipelineList.foldLeft(extractedPipelines.get.map(mergePipelineTags(_, tags))
@@ -41,7 +40,7 @@ class PipelineMetadataExtractor extends Extractor {
         })
       pipelines ::: updatedPipelines
     })
-    PipelineMetadata(Serialization.write(pipelineMetadata), pipelineMetadata)
+    PipelineMetadata(JsonParser.serialize(pipelineMetadata), pipelineMetadata)
   }
 
   /**
@@ -66,9 +65,9 @@ class PipelineMetadataExtractor extends Extractor {
         val headers =
           Some(Map[String, String]("User-Agent" -> s"Metalus / ${System.getProperty("user.name")} / $jarList"))
         if (http.exists(s"pipelines/${pipeline.id.getOrElse("none")}")) {
-          http.putJsonContent(s"pipelines/${pipeline.id.getOrElse("none")}", Serialization.write(pipeline), headers)
+          http.putJsonContent(s"pipelines/${pipeline.id.getOrElse("none")}", JsonParser.serialize(pipeline), headers)
         } else {
-          http.postJsonContent("pipelines", Serialization.write(pipeline), headers)
+          http.postJsonContent("pipelines", JsonParser.serialize(pipeline), headers)
         }
       })
     } else {
@@ -77,7 +76,7 @@ class PipelineMetadataExtractor extends Extractor {
   }
 
   protected def mergePipelineTags(source: Pipeline, tags: List[String]): Pipeline = {
-    source.asInstanceOf[DefaultPipeline].copy(tags =
+    source.asInstanceOf[Pipeline].copy(tags =
       Some((source.tags.getOrElse(List()).toSet ++ tags.toSet).toList))
   }
 }

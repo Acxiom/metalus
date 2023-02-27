@@ -1,6 +1,6 @@
 package com.acxiom.metalus.steps
 
-import com.acxiom.pipeline.EngineMeta
+import com.acxiom.metalus.EngineMeta
 
 case class PipelineStepsDefinition(pkgs: List[String],
                                    steps: List[StepDefinition],
