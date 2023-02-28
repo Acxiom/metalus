@@ -1,8 +1,8 @@
 package com.acxiom.metalus.steps
 
-import com.acxiom.metalus.annotations.{BranchResults, PrivateObject, StepFunction, StepObject, StepParameter, StepParameters, StepResults}
+import com.acxiom.metalus.annotations._
 import com.acxiom.metalus.parser.JsonParser
-import com.acxiom.metalus.{Constants, EngineMeta, Extractor, Metadata, Output, Results}
+import com.acxiom.metalus._
 
 import java.io.{File, FileWriter}
 import java.util.jar.JarFile
@@ -37,7 +37,7 @@ class StepMetadataExtractor extends Extractor {
       stepMappings._1.map(_.engineMeta.pkg.getOrElse("")).distinct,
       stepMappings._1,
       List()
-//      buildPackageObjects(stepMappings._2, jarFiles)
+      //      buildPackageObjects(stepMappings._2, jarFiles)
     )
     StepMetadata(JsonParser.serialize(definition),
       definition.pkgs,
@@ -47,12 +47,13 @@ class StepMetadataExtractor extends Extractor {
   }
 
   /**
-    * Provides a basic function for handling output.
-    *
-    * @param metadata The metadata string to be written.
-    * @param output   Information about how to output the metadata.
-    */
-  override def writeOutput(metadata: Metadata, output: Output): Unit = {
+   * Provides a basic function for handling output.
+   *
+   * @param metadata          The metadata string to be written.
+   * @param output            Information about how to output the metadata.
+   * @param documentationPath An optional path to write documentation
+   */
+  override def writeOutput(metadata: Metadata, output: Output, documentationPath: Option[File] = None): Unit = {
     val path = "metadata/stepForms"
     if (output.api.isDefined) {
       val http = output.api.get
@@ -100,6 +101,74 @@ class StepMetadataExtractor extends Extractor {
         writer.close()
       }
     }
+    writeMarkdown(metadata, documentationPath)
+  }
+
+  private def writeMarkdown(metadata: Metadata, documentationPath: Option[File]): Unit = {
+    if (documentationPath.isDefined) {
+      documentationPath.get.mkdirs()
+      val steps = metadata.asInstanceOf[StepMetadata].steps.groupBy(_.engineMeta.command.getOrElse("").split("\\.").head)
+      steps.foreach(group => {
+        val groupName = if (group._1.nonEmpty) {
+          group._1
+        } else {
+          "Steps"
+        }
+        val markdownFile = new File(documentationPath.get, s"$groupName.md")
+        val writer = new FileWriter(markdownFile)
+        writer.write(s"# $groupName\n")
+        // Iterate steps
+        group._2.foreach(step => {
+          writeStepMarkDown(writer, step)
+        })
+        writer.flush()
+        writer.close()
+      })
+    }
+  }
+
+  private def writeStepMarkDown(writer: FileWriter, step: StepDefinition): Unit = {
+    val results = step.engineMeta.results.getOrElse(Results("", None))
+    writer.write(
+      s"""
+         |## ${step.displayName}
+         |### Description
+         |${step.description}
+         |### Metadata
+         |**id**: ${step.id}
+         |
+         |**type**: ${step.`type`}
+         |
+         |**category**: ${step.category}
+         |
+         |**tags**: ${step.tags.mkString(",")}
+         |
+         |**command**: ${step.engineMeta.command.getOrElse("None")}
+         |
+         |**package**: ${step.engineMeta.pkg.getOrElse("None")}
+         |### Results
+         |**primary**: ${results.primaryType}
+         |
+         |**secondary**:
+         |
+         |""".stripMargin)
+    if (results.secondaryTypes.isDefined && results.secondaryTypes.get.nonEmpty) {
+      writer.write(
+        """|Name|Type|
+           ||----|----|""".stripMargin)
+      results.secondaryTypes.get.foreach(r => s"\n|${r._1}|${r._2}|")
+    }
+    if (step.params.nonEmpty) {
+      writer.write(
+        """
+          |### Parameters
+          |
+          ||Name|Required|Type|Parameter Type|Language|Class Name|Default Value|Description|
+          ||----|--------|----|--------------|--------|----------|-------------|-----------|""".stripMargin)
+      step.params.foreach(p => {
+        writer.write(s"\n|${p.name}|${p.required}|${p.`type`}|${p.parameterType.getOrElse("None")}|${p.language.getOrElse("None")}|${p.className.getOrElse("None")}|${p.defaultValue.getOrElse("None")}|${p.description.getOrElse("None")}|")
+      })
+    }
   }
 
   private def isStepObject(stepPath: String): Boolean = {
@@ -125,27 +194,27 @@ class StepMetadataExtractor extends Extractor {
   }
 
   // TODO Try and find a better way to do this
-//  private def buildPackageObjects(caseClasses: Set[String], jarFiles: List[JarFile]): List[PackageObject] = {
-//
-//    val forms = parseJsonMaps("metadata/packageForms", jarFiles, addFileName = true)
-//    caseClasses.map(x => {
-//      val xClass = Class.forName(x)
-//      val objectMapper = new ObjectMapper
-//      objectMapper.registerModule(new DefaultScalaModule)
-//      val config = JsonSchemaConfig.vanillaJsonSchemaDraft4
-//      val jsonSchemaGenerator = new JsonSchemaGenerator(objectMapper, debug = true, config)
-//      val jsonSchema: JsonNode = jsonSchemaGenerator.generateJsonSchema(xClass)
-//      val schema = objectMapper.writeValueAsString(jsonSchema).replaceFirst("draft-04", "draft-07")
-//      val form = forms.find(f => f.contains("path") && f("path").asInstanceOf[String].contains(x.replaceAll("\\.", "_")))
-//      val template = if (form.isDefined) {
-//        val map = form.asInstanceOf[Option[Map[String, Any]]].get - "path" - "fileName"
-//        Some(JsonParser.serialize(map))
-//      } else {
-//        None
-//      }
-//      PackageObject(x, schema, template)
-//    }).toList
-//  }
+  //  private def buildPackageObjects(caseClasses: Set[String], jarFiles: List[JarFile]): List[PackageObject] = {
+  //
+  //    val forms = parseJsonMaps("metadata/packageForms", jarFiles, addFileName = true)
+  //    caseClasses.map(x => {
+  //      val xClass = Class.forName(x)
+  //      val objectMapper = new ObjectMapper
+  //      objectMapper.registerModule(new DefaultScalaModule)
+  //      val config = JsonSchemaConfig.vanillaJsonSchemaDraft4
+  //      val jsonSchemaGenerator = new JsonSchemaGenerator(objectMapper, debug = true, config)
+  //      val jsonSchema: JsonNode = jsonSchemaGenerator.generateJsonSchema(xClass)
+  //      val schema = objectMapper.writeValueAsString(jsonSchema).replaceFirst("draft-04", "draft-07")
+  //      val form = forms.find(f => f.contains("path") && f("path").asInstanceOf[String].contains(x.replaceAll("\\.", "_")))
+  //      val template = if (form.isDefined) {
+  //        val map = form.asInstanceOf[Option[Map[String, Any]]].get - "path" - "fileName"
+  //        Some(JsonParser.serialize(map))
+  //      } else {
+  //        None
+  //      }
+  //      PackageObject(x, schema, template)
+  //    }).toList
+  //  }
 
   private def reconcileSteps(existingSteps: List[StepDefinition], newSteps: List[StepDefinition]): List[StepDefinition] = {
     newSteps.foldLeft(existingSteps)((updatedSteps, step) => {
@@ -166,12 +235,12 @@ class StepMetadataExtractor extends Extractor {
   }
 
   /**
-    * Helper function that will load an object and check for step functions. Use the @StepObject and @StepFunction
-    * annotations to identify which objects and functions should be included.
-    *
-    * @param stepObjectPath The fully qualified class name.
-    * @return A list of step definitions.
-    */
+   * Helper function that will load an object and check for step functions. Use the @StepObject and @StepFunction
+   * annotations to identify which objects and functions should be included.
+   *
+   * @param stepObjectPath The fully qualified class name.
+   * @return A list of step definitions.
+   */
   private def findStepDefinitions(stepObjectPath: String, jarName: String): Option[(List[StepDefinition], Set[String])] = {
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     val packageName = stepObjectPath.substring(0, stepObjectPath.lastIndexOf("."))
@@ -203,7 +272,9 @@ class StepMetadataExtractor extends Extractor {
           tree.children.head.children.head.children.head.children.tail.head.toString().replaceAll("\"", "") ->
             parseStepParameterTree(tree.children(1).children.tail)
         }).toMap)
-      } else { None }
+      } else {
+        None
+      }
       val parameters = if (params.nonEmpty) {
         params.foldLeft(List[StepFunctionParameter](), caseClasses)((paramsAndClasses, paramSymbol) => {
           val stepParams = paramsAndClasses._1
@@ -220,21 +291,15 @@ class StepMetadataExtractor extends Extractor {
               paramsAndClasses._2
             }
             (updatedStepParams, updatedCaseClassSet)
-          } else {
-            paramsAndClasses
-          }
+          } else { paramsAndClasses }
         })
       } else { (List[StepFunctionParameter](), caseClasses) }
       val returnType = getReturnType(symbol.asMethod)
       val stepTagString = ann.get.tree.children.tail(Constants.FIVE).toString().replaceAll("\"", "")
       val stepTags = if (stepTagString.startsWith("scala.collection.immutable.List.apply[String]")) {
-        "\\(([^\\)]+)\\)".r.findAllIn(stepTagString).toList.head
-          .replaceAll("\\(", "")
-          .replaceAll("\\)", "")
-          .split(",").map(_.trim()).toList
-      } else {
-        List("batch")
-      }
+        "\\(([^\\)]+)\\)".r.findAllIn(stepTagString).toList.head.replaceAll("\\(", "")
+          .replaceAll("\\)", "").split(",").map(_.trim()).toList
+      } else { List("batch") }
       val newSteps = steps :+ StepDefinition(
         ann.get.tree.children.tail.head.toString().replaceAll("\"", ""),
         ann.get.tree.children.tail(1).toString().replaceAll("\"", ""),
@@ -296,12 +361,12 @@ class StepMetadataExtractor extends Extractor {
   }
 
   /**
-    * Determine if the BranchResults annotation exists and add the results to the parameters.
-    *
-    * @param parameters The existing step parameters
-    * @param symbol     The step symbol
-    * @return A list of parameters that may include result type parameters.
-    */
+   * Determine if the BranchResults annotation exists and add the results to the parameters.
+   *
+   * @param parameters The existing step parameters
+   * @param symbol     The step symbol
+   * @return A list of parameters that may include result type parameters.
+   */
   private def getBranchResults(parameters: List[StepFunctionParameter], symbol: ru.Symbol): List[StepFunctionParameter] = {
     val ann = symbol.annotations.find(_.tree.tpe =:= ru.typeOf[BranchResults])
     if (ann.isDefined) {
@@ -318,11 +383,11 @@ class StepMetadataExtractor extends Extractor {
   }
 
   /**
-    * This function will inspect the Option type to determine if a case class is embedded.
-    *
-    * @param paramSymbol The parameter symbol
-    * @return A ParameterInfo that provides the classname and a boolean indicating whether this is a case class
-    */
+   * This function will inspect the Option type to determine if a case class is embedded.
+   *
+   * @param paramSymbol The parameter symbol
+   * @return A ParameterInfo that provides the classname and a boolean indicating whether this is a case class
+   */
   private def extractCaseClassFromOption(paramSymbol: ru.Symbol): ParameterInfo = {
     val optionString = paramSymbol.typeSignature.toString
     val className = optionString.substring(Constants.SEVEN, optionString.length - 1)
@@ -340,12 +405,12 @@ class StepMetadataExtractor extends Extractor {
   }
 
   /**
-    * This function converts the step parameter annotation into a StepFunctionParameter.
-    *
-    * @param stepParameter The step parameter information
-    * @param paramSymbol   The parameter information
-    * @return
-    */
+   * This function converts the step parameter annotation into a StepFunctionParameter.
+   *
+   * @param stepParameter The step parameter information
+   * @param paramSymbol   The parameter information
+   * @return
+   */
   private def annotationToStepFunctionParameter(stepParameter: StepParameterInfo,
                                                 paramSymbol: ru.Symbol,
                                                 parameterInfo: ParameterInfo): StepFunctionParameter = {
@@ -449,6 +514,7 @@ case class StepMetadata(value: String,
                         stepForms: List[Map[String, Any]]) extends Metadata
 
 case class ParameterInfo(className: String, caseClass: Boolean)
+
 case class StepParameterInfo(typeValue: String,
                              requiredValue: String,
                              defaultValue: String,

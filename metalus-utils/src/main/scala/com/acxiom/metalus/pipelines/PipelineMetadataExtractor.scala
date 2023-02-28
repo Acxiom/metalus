@@ -4,6 +4,7 @@ import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.utils.DriverUtils
 import com.acxiom.metalus.{Extractor, Metadata, Output, Pipeline}
 
+import java.io.File
 import java.util.jar.JarFile
 import scala.io.Source
 import scala.jdk.CollectionConverters._
@@ -56,7 +57,7 @@ class PipelineMetadataExtractor extends Extractor {
     * @param metadata The metadata string to be written.
     * @param output   Information about how to output the metadata.
     */
-  override def writeOutput(metadata: Metadata, output: Output): Unit = {
+  override def writeOutput(metadata: Metadata, output: Output, documentationPath: Option[File] = None): Unit = {
     if (output.api.isDefined) {
       val http = output.api.get
       val definition = metadata.asInstanceOf[PipelineMetadata]

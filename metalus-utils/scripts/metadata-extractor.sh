@@ -11,6 +11,7 @@ usage()
 	echo "--staging-dir             -> An optional directory path to stage jars"
 	echo "--clean-staging           -> Indicates whether the staging directory should be cleaned"
 	echo "--allow-self-signed-certs -> Boolean flag enabling self signed certificates"
+	echo "--markdown-path           -> Optional path to write generated markdown files"
 }
 
 authorization=""

@@ -3,6 +3,8 @@ package com.acxiom.metalus.applications
 import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.{Extractor, MapMetadata, Metadata, Output}
 
+import java.io.File
+
 class ApplicationsMetadataExtractor extends Extractor {
   /**
   * This function should return a simple type that indicates what type of metadata this extractor produces.
@@ -17,7 +19,7 @@ class ApplicationsMetadataExtractor extends Extractor {
     * @param metadata The metadata string to be written.
     * @param output   Information about how to output the metadata.
     */
-  override def writeOutput(metadata: Metadata, output: Output): Unit = {
+  override def writeOutput(metadata: Metadata, output: Output, documentationPath: Option[File] = None): Unit = {
     if (output.api.isDefined) {
       val http = output.api.get
       val definition = metadata.asInstanceOf[MapMetadata]
