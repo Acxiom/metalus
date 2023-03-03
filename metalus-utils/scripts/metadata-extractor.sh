@@ -11,6 +11,7 @@ usage()
 	echo "--staging-dir             -> An optional directory path to stage jars"
 	echo "--clean-staging           -> Indicates whether the staging directory should be cleaned"
 	echo "--allow-self-signed-certs -> Boolean flag enabling self signed certificates"
+	echo "--markdown-path           -> Optional path to write generated markdown files"
 }
 
 authorization=""
@@ -70,7 +71,7 @@ bindir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 dir=$(dirname "${bindir}")
 
 # Create the initial classPath
-classPath=""
+classPath="./conf"
 for i in "${dir}"/libraries/*.jar
 do
     # Add to the classPath

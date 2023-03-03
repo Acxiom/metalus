@@ -1,0 +1,41 @@
+{
+  "maven": {
+    "libraries": [
+      {
+        "groupId": "com.acxiom",
+        "artifactId": "metalus-core_${scala.compat.version}",
+        "version": "${version}"
+      },
+      {
+        "groupId": "org.apache.spark",
+        "artifactId": "spark-streaming_${scala.compat.version}",
+        "version": "${spark.version}",
+        "scope": "extraction"
+      },
+      {
+        "groupId": "org.apache.spark",
+        "artifactId": "spark-core_${scala.compat.version}",
+        "version": "${spark.version}",
+        "scope": "extraction"
+      },
+      {
+        "groupId": "org.apache.spark",
+        "artifactId": "spark-sql_${scala.compat.version}",
+        "version": "${spark.version}",
+        "scope": "extraction"
+      },
+      {
+        "groupId": "org.apache.spark",
+        "artifactId": "spark-tags_${scala.compat.version}",
+        "version": "${spark.version}",
+        "scope": "extraction"
+      },
+      {
+        "groupId": "org.apache.spark",
+        "artifactId": "spark-catalyst_${scala.compat.version}",
+        "version": "${spark.version}",
+        "scope": "extraction"
+      }
+    ]
+  }
+}

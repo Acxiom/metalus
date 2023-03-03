@@ -1,7 +1,7 @@
 package com.acxiom.metalus.api
 
 import com.acxiom.metalus.Constants
-import org.json4s.{DefaultFormats, Formats}
+import com.acxiom.metalus.fs.FileResource
 import org.slf4j.LoggerFactory
 
 import java.io.{BufferedInputStream, BufferedOutputStream, InputStream, OutputStream}
@@ -80,8 +80,6 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
     HttpsURLConnection.setDefaultSSLSocketFactory(HttpRestClient.SELF_SIGNED_SSL_CONTEXT.getSocketFactory)
     HttpsURLConnection.setDefaultHostnameVerifier(HttpRestClient.SELF_SIGNED_HOST_VERIFIER)
   }
-
-  private implicit val formats: Formats = DefaultFormats
 
   private val baseUrl = new URL(hostUrl)
 
@@ -389,6 +387,14 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
     responseCode < 300
   }
 
+  /**
+   * Provides a FileResource for the provided path.
+   *
+   * @param path The path to represent.
+   * @return A FileResource representation.
+   */
+  def toFileResource(path: String): FileResource = HttpFileResource(path, this)
+
   private def openUrlConnection(path: String, headers: Option[Map[String, String]] = None): HttpURLConnection = {
     val connection = new URL(baseUrl, path).openConnection().asInstanceOf[HttpURLConnection]
     if (authorization.isDefined) {
@@ -453,4 +459,59 @@ case class HttpOutputStream(connection: HttpURLConnection) extends OutputStream 
     outputStream.close()
     connection.disconnect()
   }
+}
+
+case class HttpFileResource(path: String, httpRestClient: HttpRestClient) extends FileResource {
+/**
+   * The simple name of this file. Does not include the full path.
+   *
+   * @return The file name.
+   */
+override def fileName: String = path
+/**
+   * Returns the full name of this file including path.
+   *
+   * @return The full name.
+   */
+override def fullName: String = path
+/**
+   * True if this represents a directory.
+   *
+   * @return True if this represents a directory.
+   */
+override def directory: Boolean = false
+/**
+   * Will attempt to rename this file to the destination path.
+   *
+   * @param destPath The destination path.
+   * @return True if the path could be renamed.
+   */
+override def rename(destPath: String): Boolean = false
+/**
+   * Attempts to delete this file.
+   *
+   * @return True if the path could be deleted.
+   */
+override def delete: Boolean = httpRestClient.delete(path)
+/**
+   * Get the size of this file.
+   *
+   * @return size of this file.
+   */
+override def size: Long = httpRestClient.getContentLength(path)
+/**
+   * Creates a buffered input stream for this file.
+   *
+   * @param bufferSize The buffer size to apply to the stream
+   * @return A buffered input stream
+   */
+override def getInputStream(bufferSize:  Int): InputStream = httpRestClient.getInputStream(path, bufferSize)
+/**
+   * Creates a buffered output stream for this file.
+   *
+   * @param append     Boolean flag indicating whether data should be appended. Default is true
+   * @param bufferSize The buffer size to apply to the stream
+   * @return
+   */
+override def getOutputStream(append:  Boolean, bufferSize:  Int): OutputStream = httpRestClient.getOutputStream(path, bufferSize)
 }

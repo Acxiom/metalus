@@ -33,7 +33,7 @@ bindir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 dir=$(dirname "${bindir}")
 
 # Create the classPath
-classPath=""
+classPath="./conf"
 for i in "${dir}"/libraries/*.jar
 do
   # Add to the classPath
