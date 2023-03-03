@@ -27,7 +27,6 @@ object PipelineExecutor {
         sessionContext.completeSession("SKIPPED")
         PipelineExecutionResult(see.context.getOrElse(initialContext), success = true, paused = false, None)
       case fe: ForkedPipelineStepException =>
-        println(fe)
         fe.exceptions.foreach(entry =>
           logger.error(s"Execution Id ${entry._1} had an error: ${entry._2.getMessage}", entry._2))
         pipelineListener.applicationStopped(initialContext).getOrElse(initialContext)
@@ -46,7 +45,6 @@ object PipelineExecutor {
         PipelineExecutionResult(p.context.getOrElse(initialContext), success = false, paused = true, Some(p))
       case pse: PipelineStepException =>
         logger.error(s"Stopping pipeline because of an exception", pse)
-        println(pse)
         pipelineListener.applicationStopped(initialContext).getOrElse(initialContext)
         sessionContext.completeSession("ERROR")
         PipelineExecutionResult(pse.context.getOrElse(initialContext), success = false, paused = false, Some(pse))

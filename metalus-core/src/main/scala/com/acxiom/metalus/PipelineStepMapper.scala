@@ -219,7 +219,6 @@ object MappingResolver {
 
 class DefaultPipelineStepMapper extends PipelineStepMapper
 
-//noinspection ScalaStyle
 trait PipelineStepMapper {
   val logger: Logger = LoggerFactory.getLogger(getClass)
 
