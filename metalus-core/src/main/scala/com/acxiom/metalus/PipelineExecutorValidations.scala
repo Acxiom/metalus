@@ -7,28 +7,27 @@ object PipelineExecutorValidations {
     * @return A map of the pipeline steps using the step id as the key.
     */
   def validateAndCreateStepLookup(pipeline: Pipeline): Map[String, FlowStep] = {
-    pipeline.steps.get.map(step => {
-      validateStep(step, pipeline)
-      step.id.get -> step
-    }).toMap
+    pipeline.steps.get.map { step =>
+        validateStep(step, pipeline)
+        step.id.get -> step
+    }.toMap
   }
 
   @throws(classOf[PipelineException])
   private def validateStep(step: FlowStep, pipeline: Pipeline): Unit = {
     val defaultStateInfo = Some(PipelineStateKey(pipeline.id.getOrElse(""), step.id))
     validatePipelineStep(step, pipeline)
-    step.`type`.getOrElse("").toLowerCase match {
-      case s if s == PipelineStepType.PIPELINE || s == PipelineStepType.BRANCH =>
+    step.`type`.mkString.toLowerCase match {
+      case PipelineStepType.PIPELINE | PipelineStepType.BRANCH =>
         val ps = step.asInstanceOf[PipelineStep]
-        if(ps.engineMeta.isEmpty || ps.engineMeta.get.command.getOrElse("") == "") {
+        if (ps.value.isEmpty && !ps.engineMeta.exists(_.command.mkString.nonEmpty)) {
           throw PipelineException(
-            message = Some(s"EngineMeta is required for [${step.`type`.get}] step [${step.id.get}] in pipeline [${pipeline.id.get}]"),
+            message = Some(s"Value or EngineMeta must be provided for [${step.`type`.get}]" +
+              s" step [${step.id.get}] in pipeline [${pipeline.id.get}]"),
             pipelineProgress = defaultStateInfo)
         }
       case PipelineStepType.FORK => validateForkStep(step.asInstanceOf[PipelineStep], pipeline)
-      case PipelineStepType.JOIN =>
-      case PipelineStepType.SPLIT =>
-      case PipelineStepType.MERGE =>
+      case PipelineStepType.JOIN | PipelineStepType.SPLIT | PipelineStepType.MERGE =>
       case PipelineStepType.STEPGROUP =>
         if (step.asInstanceOf[PipelineStepGroup].pipelineId.isEmpty &&
           !step.params.get.exists(p => p.name.getOrElse("") == "pipeline" || p.name.getOrElse("") == "pipelineId")) {

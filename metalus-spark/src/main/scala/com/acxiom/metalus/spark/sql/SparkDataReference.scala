@@ -45,18 +45,18 @@ final case class SparkDataReference(dataset: () => Dataset[_], origin: SparkData
     case g: GroupBy => SparkGroupedDataReference(this, g)
     case Union(right: SparkDataReference, all) =>
       copy({() =>
-        val ds = toDataset.union(right.toDataset)
+        val ds = toDataset.toDF().union(right.toDataset.toDF())
         if(all) ds else ds.distinct()
       })
     case Limit(limit) => copy(() => toDataset.limit(limit))
-    case CreateAs(tableName, true, _, _, _) => copy(() => {
+    case CreateAs(tableName, true, false, _, _, _) => copy(() => {
         val ds = dataset()
           ds.createOrReplaceTempView(tableName)
         ds
       })
-    case CreateAs(tableName, _, externalPath, options, Some(connector: SparkDataConnector)) =>
+    case CreateAs(tableName, _, false, externalPath, options, Some(connector: SparkDataConnector)) =>
       createAs(tableName, externalPath, options, connector)
-    case CreateAs(tableName, _, externalPath, options, None) =>
+    case CreateAs(tableName, _, false, externalPath, options, None) =>
       createAs(tableName, externalPath, options, origin.connector)
     case Save(destination, connector, options) =>
       val writerOptions = options.getOrElse(DataFrameWriterOptions(origin.readOptions.format, options = origin.readOptions.options))

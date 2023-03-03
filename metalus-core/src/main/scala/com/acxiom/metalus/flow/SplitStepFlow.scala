@@ -12,7 +12,7 @@ case class SplitStepFlow(pipeline: Pipeline,
                          step: FlowStep) extends PipelineFlow {
   private val BLANK_STEP = PipelineStep(id = Some("NONE"), `type` = Some("NONE"))
   private val flows = step.params.getOrElse(List()).filter(_.`type`.getOrElse("none") == "result").map(p => {
-    val firstStep = stepLookup(p.value.getOrElse("").asInstanceOf[String])
+    val firstStep = stepLookup(p.value.mkString)
     getSplitFlow(firstStep, SplitFlow(firstStep, None, List(firstStep)))
   })
 
@@ -34,12 +34,12 @@ case class SplitStepFlow(pipeline: Pipeline,
     })
     // Determine if there is a single merge for all flows and thread appropriately
     val groupMap = flows.groupBy(_.mergeStep.getOrElse(BLANK_STEP).id.getOrElse("NONE"))
-    val (results, nextStepId) = if (groupMap.size == 1) {
+    val (results, nextSteps) = if (groupMap.size == 1) {
       val futures = startSplitFlows(flows)
       // Wait for all futures to complete
       Await.ready(Future.sequence(futures), Duration.Inf)
       // Iterate the futures an extract the result
-      (futures.map(_.value.get.get), flows.head.mergeStep.getOrElse(BLANK_STEP).nextStepId)
+      (futures.map(_.value.get.get), flows.head.mergeStep.flatMap(_.nextStepExpressions))
     } else if (groupMap.size == 2) {
       val endOfPipelineFutures = startSplitFlows(groupMap("NONE"))
       // Need to create a future to that waits on these futures to complete and then calls execute step on the nextStepId
@@ -62,7 +62,7 @@ case class SplitStepFlow(pipeline: Pipeline,
 //      val updateCtx = finalResult.globalUpdates.get.foldLeft(finalResult.result.getOrElse(initialContext))((ctx, update) => {
 //        PipelineFlow.updateGlobals(update.stepName, ctx, update.global, update.globalName, update.isLink)
 //      })
-      FlowResult(finalResult.result.getOrElse(initialContext), nextStepId, Some(finalResult))
+      FlowResult(finalResult.result.getOrElse(initialContext), nextSteps, Some(finalResult))
     }
   }
 
@@ -90,15 +90,14 @@ case class SplitStepFlow(pipeline: Pipeline,
       val mergeFutures = startSplitFlows(splitFlows)
       Await.ready(Future.sequence(mergeFutures), Duration.Inf)
       val mergedResult = mergeResults(initialContext, mergeFutures.map(_.value.get.get))
-      val flowNextStepId = splitFlows.head.mergeStep.getOrElse(BLANK_STEP).nextStepId.getOrElse("")
-      if (mergedResult.error.isEmpty && flowNextStepId.nonEmpty) {
-        val nextStep = stepLookup(flowNextStepId)
+      val nextStep = splitFlows.head.mergeStep.flatMap(getNextStep(_, stepLookup, None))
+      if (mergedResult.error.isEmpty && nextStep.nonEmpty) {
         val mergedPipelineCtx = mergedResult.result.get
         try {
-          SplitFlowExecutionResult(nextStep.id.getOrElse("NONE"),
-            Some(executeStep(nextStep, pipeline, stepLookup, mergedPipelineCtx)), None)
+          SplitFlowExecutionResult(nextStep.get.id.getOrElse("NONE"),
+            Some(executeStep(nextStep.get, pipeline, stepLookup, mergedPipelineCtx)), None)
         } catch {
-          case t: Throwable => SplitFlowExecutionResult(flowNextStepId, None, Some(t))
+          case t: Throwable => SplitFlowExecutionResult(nextStep.get.id.mkString, None, Some(t))
         }
       } else {
         mergedResult
@@ -107,18 +106,20 @@ case class SplitStepFlow(pipeline: Pipeline,
   }
 
   private def getSplitFlow(step: FlowStep, splitFlow: SplitFlow): SplitFlow = {
-    step.`type`.getOrElse("").toLowerCase match {
+    step.`type`.mkString.toLowerCase match {
       case PipelineStepType.BRANCH =>
         step.params.get.foldLeft(splitFlow.conditionallyAddStepToList(step))((flow, param) => {
-          if (param.`type`.getOrElse("") == "result") {
-            getSplitFlow(stepLookup(param.value.getOrElse("").asInstanceOf[String]), flow)
+          if (param.`type`.mkString == "result") {
+            getSplitFlow(stepLookup(param.value.mkString), flow)
           } else {
             flow
           }
         })
       case PipelineStepType.MERGE => splitFlow.conditionallyAddStepToList(step).copy(mergeStep = Some(step))
-      case _ if !stepLookup.contains(step.nextStepId.getOrElse("")) => splitFlow.conditionallyAddStepToList(step)
-      case _ => getSplitFlow(stepLookup(step.nextStepId.getOrElse("")), splitFlow.conditionallyAddStepToList(step))
+      case _ if !stepLookup.contains(step.nextStepExpressions.flatMap(_.headOption).mkString) =>
+        splitFlow.conditionallyAddStepToList(step)
+      case _ => getSplitFlow(stepLookup(step.nextStepExpressions.flatMap(_.headOption).mkString),
+        splitFlow.conditionallyAddStepToList(step))
     }
   }
 

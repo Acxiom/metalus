@@ -57,8 +57,6 @@ statement
     | DELETE FROM dataReference where?                                 #delete
     | TRUNCATE TABLE dataReference                                     #truncateTable
     | CREATE (OR REPLACE)? VIEW dataReference AS query                 #createView
-    | CALL qualifiedName L_PAREN (callArgument (COMMA callArgument)*)? R_PAREN   #call
-    | EXECUTE identifier (USING expression (COMMA expression)*)?       #execute
     ;
 
 // disable with support for now
@@ -328,7 +326,6 @@ primaryExpression
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END              #simpleCase
     | CASE whenClause+ (ELSE elseExpression=expression)? END                              #searchedCase
     | CAST L_PAREN expression AS type R_PAREN                                                     #cast
-    | TRY_CAST L_PAREN expression AS type R_PAREN                                                 #cast
     | ARRAY L_BRACKET (expression (COMMA expression)*)? R_BRACKET                                       #arrayConstructor
     | value=primaryExpression L_BRACKET index=valueExpression R_BRACKET                               #subscript
     | identifier                                                                          #columnReference
@@ -458,7 +455,7 @@ qualifiedName
     ;
 
 step
-    : stepName=IDENTIFIER L_PAREN (stepParam (COMMA stepParam)*)* R_PAREN
+    : (IDENTIFIER (DOT IDENTIFIER)*) L_PAREN (stepParam (COMMA stepParam)*)* R_PAREN
     ;
 
 stepParam

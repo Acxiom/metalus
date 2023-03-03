@@ -55,6 +55,26 @@ class SplitMergeStepTests extends AnyFunSpec {
       assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("GENERATE_DATA"))).isDefined)
       assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("SUM_VALUES"))).isDefined)
     }
+
+    it("Should process simple split step pipeline using inline splits") {
+      TestHelper.pipelineListener = PipelineListener()
+      val newPipeline = removeSplitSteps(simpleSplitPipeline)
+      val executionResult = PipelineExecutor.executePipelines(newPipeline, TestHelper.generatePipelineContext())
+      assert(executionResult.success)
+      val key = PipelineStateKey(newPipeline.id.get)
+      val stepResult = executionResult.pipelineContext.getStepResultByStateInfo(key.copy(stepId = Some("FORMAT_STRING")))
+      assert(stepResult.isDefined)
+      assert(stepResult.get.isInstanceOf[PipelineStepResponse])
+      assert(stepResult.get.primaryReturn.isDefined)
+      assert(stepResult.get
+        .primaryReturn.get.asInstanceOf[String] == "List with values 1,2 has a sum of 3")
+
+      // Verify audits
+      assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("FORMAT_STRING"))).isDefined)
+      assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("STRING_VALUES"))).isDefined)
+      assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("GENERATE_DATA"))).isDefined)
+      assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("SUM_VALUES"))).isDefined)
+    }
   }
 
   describe("Complex Flow Validation") {
@@ -98,6 +118,37 @@ class SplitMergeStepTests extends AnyFunSpec {
       assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("BRANCH"))).isDefined)
       assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("GLOBAL_VALUES"))).isDefined)
     }
+
+    it("Should process complex split step pipeline using inline splits") {
+      TestHelper.pipelineListener = PipelineListener()
+      val newPipeline = removeSplitSteps(complexSplitPipeline)
+      val executionResult = PipelineExecutor.executePipelines(newPipeline, TestHelper.generatePipelineContext())
+      assert(executionResult.success)
+      val key = PipelineStateKey(newPipeline.id.get)
+      var stepResult = executionResult.pipelineContext.getStepResultByStateInfo(key.copy(stepId = Some("FORMAT_STRING")))
+      assert(stepResult.isDefined)
+      assert(stepResult.get.isInstanceOf[PipelineStepResponse])
+      assert(stepResult.get.primaryReturn.isDefined)
+      assert(stepResult.get
+        .primaryReturn.get.asInstanceOf[String] == "List with values 1,2 has a sum of 3")
+      stepResult = executionResult.pipelineContext.getStepResultByStateInfo(key.copy(stepId = Some("FORMAT_STRING_PART_2")))
+      assert(stepResult.isDefined)
+      assert(stepResult.get.isInstanceOf[PipelineStepResponse])
+      assert(stepResult.get.primaryReturn.isDefined)
+      assert(stepResult.get
+        .primaryReturn.get.asInstanceOf[String] == "List has a sum of 3")
+      // Verify that the globals got updated
+      assert(executionResult.pipelineContext.getGlobalString("mockGlobal").getOrElse("") == "split_global")
+      // Verify audits
+      assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("FORMAT_STRING"))).isDefined)
+      assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("FORMAT_STRING_PART_2"))).isDefined)
+      assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("STRING_VALUES"))).isDefined)
+      assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("GENERATE_DATA"))).isDefined)
+      assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("SUM_VALUES"))).isDefined)
+      assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("SUM_VALUES_NOT_MERGED"))).isDefined)
+      assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("BRANCH"))).isDefined)
+      assert(executionResult.pipelineContext.getPipelineAudit(key.copy(stepId = Some("GLOBAL_VALUES"))).isDefined)
+    }
   }
 
   describe("Flow Error Handling") {
@@ -117,4 +168,20 @@ class SplitMergeStepTests extends AnyFunSpec {
       assert(executionResult.exception.get.getMessage == message)
     }
   }
+
+  private def removeSplitSteps(pipeline: Pipeline): Pipeline = pipeline.copy(
+    steps = pipeline.steps.map { steps =>
+      val stepMap = steps.map(s => s.id.mkString -> s).toMap
+      steps.flatMap {
+        case s if s.`type`.contains("split") => None
+        case s: PipelineStep if s.nextStepId.exists(id => stepMap(id).`type`.contains("split")) => Some {
+          val nextSteps = stepMap(s.nextStepId.get).params.map(_.collect {
+            case p if p.`type`.contains("result") => p.value.mkString
+          })
+          s.copy(nextSteps = nextSteps, nextStepId = None)
+        }
+        case s => Some(s)
+      }
+    }
+  )
 }

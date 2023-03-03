@@ -28,6 +28,6 @@ case class JDBCDataConnector(url: String,
       getCredential(pipelineContext).collect {
         case unc: UserNameCredential => Map("user" -> unc.name, "password" -> unc.password)
       }.getOrElse(Map())
-    BasicJDBCDataReference(dbtable, url, info, DataReferenceOrigin(this, Some(info)), pipelineContext)
+    BasicJDBCDataReference(() => dbtable, url, info, DataReferenceOrigin(this, Some(info)), pipelineContext)
   }
 }

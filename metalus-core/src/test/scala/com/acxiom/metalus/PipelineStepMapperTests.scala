@@ -187,7 +187,7 @@ class PipelineStepMapperTests extends AnyFunSpec with BeforeAndAfterAll with Giv
       tests.foreach(test => {
         Then(s"test ${test._1}")
         val ret = pipelineContext.parameterMapper.mapParameter(test._2, pipelineContext)
-        assert(ret == test._3)
+        assert(ret == test._3, test._1)
       })
 
       val thrown = intercept[RuntimeException] {

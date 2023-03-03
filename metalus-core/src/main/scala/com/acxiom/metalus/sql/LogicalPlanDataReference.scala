@@ -25,7 +25,8 @@ trait LogicalPlanDataReference[T, R] extends DataReference[T] {
 
   def executePlan: R = optimizedPlan.foldLeft(initialReference)((query, op) => translations(op)(query))
 
-  protected def newAlias: String = s"sub${internalPlan.size}"
+  protected def newAlias: String =
+    s"sub${internalPlan.size}"
 
   protected def optimize: Queue[QueryOperator] = internalPlan
 
@@ -43,7 +44,7 @@ trait SqlBuildingDataReference[T] extends LogicalPlanDataReference[T, String] {
   protected final val queryRef = 'queryRef
 
   protected final lazy val defaultOrdering = List(
-    "as", "join", "where", "groupBy", "having", "select", "orderby", "limit"
+    "as", "join", "where", "groupBy", "having", "select", "orderby", "limit", "createas"
   )
 
   implicit class SQLString(sc: StringContext) {
@@ -59,7 +60,7 @@ trait SqlBuildingDataReference[T] extends LogicalPlanDataReference[T, String] {
 
   def toSql: String = executePlan
 
-  // provide a default ordering for queries. Must be overriden to support dml.
+  // provide a default ordering for queries. Must be overridden to support dml.
   override def ordering: List[String] = defaultOrdering
 
   override protected def updateLogicalPlan(operator: QueryOperator): Queue[QueryOperator] = {
@@ -67,14 +68,18 @@ trait SqlBuildingDataReference[T] extends LogicalPlanDataReference[T, String] {
     (internalPlan.lastOption, operator) match {
       case (Some(qo), a: As) if !qo.isInstanceOf[Select] => internalPlan :+ Select(List("*")) :+ a
       case (None, _) | (Some(_: Select), _: As) | (Some(_: Join), _: Join) => internalPlan :+ operator
-      case (Some(_: Select), qo) => internalPlan :+ As(newAlias) :+ qo
       case (Some(prev), qo) if prev.ordering < qo.ordering => internalPlan :+ qo
+      case (Some(_: Select), qo) => internalPlan :+ As(newAlias) :+ qo
       case (_, qo) => internalPlan :+ Select(List("*")) :+ As(newAlias) :+ qo
     }
   }
 
+  // scalastyle:off cyclomatic.complexity
   override protected def logicalPlanRules: LogicalPlanRules = {
-    case As(alias) => sql"($queryRef) $alias"
+    case As(alias) => {
+      case query if query.toLowerCase.contains("select ") => s"($query) $alias"
+      case query => s"$query $alias"
+    }
     case Select(expressions) => sql"SELECT ${expressions.map(parseExpression).mkString(", ")} FROM $queryRef"
     case Join(right: SqlBuildingDataReference[_], joinType, condition, using) if right.engine == engine =>
       val expression = condition.map(c => s" ON ${parseExpression(c)}")
@@ -86,6 +91,10 @@ trait SqlBuildingDataReference[T] extends LogicalPlanDataReference[T, String] {
     case OrderBy(expressions) => sql"ORDER BY ${expressions.map(parseExpression).mkString(", ")}"
     case Limit(limit) => sql"LIMIT $limit"
     case Delete() => sql"DELETE FROM $queryRef"
+    case CreateAs(tableName, view, noData, _, options, _) =>
+      val table = if (view) "VIEW" else "TABLE"
+      val withNoData = if (noData) " WITH NO DATA" else ""
+      sql"CREATE $table $tableName\nAS $queryRef$withNoData"
   }
 
   protected def parseExpression(expression: Expression):String = expression

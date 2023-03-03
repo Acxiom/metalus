@@ -120,7 +120,14 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
   }
 
   override def visitStep(ctx: StepContext): List[PipelineStep] = {
-    val id = buildStepId("STEP", ctx.stepName.getText)
+    val (pkg, obj, method) = ctx.IDENTIFIER().asScala.map(_.getText).toList match {
+      case List(m) => (None, "QueryingSteps.", m)
+      case List(obj, m) => (None, obj,  m)
+      case l =>
+        val (pkgList, stepList) = l.splitAt(l.size - 2)
+        (Some(pkgList.mkString(".")), stepList.head, stepList.last)
+    }
+    val id = buildStepId("STEP", method)
     stepIds += id
     val params = ctx.stepParam().asScala.map{
       case paramCtx if paramCtx.stepParamName.isEmpty =>
@@ -134,7 +141,7 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
         `type` = Some("pipeline"),
         params = if (params.isEmpty) None else Some(params),
         value = Some("STEP"),
-        engineMeta = Some(EngineMeta(Some("QueryingSteps." + ctx.stepName.getText)))
+        engineMeta = Some(EngineMeta(Some(obj + "." + method), pkg))
       )
     )
   }

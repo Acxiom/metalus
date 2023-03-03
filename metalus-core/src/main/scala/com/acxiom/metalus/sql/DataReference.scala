@@ -7,7 +7,7 @@ import com.acxiom.metalus.utils.ReflectionUtils
 import scala.collection.immutable.Queue
 import scala.util.Try
 
-trait DataReference[T] {
+trait DataReference[+T] {
 
   type QueryFunction = PartialFunction[QueryOperator, DataReference[_]]
 

@@ -4,7 +4,7 @@ import com.acxiom.metalus.spark.DataFrameReaderOptions
 import com.acxiom.metalus.spark.sql.{SparkDataReference, SparkDataReferenceOrigin}
 import com.acxiom.metalus.{Credential, PipelineContext}
 import com.acxiom.metalus.spark._
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.streaming.StreamingQuery
 
 import java.util.Properties
@@ -29,14 +29,15 @@ case class JDBCSparkDataConnector(url: String,
     }, SparkDataReferenceOrigin(this, readOptions), pipelineContext)
   }
 
-  override def write(dataFrame: DataFrame, destination: Option[String],
+  override def write(dataFrame: Dataset[_], destination: Option[String],
+                     tableName: Option[String],
                      pipelineContext: PipelineContext,
                      writeOptions: DataFrameWriterOptions): Option[StreamingQuery] = {
     val properties = new Properties()
     properties.putAll(writeOptions.options.getOrElse(Map[String, String]()).asJava)
     if (dataFrame.isStreaming) {
       Some(dataFrame.writeStream.trigger(writeOptions.triggerOptions.getOrElse(StreamingTriggerOptions()).getTrigger)
-        .options(writeOptions.options.getOrElse(Map())).foreachBatch { (batchDF: DataFrame, batchId: Long) =>
+        .options(writeOptions.options.getOrElse(Map())).foreachBatch { (batchDF: Dataset[_], batchId: Long) =>
         DataConnectorUtilities.buildDataFrameWriter(batchDF, writeOptions).jdbc(url, destination.getOrElse(""), properties)
       }.start())
     } else {

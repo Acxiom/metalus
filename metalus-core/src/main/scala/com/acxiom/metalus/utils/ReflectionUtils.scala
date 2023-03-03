@@ -53,7 +53,7 @@ object ReflectionUtils {
    */
   def processStep(step: PipelineStep,
                   parameterValues: Map[String, Any],
-                  pipelineContext: PipelineContext): Any = {
+                  pipelineContext: PipelineContext): PipelineStepResponse = {
     logger.debug(s"processing step,stepObject=$step")
     // Get the step directive which should follow the pattern "Object.function"
     val executionObject = step.engineMeta.get.command.get

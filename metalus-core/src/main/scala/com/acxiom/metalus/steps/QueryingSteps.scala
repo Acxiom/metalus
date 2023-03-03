@@ -64,11 +64,12 @@ object QueryingSteps {
 
   def create(dataReference: DataReference[_], name: String,
              view: Boolean = false,
+             noData: Boolean = false,
              externalPath: Option[String] = None,
              options: Option[Map[String, Any]] = None,
              connector: Option[DataConnector] = None,
              pipelineContext: PipelineContext): DataReference[_] =
-    applyQueryOperation(dataReference, CreateAs(name, view, externalPath, options, connector), pipelineContext)
+    applyQueryOperation(dataReference, CreateAs(name, view, noData, externalPath, options, connector), pipelineContext)
 
   def convert(dataReference: DataReference[_], engine: String): DataReference[_] = {
     dataReference match {

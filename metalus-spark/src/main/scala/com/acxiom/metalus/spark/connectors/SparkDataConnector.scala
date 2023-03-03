@@ -38,7 +38,16 @@ trait SparkDataConnector extends DataConnector {
 
   def table(tableName: String,
             pipelineContext: PipelineContext,
-            readOptions: DataFrameReaderOptions = DataFrameReaderOptions()): SparkDataReference
+            readOptions: DataFrameReaderOptions): SparkDataReference = {
+    SparkDataReference(() => {
+      if (readOptions.streaming) {
+        DataConnectorUtilities.buildDataStreamReader(pipelineContext.sparkSession, readOptions)
+          .table(tableName)
+      } else {
+        DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession, readOptions).table(tableName)
+      }
+    }, SparkDataReferenceOrigin(this, readOptions), pipelineContext)
+  }
 
   def write(dataReference: SparkDataReference,
             destination: Option[String],
@@ -89,19 +98,6 @@ trait FileSystemDataConnector extends BatchDataConnector with StreamingDataConne
           .getOrElse(reader.load())
       }
     }, SparkDataReferenceOrigin(this, readOptions, paths), pipelineContext)
-  }
-
-  override def table(tableName: String,
-                     pipelineContext: PipelineContext,
-                     readOptions: DataFrameReaderOptions): SparkDataReference = {
-    SparkDataReference(() => {
-      if (readOptions.streaming) {
-        DataConnectorUtilities.buildDataStreamReader(pipelineContext.sparkSession, readOptions)
-          .table(tableName)
-      } else {
-        DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession, readOptions).table(tableName)
-      }
-    }, SparkDataReferenceOrigin(this, readOptions), pipelineContext)
   }
 
   protected def preparePaths(paths: String): List[String] = paths.split(',').toList

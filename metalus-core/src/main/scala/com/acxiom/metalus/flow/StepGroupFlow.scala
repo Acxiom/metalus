@@ -28,7 +28,7 @@ case class StepGroupFlow(pipeline: Pipeline,
     } else {
       updatedCtx
     }
-    FlowResult(finalCtx, step.nextStepId, Some(groupResult))
+    FlowResult(finalCtx, step.nextStepExpressions, Some(groupResult))
   }
 
   private def processStepGroup(step: FlowStep, parameterValues: Map[String, Any],

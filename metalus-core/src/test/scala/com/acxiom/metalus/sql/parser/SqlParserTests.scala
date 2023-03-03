@@ -25,7 +25,7 @@ class SqlParserTests extends AnyFunSpec {
           |WHERE name = 'cogburn'
           |""".stripMargin
       val steps = SqlParser.parse(text)
-      println(org.json4s.native.Serialization.write(steps))
+      assert(steps.nonEmpty)
     }
   }
 

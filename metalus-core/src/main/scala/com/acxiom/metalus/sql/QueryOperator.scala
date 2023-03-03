@@ -12,6 +12,7 @@ case class Merge(using: DataReference[_], condition: Expression) extends QueryOp
 case class Matched(action: QueryOperator, condition: Option[Expression], notMatched: Boolean = false)
   extends QueryOperator(s"${if(notMatched) "Not" else ""}Matched")
 case class CreateAs(tableName: String, view: Boolean = false,
+                    noData: Boolean = false,
                     externalPath: Option[String] = None,
                     options: Option[Map[String, Any]] = None,
                     connector: Option[DataConnector] = None)
