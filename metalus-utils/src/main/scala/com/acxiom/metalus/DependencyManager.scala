@@ -1,16 +1,15 @@
 package com.acxiom.metalus
 
 import com.acxiom.metalus.resolvers.DependencyResolver.copyFileToLocal
-import com.acxiom.metalus.resolvers.{Dependency, DependencyResolver}
-import com.acxiom.pipeline.fs.LocalFileManager
-import com.acxiom.pipeline.utils.{DriverUtils, ReflectionUtils}
-import org.apache.log4j.Logger
+import com.acxiom.metalus.resolvers.{Dependency, DependencyResolver, Repo}
+import com.acxiom.metalus.utils.{DriverUtils, ReflectionUtils}
+import org.slf4j.LoggerFactory
 
 import java.io.File
 import java.nio.file.Files
 
 object DependencyManager {
-  private val logger = Logger.getLogger(getClass)
+  private val logger = LoggerFactory.getLogger(getClass)
 
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("jar-files", "output-path")))
@@ -22,30 +21,21 @@ object DependencyManager {
     // Initialize the Jar files
     val fileList = parameters("jar-files").asInstanceOf[String].split(",").toList
     val initialClassPath = fileList.foldLeft(ResolvedClasspath(List()))((cp, file) => {
+      logger.info(s"Resolving $file")
       val fileName = file.substring(file.lastIndexOf("/") + 1)
       val artifactName = fileName.substring(0, fileName.lastIndexOf("."))
       val destFile = new File(output, fileName)
       val srcFile = if (file.startsWith("http")) {
-        val http = DependencyResolver.getHttpClientForPath(file, parameters)
-        val input = () => http.getInputStream("")
-        val dir = Files.createTempDirectory("metalusJarDownloads").toFile
-        val localFile = new File(dir, fileName)
-        val md5Hash = DependencyResolver.getRemoteHash(file, parameters)
-        localFile.deleteOnExit()
-        dir.deleteOnExit()
-        val remoteDate = http.getLastModifiedDate("")
-        if (destFile.exists() && remoteDate.getTime > destFile.lastModified()) {
-          destFile.delete()
-        }
-        if (DependencyResolver.copyJarWithRetry(new LocalFileManager(), input, file, localFile.getAbsolutePath, md5Hash)) {
-          localFile
-        } else {
-          throw new IllegalStateException(s"Unable to copy jar $file")
-        }
+        resolveRemoteDependency(parameters, file, fileName, destFile)
       } else {
         new File(file)
       }
-      copyFileToLocal(srcFile, destFile)
+      if (Option(srcFile).isDefined) {
+        logger.info(s"$file has been downloaded")
+        copyFileToLocal(srcFile, destFile)
+      } else {
+        logger.info(s"$file already exists and is unchanged")
+      }
       cp.addDependency(Dependency(artifactName.substring(0, artifactName.lastIndexOf("-")),
         artifactName.split("-").last, destFile))
     })
@@ -56,6 +46,30 @@ object DependencyManager {
     val pathPrefix = parameters.getOrElse("path-prefix", "").asInstanceOf[String]
     // Print the classpath to the console
     print(classpath.generateClassPath(pathPrefix, parameters.getOrElse("jar-separator", ",").asInstanceOf[String]))
+  }
+
+  private def resolveRemoteDependency(parameters: Map[String, Any], file: String, fileName: String, destFile: File) = {
+    val http = DependencyResolver.getHttpClientForPath(file, parameters)
+    val dir = Files.createTempDirectory("metalusJarDownloads").toFile
+    val localFile = new File(dir, fileName)
+    val remoteHash = DependencyResolver.getRemoteHash(file, parameters)
+    localFile.deleteOnExit()
+    dir.deleteOnExit()
+    val allowSelfSignedCerts = parameters.getOrElse("allowSelfSignedCerts", false).toString.toLowerCase == "true"
+    val repoResult = DependencyResolver.getRepoResult(Repo.getRepos(parameters, allowSelfSignedCerts), file)
+    val shouldCopy = DependencyResolver.shouldCopyFile(destFile, repoResult, checkDate = true)
+    if (shouldCopy) {
+      if (destFile.exists()) {
+        destFile.delete()
+      }
+      if (DependencyResolver.copyJarWithRetry(http.toFileResource(""), file, localFile.getAbsolutePath, remoteHash)) {
+        localFile
+      } else {
+        throw new IllegalStateException(s"Unable to copy jar $file")
+      }
+    } else {
+      None.orNull
+    }
   }
 
   private def resolveDependencies(dependencies: List[Dependency],
@@ -105,7 +119,7 @@ object DependencyManager {
 }
 
 case class ResolvedClasspath(dependencies: List[Dependency]) {
-  private val logger = Logger.getLogger(getClass)
+  private val logger = LoggerFactory.getLogger(getClass)
 
   def generateClassPath(jarPrefix: String, separator: String = ","): String = {
     val prefix = if (jarPrefix.endsWith("/")) {

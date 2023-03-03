@@ -1,16 +1,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>metalus-utils_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
+    <groupId>com.acxiom</groupId>
+    <artifactId>metalus-utils_${scala.compat.version}</artifactId>
     <name>${project.artifactId}</name>
+    <version>2.0.0</version>
     <description>Metalus Pipeline Application Utilities</description>
     <inceptionYear>2018</inceptionYear>
-
-    <parent>
-        <groupId>com.acxiom</groupId>
-        <artifactId>metalus</artifactId>
-        <version>1.9.4-SNAPSHOT</version>
-    </parent>
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
@@ -20,26 +16,32 @@
     <dependencies>
         <dependency>
             <groupId>com.acxiom</groupId>
-            <artifactId>metalus-core_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
-            <version>${parent.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.kjetland</groupId>
-            <artifactId>mbknor-jackson-jsonschema_${scala.compat.version}</artifactId>
-            <version>1.0.34</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-scala_${scala.compat.version}</artifactId>
-            <version>2.9.8</version>
+            <artifactId>metalus-core_${scala.compat.version}</artifactId>
+            <version>${version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scalap</artifactId>
             <version>${scala.version}</version>
         </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-reload4j</artifactId>
+            <version>2.0.6</version>
+        </dependency>
         <!-- Test libraries -->
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.compat.version}</artifactId>
+            <version>3.2.9</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-jre8-standalone</artifactId>
@@ -50,6 +52,58 @@
 
     <build>
         <plugins>
+            <plugin>
+                <!-- see http://davidb.github.com/scala-maven-plugin -->
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>4.8.0</version>
+                <configuration>
+                    <scalaCompatVersion>${scala.compat.version}</scalaCompatVersion>
+                    <scalaVersion>${scala.version}</scalaVersion>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <args>
+                                <arg>-Xmigration</arg>
+                                <arg>-feature</arg>
+                                <arg>-deprecation</arg>
+                                <!--                                <arg>-dependencyfile</arg>-->
+                                <arg>${project.build.directory}/.scala_dependencies</arg>
+                            </args>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>doc-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest-maven-plugin</artifactId>
+                <version>2.2.0</version>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                    <junitxml>.</junitxml>
+                    <!-- Test output file. The "WDF" statement provides cleaner output -->
+                    <filereports>WDF TestOutput.txt</filereports>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Create a directory with all dependent jars -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -76,7 +130,6 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.3</version>
                 <configuration>
-                    <finalName>metalus-utils_${scala.compat.version}-spark_${spark.compat.version}-${version}</finalName>
                     <appendAssemblyId>false</appendAssemblyId>
                     <descriptors>
                         <descriptor>assembly.xml</descriptor>
@@ -93,7 +146,39 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>7</source>
+                    <target>7</target>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>scala_2.12</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <scala.compat.version>2.12</scala.compat.version>
+                <scala.version>2.12.13</scala.version>
+            </properties>
+        </profile>
+        <profile>
+            <id>scala_2.13</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <scala.compat.version>2.13</scala.compat.version>
+                <scala.version>2.13.8</scala.version>
+                <kafka.version>2.4.1</kafka.version>
+                <delta-lake-version>2.1.0</delta-lake-version>
+            </properties>
+        </profile>
+    </profiles>
 </project>
