@@ -27,54 +27,12 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
 
   private val stepIds: ListBuffer[String] = ListBuffer()
 
-  private def buildAndChainStep(operation: String, left: List[PipelineStep],
-                   right: Option[List[PipelineStep]] = None,
-                   parameters: Option[List[Parameter]] = None,
-                   value: Option[String] = None,
-                   idSuffix: Option[String] = None): List[PipelineStep] = {
-    val leftId = left.last.id.mkString
-    val rightId = right.map(_.last.id.mkString)
-    val id = idSuffix.map(id => buildStepId(operation.toUpperCase, id))
-      .getOrElse(buildStepId(operation.toUpperCase, leftId, rightId))
-    stepIds += id
-    val params = (buildStepParameter(if(right.isDefined) "left" else "dataReference", "@" + leftId) +:
-      parameters.getOrElse(List())) ++ rightId.map(id => buildStepParameter("right", "@" + id))
-    val step = PipelineStep(
-      Some(id),
-      `type` = Some("pipeline"),
-      params = Some(params),
-      value = value.orElse(Some("STEP")),
-      engineMeta = Some(EngineMeta(Some("QueryingSteps." + operation)))
-    )
-    aggregateResult(right.map(aggregateResult(left, _)).getOrElse(left), List(step))
-  }
-
-//  private def buildAndChainStep(operation: String,
-//                                steps: List[PipelineStep],
-//                                extraParameters: Option[List[Parameter]] = None,
-//                                value: Option[String] = None,
-//                                idSuffix: Option[String] = None,
-//                                drParamName: Option[String] = None): List[PipelineStep] = {
-//    val lastId = steps.last.id.mkString
-//    val id = buildStepId(operation.toUpperCase, idSuffix.getOrElse(lastId))
-//    stepIds += id
-//    val params = buildStepParameter(drParamName.getOrElse("dataReference"), "@" + lastId) +: extraParameters.getOrElse(List())
-//    val step = PipelineStep(
-//      Some(id),
-//      `type` = Some("pipeline"),
-//      params = Some(params),
-//      value = value.orElse(Some("STEP")),
-//      engineMeta = Some(EngineMeta(Some("QueryingSteps." + operation)))
-//    )
-//    aggregateResult(steps, List(step))
-//  }
-
   // handle select, where, groupBy, and having
   override def visitQuerySpecification(ctx: QuerySpecificationContext): List[PipelineStep] = {
     val fromJoinSteps = visit(ctx.relation())
     val where = Option(ctx.where).map{ where =>
       buildAndChainStep("where", fromJoinSteps, parameters = Some(List(
-        buildStepParameter("expression", getText(where), Some("expression"))
+        buildStepParameter("expression", getText(where.booleanExpression()), Some("expression"))
       )))
     }.getOrElse(fromJoinSteps)
     val groupBy = Option(ctx.groupBy()).map { groupBy =>
@@ -92,6 +50,50 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
     )))
   }
 
+  override def visitQueryNoWith(ctx: QueryNoWithContext): List[PipelineStep] = {
+    val select = visit(ctx.queryTerm())
+    val orderBy = Option(ctx.sortItem()).map(_.asScala).filter(_.nonEmpty).map{ orderBy =>
+      buildAndChainStep("orderBy", select, parameters = Some(List(
+        buildStepParameter("expressions", orderBy.map(getText), Some("expression"))
+      )))
+    }.getOrElse(select)
+    Option(ctx.limit).orElse(Option(ctx.fetchFirstNRows)).map{ limit =>
+      buildAndChainStep("limit", orderBy, parameters = Some(List(
+        buildStepParameter("limit", limit.getText, Some("integer"))
+      )))
+    }.getOrElse(orderBy)
+  }
+
+  override def visitUpdate(ctx: UpdateContext): List[PipelineStep] = {
+    val update = buildAndChainStep("update", visit(ctx.dataReference()), parameters = Some(List(
+      buildStepParameter("expressions", ctx.setExpression().asScala.map(getText), Some("expression"))
+    )))
+    Option(ctx.where).map { where =>
+      buildAndChainStep("where", update, parameters = Some(List(
+        buildStepParameter("expression", getText(where.booleanExpression()), Some("expression"))
+      )))
+    }.getOrElse(update)
+  }
+
+  override def visitDelete(ctx: DeleteContext): List[PipelineStep] = {
+    val delete = buildAndChainStep("delete", visit(ctx.dataReference()))
+    Option(ctx.where).map { where =>
+      buildAndChainStep("where", delete, parameters = Some(List(
+        buildStepParameter("expression", getText(where.booleanExpression()), Some("expression"))
+      )))
+    }.getOrElse(delete)
+  }
+
+  override def visitTruncateTable(ctx: TruncateTableContext): List[PipelineStep] = {
+    buildAndChainStep("truncate", visit(ctx.dataReference()))
+  }
+
+  override def visitDropTable(ctx: DropTableContext): List[PipelineStep] = {
+    val params = List(buildStepParameter("view", ctx.dropType.getType == MSqlParser.VIEW, Some("boolean")),
+      buildStepParameter("ifExists", Option(ctx.EXISTS()).exists(_.getText.nonEmpty), Some("boolean")))
+    buildAndChainStep("drop", visit(ctx.dataReference()), parameters = Some(params))
+  }
+
   // handle table/query aliases
   override def visitAliasedRelation(ctx: AliasedRelationContext): List[PipelineStep] = {
     val steps = visit(ctx.relationPrimary())
@@ -104,19 +106,28 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
   }
 
   override def visitDataReference(ctx: DataReferenceContext): List[PipelineStep] = {
-    val id = buildStepId("DR", ctx.mapping().key.getText.replaceAllLiterally(".", "_"))
-    stepIds += id
-    List(
-      PipelineStep(
-        Some(id),
-        `type` = Some("pipeline"),
-        value = Some(ctx.mapping().getText)
+    Option(ctx.step()).map(visitStep).getOrElse{
+      val id = buildStepId("DR", ctx.mapping().key.getText.replaceAllLiterally(".", "_"))
+      stepIds += id
+      List(
+        PipelineStep(
+          Some(id),
+          `type` = Some("pipeline"),
+          value = Some(ctx.mapping().getText)
+        )
       )
-    )
+    }
   }
 
   override def visitStep(ctx: StepContext): List[PipelineStep] = {
-    val id = buildStepId("STEP", ctx.stepName.getText)
+    val (pkg, obj, method) = ctx.IDENTIFIER().asScala.map(_.getText).toList match {
+      case List(m) => (None, "QueryingSteps.", m)
+      case List(obj, m) => (None, obj,  m)
+      case l =>
+        val (pkgList, stepList) = l.splitAt(l.size - 2)
+        (Some(pkgList.mkString(".")), stepList.head, stepList.last)
+    }
+    val id = buildStepId("STEP", method)
     stepIds += id
     val params = ctx.stepParam().asScala.map{
       case paramCtx if paramCtx.stepParamName.isEmpty =>
@@ -130,7 +141,7 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
         `type` = Some("pipeline"),
         params = if (params.isEmpty) None else Some(params),
         value = Some("STEP"),
-        engineMeta = Some(EngineMeta(Some("QueryingSteps." + ctx.stepName.getText)))
+        engineMeta = Some(EngineMeta(Some(obj + "." + method), pkg))
       )
     )
   }
@@ -139,7 +150,6 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
     val left = visit(ctx.left)
     val right = visit(Option(ctx.right).getOrElse(ctx.rightRelation))
 
-//    val rightParam = buildStepParameter("left", "@" + left.last.id.mkString)
     val joinTypeParam = Option(ctx.CROSS()).map(_.getText)
       .orElse(Option(ctx.NATURAL()).map( _.getText + " " + Option(ctx.joinType()).mkString))
       .orElse(Option(ctx.joinType()).map(getText))
@@ -162,13 +172,35 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
   override def aggregateResult(aggregate: List[PipelineStep], nextResult: List[PipelineStep]): List[PipelineStep] = {
     nextResult.headOption.map{ next =>
       val modStep = aggregate.lastOption.map(_.copy(nextSteps = Some(List("'" + next.id.mkString + "'"))))
-      aggregate.dropRight(1) ++ modStep  ++ nextResult
+      aggregate.dropRight(1) ++ modStep ++ nextResult
 
     }.getOrElse(aggregate)
   }
 
-  private def buildStepParameter(name: String, value: Any, stepType: Option[String] = None): Parameter = {
-    Parameter(stepType.orElse(Some("text")),
+  private def buildAndChainStep(operation: String, left: List[PipelineStep],
+                                right: Option[List[PipelineStep]] = None,
+                                parameters: Option[List[Parameter]] = None,
+                                value: Option[String] = None,
+                                idSuffix: Option[String] = None): List[PipelineStep] = {
+    val leftId = left.last.id.mkString
+    val rightId = right.map(_.last.id.mkString)
+    val id = idSuffix.map(id => buildStepId(operation.toUpperCase, id))
+      .getOrElse(buildStepId(operation.toUpperCase, leftId, rightId))
+    stepIds += id
+    val params = (buildStepParameter(if (right.isDefined) "left" else "dataReference", "@" + leftId) +:
+      parameters.getOrElse(List())) ++ rightId.map(id => buildStepParameter("right", "@" + id))
+    val step = PipelineStep(
+      Some(id),
+      `type` = Some("pipeline"),
+      params = Some(params),
+      value = value.orElse(Some("STEP")),
+      engineMeta = Some(EngineMeta(Some("QueryingSteps." + operation)))
+    )
+    aggregateResult(right.map(aggregateResult(left, _)).getOrElse(left), List(step))
+  }
+
+  private def buildStepParameter(name: String, value: Any, paramType: Option[String] = None): Parameter = {
+    Parameter(paramType.orElse(Some("text")),
       Some(name.replaceAll("[^a-zA-Z0-9]", "")),
       required = Some(true),
       value = Some(value)

@@ -1,12 +1,13 @@
 package com.acxiom.metalus.sql
 
+import com.acxiom.metalus.connectors.DataConnector
 import com.acxiom.metalus.{PipelineContext, PipelineException}
 import com.acxiom.metalus.utils.ReflectionUtils
 
 import scala.collection.immutable.Queue
 import scala.util.Try
 
-trait DataReference[T] {
+trait DataReference[+T] {
 
   type QueryFunction = PartialFunction[QueryOperator, DataReference[_]]
 
@@ -15,6 +16,8 @@ trait DataReference[T] {
   def engine: String
 
   def pipelineContext: PipelineContext
+
+  def origin: DataReferenceOrigin
 
   def execute: T
 
@@ -29,6 +32,19 @@ trait DataReference[T] {
   def +(queryOperation: QueryOperator): DataReference[_] = apply(queryOperation)
 
 }
+
+trait DataReferenceOrigin {
+  def connector: DataConnector
+  def options: Option[Map[String, Any]]
+}
+
+object DataReferenceOrigin {
+  def apply(connector: DataConnector, options: Option[Map[String, Any]] = None): DataReferenceOrigin =
+    DefaultDataReferenceOrigin(connector, options)
+}
+
+final case class DefaultDataReferenceOrigin(connector: DataConnector, options: Option[Map[String, Any]])
+  extends DataReferenceOrigin
 
 trait ConvertableReference { self: DataReference[_] =>
 

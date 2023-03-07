@@ -141,6 +141,75 @@ class FlowRestartTests extends AnyFunSpec {
           case _ => // Do nothing
         }
       }
+
+      it("should restart steps in each line of the split using inline splits") {
+        val settings = TestHelper.setupTestDB("restartInlineSplitTest")
+        val application = JsonParser.parseApplication(
+          Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/split_flow_restart_application.json")).mkString)
+        val credentialProvider = TestHelper.getDefaultCredentialProvider
+        val pipelineListener = RestartPipelineListener()
+        val pipelineContext = ApplicationUtils.createPipelineContext(application,
+          Some(Map[String, Any]("rootLogLevel" -> true, "customLogLevels" -> "",
+            "connectionString" -> settings.url,
+            "credentialName" -> "redonthehead",
+            "step2Value" -> "first run")), None,
+          pipelineListener, Some(credentialProvider))
+        val oldPipeline = pipelineContext.pipelineManager.getPipeline(application.pipelineId.get).get
+        val newPipeline = removeSplitSteps(oldPipeline)
+
+        val sessionId = pipelineContext.currentSessionId
+        val result = PipelineExecutor.executePipelines(newPipeline, pipelineContext)
+        assert(result.success)
+        assert(pipelineListener.getStepList.nonEmpty)
+        assert(pipelineListener.getStepList.length == Constants.NINE)
+
+        // Restart two steps, one in each branch SUM_VALUES and SUM_VALUES_NOT_MERGED (after branch)
+        pipelineListener.clear()
+        val ctx = ApplicationUtils.createPipelineContext(application,
+          Some(Map[String, Any]("rootLogLevel" -> true, "customLogLevels" -> "",
+            "connectionString" -> settings.url,
+            "credentialName" -> "redonthehead",
+            "step2Value" -> "first run")),
+          Some(Map("restartSteps" -> "complex_split_flow.SUM_VALUES,complex_split_flow.SUM_VALUES_NOT_MERGED",
+            "existingSessionId" -> sessionId.toString)),
+          pipelineListener, Some(credentialProvider))
+        val result1 = PipelineExecutor.executePipelines(newPipeline, ctx)
+        assert(result1.success)
+        assert(pipelineListener.getStepList.nonEmpty)
+        assert(pipelineListener.getStepList.length == Constants.FOUR)
+
+        // Ensure that the RUN_ID is incremented for the steps that are being re-run
+        val conn = DriverManager.getConnection(settings.url, settings.connectionProperties)
+        val stmt = conn.createStatement
+        val query =
+          s"""SELECT * FROM STEP_RESULTS WHERE SESSION_ID = '${sessionId.toString}'
+             |AND NAME = 'primaryKey'
+             |AND RESULT_KEY =""".stripMargin
+        var results = stmt.executeQuery(s"$query 'complex_split_flow.SUM_VALUES_NOT_MERGED'")
+        assert(results.next())
+        assert(results.getInt("RUN_ID") == Constants.TWO)
+        results = stmt.executeQuery(s"$query 'complex_split_flow.SUM_VALUES'")
+        assert(results.next())
+        assert(results.getInt("RUN_ID") == Constants.TWO)
+        results = stmt.executeQuery(s"$query 'complex_split_flow.FORMAT_STRING_PART_2'")
+        assert(results.next())
+        assert(results.getInt("RUN_ID") == Constants.TWO)
+        results = stmt.executeQuery(s"$query 'complex_split_flow.GENERATE_DATA'")
+        assert(results.next())
+        assert(results.getInt("RUN_ID") == Constants.ONE)
+        results = stmt.executeQuery(s"$query 'complex_split_flow.BRANCH'")
+        assert(results.next())
+        assert(results.getInt("RUN_ID") == Constants.ONE)
+
+        // Clean up the data
+        try {
+          stmt.close()
+          conn.close()
+          TestHelper.stopTestDB(settings.name)
+        } catch {
+          case _ => // Do nothing
+        }
+      }
     }
 
     describe("step group") {
@@ -479,6 +548,22 @@ class FlowRestartTests extends AnyFunSpec {
       }
     }
   }
+
+  private def removeSplitSteps(pipeline: Pipeline): Pipeline = pipeline.copy(
+    steps = pipeline.steps.map { steps =>
+      val stepMap = steps.map(s => s.id.mkString -> s).toMap
+      steps.flatMap {
+        case s if s.`type`.contains("split") => None
+        case s: PipelineStep if s.nextStepId.exists(id => stepMap(id).`type`.contains("split")) => Some {
+          val nextSteps = stepMap(s.nextStepId.get).params.map(_.collect {
+            case p if p.`type`.contains("result") => p.value.mkString
+          })
+          s.copy(nextSteps = nextSteps, nextStepId = None)
+        }
+        case s => Some(s)
+      }
+    }
+  )
 }
 
 case class RestartPipelineListener() extends PipelineListener {

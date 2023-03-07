@@ -1,7 +1,7 @@
 package com.acxiom.metalus.sql.jdbc
 
 import com.acxiom.metalus.PipelineContext
-import com.acxiom.metalus.sql.{ConvertableReference, QueryOperator, Select, SqlBuildingDataReference}
+import com.acxiom.metalus.sql.{ConvertableReference, CreateAs, DataReference, DataReferenceOrigin, QueryOperator, Select, SqlBuildingDataReference}
 
 import java.sql.{Connection, DriverManager, ResultSet}
 import java.util.Properties
@@ -22,23 +22,50 @@ trait JDBCDataReference[T] extends SqlBuildingDataReference[T] {
     properties.foreach(entry => props.put(entry._1, entry._2))
     DriverManager.getConnection(uri, props)
   }
+
+  protected implicit class ResultSetImplicits(rs: ResultSet) {
+    def map[R](func: Int => R): Iterator[R] = Iterator.from(0).takeWhile(_ => rs.next()).map(func)
+
+    def toList: List[Map[String, Any]] = {
+      val columns = (1 to rs.getMetaData.getColumnCount).map(rs.getMetaData.getColumnName)
+      new Iterator[Map[String, Any]] {
+        def hasNext: Boolean = rs.next()
+
+        def next(): Map[String, Any] = columns.map(c => c -> rs.getObject(c)).toMap
+      }.toList
+    }
+  }
 }
 
-final case class BasicJDBCDataReference(initialReference: String,
+final case class BasicJDBCDataReference(baseExpression: () => String,
                                         uri: String,
                                         properties: Map[String, String],
+                                        origin: DataReferenceOrigin,
                                         pipelineContext: PipelineContext,
-                                        logicalPlan: Queue[QueryOperator] = Queue())
-  extends JDBCDataReference[ResultSet] with ConvertableReference {
+                                        logicalPlan: Queue[QueryOperator] = Queue(),
+                                       )
+  extends JDBCDataReference[JDBCResult] with ConvertableReference {
 
-  override def execute: ResultSet = {
+
+  override def initialReference: String = baseExpression()
+
+  override def execute: JDBCResult = {
     Try(createConnection()).flatMap { connection =>
       val stmt = connection.createStatement()
-      val sql = if (!logicalPlan.lastOption.exists(_.isInstanceOf[Select])) s"SELECT * FROM ($toSql) $newAlias" else toSql
-      val exe = Try(stmt.executeQuery(sql))
+      val sql = logicalPlan.lastOption match {
+        case Some(_: Select | _: CreateAs) => toSql
+        case _ =>
+          val sub = toSql
+          val ref = if (sub.toLowerCase.contains("select ")) s"($sub)" else sub
+          s"SELECT * FROM $ref"
+      }
+      val res = Try(stmt.execute(sql)).map {
+        case true => JDBCResult(Some(stmt.getResultSet.toList), None)
+        case false => JDBCResult(None, Some(stmt.getUpdateCount))
+      }
       stmt.close()
       connection.close()
-      exe
+      res
     } match {
       case Success(rs) => rs
       case Failure(exception) => throw exception
@@ -46,6 +73,13 @@ final case class BasicJDBCDataReference(initialReference: String,
   }
 
   override protected def queryOperations: QueryFunction = {
+    case qo if qo.supported && logicalPlan.lastOption.exists(_.isInstanceOf[CreateAs]) =>
+      copy(() => {
+        execute
+        logicalPlan.last.asInstanceOf[CreateAs].tableName
+      }, logicalPlan = Queue())
     case qo if qo.supported => copy(logicalPlan = updateLogicalPlan(qo))
   }
 }
+
+final case class JDBCResult(resultSet: Option[List[Map[String, Any]]], count: Option[Int])

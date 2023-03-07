@@ -12,9 +12,213 @@ object PipelineStepMapper {
   def apply(): PipelineStepMapper = new DefaultPipelineStepMapper
 }
 
+object MappingResolver {
+
+  val logger: Logger = LoggerFactory.getLogger(getClass)
+
+  private case class PipelinePath(special: Char, mainValue: String, extraPath: Option[String], fork: Boolean = false)
+
+  def getStepResponse(value: String, secondary: Boolean, pipelineContext: PipelineContext): Option[Any] = {
+    val path = getStepParamPath(value, secondary, pipelineContext)
+    getPipelineParameterValue(path, pipelineContext)
+  }
+
+  def getPipelineParameter(value: String, pipelineContext: PipelineContext, func: Option[String => Option[Any]]): Option[Any] = {
+    val recursive = func.isDefined
+    getPipelineParameterValue(getPipelineParameterPath(value, recursive, pipelineContext), pipelineContext).flatMap {
+      case s: String if recursive => func.get(s)
+      case o: Option[_] => o
+      case v => Some(v)
+    }
+  }
+
+  def getCredential(value: String, pipelineContext: PipelineContext): Option[Any] = {
+    val paths = value.split('.')
+    val pipelinePath = PipelinePath('%', paths.head, getExtraPath(1, paths, !value.contains('.')))
+    val credentialName = pipelinePath.mainValue
+    logger.debug(s"Fetching credential: $credentialName")
+    pipelineContext.credentialProvider.flatMap(_.getNamedCredential(credentialName))
+      .flatMap(getSpecificValue(_, pipelinePath, Some(true)))
+  }
+
+  def getGlobalParameter(value: String, pipelineContext: PipelineContext,
+                         globalLinksFunc: Option[(String, PipelineContext) => Option[Any]]): Option[Any] = {
+    val paths = value.split('.')
+    val extra = getExtraPath(1, paths, !value.contains('.')).mkString
+    getGlobalParameterValue(paths.head, extra, pipelineContext, globalLinksFunc)
+  }
+  private def getGlobalParameterValue(value: String, extractPath: String, pipelineContext: PipelineContext,
+                              globalLinksFunc: Option[(String, PipelineContext) => Option[Any]]): Option[Any] = {
+    // the value is marked as a global parameter, get it from pipelineContext.globals
+    logger.debug(s"Fetching global value for $value.$extractPath")
+    val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
+    val initGlobal = pipelineContext.getGlobal(value)
+    val globalLink = pipelineContext.isGlobalLink(value)
+    val applyMethod = pipelineContext.getGlobal("extractMethodsEnabled").asInstanceOf[Option[Boolean]]
+
+    if (initGlobal.isDefined) {
+      val global = initGlobal.get match {
+        case s: String if globalLink && globalLinksFunc.isDefined =>
+          globalLinksFunc.get(s, pipelineContext.copy(globals = Some(globals - "GlobalLinks")))
+        case s: String => Some(s)
+        case default => Some(default)
+      }
+
+      val ret = global match {
+        case g: Option[_] if g.isDefined => ReflectionUtils.extractField(g.get, extractPath, applyMethod = applyMethod)
+        case _: Option[_] => None
+        case _ => ReflectionUtils.extractField(global, extractPath, applyMethod = applyMethod)
+      }
+
+      ret match {
+        case ret: Option[_] => ret
+        case _ => Some(ret)
+      }
+    } else {
+      logger.debug(s"globals does not contain the requested value: $value.$extractPath")
+      None
+    }
+  }
+
+  private def getPipelineParameterValue(pipelinePath: PipelinePath, pipelineContext: PipelineContext): Option[Any] = {
+    val paramName = (pipelinePath.special, pipelinePath.mainValue.toLowerCase) match {
+      case ('@' | '#', "laststepid") => pipelineContext.getGlobalString("lastStepId").mkString
+      case _ => pipelinePath.mainValue
+    }
+    logger.debug(s"pulling parameter for Pipeline,paramName=$paramName")
+    // the value is marked as a step parameter, get it from pipelineContext.parameters (Will be a PipelineStepResponse)
+    val applyMethod = pipelineContext.getGlobalAs[Boolean]("extractMethodsEnabled")
+    pipelinePath.special match {
+      case '@' | '#' =>
+        val result = pipelineContext.getStepResultByKey(paramName)
+        if (result.isDefined) {
+          getResponseValue(pipelinePath, applyMethod, result)
+        } else {
+          // Is this a fork?
+          val stepName = if (pipelinePath.fork) {
+            paramName.substring(0, paramName.lastIndexOf(".f("))
+          } else {
+            paramName
+          }
+          val results = pipelineContext.getStepResultsByKey(stepName)
+          if (results.isDefined) {
+            val list = results.get.map(r => getResponseValue(pipelinePath, applyMethod, Some(r)))
+            Some(list)
+          } else {
+            None
+          }
+        }
+      case '$' | '?' =>
+        val results = pipelineContext.findParameterByPipelineKey(paramName)
+        if (results.isDefined) {
+          getSpecificValue(results.get.parameters, pipelinePath, applyMethod)
+        } else {
+          None
+        }
+    }
+  }
+
+  private def getStepParamPath(value: String, secondary: Boolean, pipelineContext: PipelineContext): PipelinePath = {
+    val includeExtraPaths = value.contains('.')
+    val paths = value.split('.')
+    val special = if (secondary) '#' else '@'
+    val paramName = paths.head.toLowerCase match {
+      case "laststepid" => pipelineContext.getGlobalString("lastStepId").getOrElse("")
+      case _ => paths.head
+    }
+    val keyList = pipelineContext.stepResults.keys.toList
+    if (isLocalStep(paramName, keyList)) {
+      val extraPath = getExtraPath(1, paths, !includeExtraPaths)
+      val key = pipelineContext.currentStateInfo.get.copy(stepId = Some(paramName))
+      if (key.forkData.isDefined && !value.contains("f(")) {
+        PipelinePath(special, key.key, extraPath, fork = true)
+      } else {
+        PipelinePath(special, key.key, extraPath)
+      }
+    } else {
+      // Get Key
+      val key = determineKey(paths, keyList, "")
+      PipelinePath(special, key._1, Some(paths.toList.slice(key._2, paths.length).mkString(".")))
+    }
+  }
+
+  private def getPipelineParameterPath(value: String, recursive: Boolean, pipelineContext: PipelineContext): PipelinePath = {
+    val includeExtraPaths = value.contains('.')
+    val paths = value.split('.')
+    val special = if (recursive) '$' else '?'
+    val keyList = pipelineContext.parameters.map(_.pipelineKey.copy(stepId = None, forkData = None))
+    // See if this is a local request
+    val key = pipelineContext.currentStateInfo.get.copy(stepId = None, forkData = None).key
+    if (pipelineContext.hasPipelineParameters(key, paths.head)) {
+      PipelinePath(special, key, getExtraPath(0, paths))
+    } else {
+      // Get Key
+      val key = determineKey(paths, keyList, "")
+      PipelinePath(special, key._1, getExtraPath(key._2, paths, !includeExtraPaths))
+    }
+  }
+
+  @tailrec
+  private def determineKey(paths: Array[String], keys: List[PipelineStateKey],
+                           key: String, index: Int = 0, fork: Boolean = false): (String, Int, Boolean) = {
+    // See if we have reached the last token
+    if (index >= paths.length) {
+      (key, index, fork)
+    } else {
+      val token = paths(index)
+      // Make sure that key has a value else use the token
+      val currentKey = if (key.nonEmpty) {
+        s"$key.$token"
+      } else {
+        token
+      }
+      val nextIndex = index + 1
+      val matchedKey = keys.find(k => k.key == currentKey || (k.forkData.isDefined && k.copy(forkData = None).key == currentKey))
+      if (matchedKey.isEmpty) {
+        determineKey(paths, keys, currentKey, nextIndex, fork)
+      } else {
+        (currentKey, nextIndex, matchedKey.get.forkData.isDefined)
+      }
+    }
+  }
+
+  private def getExtraPath(index: Int, paths: Array[String], skip: Boolean = false): Option[String] = {
+    if (!skip && index < paths.length) {
+      Some(paths.toList.slice(index, paths.length).mkString("."))
+    } else {
+      None
+    }
+  }
+
+  private def isLocalStep(value: String, keys: List[PipelineStateKey]): Boolean = {
+    if (!keys.exists(_.pipelineId == value)) {
+      keys.exists(_.stepId.getOrElse("MISSING") == value)
+    } else {
+      false
+    }
+  }
+
+  private def getResponseValue(pipelinePath: PipelinePath, applyMethod: Option[Boolean], result: Option[PipelineStepResponse]) = {
+    val response = if (pipelinePath.special == '@') {
+      result.get.primaryReturn
+    } else {
+      result.get.namedReturns
+    }
+    getSpecificValue(response, pipelinePath, applyMethod)
+  }
+
+  private def getSpecificValue(parentObject: Any, pipelinePath: PipelinePath, applyMethod: Option[Boolean]): Option[Any] = {
+    parentObject match {
+      case g: Option[_] if g.isDefined =>
+        Some(ReflectionUtils.extractField(g.get, pipelinePath.extraPath.mkString, applyMethod = applyMethod))
+      case _: Option[_] => None
+      case resp => Some(ReflectionUtils.extractField(resp, pipelinePath.extraPath.mkString, applyMethod = applyMethod))
+    }
+  }
+}
+
 class DefaultPipelineStepMapper extends PipelineStepMapper
 
-//noinspection ScalaStyle
 trait PipelineStepMapper {
   val logger: Logger = LoggerFactory.getLogger(getClass)
 
@@ -383,9 +587,8 @@ trait PipelineStepMapper {
         removeOptions(finalValue) match {
           case v: String if embeddedValue.startsWith("\\") => Some(v.replace(embeddedValue, embeddedValue.substring(1)))
           case valueString: String =>
-            val pipelinePath = getPathValues(
-              embeddedValue.replaceAll("\\{", "").replaceAll("}", ""), pipelineContext)
-            val retVal = processValue(parameter, pipelineContext, pipelinePath)
+            val e = embeddedValue.replaceAll("\\{", "").replaceAll("}", "")
+            val retVal = processValue(parameter, pipelineContext, e)
             if (retVal.isEmpty && finalValue.get.isInstanceOf[String]) {
               Some(valueString.replace(embeddedValue, "None"))
             } else {
@@ -409,7 +612,7 @@ trait PipelineStepMapper {
         }
       })
     } else {
-      processValue(parameter, pipelineContext, getPathValues(value, pipelineContext))
+      processValue(parameter, pipelineContext, value)
     }
   }
 
@@ -437,17 +640,28 @@ trait PipelineStepMapper {
     }
   }
 
-  private def processValue(parameter: Parameter, pipelineContext: PipelineContext, pipelinePath: PipelinePath) = {
-    pipelinePath.mainValue match {
-      case p if List('@', '#').contains(p.headOption.getOrElse("")) => getPipelineParameterValue(pipelinePath, pipelineContext)
-      case r if List('$', '?').contains(r.headOption.getOrElse("")) =>
-        mapRuntimeParameter(pipelinePath, parameter, recursive = r.startsWith("?"), pipelineContext)
-      case g if g.startsWith("!") => getGlobalParameterValue(g, pipelinePath.extraPath.getOrElse(""), pipelineContext)
-      case g if g.startsWith("&") =>
-        logger.debug(s"Fetching pipeline value for ${pipelinePath.mainValue.substring(1)}")
-        pipelineContext.pipelineManager.getPipeline(pipelinePath.mainValue.substring(1))
-      case g if g.startsWith("%") => getCredential(pipelineContext, pipelinePath)
-      case o if o.nonEmpty => Some(mapByType(removeLeadingEscapeCharacter(Some(o)), parameter, pipelineContext))
+  private def processValue(parameter: Parameter, pipelineContext: PipelineContext, value: String): Option[Any] = {
+    val special = getSpecialCharacter(value)
+    val key = if (special.nonEmpty) value.drop(1) else value
+    special match {
+      case "@" => MappingResolver.getStepResponse(key, secondary = false, pipelineContext)
+      case "#" => MappingResolver.getStepResponse(key, secondary = true, pipelineContext)
+      case "$" => MappingResolver.getPipelineParameter(key, pipelineContext, None)
+      case "?" => MappingResolver.getPipelineParameter(key, pipelineContext, Some( s =>
+        mapParameter(parameter.copy(value = Some(s)), pipelineContext) match {
+          case o: Option[_] => o
+          case v => Option(v)
+        }
+      ))
+      case "!" => MappingResolver.getGlobalParameter(key, pipelineContext, Some( (s, ctx) =>
+        returnBestValue(s, Parameter(), ctx.copy(globals = Some(ctx.globals.getOrElse(Map()) - "GlobalLinks")))
+      ))
+      case "&" =>
+        val pipelineId = key.split('.').headOption.mkString
+        logger.debug(s"Fetching pipeline value for $pipelineId")
+        pipelineContext.pipelineManager.getPipeline(pipelineId)
+      case "%" => MappingResolver.getCredential(key, pipelineContext)
+      case _ if key.nonEmpty => Some(mapByType(removeLeadingEscapeCharacter(Some(key)), parameter, pipelineContext))
       case _ => None
     }
   }
@@ -456,167 +670,6 @@ trait PipelineStepMapper {
     value.map {
       case v if "^\\\\[!@$%#&?].*".r.findAllIn(v).nonEmpty => v.substring(1)
       case e => e
-    }
-  }
-
-  private def getCredential(pipelineContext: PipelineContext, pipelinePath: PipelinePath) = {
-    val credentialName = pipelinePath.mainValue.substring(1)
-    logger.debug(s"Fetching credential: $credentialName")
-    if (pipelineContext.credentialProvider.isDefined) {
-      val credential = pipelineContext.credentialProvider.get.getNamedCredential(credentialName)
-      if (credential.isDefined) {
-        getSpecificValue(credential.get, pipelinePath, Some(true))
-      } else {
-        None
-      }
-    } else {
-      None
-    }
-  }
-
-  private def mapRuntimeParameter(pipelinePath: PipelinePath, parameter: Parameter, recursive: Boolean, pipelineContext: PipelineContext): Option[Any] = {
-    val value = getPipelineParameterValue(pipelinePath, pipelineContext)
-
-    if (value.isDefined) {
-      value.get match {
-        case s: String if recursive => Some(mapParameter(parameter.copy(value = Some(s)), pipelineContext))
-        case s: String => Some(s)
-        case _ => value
-      }
-    } else {
-      value
-    }
-  }
-
-  private def getPipelineParameterValue(pipelinePath: PipelinePath, pipelineContext: PipelineContext): Option[Any] = {
-    val paramName = pipelinePath.mainValue.toLowerCase match {
-      case "@laststepid" | "#laststepid" => pipelineContext.getGlobalString("lastStepId").getOrElse("")
-      case _ => pipelinePath.mainValue.substring(1)
-    }
-    logger.debug(s"pulling parameter for Pipeline,paramName=$paramName")
-    // the value is marked as a step parameter, get it from pipelineContext.parameters (Will be a PipelineStepResponse)
-    val applyMethod = pipelineContext.getGlobalAs[Boolean]("extractMethodsEnabled")
-    pipelinePath.mainValue.head match {
-      case '@' | '#' =>
-        val result = pipelineContext.getStepResultByKey(paramName)
-        if (result.isDefined) {
-          getResponseValue(pipelinePath, applyMethod, result)
-        } else {
-          // Is this a fork?
-          val stepName = if (pipelinePath.fork) {
-            paramName.substring(0, paramName.lastIndexOf(".f("))
-          } else {
-            paramName
-          }
-          val results = pipelineContext.getStepResultsByKey(stepName)
-          if (results.isDefined) {
-            val list = results.get.map(r => getResponseValue(pipelinePath, applyMethod, Some(r)))
-            Some(list)
-          } else {
-            None
-          }
-        }
-      case '$' | '?' =>
-        val results = pipelineContext.findParameterByPipelineKey(paramName)
-        if (results.isDefined) {
-          getSpecificValue(results.get.parameters, pipelinePath, applyMethod)
-        } else {
-          None
-        }
-    }
-  }
-
-  private def getResponseValue(pipelinePath: PipelinePath, applyMethod: Option[Boolean], result: Option[PipelineStepResponse]) = {
-    val response = if (pipelinePath.mainValue.head == '@') {
-      result.get.primaryReturn
-    } else {
-      result.get.namedReturns
-    }
-    getSpecificValue(response, pipelinePath, applyMethod)
-  }
-
-  private def getSpecificValue(parentObject: Any, pipelinePath: PipelinePath, applyMethod: Option[Boolean]): Option[Any] = {
-    parentObject match {
-      case g: Option[_] if g.isDefined =>
-        Some(ReflectionUtils.extractField(g.get, pipelinePath.extraPath.getOrElse(""), applyMethod = applyMethod))
-      case _: Option[_] => None
-      case resp => Some(ReflectionUtils.extractField(resp, pipelinePath.extraPath.getOrElse(""), applyMethod = applyMethod))
-    }
-  }
-
-  private def getPathValues(value: String, pipelineContext: PipelineContext): PipelinePath = {
-    val special = getSpecialCharacter(value)
-    val includeExtraPaths = value.contains('.')
-    if (special.nonEmpty) {
-      val paths = value.substring(1).split('.')
-      special match {
-        case "!" | "%" => PipelinePath(s"$special${paths.head}", getExtraPath(1, paths, !includeExtraPaths))
-        case "@" | "#" =>
-          val paramName = paths.head.toLowerCase match {
-            case "laststepid" => pipelineContext.getGlobalString("lastStepId").getOrElse("")
-            case _ => paths.head
-          }
-          val keyList = pipelineContext.stepResults.keys.toList
-          if (isLocalStep(paramName, keyList)) {
-            val extraPath = getExtraPath(1, paths, !includeExtraPaths)
-            val key = pipelineContext.currentStateInfo.get.copy(stepId = Some(paramName))
-            if (key.forkData.isDefined && !value.contains("f(")) {
-              PipelinePath(s"$special${key.key}", extraPath, fork = true)
-            } else {
-              PipelinePath(s"$special${key.key}", extraPath)
-            }
-          } else {
-            // Get Key
-            val key = determineKey(paths, keyList, "")
-            PipelinePath(s"$special${key._1}", Some(paths.toList.slice(key._2, paths.length).mkString(".")))
-          }
-        case "$" | "?" =>
-          val keyList = pipelineContext.parameters.map(_.pipelineKey.copy(stepId = None, forkData = None))
-          // See if this is a local request
-          val key = pipelineContext.currentStateInfo.get.copy(stepId = None, forkData = None).key
-          if (pipelineContext.hasPipelineParameters(key, paths.head)) {
-            PipelinePath(s"$special$key", getExtraPath(0, paths))
-          } else {
-            // Get Key
-            val key = determineKey(paths, keyList, "")
-            PipelinePath(s"$special${key._1}", getExtraPath(key._2, paths, !includeExtraPaths))
-          }
-        case _ => PipelinePath(value, getExtraPath(1, paths, !includeExtraPaths))
-      }
-    } else {
-      PipelinePath(value, None)
-    }
-  }
-
-  @tailrec
-  private def determineKey(paths: Array[String], keys: List[PipelineStateKey],
-                           key: String, index: Int = 0, fork: Boolean = false): (String, Int, Boolean) = {
-    // See if we have reached the last token
-    if (index >= paths.length) {
-      (key, index, fork)
-    } else {
-      val token = paths(index)
-      // Make sure that key has a value else use the token
-      val currentKey = if (key.nonEmpty) {
-        s"$key.$token"
-      } else {
-        token
-      }
-      val nextIndex = index + 1
-      val matchedKey = keys.find(k => k.key == currentKey || (k.forkData.isDefined && k.copy(forkData = None).key == currentKey))
-      if (matchedKey.isEmpty) {
-        determineKey(paths, keys, currentKey, nextIndex, fork)
-      } else {
-        (currentKey, nextIndex, matchedKey.get.forkData.isDefined)
-      }
-    }
-  }
-
-  private def isLocalStep(value: String, keys: List[PipelineStateKey]): Boolean = {
-    if (!keys.exists(_.pipelineId == value)) {
-      keys.exists(_.stepId.getOrElse("MISSING") == value)
-    } else {
-      false
     }
   }
 
@@ -631,45 +684,6 @@ trait PipelineStepMapper {
     }
   }
 
-  private def getExtraPath(index: Int, paths: Array[String], skip: Boolean = false): Option[String] = {
-    if (!skip && index < paths.length) {
-      Some(paths.toList.slice(index, paths.length).mkString("."))
-    } else {
-      None
-    }
-  }
-
-  private def getGlobalParameterValue(value: String, extractPath: String, pipelineContext: PipelineContext): Option[Any] = {
-    // the value is marked as a global parameter, get it from pipelineContext.globals
-    logger.debug(s"Fetching global value for $value.$extractPath")
-    val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
-    val initGlobal = pipelineContext.getGlobal(value.substring(1))
-    val globalLink = pipelineContext.isGlobalLink(value.substring(1))
-    val applyMethod = pipelineContext.getGlobal("extractMethodsEnabled").asInstanceOf[Option[Boolean]]
-
-    if(initGlobal.isDefined) {
-      val global = initGlobal.get match {
-        case s: String if globalLink => returnBestValue(s, Parameter(), pipelineContext.copy(globals = Some(globals - "GlobalLinks")))
-        case s: String => Some(s)
-        case default => Some(default)
-      }
-
-      val ret = global match {
-        case g: Option[_] if g.isDefined => ReflectionUtils.extractField(g.get, extractPath, applyMethod = applyMethod)
-        case _: Option[_] => None
-        case _ => ReflectionUtils.extractField(global, extractPath, applyMethod = applyMethod)
-      }
-
-      ret match {
-        case ret: Option[_] => ret
-        case _ => Some(ret)
-      }
-    } else {
-      logger.debug(s"globals does not contain the requested value: $value.$extractPath")
-      None
-    }
-  }
-
   private def mapByValue(value: Option[String], parameter: Parameter): Any = {
     if (value.isDefined) {
       value.get
@@ -680,6 +694,4 @@ trait PipelineStepMapper {
       None
     }
   }
-
-  private case class PipelinePath(mainValue: String, extraPath: Option[String], fork: Boolean = false)
 }

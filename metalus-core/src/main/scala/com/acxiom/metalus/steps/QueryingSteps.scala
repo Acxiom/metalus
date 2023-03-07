@@ -1,6 +1,7 @@
 package com.acxiom.metalus.steps
 
 import com.acxiom.metalus.annotations.{StepFunction, StepParameter, StepParameters}
+import com.acxiom.metalus.connectors.DataConnector
 import com.acxiom.metalus.{PipelineContext, PipelineException}
 import com.acxiom.metalus.sql._
 
@@ -61,9 +62,14 @@ object QueryingSteps {
              pipelineContext: PipelineContext): DataReference[_] =
     applyQueryOperation(dataReference, OrderBy(expressions), pipelineContext)
 
-  def create(dataReference: DataReference[_], name: String, view: Boolean = false,
+  def create(dataReference: DataReference[_], name: String,
+             view: Boolean = false,
+             noData: Boolean = false,
+             externalPath: Option[String] = None,
+             options: Option[Map[String, Any]] = None,
+             connector: Option[DataConnector] = None,
              pipelineContext: PipelineContext): DataReference[_] =
-    applyQueryOperation(dataReference, CreateTableAs(name, view), pipelineContext)
+    applyQueryOperation(dataReference, CreateAs(name, view, noData, externalPath, options, connector), pipelineContext)
 
   def convert(dataReference: DataReference[_], engine: String): DataReference[_] = {
     dataReference match {

@@ -17,6 +17,16 @@ class SqlParserTests extends AnyFunSpec {
       assert(steps.nonEmpty)
       assert(steps.last.id.mkString == "SELECT_c_b")
     }
+
+    it("should parse an update statement into a pipeline") {
+      val text =
+        """UPDATE @chickens
+          |SET breed_id = 1
+          |WHERE name = 'cogburn'
+          |""".stripMargin
+      val steps = SqlParser.parse(text)
+      assert(steps.nonEmpty)
+    }
   }
 
 }

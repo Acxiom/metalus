@@ -32,9 +32,9 @@ trait FlowStep extends Step {
   def dependencies: Option[String] = None
   def value: Option[String] = None
 
-  def valueExpression: String = value.getOrElse("STEP")
+  def valueExpression: String = (executeIfEmpty.map(e => s"$e || ").mkString + value.getOrElse("STEP")).trim
 
-  def nextStepExpressions: Option[List[String]] = nextSteps.orElse(nextStepId.map(n => List(s"'$n'")))
+  def nextStepExpressions: Option[List[String]] = nextSteps.orElse(nextStepId.map(n => List(n)))
 }
 
 /**

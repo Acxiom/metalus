@@ -3,6 +3,7 @@ package com.acxiom.metalus.flow
 import com.acxiom.metalus._
 import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
 import com.acxiom.metalus.context.SessionContext
+import com.acxiom.metalus.sql.parser.ExpressionParser
 import com.acxiom.metalus.utils.ReflectionUtils
 import org.slf4j.LoggerFactory
 
@@ -109,6 +110,7 @@ trait PipelineFlow {
     }
   }
 
+  //noinspection ScalaStyle
   @tailrec
   protected final def executeStep(step: FlowStep, pipeline: Pipeline, steps: Map[String, FlowStep],
                                   pipelineContext: PipelineContext): PipelineContext = {
@@ -116,51 +118,50 @@ trait PipelineFlow {
     // Create the step state info
     val stepState = pipelineContext.currentStateInfo.get.copy(stepId = step.id)
     val (skipStep, skipCtx) = determineRestartLogic(pipelineContext, stepState)
-    val (nextStepId, sfContext) = if (!skipStep) {
+    val (nextSteps, sfContext) = if (!skipStep) {
       val executionAudit = ExecutionAudit(stepState, AuditType.STEP, start = System.currentTimeMillis())
       val ctx = skipCtx.setCurrentStateInfo(stepState).setPipelineAudit(executionAudit)
       val ssContext = PipelineFlow.handleEvent(ctx, "pipelineStepStarted", List(stepState, ctx))
         .setStepStatus(stepState, "RUNNING", None) // Set step status of RUNNING
-      val (nstepId, sfContextResult) = processStepWithRetry(step, pipeline, ssContext, Constants.ZERO)
+      val (nextStepIds, sfContextResult) = processStepWithRetry(step, pipeline, ssContext, Constants.ZERO)
       // Close the step audit
       val audit = sfContextResult.getPipelineAudit(stepState).get.setEnd(System.currentTimeMillis())
       // run the step finished event
-      val nextSteps = if (nstepId.isDefined) {
-        Some(List(nstepId.get))
-      } else {
-        None
-      }
       val sfContext = PipelineFlow.handleEvent(sfContextResult, "pipelineStepFinished",
-        List(stepState, sfContextResult)).setPipelineAudit(audit).setStepStatus(stepState, "COMPLETE", nextSteps)
-      (nstepId, sfContext)
+        List(stepState, sfContextResult)).setPipelineAudit(audit).setStepStatus(stepState, "COMPLETE", nextStepIds)
+      (nextStepIds, sfContext)
     } else {
-      step.`type`.getOrElse("").toLowerCase match {
+      step.`type`.mkString.toLowerCase match {
         case PipelineStepType.SPLIT | PipelineStepType.FORK =>
+          processStepWithRetry(step, pipeline, skipCtx, Constants.ZERO)
+        case t if step.nextStepExpressions.exists(_.size > 1) =>
           processStepWithRetry(step, pipeline, skipCtx, Constants.ZERO)
         case PipelineStepType.STEPGROUP =>
           processStepWithRetry(step, pipeline, skipCtx.setCurrentStateInfo(stepState), Constants.ZERO)
-        case _ => (getNextStepId(step, skipCtx.getStepResultByKey(stepState.key)), skipCtx)
+        case _ =>
+          (getNextStepIds(step, skipCtx.getStepResultByKey(stepState.key).flatMap(_.primaryReturn)), skipCtx)
       }
     }
     // Call the next step here
-    if (steps.contains(nextStepId.getOrElse("")) &&
-      (steps(nextStepId.getOrElse("")).`type`.getOrElse("") == PipelineStepType.JOIN ||
-        steps(nextStepId.getOrElse("")).`type`.getOrElse("") == PipelineStepType.MERGE)) {
+    val next = nextSteps.flatMap(getNextStep(_, steps, step.id))
+    if (next.isDefined && (next.get.`type`.contains(PipelineStepType.JOIN) || next.get.`type`.contains(PipelineStepType.MERGE))) {
       sfContext
-    } else if (steps.contains(nextStepId.getOrElse(""))) {
-      val ctx = sfContext.setCurrentStateInfo(sfContext.currentStateInfo.get.copy(stepId = nextStepId))
-      executeStep(steps(nextStepId.get), pipeline, steps, ctx)
-    } else if (nextStepId.isDefined && nextStepId.get.nonEmpty) {
-      val s = this.stepLookup.find(_._2.nextStepId.getOrElse("") == nextStepId.getOrElse("FUNKYSTEPID"))
-      // See if this is a sub-fork
+    } else if (next.isDefined) {
+      val ctx = sfContext.setCurrentStateInfo(sfContext.currentStateInfo.get.copy(stepId = next.get.id))
+      executeStep(next.get, pipeline, steps, ctx)
+    } else if (nextSteps.exists(_.nonEmpty)) {
+      // this is to handle a join step skip that occurs when running embedded forks
+      val s = stepLookup.find(_._2.nextStepExpressions.exists(_.forall(nextSteps.get.contains)))
       if (s.isDefined && s.get._2.`type`.getOrElse("") == PipelineStepType.JOIN) {
         sfContext
       } else {
-        throw PipelineException(message = Some(s"Step Id (${nextStepId.get}) does not exist in pipeline"),
+        throw PipelineException(message = Some(s"Step Id (${nextSteps.get.head}) does not exist in pipeline"),
           context = Some(sfContext),
-          pipelineProgress = Some(sfContext.currentStateInfo.get.copy(stepId = nextStepId)))
+          pipelineProgress = Some(sfContext.currentStateInfo.get.copy(stepId = nextSteps.get.headOption)))
       }
-    } else { sfContext }
+    } else {
+      sfContext
+    }
   }
 
   private def determineRestartLogic(pipelineContext: PipelineContext, stepState: PipelineStateKey) = {
@@ -179,17 +180,15 @@ trait PipelineFlow {
   @tailrec
   private def processStepWithRetry(step: FlowStep, pipeline: Pipeline,
                                    ssContext: PipelineContext,
-                                   stepRetryCount: Int): (Option[String], PipelineContext) = {
+                                   stepRetryCount: Int): (Option[List[String]], PipelineContext) = {
     val response = try {
-      val result = processPipelineStep(step, pipeline, ssContext.setGlobal("stepRetryCount", stepRetryCount))
+      val (newPipelineContext, nextSteps) =
+        processPipelineStep(step, pipeline, ssContext.setGlobal("stepRetryCount", stepRetryCount)) match {
+          case Right(result) => (updatePipelineContext(step, result, result.pipelineContext), result.nextSteps)
+          case Left(result) => (updatePipelineContext(step, result, ssContext), getNextStepIds(step, result.primaryReturn))
+        }
       // setup the next step
-      val (newPipelineContext, nextStepId) = result match {
-        case flowResult: FlowResult => (updatePipelineContext(step, result, flowResult.pipelineContext), flowResult.nextStepId)
-        case _ =>
-          val nextStepId = getNextStepId(step, result)
-          (updatePipelineContext(step, result, ssContext), nextStepId)
-      }
-      Some((nextStepId, newPipelineContext.removeGlobal("stepRetryCount")))
+      Some((nextSteps, newPipelineContext.removeGlobal("stepRetryCount")))
     } catch {
       case t: Throwable if step.retryLimit.getOrElse(-1) > Constants.ZERO && stepRetryCount < step.retryLimit.getOrElse(-1) =>
         logger.warn(s"Retrying step ${step.id.getOrElse("")}", t)
@@ -202,7 +201,7 @@ trait PipelineFlow {
         // put exception on the context as the "result" for this step.
         val updateContext = updatePipelineContext(step, PipelineStepResponse(Some(ex), None), ssContext)
           .setStepStatus(ssContext.currentStateInfo.get, "ERROR", Some(List(step.nextStepOnError.get)))
-        Some((step.nextStepOnError, updateContext))
+        Some((step.nextStepOnError.map(List(_)), updateContext))
       case e =>
         ssContext.setStepStatus(ssContext.currentStateInfo.get, "ERROR", None)
         throw e
@@ -215,19 +214,17 @@ trait PipelineFlow {
     }
   }
 
-  private def processPipelineStep(step: FlowStep, pipeline: Pipeline, pipelineContext: PipelineContext): Any = {
-    // Create a map of values for each defined parameter
-    val parameterValues: Map[String, Any] = pipelineContext.parameterMapper.createStepParameterMap(step, pipelineContext)
+  private def processStepCommand(step: FlowStep, parameterValues: Map[String, Any], pipeline: Pipeline,
+                                 pipelineContext: PipelineContext): Either[PipelineStepResponse, FlowResult] = {
     val stateInfo = pipelineContext.currentStateInfo.get
-    (step.executeIfEmpty.getOrElse(""), step.`type`.getOrElse("").toLowerCase) match {
-      // process step normally if empty
-      case ("", PipelineStepType.FORK) =>
-        ForkStepFlow(pipeline, pipelineContext, step, parameterValues, stateInfo).execute()
-      case ("", PipelineStepType.STEPGROUP) =>
-        StepGroupFlow(pipeline, pipelineContext, step, parameterValues, stateInfo).execute()
-      case ("", PipelineStepType.SPLIT) =>
-        SplitStepFlow(pipeline, pipelineContext, step).execute()
-      case ("", _) =>
+    step.`type`.mkString.toLowerCase match {
+      case PipelineStepType.FORK =>
+        Right(ForkStepFlow(pipeline, pipelineContext, step, parameterValues, stateInfo).execute())
+      case PipelineStepType.STEPGROUP =>
+        Right(StepGroupFlow(pipeline, pipelineContext, step, parameterValues, stateInfo).execute())
+      case PipelineStepType.SPLIT =>
+        Right(SplitStepFlow(pipeline, pipelineContext, step).execute())
+      case _ =>
         val alternateCommand = pipelineContext.getAlternateCommand(step.stepTemplateId.getOrElse(""))
         val finalStep = if (alternateCommand.isDefined) {
           val engineMeta = step.asInstanceOf[PipelineStep].engineMeta.get
@@ -235,23 +232,30 @@ trait PipelineFlow {
         } else {
           step.asInstanceOf[PipelineStep]
         }
-        ReflectionUtils.processStep(finalStep, parameterValues, pipelineContext)
-      case (value, _) =>
-        logger.debug(s"Evaluating execute if empty: $value")
-        // wrap the value in a parameter object
-        val param = Parameter(Some("text"), Some("dynamic"), Some(true), None, Some(value))
-        val ret = pipelineContext.parameterMapper.mapParameter(param, pipelineContext)
-        ret match {
-          case some: Some[_] =>
-            logger.debug("Returning existing value")
-            PipelineStepResponse(some, None)
-          case None =>
-            logger.debug("Executing step normally")
-            ReflectionUtils.processStep(step.asInstanceOf[PipelineStep], parameterValues, pipelineContext)
-          case _ =>
-            logger.debug("Returning existing value")
-            PipelineStepResponse(Some(ret), None)
-        }
+        Left(ReflectionUtils.processStep(finalStep, parameterValues, pipelineContext))
+    }
+  }
+
+  private def processPipelineStep(step: FlowStep, pipeline: Pipeline,
+                                  pipelineContext: PipelineContext): Either[PipelineStepResponse, FlowResult] = {
+    // Create a map of values for each defined parameter
+    val parameterValues: Map[String, Any] = pipelineContext.parameterMapper.createStepParameterMap(step, pipelineContext)
+    val expression = step.valueExpression
+    if (expression == ExpressionParser.STEP) { // skip expression evaluation if we're just going to run a command
+      processStepCommand(step, parameterValues, pipeline, pipelineContext)
+    } else {
+      lazy val stepResult = processStepCommand(step, parameterValues, pipeline, pipelineContext) match {
+        case Left(psr) => psr
+        case Right(fr) => fr
+      }
+      ExpressionParser.parse(expression, pipelineContext){
+        case ExpressionParser.STEP => Some(stepResult)
+        case ident => parameterValues.get(ident)
+      } match {
+        case Some(f: FlowResult) => Right(f)
+        case Some(r: PipelineStepResponse) => Left(r)
+        case o: Option[_] => Left(PipelineStepResponse(o))
+      }
     }
   }
 
@@ -269,23 +273,33 @@ trait PipelineFlow {
     }
   }
 
-  private def getNextStepId(step: FlowStep, result: Any): Option[String] = {
-    step.`type`.getOrElse("").toLowerCase match {
+  protected def getNextStep(nextStepIds: List[String], lookup: Map[String, FlowStep], parent: Option[String]): Option[FlowStep] = {
+    nextStepIds match {
+      case List(nextStepId) => lookup.get(nextStepId)
+      case List() => None
+      case l =>
+        val splitParams = l.zipWithIndex.map { case (nextStep, index) =>
+          Parameter(Some("result"), Some(index.toString), Some(true), value = Some(nextStep))
+        }
+        Some(PipelineStep(
+          parent.map(_ + "_split"),
+          `type` = Some(PipelineStepType.SPLIT),
+          params = Some(splitParams)
+        ))
+    }
+  }
+
+  protected def getNextStep(step: FlowStep, lookup: Map[String, FlowStep], result: Option[Any]): Option[FlowStep] =
+    getNextStepIds(step, result).flatMap(getNextStep(_, lookup, step.id))
+
+  protected def getNextStepIds(step: FlowStep, result: Option[Any]): Option[List[String]] = {
+    step.`type`.mkString.toLowerCase match {
       case PipelineStepType.BRANCH =>
-        // match the result against the step parameter name until we find a match
-        val matchValue = result match {
-          case response: Option[PipelineStepResponse] => response.get.primaryReturn.getOrElse("").toString
-          case response: PipelineStepResponse => response.primaryReturn.getOrElse("").toString
-          case _ => result
-        }
-        val matchedParameter = step.params.get.find(p => p.name.get == matchValue.toString)
+        // Match the result against the step parameter name until we find a match
         // Use the value of the matched parameter as the next step id
-        if (matchedParameter.isDefined) {
-          Some(matchedParameter.get.value.get.asInstanceOf[String])
-        } else {
-          None
-        }
-      case _ => step.nextStepId
+        step.params.get.find(_.name.get == result.mkString)
+          .map(s => List(s.value.mkString))
+      case _ => step.nextStepExpressions
     }
   }
 
@@ -337,7 +351,7 @@ trait PipelineFlow {
   }
 }
 
-case class FlowResult(pipelineContext: PipelineContext, nextStepId: Option[String], result: Option[Any])
+case class FlowResult(pipelineContext: PipelineContext, nextSteps: Option[List[String]], result: Option[Any])
 
 case class PipelineStepFlow(pipeline: Pipeline, initialContext: PipelineContext) extends PipelineFlow
 

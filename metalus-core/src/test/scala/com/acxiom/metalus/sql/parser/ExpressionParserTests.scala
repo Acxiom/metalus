@@ -51,12 +51,9 @@ class ExpressionParserTests extends AnyFunSpec {
 
     it("should evaluate basic expressions") {
       val parseTest = ExpressionParser.parse(_, pipelineContext)
-      val start = System.nanoTime()
       basicTests.foreach{ case (test, expected) =>
-        assert(parseTest(test).contains(expected), test)
+         assert(parseTest(test).contains(expected), test)
       }
-      val end = System.nanoTime() - start
-      println(end)
     }
 
     it("should throw a parse exception on illegal syntax") {

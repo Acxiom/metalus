@@ -2,7 +2,10 @@ package com.acxiom.metalus.spark
 
 import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.sql.{Attribute, AttributeType, Schema, Transformations}
+import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.types.{ArrayType, DataType, DataTypes, MapType, Metadata, StructField, StructType}
+
+import scala.language.implicitConversions
 
 package object sql {
   implicit class SchemaImplicits(schema: Schema) {
@@ -73,4 +76,6 @@ package object sql {
       }
     }
   }
+
+  implicit def sparkDataRefToDataset(sdr: SparkDataReference): Dataset[_] = sdr.execute
 }

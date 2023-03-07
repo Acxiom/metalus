@@ -11,7 +11,7 @@ import org.json4s.{CustomSerializer, DefaultFormats, Extraction, Formats, FullTy
 
 object JsonParser {
   // This should only be used by the StepSerializer
-  private implicit val formats: Formats = DefaultFormats
+  private implicit val formats: Formats = DefaultFormats.withStrictArrayExtraction
 
   private class StepSerializer extends CustomSerializer[FlowStep](_ => ( { // This is the deserializer
     case input: JObject if input.values.contains("type") && input.values("type").toString.toLowerCase == "step-group" =>
