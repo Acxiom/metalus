@@ -75,13 +75,17 @@ class S3FileManager(s3Client: S3Client, bucket: String) extends FileManager {
     val finalPath = S3Utilities.prepareS3FilePath(path, Some(bucket))
     try {
       val objListing = if (recursive) {
-        s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(bucket).prefix(finalPath).build())
+        s3Client.listObjectsV2Paginator(ListObjectsV2Request.builder().bucket(bucket).prefix(finalPath).build())
       } else {
         val req = ListObjectsV2Request.builder().bucket(bucket).delimiter("/")
           .prefix(if (!finalPath.endsWith("/")) finalPath + "/" else finalPath).build()
-        s3Client.listObjectsV2(req)
+        s3Client.listObjectsV2Paginator(req)
       }
-      objListing.contents().asScala.map(content => S3FileResource(s3Client, bucket, content)).toList
+      val a = new util.ArrayList[S3FileResource]()
+      objListing.stream()
+        .flatMap(r => r.contents().stream())
+        .forEach(content => a.add(S3FileResource(s3Client, bucket, content)))
+      a.asScala.toList
     } catch {
       case r: NoSuchBucketException =>
         logger.warn(s"Bucket $bucket does not exist")
