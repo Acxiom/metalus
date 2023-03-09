@@ -153,7 +153,7 @@ class S3FileManager(region: String,
   }
 }
 
-case class S3FileResource(s3Client: S3Client, bucket: String, summary: S3Object, isDirectory: Boolean = false) extends FileResource {
+private case class S3FileResource(s3Client: S3Client, bucket: String, summary: S3Object, isDirectory: Boolean = false) extends FileResource {
 
   override def fileName: String = summary.key().split('/').last
 
