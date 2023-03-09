@@ -1,15 +1,10 @@
 package com.acxiom.aws.fs
 
 import com.acxiom.metalus.Constants
-import com.acxiom.metalus.fs.FileManager
 import com.acxiom.metalus.steps.S3Steps
-import com.acxiom.metalus.utils.AWSUtilities
 import io.findify.s3mock.S3Mock
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
-import software.amazon.awssdk.regions.Region
-import software.amazon.awssdk.services.s3.model.CreateBucketRequest
-import software.amazon.awssdk.services.s3.{S3Client, S3ClientBuilder}
 
 import java.io.{FileNotFoundException, OutputStreamWriter, PrintWriter}
 import java.net.URI
@@ -24,15 +19,11 @@ class S3FileManagerTests extends AnyFunSpec with BeforeAndAfterAll {
   private val region = "us-west-2"
   private val bucketName = "s3testbucket"
   private val endpointUrl = new URI(s"http://127.0.0.1:$port")
-  private val s3Client = AWSUtilities.setupCredentialProvider(S3Client.builder(), None).asInstanceOf[S3ClientBuilder]
-    .region(Region.of(region))
-    .forcePathStyle(true)
-    .endpointOverride(endpointUrl)
-    .build()
+  private val fileManager = S3Steps.createFileManager(region, bucketName, None, None, None, None, None, Some(endpointUrl), Some(true)).get
 
   override protected def beforeAll(): Unit = {
     api.start
-    s3Client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build())
+    fileManager.createBucket()
   }
 
   override protected def afterAll(): Unit = {
@@ -43,7 +34,7 @@ class S3FileManagerTests extends AnyFunSpec with BeforeAndAfterAll {
 
   describe("FileManager - S3") {
     it("Should perform proper file operations against a S3 file system") {
-      val fileManager = S3Steps.createFileManagerWithClient(s3Client, bucketName).get
+
       // These methods do nothing, so call them and then run file operations
       fileManager.connect()
       fileManager.disconnect()
@@ -96,7 +87,6 @@ class S3FileManagerTests extends AnyFunSpec with BeforeAndAfterAll {
     }
 
     it("should respect the recursive listing flag") {
-      val fileManager: FileManager = S3Steps.createFileManagerWithClient(s3Client, bucketName).get
       val root = s"s3://$bucketName/recursive"
       val f1 = new PrintWriter(fileManager.getFileResource(s"$root/f1.txt").getOutputStream())
       f1.print("file1")
@@ -117,7 +107,6 @@ class S3FileManagerTests extends AnyFunSpec with BeforeAndAfterAll {
     }
 
     it("should get a file status") {
-      val fileManager = S3Steps.createFileManagerWithClient(s3Client, bucketName).get
       val root = s"s3://$bucketName/exists"
       val content = "file1"
       val f1 = new PrintWriter(fileManager.getFileResource(s"$root/f1.txt").getOutputStream())

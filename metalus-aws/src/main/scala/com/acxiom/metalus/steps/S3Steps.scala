@@ -2,10 +2,43 @@ package com.acxiom.metalus.steps
 
 import com.acxiom.metalus.annotations._
 import com.acxiom.metalus.fs.S3FileManager
-import software.amazon.awssdk.services.s3.S3Client
+
+import java.net.URI
 
 @StepObject
 object S3Steps {
+  /**
+   * Simple function to generate the S3FileManager for the local S3 file system.
+   *
+   * @param accessKeyId     The AWS access key to use when interacting with the S3 bucket
+   * @param secretAccessKey The AWS secret to use when interaction with the S3 bucket
+   * @param region          The AWS region this bucket should be accessed in
+   * @param bucket          The bucket to use for this file system.
+   * @return A FileManager that can interact with the specified S3 bucket.
+   */
+  @StepFunction("cc4694b9-5e54-4b12-8088-ed4ced056efd",
+    "Create S3 FileManager",
+    "Simple function to generate the S3FileManager for a S3 file system",
+    "Pipeline",
+    "AWS"
+  )
+  @StepParameters(Map("bucket" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 bucket")),
+    "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the S3 bucket")),
+    "accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API key to use for S3 access")),
+    "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API secret to use for S3 access"))))
+  @StepResults(primaryType = "com.acxiom.pipeline.fs.FileManager", secondaryTypes = None)
+  def createFileManager(region: String,
+                        bucket: String,
+                        accessKeyId: Option[String] = None,
+                        secretAccessKey: Option[String] = None,
+                        accountId: Option[String] = None,
+                        role: Option[String] = None,
+                        partition: Option[String] = None,
+                        overrideEndpointURI: Option[URI] = None,
+                        forcePathStyle: Option[Boolean] = Some(false)): Option[S3FileManager] = {
+    Some(new S3FileManager(region, bucket, accessKeyId, secretAccessKey, accountId, role, partition, overrideEndpointURI, forcePathStyle))
+  }
+
 //  @StepFunction("75dca4ff-d4c1-4171-8cea-a303c17d461d",
 //    "Register S3 FS Providers",
 //    "Registers the S3N and S3A File System providers",
@@ -121,54 +154,4 @@ object S3Steps {
 //    DataConnectorUtilities.buildDataFrameWriter(dataFrame, options.getOrElse(DataFrameWriterOptions()))
 //      .save(S3Utilities.replaceProtocol(path, S3Utilities.deriveProtocol(path)))
 //  }
-
-  /**
-    * Simple function to generate the S3FileManager for the local S3 file system.
-    *
-    * @param accessKeyId     The AWS access key to use when interacting with the S3 bucket
-    * @param secretAccessKey The AWS secret to use when interaction with the S3 bucket
-    * @param region          The AWS region this bucket should be accessed in
-    * @param bucket          The bucket to use for this file system.
-    * @return A FileManager that can interact with the specified S3 bucket.
-    */
-  @StepFunction("cc4694b9-5e54-4b12-8088-ed4ced056efd",
-    "Create S3 FileManager",
-    "Simple function to generate the S3FileManager for a S3 file system",
-    "Pipeline",
-    "AWS"
-  )
-  @StepParameters(Map("bucket" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 bucket")),
-    "region" -> StepParameter(None, Some(true), None, None, None, None, Some("The region of the S3 bucket")),
-    "accessKeyId" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API key to use for S3 access")),
-    "secretAccessKey" -> StepParameter(None, Some(false), None, None, None, None, Some("The optional API secret to use for S3 access"))))
-  @StepResults(primaryType = "com.acxiom.pipeline.fs.FileManager", secondaryTypes = None)
-  def createFileManager(region: String,
-                        bucket: String,
-                        accessKeyId: Option[String] = None,
-                        secretAccessKey: Option[String] = None,
-                        accountId: Option[String] = None,
-                        role: Option[String] = None,
-                        partition: Option[String] = None): Option[S3FileManager] = {
-    Some(new S3FileManager(region, bucket, accessKeyId, secretAccessKey, accountId, role, partition))
-  }
-
-  /**
-    * Simple function to generate the S3FileManager for the local S3 file system.
-    *
-    * @param s3Client The existing AWS S3 client
-    * @param bucket   The bucket to use for this file system.
-    * @return A FileManager that can interact with the specified S3 bucket.
-    */
-  @StepFunction("0e3bcadd-2d14-408f-982f-32ffd879d795d",
-    "Create S3 FileManager with Client",
-    "Simple function to generate the S3FileManager for a S3 file system using an existing client",
-    "Pipeline",
-    "AWS"
-  )
-  @StepParameters(Map("bucket" -> StepParameter(None, Some(true), None, None, None, None, Some("The S3 bucket")),
-    "s3Client" -> StepParameter(None, Some(true), None, None, None, None, Some("An existing S3 client use to access the bucket"))))
-  @StepResults(primaryType = "com.acxiom.pipeline.fs.FileManager", secondaryTypes = None)
-  def createFileManagerWithClient(s3Client: S3Client, bucket: String): Option[S3FileManager] = {
-    Some(new S3FileManager(s3Client, bucket))
-  }
 }

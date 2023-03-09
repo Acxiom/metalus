@@ -10,33 +10,41 @@ import software.amazon.awssdk.transfer.s3.S3TransferManager
 import software.amazon.awssdk.transfer.s3.model.CopyRequest
 
 import java.io.{FileNotFoundException, InputStream, OutputStream}
+import java.net.URI
 import java.util
 import scala.jdk.CollectionConverters._
 
-class S3FileManager(s3Client: S3Client, bucket: String) extends FileManager {
+class S3FileManager(region: String,
+                    bucket: String,
+                    accessKeyId: Option[String] = None,
+                    secretAccessKey: Option[String] = None,
+                    accountId: Option[String] = None,
+                    role: Option[String] = None,
+                    partition: Option[String] = None,
+                    overrideEndpointURI: Option[URI] = None,
+                    forcePathStyle: Option[Boolean] = Some(false)) extends FileManager {
   private val logger = LoggerFactory.getLogger(getClass)
 
-  def this(region: String,
-           bucket: String,
-           accessKeyId: Option[String] = None,
-           secretAccessKey: Option[String] = None,
-           accountId: Option[String] = None,
-           role: Option[String] = None,
-           partition: Option[String] = None) = {
-    this({
-      val credential = if (accessKeyId.isDefined || role.isDefined) {
-        Some(new DefaultAWSCredential(Map[String, Any]("credentialName" -> "fileManagerCredentials",
-          "accountId" -> accountId,
-          "role" -> role,
-          "accessKeyId" -> accessKeyId,
-          "secretAccessKey" -> secretAccessKey,
-          "partition" -> partition)))
-      } else {
-        None
-      }
-      AWSUtilities.setupCredentialProvider(S3Client.builder(), credential).asInstanceOf[S3ClientBuilder]
-    }.region(Region.of(region)).build(), bucket)
-  }
+  private lazy val s3Client = {
+    val credential = if (accessKeyId.isDefined || role.isDefined) {
+      Some(new DefaultAWSCredential(Map[String, Any]("credentialName" -> "fileManagerCredentials",
+        "accountId" -> accountId,
+        "role" -> role,
+        "accessKeyId" -> accessKeyId,
+        "secretAccessKey" -> secretAccessKey,
+        "partition" -> partition)))
+    } else {
+      None
+    }
+    val builder = AWSUtilities.setupCredentialProvider(S3Client.builder(), credential).asInstanceOf[S3ClientBuilder]
+    (if (overrideEndpointURI.isDefined) {
+      builder.endpointOverride(overrideEndpointURI.get)
+    } else {
+      builder
+    }).forcePathStyle(forcePathStyle.get)
+  }.region(Region.of(region)).build()
+
+  def createBucket(): Unit = s3Client.createBucket(CreateBucketRequest.builder().bucket(bucket).build())
 
   /**
    * Connect to the file system
