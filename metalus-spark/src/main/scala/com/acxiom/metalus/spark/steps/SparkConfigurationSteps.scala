@@ -97,5 +97,4 @@ object SparkConfigurationSteps {
       key.replaceAllLiterally(sep, ".") -> unwrapOptions(value)
     }
   }
-
 }

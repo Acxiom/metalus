@@ -1,6 +1,7 @@
 /*.iml
 **/*.iml
 /.idea/
+**/.idea/**
 /target/
 **/target/
 /pom.xml.versionsBackup

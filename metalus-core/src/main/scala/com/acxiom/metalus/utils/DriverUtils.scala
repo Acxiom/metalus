@@ -112,6 +112,29 @@ object DriverUtils {
       case _ => Level.INFO
     }
   }
+
+  def buildPipelineException(m: Option[String], t: Option[Throwable], pipelineContext: Option[PipelineContext]): PipelineException = {
+    val exc = PipelineException(message = m, context = pipelineContext, pipelineProgress = None)
+    val updatedExe = if (t.isDefined) {
+      exc.copy(cause = t.get)
+    } else {
+      exc
+    }
+    if (pipelineContext.isDefined) {
+      updatedExe.copy(pipelineProgress = pipelineContext.get.currentStateInfo)
+    } else {
+      updatedExe
+    }
+  }
+
+  def invokeWaitPeriod(retryPolicy: RetryPolicy, retryCount: Int): Unit = {
+    val waitPeriod = if (retryPolicy.useRetryCountAsTimeMultiplier.getOrElse(false)) {
+      (retryCount + 1) * retryPolicy.waitTimeMultipliesMS.getOrElse(Constants.ONE_THOUSAND)
+    } else {
+      retryPolicy.waitTimeMultipliesMS.getOrElse(Constants.ONE_THOUSAND)
+    }
+    Thread.sleep(waitPeriod)
+  }
 }
 
 case class CommonParameters(initializationClass: String,

@@ -152,7 +152,7 @@ trait PipelineListener {
     * @param pipeline The pipeline that contains the step.
     * @return The step if it is found.
     */
-  protected def getStep(pipelineKey: PipelineStateKey, pipeline: Pipeline): Option[Step] =
+  protected def getStep(pipelineKey: PipelineStateKey, pipeline: Pipeline): Option[FlowStep] =
     pipeline.steps.get.find(_.id.getOrElse("NONE") == pipelineKey.stepId.getOrElse("BUG"))
 
   protected def getSessionContext(pipelineContext: PipelineContext): SessionContext =
@@ -165,12 +165,11 @@ trait EventBasedPipelineListener extends PipelineListener {
   def credentialName: String
   def credentialProvider: CredentialProvider
 
-  def generateExecutionMessage(event: String, pipelines: List[Pipeline]): String = {
+  def generateApplicationMessage(event: String): String = {
     JsonParser.serialize(Map[String, Any](
       "key" -> key,
       "event" -> event,
-      "eventTime" -> new Date().getTime,
-      "pipelines" -> pipelines.map(pipeline => EventPipelineRecord(pipeline.id.getOrElse(""), pipeline.name.getOrElse("")))
+      "eventTime" -> new Date().getTime
     ))
   }
 

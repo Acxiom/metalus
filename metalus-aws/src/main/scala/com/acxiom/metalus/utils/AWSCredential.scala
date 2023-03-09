@@ -1,10 +1,7 @@
-package com.acxiom.aws.utils
+package com.acxiom.metalus.utils
 
-import com.acxiom.pipeline.Credential
-import com.amazonaws.auth.{AWSCredentials, BasicAWSCredentials, BasicSessionCredentials}
-import org.apache.spark.streaming.kinesis.SparkAWSCredentials
-import org.json4s.native.JsonMethods.parse
-import org.json4s.{DefaultFormats, Formats}
+import com.acxiom.metalus.Credential
+import com.acxiom.metalus.parser.JsonParser
 
 trait AWSCredential extends Credential {
   override def name: String = "AWSCredential"
@@ -21,38 +18,34 @@ trait AWSCredential extends Credential {
     val role = awsRole
     val accountId = awsAccountId
     if (role.isDefined && role.get.trim.nonEmpty && accountId.isDefined && accountId.get.trim.nonEmpty) {
-      Some(S3Utilities.buildARN(accountId.get, role.get, awsPartition))
+      Some(AWSUtilities.buildRoleARN(accountId.get, role.get, awsPartition))
     } else {
       None
     }
   }
   // noinspection ScalaStyle
-  def buildSparkAWSCredentials = {
-    val builder = SparkAWSCredentials.builder
-    awsRoleARN.map{ arn =>
-      val session = sessionName.getOrElse(s"${awsAccountId.get}_${awsRole.get}")
-      externalId.filter(_.trim.nonEmpty).map(id => builder.stsCredentials(arn, session, id)).getOrElse(builder.stsCredentials(arn, session))
-    }.getOrElse(builder.basicCredentials(awsAccessKey.get, awsAccessSecret.get)).build()
-  }
+//  def buildSparkAWSCredentials = {
+//    val builder = SparkAWSCredentials.builder
+//    awsRoleARN.map{ arn =>
+//      val session = sessionName.getOrElse(s"${awsAccountId.get}_${awsRole.get}")
+//      externalId.filter(_.trim.nonEmpty).map(id => builder.stsCredentials(arn, session, id)).getOrElse(builder.stsCredentials(arn, session))
+//    }.getOrElse(builder.basicCredentials(awsAccessKey.get, awsAccessSecret.get)).build()
+//  }
 
-  def buildAWSCredentialProvider: AWSCredentials = {
+  def buildAWSCredentialInfo: AWSCredentialInfo = {
     val role = awsRole
     val accountId = awsAccountId
     if (role.isDefined && role.get.trim.nonEmpty && accountId.isDefined && accountId.get.trim.nonEmpty) {
-      val sessionCredentials = S3Utilities.assumeRole(accountId.get, role.get, awsPartition, sessionName, externalId).getCredentials
-      new BasicSessionCredentials(sessionCredentials.getAccessKeyId,
-        sessionCredentials.getSecretAccessKey,
-        sessionCredentials.getSessionToken)
+      AWSUtilities.assumeRole(accountId.get, role.get, awsPartition, sessionName, externalId)
     } else {
-      new BasicAWSCredentials(awsAccessKey.get, awsAccessSecret.get)
+      AWSCredentialInfo(awsAccessKey, awsAccessSecret, None)
     }
   }
 }
 
 class DefaultAWSCredential(override val parameters: Map[String, Any]) extends AWSCredential {
-  private implicit val formats: Formats = DefaultFormats
   override def name: String = parameters("credentialName").asInstanceOf[String]
-  private val keyMap = parse(parameters.getOrElse("credentialValue", "{}").asInstanceOf[String]).extract[Map[String, String]]
+  private val keyMap = JsonParser.parseMap(parameters.getOrElse("credentialValue", "{}").asInstanceOf[String]).asInstanceOf[Map[String, String]]
   override def awsRole: Option[String] = if (keyMap.contains("role")) {
     keyMap.get("role")
   } else if (parameters.contains("role")) {
@@ -131,3 +124,5 @@ class AWSDynamoDBCredential(override val parameters: Map[String, Any]) extends A
   override def externalId: Option[String] = parameters.get("dynamoDBExternalId").map(_.toString)
   override def duration: Option[String] = parameters.get("dynamoDBDuration").map(_.toString)
 }
+
+case class AWSCredentialInfo(accessKeyId: Option[String], secretAccessKey: Option[String], sessionToken: Option[String])
