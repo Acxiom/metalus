@@ -33,7 +33,7 @@ stepExpression
 
 
 mapping
-    : symbol=(STEP_RETURN|SECONDARY_RETURN|GLOBAL|PARAMETER|R_PARAMETER|PERCENT|PIPELINE) key=stepIdentifier
+    : symbol=(STEP_RETURN|SECONDARY_RETURN|GLOBAL|PARAMETER|R_PARAMETER|PERCENT|AMPERSAND) key=stepIdentifier
     ;
 
 stepIdentifier
@@ -49,16 +49,16 @@ stepValue
     ;
 
 mapParam
-    : string COLON stepValue
+    : sqlString COLON stepValue
     ;
 
 stepLiteral
-    : string       #stringLit
+    : sqlString       #stringLit
     | number       #numericLit
     | booleanValue #booleanLit
     ;
 
-string
+sqlString
     : STRING                                #basicStringLiteral
     | UNICODE_STRING (UESCAPE STRING)?      #unicodeStringLiteral
     ;

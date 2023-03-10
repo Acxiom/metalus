@@ -11,7 +11,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * This file is an adaptation of Presto's presto-parser/src/main/antlr4/com/facebook/presto/sql/parser/SqlBase.g4 grammar.
+ * This file is an adaptation of Presto's presto-parser/src/main/antlr4/com/facebook/presto/sql/parser/SqlBase.g4 grammar
+ * and Spark's src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseParser.g4 grammar.
  */
 parser grammar MSqlParser;
 
@@ -23,16 +24,21 @@ options { tokenVocab = MSqlLexer; caseInsensitive = true;}
 //    DELIMITER
 //}
 
+@members {
+  public Boolean enableTableIdentifiers = false;
+}
+
 singleStatement
     : statement EOF
     ;
 
 standaloneExpression
-    : expression EOF
+    : outerExpression EOF
     ;
 
-standaloneRoutineBody
-    : routineBody EOF
+outerExpression
+    : expression
+    | selectItem
     ;
 
 statement
@@ -43,7 +49,7 @@ statement
 //        (WITH properties)?                                             #createSchema
 //    | ALTER SCHEMA qualifiedName RENAME TO identifier                  #renameSchema
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName columnAliases?
-        (COMMENT string)?
+        (COMMENT sqlString)?
         (WITH properties)? AS (query | L_PAREN query R_PAREN)
         (WITH (NO)? DATA)?                                             #createTableAsSelect
 //    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
@@ -75,7 +81,7 @@ tableElement
     ;
 
 columnDefinition
-    : identifier type (NOT NULL)? (COMMENT string)? (WITH properties)?
+    : identifier type (NOT NULL)? (COMMENT sqlString)? (WITH properties)?
     ;
 
 likeClause
@@ -253,12 +259,12 @@ columnAliases
     ;
 
 relationPrimary
-    : dataReference                                                   #dataReferenceRelation
-//    | qualifiedName                                                   #tableName
-    | L_PAREN query R_PAREN                                                   #subqueryRelation
+    : dataReference                                                             #dataReferenceRelation
+    | {enableTableIdentifiers}? qualifiedName                                   #tableName
+    | L_PAREN query R_PAREN                                                     #subqueryRelation
     | UNNEST L_PAREN expression (COMMA expression)* R_PAREN (WITH ORDINALITY)?  #unnest
-    | LATERAL L_PAREN query R_PAREN                                           #lateral
-    | L_PAREN relation R_PAREN                                                #parenthesizedRelation
+    | LATERAL L_PAREN query R_PAREN                                             #lateral
+    | L_PAREN relation R_PAREN                                                  #parenthesizedRelation
     ;
 
 dataReference
@@ -271,76 +277,80 @@ expression
     ;
 
 booleanExpression
-    : valueExpression predicate[$valueExpression.ctx]?             #predicated
-    | NOT booleanExpression                                        #logicalNot
-    | left=booleanExpression operator=AND right=booleanExpression  #logicalBinary
-    | left=booleanExpression operator=OR right=booleanExpression   #logicalBinary
+    : valueExpression                                                     #valueExpr
+    | NOT booleanExpression                                               #logicalNot
+    | EXISTS L_PAREN query R_PAREN                                        #exists
+    | left=booleanExpression isPredicate                                  #isPredicated
+    | left=valueExpression NOT? LIKE pattern=valueExpression (ESCAPE escape=valueExpression)?  #like
+    | left=valueExpression NOT? BETWEEN lower=valueExpression AND upper=valueExpression        #between
+    | left=valueExpression NOT? IN L_PAREN expression (COMMA expression)* R_PAREN              #inList
+    | left=valueExpression NOT? IN L_PAREN query R_PAREN                                       #inSubquery
+    | left=booleanExpression operator=AND right=booleanExpression         #logicalBinary
+    | left=booleanExpression operator=OR right=booleanExpression          #logicalBinary
+    ;
+
+isPredicate
+    : IS NOT? NULL                                 #nullPredicate
+    | IS NOT? value=(TRUE|FALSE|UNKNOWN)           #booleanPredicate
+    | IS NOT? DISTINCT FROM right=valueExpression  #distinctFrom
     ;
 
 setExpression
-    : identifier EQ expression
+    : qualifiedName EQ expression
     ;
 
-// workaround for https://github.com/antlr/antlr4/issues/780
-predicate[ParserRuleContext value]
-    : comparisonOperator right=valueExpression                            #comparison
-    | comparisonOperator comparisonQuantifier L_PAREN query R_PAREN               #quantifiedComparison
-    | NOT? BETWEEN lower=valueExpression AND upper=valueExpression        #between
-    | NOT? IN L_PAREN expression (COMMA expression)* R_PAREN                        #inList
-    | NOT? IN L_PAREN query R_PAREN                                               #inSubquery
-    | NOT? LIKE pattern=valueExpression (ESCAPE escape=valueExpression)?  #like
-    | IS NOT? NULL                                                        #nullPredicate
-    | IS NOT? DISTINCT FROM right=valueExpression                         #distinctFrom
-    ;
+
+//    | comparisonOperator comparisonQuantifier L_PAREN query R_PAREN       #quantifiedComparison
 
 valueExpression
-    : primaryExpression                                                                 #valueExpressionDefault
-    | valueExpression AT timeZoneSpecifier                                              #atTimeZone
-    | operator=(MINUS | PLUS) valueExpression                                           #arithmeticUnary
-    | left=valueExpression operator=(ASTERISK | SLASH | PERCENT) right=valueExpression  #arithmeticBinary
-    | left=valueExpression operator=(PLUS | MINUS) right=valueExpression                #arithmeticBinary
-    | left=valueExpression CONCAT right=valueExpression                                 #concatenation
+    : primaryExpression                                                                       #valueExpressionDefault
+    | valueExpression AT timeZoneSpecifier                                                    #atTimeZone
+    | operator=(MINUS | PLUS | TILDE) valueExpression                                         #arithmeticUnary
+    | left=valueExpression operator=(ASTERISK | SLASH | PERCENT | DIV) right=valueExpression  #arithmeticBinary
+    | left=valueExpression operator=(PLUS | MINUS) right=valueExpression                      #arithmeticBinary
+    | left=valueExpression operator=(AMPERSAND | CARROT | PIPE) right=valueExpression         #arithmeticBinary
+    | left=valueExpression CONCAT right=valueExpression                                       #concatenation
+    | left=valueExpression comparisonOperator right=valueExpression                           #comparison
     ;
 
 primaryExpression
-    : NULL                                                                                #nullLiteral
-    | interval                                                                            #intervalLiteral
-    | identifier string                                                                   #typeConstructor
-    | DOUBLE_PRECISION string                                                             #typeConstructor
-    | number                                                                              #numericLiteral
-    | booleanValue                                                                        #booleanLiteral
-    | string                                                                              #stringLiteral
-    | BINARY_LITERAL                                                                      #binaryLiteral
-//    | '?'                                                                                 #parameter
-    | POSITION L_PAREN valueExpression IN valueExpression R_PAREN                                 #position
-    | L_PAREN expression (COMMA expression)+ R_PAREN                                                #rowConstructor
-    | ROW L_PAREN expression (COMMA expression)* R_PAREN                                            #rowConstructor
-    | qualifiedName L_PAREN ASTERISK R_PAREN filter? over?                                        #functionCall
+    : NULL                                                                                   #nullLiteral
+    | interval                                                                               #intervalLiteral
+//    | identifier string                                                                      #typeConstructor
+//    | DOUBLE_PRECISION string                                                                #typeConstructor
+    | number                                                                                 #numericLiteral
+    | booleanValue                                                                           #booleanLiteral
+    | sqlString                                                                              #stringLiteral
+    | BINARY_LITERAL                                                                         #binaryLiteral
+    | RAW L_PAREN sqlString R_PAREN                                                          #rawLiteral
+    | POSITION L_PAREN valueExpression IN valueExpression R_PAREN                            #position
+    | L_PAREN expression (COMMA expression)+ R_PAREN                                         #rowConstructor
+    | ROW L_PAREN expression (COMMA expression)* R_PAREN                                     #rowConstructor
+    | qualifiedName L_PAREN ASTERISK R_PAREN filter? over?                                   #functionCall
     | qualifiedName L_PAREN (setQuantifier? expression (COMMA expression)*)?
-        (ORDER BY sortItem (COMMA sortItem)*)? R_PAREN filter? (nullTreatment? over)?           #functionCall
-//    | identifier '->' expression                                                          #lambda
-//    | L_PAREN (identifier (COMMA identifier)*)? R_PAREN '->' expression                             #lambda
-    | L_PAREN query R_PAREN                                                                       #subqueryExpression
+        (ORDER BY sortItem (COMMA sortItem)*)? R_PAREN filter? (nullTreatment? over)?        #functionCall
+    | L_PAREN query R_PAREN                                                                  #subqueryExpression
     // This is an extension to ANSI SQL, which considers EXISTS to be a <boolean expression>
-    | EXISTS L_PAREN query R_PAREN                                                                #exists
-    | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END              #simpleCase
-    | CASE whenClause+ (ELSE elseExpression=expression)? END                              #searchedCase
-    | CAST L_PAREN expression AS type R_PAREN                                                     #cast
-    | ARRAY L_BRACKET (expression (COMMA expression)*)? R_BRACKET                                       #arrayConstructor
-    | value=primaryExpression L_BRACKET index=valueExpression R_BRACKET                               #subscript
-    | identifier                                                                          #columnReference
-    | base=primaryExpression DOT fieldName=identifier                                     #dereference
-    | name=CURRENT_DATE                                                                   #specialDateTimeFunction
-    | name=CURRENT_TIME (L_PAREN precision=INTEGER_VALUE R_PAREN)?                                #specialDateTimeFunction
-    | name=CURRENT_TIMESTAMP (L_PAREN precision=INTEGER_VALUE R_PAREN)?                           #specialDateTimeFunction
-    | name=LOCALTIME (L_PAREN precision=INTEGER_VALUE R_PAREN)?                                   #specialDateTimeFunction
-    | name=LOCALTIMESTAMP (L_PAREN precision=INTEGER_VALUE R_PAREN)?                              #specialDateTimeFunction
-    | name=CURRENT_USER                                                                   #currentUser
-    | SUBSTRING L_PAREN valueExpression FROM valueExpression (FOR valueExpression)? R_PAREN       #substring
-    | NORMALIZE L_PAREN valueExpression (COMMA normalForm)? R_PAREN                                 #normalize
-    | EXTRACT L_PAREN identifier FROM valueExpression R_PAREN                                     #extract
-    | L_PAREN expression R_PAREN                                                                  #parenthesizedExpression
-    | GROUPING L_PAREN (qualifiedName (COMMA qualifiedName)*)? R_PAREN                              #groupingOperation
+    | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END                 #simpleCase
+    | CASE whenClause+ (ELSE elseExpression=expression)? END                                 #searchedCase
+    | IF L_PAREN ifClause=booleanExpression R_PAREN
+        thenClause=valueExpression ELSE elseClause=valueExpression                           #if
+    | CAST L_PAREN expression AS type R_PAREN                                                #cast
+    | ARRAY L_BRACKET (expression (COMMA expression)*)? R_BRACKET                            #arrayConstructor
+    | value=primaryExpression L_BRACKET index=valueExpression R_BRACKET                      #subscript
+    | qualifiedName                                                                          #columnReference
+//    | base=primaryExpression DOT fieldName=identifier                                        #dereference
+    | name=CURRENT_DATE                                                                      #specialDateTimeFunction
+    | name=CURRENT_TIME (L_PAREN precision=INTEGER_VALUE R_PAREN)?                           #specialDateTimeFunction
+    | name=CURRENT_TIMESTAMP (L_PAREN precision=INTEGER_VALUE R_PAREN)?                      #specialDateTimeFunction
+    | name=LOCALTIME (L_PAREN precision=INTEGER_VALUE R_PAREN)?                              #specialDateTimeFunction
+    | name=LOCALTIMESTAMP (L_PAREN precision=INTEGER_VALUE R_PAREN)?                         #specialDateTimeFunction
+    | name=CURRENT_USER                                                                      #currentUser
+//    | SUBSTRING L_PAREN valueExpression FROM valueExpression (FOR valueExpression)? R_PAREN  #substring
+    | NORMALIZE L_PAREN valueExpression (COMMA normalForm)? R_PAREN                          #normalize
+    | EXTRACT L_PAREN identifier FROM valueExpression R_PAREN                                #extract
+    | L_PAREN expression R_PAREN                                                             #parenthesizedExpression
+    | GROUPING L_PAREN (qualifiedName (COMMA qualifiedName)*)? R_PAREN                       #groupingOperation
     ;
 
 nullTreatment
@@ -350,7 +360,7 @@ nullTreatment
 
 timeZoneSpecifier
     : TIME ZONE interval  #timeZoneInterval
-    | TIME ZONE string    #timeZoneString
+    | TIME ZONE sqlString    #timeZoneString
     ;
 
 comparisonQuantifier
@@ -358,7 +368,7 @@ comparisonQuantifier
     ;
 
 interval
-    : INTERVAL sign=(PLUS | MINUS)? string from=intervalField (TO to=intervalField)?
+    : INTERVAL sign=(PLUS | MINUS)? sqlString from=intervalField (TO to=intervalField)?
     ;
 
 intervalField
@@ -459,7 +469,7 @@ step
     ;
 
 stepParam
-    : (stepParamName=string ARG)? stepValue
+    : (stepParamName=sqlString ARG)? stepValue
     ;
 
 identifier
@@ -471,7 +481,6 @@ identifier
     ;
 
 nonReserved
-    // IMPORTANT: this rule must only contain tokens. Nested rules are not supported. See SqlParser.exitNonReserved
     : ADD | ADMIN | ALL | ANALYZE | ANY | ARRAY | ASC | AT
     | BERNOULLI
     | CALL | CALLED | CASCADE | CATALOGS | COLUMN | COLUMNS | COMMENT | COMMIT | COMMITTED | CURRENT | CURRENT_ROLE

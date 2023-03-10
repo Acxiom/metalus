@@ -62,11 +62,11 @@ class JDBCDataReferenceTests extends AnyFunSpec with BeforeAndAfterAll with Give
     val breeds = conn.getTable("breeds", Some(properties), pipelineContext)
     it("should execute a select statement") {
       val query = chickens + As("c") +
-        Join(breeds + As("b"), "inner", Some("c.breed_id = b.id"), None) +
-        Where("b.name IN ('Game Cock', 'Sex-link')") +
-        Select(List("c.name as chicken", "b.name as breed")) +
-        GroupBy(List("breed")) +
-        Select(List("count(breed) AS breed_count", "breed"))
+        Join(breeds + As("b"), "inner", Some(Expression("c.breed_id = b.id")), None) +
+        Where(Expression("b.name IN ('Game Cock', 'Sex-link')")) +
+        Select(List(Expression("c.name as chicken"), Expression("b.name as breed"))) +
+        GroupBy(List(Expression("breed"))) +
+        Select(List(Expression("count(breed) AS breed_count"), Expression("breed")))
       val jdbcResult = query.asInstanceOf[JDBCDataReference[JDBCResult]].execute
       assert(jdbcResult.resultSet.isDefined)
       val rows = jdbcResult.resultSet.get
@@ -79,11 +79,11 @@ class JDBCDataReferenceTests extends AnyFunSpec with BeforeAndAfterAll with Give
 
     it("should create a table") {
       val createCounts = chickens + As("c") +
-        Join(breeds + As("b"), "inner", Some("c.breed_id = b.id"), None) +
-        Where("b.name IN ('Game Cock', 'Sex-link')") +
-        Select(List("c.name as chicken", "b.name as breed")) +
-        GroupBy(List("breed")) +
-        Select(List("count(breed) AS breed_count", "breed")) +
+        Join(breeds + As("b"), "inner", Some(Expression("c.breed_id = b.id")), None) +
+        Where(Expression("b.name IN ('Game Cock', 'Sex-link')")) +
+        Select(List(Expression("c.name as chicken"), Expression("b.name as breed"))) +
+        GroupBy(List(Expression("breed"))) +
+        Select(List(Expression("count(breed) AS breed_count"), Expression("breed"))) +
         CreateAs("breed_counts", noData = true)
       val jdbcResult = createCounts.asInstanceOf[JDBCDataReference[JDBCResult]].execute
       assert(jdbcResult.resultSet.isEmpty)

@@ -7,8 +7,6 @@ import com.acxiom.metalus.sql._
 
 object QueryingSteps {
 
-  type Expression = String
-
   @StepFunction("8ab9536d-37c8-41ec-a90f-c1cc754928bf",
     "Query DataReference",
     "Executes a script with the provided object and returns the result",

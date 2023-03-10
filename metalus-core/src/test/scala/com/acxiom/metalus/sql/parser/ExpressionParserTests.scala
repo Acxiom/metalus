@@ -56,6 +56,11 @@ class ExpressionParserTests extends AnyFunSpec {
       }
     }
 
+    it("should evaluate a long expression chain") {
+      val expr = (0 until 500).map(_ => "false").mkString(" OR ") + " OR TRUE"
+      assert(ExpressionParser.parse(expr, pipelineContext).exists(_.toString == "true"))
+    }
+
     it("should throw a parse exception on illegal syntax") {
       val exe = intercept[ParseException] {
         ExpressionParser.parse("<BAD SYNTAX>", pipelineContext)

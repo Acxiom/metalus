@@ -7,21 +7,14 @@ trait LogicalPlanDataReference[T, R] extends DataReference[T] {
   type LogicalPlanRule = R => R
   type LogicalPlanRules = PartialFunction[QueryOperator, LogicalPlanRule]
 
-  implicit class QueryOperatorImplicits(operator: QueryOperator) {
-    final def supported: Boolean = translations.isDefinedAt(operator) && internalOrdering.contains(operator.name.toLowerCase)
-    final def ordering: Int = internalOrdering(operator.name.toLowerCase)
-  }
 
   private lazy val internalPlan = logicalPlan
   private lazy val optimizedPlan = optimize
-  private lazy val internalOrdering = ordering.map(_.toLowerCase).zipWithIndex.toMap
   private lazy val translations = logicalPlanRules
 
   def logicalPlan: Queue[QueryOperator]
 
   def initialReference: R
-
-  def ordering: List[String]
 
   def executePlan: R = optimizedPlan.foldLeft(initialReference)((query, op) => translations(op)(query))
 
@@ -46,6 +39,13 @@ trait SqlBuildingDataReference[T] extends LogicalPlanDataReference[T, String] {
   protected final lazy val defaultOrdering = List(
     "as", "join", "where", "groupBy", "having", "select", "orderby", "limit", "createas"
   )
+  private lazy val internalOrdering = ordering.map(_.toLowerCase).zipWithIndex.toMap
+
+  implicit class QueryOperatorImplicits(operator: QueryOperator) {
+    final def supported: Boolean = logicalPlanRules.isDefinedAt(operator) && internalOrdering.contains(operator.name.toLowerCase)
+
+    final def ordering: Int = internalOrdering(operator.name.toLowerCase)
+  }
 
   implicit class SQLString(sc: StringContext) {
     def sql(args: Any*): String => String = { query =>
@@ -61,16 +61,16 @@ trait SqlBuildingDataReference[T] extends LogicalPlanDataReference[T, String] {
   def toSql: String = executePlan
 
   // provide a default ordering for queries. Must be overridden to support dml.
-  override def ordering: List[String] = defaultOrdering
+  def ordering: List[String] = defaultOrdering
 
   override protected def updateLogicalPlan(operator: QueryOperator): Queue[QueryOperator] = {
     val internalPlan = logicalPlan
     (internalPlan.lastOption, operator) match {
-      case (Some(qo), a: As) if !qo.isInstanceOf[Select] => internalPlan :+ Select(List("*")) :+ a
+      case (Some(qo), a: As) if !qo.isInstanceOf[Select] => internalPlan :+ Select(List(Expression("*"))) :+ a
       case (None, _) | (Some(_: Select), _: As) | (Some(_: Join), _: Join) => internalPlan :+ operator
       case (Some(prev), qo) if prev.ordering < qo.ordering => internalPlan :+ qo
       case (Some(_: Select), qo) => internalPlan :+ As(newAlias) :+ qo
-      case (_, qo) => internalPlan :+ Select(List("*")) :+ As(newAlias) :+ qo
+      case (_, qo) => internalPlan :+ Select(List(Expression("*"))) :+ As(newAlias) :+ qo
     }
   }
 
@@ -97,5 +97,5 @@ trait SqlBuildingDataReference[T] extends LogicalPlanDataReference[T, String] {
       sql"CREATE $table $tableName\nAS $queryRef$withNoData"
   }
 
-  protected def parseExpression(expression: Expression):String = expression
+  protected def parseExpression(expression: Expression):String = expression.text
 }

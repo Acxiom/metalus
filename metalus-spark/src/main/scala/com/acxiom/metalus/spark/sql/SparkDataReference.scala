@@ -10,18 +10,17 @@ import org.apache.spark.sql.functions.expr
 import scala.util.{Failure, Success, Try}
 
 trait BaseSparkDataReference[T] extends DataReference[T] {
-  type Expression = String
 
   override def engine: String = "spark"
 
-  protected def parseExpression(expression: Expression): String = expression
+  protected def parseExpression(expression: Expression): String = expression.text
 }
 
 final case class SparkDataReferenceOrigin(connector: SparkDataConnector,
                                           readOptions: DataFrameReaderOptions,
                                           paths: Option[List[String]] = None
                                          ) extends DataReferenceOrigin {
-  override def options: Option[Map[Expression, Any]] = readOptions.options
+  override def options: Option[Map[String, Any]] = readOptions.options
 }
 
 final case class SparkDataReference(dataset: () => Dataset[_], origin: SparkDataReferenceOrigin,
