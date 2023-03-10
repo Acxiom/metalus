@@ -6,7 +6,7 @@ abstract class QueryOperator(val name: String)
 
 // data modification
 case class Delete() extends QueryOperator("Delete")
-case class Update(expressions: List[Expression]) extends QueryOperator("Update")
+case class Update(expressions: Map[Expression, Expression]) extends QueryOperator("Update")
 case class Insert(expressions: List[Expression]) extends QueryOperator("Insert")
 case class Merge(using: DataReference[_], condition: Expression) extends QueryOperator("Merge")
 case class Matched(action: QueryOperator, condition: Option[Expression], notMatched: Boolean = false)

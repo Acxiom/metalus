@@ -2,6 +2,7 @@ package com.acxiom.metalus
 
 import com.acxiom.metalus.applications.Json4sSerializers
 import com.acxiom.metalus.parser.JsonParser
+import com.acxiom.metalus.sql.Expression
 import com.acxiom.metalus.utils.{ReflectionUtils, ScalaScriptEngine}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -436,6 +437,7 @@ trait PipelineStepMapper {
             case "result" if parameter.value.getOrElse("NONE").toString.trim.startsWith("(") =>
               // compile and execute the script, then map the result into the parameter
               runScalaScript(s, parameter, pipelineContext)
+            case "expression" => Some(Expression(s))
             case _ =>
               // convert parameter value into a list of values (for the 'or' use case)
               // get the valid return values for the parameters

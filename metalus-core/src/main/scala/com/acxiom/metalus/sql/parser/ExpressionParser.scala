@@ -6,7 +6,7 @@ import com.acxiom.metalus.sql.parser.MExprParser._
 import com.acxiom.metalus.utils.ReflectionUtils
 import org.antlr.v4.runtime._
 import org.antlr.v4.runtime.atn.PredictionMode
-import org.antlr.v4.runtime.tree.TerminalNode
+import org.antlr.v4.runtime.tree.{RuleNode, TerminalNode}
 
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
@@ -60,7 +60,7 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
       MappingResolver.getStepResponse(ctx.key.IDENTIFIER().asScala.toList.mkString("."), secondary = false, pipelineContext)
     case MExprParser.SECONDARY_RETURN =>
       MappingResolver.getStepResponse(ctx.key.IDENTIFIER().asScala.toList.mkString("."), secondary = true, pipelineContext)
-    case MExprParser.PIPELINE => pipelineContext.pipelineManager.getPipeline(ctx.key.IDENTIFIER().asScala.toList.head.getText)
+    case MExprParser.AMPERSAND => pipelineContext.pipelineManager.getPipeline(ctx.key.IDENTIFIER().asScala.toList.head.getText)
     case MExprParser.PARAMETER =>
       MappingResolver.getPipelineParameter(ctx.key.IDENTIFIER().asScala.toList.mkString("."), pipelineContext, None)
     case MExprParser.R_PARAMETER =>
@@ -106,6 +106,8 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
 
   override def aggregateResult(aggregate: Option[Any], nextResult: Option[Any]): Option[Any] =
     aggregate orElse nextResult
+
+  override def shouldVisitNextChild(node: RuleNode, currentResult: Option[Any]): Boolean = currentResult.isEmpty
 
   private def toBoolean(ctx: ParserRuleContext): Boolean = ctx.accept(this) match {
     case Some(b: Boolean) => b

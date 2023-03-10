@@ -1,7 +1,7 @@
 package com.acxiom.metalus.sql.jdbc
 
 import com.acxiom.metalus.PipelineContext
-import com.acxiom.metalus.sql.{ConvertableReference, CreateAs, DataReference, DataReferenceOrigin, QueryOperator, Select, SqlBuildingDataReference}
+import com.acxiom.metalus.sql._
 
 import java.sql.{Connection, DriverManager, ResultSet}
 import java.util.Properties
