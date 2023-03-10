@@ -1,9 +1,8 @@
-package com.acxiom.aws.pipeline.connectors
+package com.acxiom.metalus.pipeline.connectors
 
-import com.acxiom.aws.fs.S3FileManager
-import com.acxiom.pipeline.connectors.FileConnector
-import com.acxiom.pipeline.fs.FileManager
-import com.acxiom.pipeline.{Credential, PipelineContext}
+import com.acxiom.metalus.connectors.FileConnector
+import com.acxiom.metalus.{Credential, PipelineContext}
+import com.acxiom.metalus.fs.{FileManager, S3FileManager}
 
 /**
   * Provides an implementation of theFileConnector that works with S3.

@@ -36,11 +36,10 @@ class PipelineListenerTests extends AnyFunSpec with Suite {
   describe("EventBasedPipelineListener") {
     it("Should use the helper functions") {
       val test = new TestPipelineListener("event-test", "", None.orNull)
-      val executionMessage = test.generateExecutionMessage("exeMessage", pipelines)
+      val executionMessage = test.generateApplicationMessage("exeMessage")
       val executionMap = parse(executionMessage).extract[Map[String, Any]]
       assert(executionMap("key") == "event-test")
       assert(executionMap("event") == "exeMessage")
-      assert(executionMap("pipelines").asInstanceOf[List[EventPipelineRecord]].length == 1)
       val pipelineMessage = test.generatePipelineMessage("pipeMessage", pipelines.head)
       val pipelineMap = parse(pipelineMessage).extract[Map[String, Any]]
       assert(pipelineMap("key") == "event-test")

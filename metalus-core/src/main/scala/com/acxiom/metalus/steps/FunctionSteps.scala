@@ -64,12 +64,14 @@ object FunctionSteps {
  * @param parameters           A list of parameters to pass to the function.
  * @param includeStdOut        Boolean flag indicating whether std out should be returned.
  * @param includeStdErr        Boolean flag indicating whether std error should be returned.
+ * @param credentialName       An optional credential name to use for authentication.
  * @param environmentVariables Optional list of environment variables to set. This may be ignored by some commands.
  */
 case class Command(command: String,
                    parameters: List[CommandParameter],
                    includeStdOut: Boolean = false,
                    includeStdErr: Boolean = false,
+                   credentialName: Option[String] = None,
                    environmentVariables: Option[List[CommandParameter]] = None)
 
 /**

@@ -1,6 +1,6 @@
 package com.acxiom.metalus.steps
 
-import com.acxiom.metalus.{Constants, EngineMeta, Parameter, Pipeline, PipelineExecutor, PipelineListener, PipelineStep, TestHelper}
+import com.acxiom.metalus.{Constants, EngineMeta, Parameter, Pipeline, PipelineExecutor, PipelineListener, PipelineStep, RetryPolicy, TestHelper}
 import org.scalatest.funspec.AnyFunSpec
 
 class FlowUtilsStepsTests extends AnyFunSpec {
@@ -11,7 +11,9 @@ class FlowUtilsStepsTests extends AnyFunSpec {
 
   val RETRY_STEP: PipelineStep = PipelineStep(Some("RETRY"), Some("Retry Step"), None, Some("branch"),
     Some(List(Parameter(Some("text"), Some("counterName"), Some(true), None, Some("TEST_RETRY_COUNTER")),
-      Parameter(Some("int"), Some("maxRetries"), Some(true), None, Some(Constants.FIVE)),
+      Parameter(Some("object"), Some("retryPolicy"), Some(true), None,
+        Some(Map("maximumRetries" -> Constants.FIVE, "waitTimeMultipliesMS" -> Constants.ONE)),
+        className = Some("com.acxiom.metalus.RetryPolicy")),
       Parameter(Some("result"), Some("retry"), Some(true), None, Some("STRINGSTEP")))),
     None, None, None, None, None, None, None, None, Some(EngineMeta(Some("FlowUtilsSteps.simpleRetry"))))
 
@@ -20,9 +22,9 @@ class FlowUtilsStepsTests extends AnyFunSpec {
       it("should handle retry") {
         TestHelper.pipelineListener = PipelineListener()
         val initialPipelineContext = TestHelper.generatePipelineContext().setGlobal("testCounter", 0)
-        val response = FlowUtilsSteps.simpleRetry("testCounter", 1, initialPipelineContext)
+        val response = FlowUtilsSteps.simpleRetry("testCounter", RetryPolicy(Some(1)), initialPipelineContext)
         assert(response.primaryReturn.get.toString == "retry")
-        val stopResponse = FlowUtilsSteps.simpleRetry("testCounter", 1, initialPipelineContext.setGlobal("testCounter", 1))
+        val stopResponse = FlowUtilsSteps.simpleRetry("testCounter", RetryPolicy(Some(1)), initialPipelineContext.setGlobal("testCounter", 1))
         assert(stopResponse.primaryReturn.get.toString == "stop")
       }
 

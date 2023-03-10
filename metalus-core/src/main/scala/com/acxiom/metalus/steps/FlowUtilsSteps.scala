@@ -1,7 +1,7 @@
 package com.acxiom.metalus.steps
 
 import com.acxiom.metalus.annotations._
-import com.acxiom.metalus.{PipelineContext, PipelineStepResponse}
+import com.acxiom.metalus.{Constants, PipelineContext, PipelineStepResponse, RetryPolicy}
 import org.slf4j.{Logger, LoggerFactory}
 
 @StepObject
@@ -26,11 +26,17 @@ object FlowUtilsSteps {
     "branch", "RetryLogic", List[String]("batch"))
   @BranchResults(List("retry", "stop"))
   @StepParameters(Map("counterName" -> StepParameter(None, Some(true), None, None, None, None, Some("The name of the counter to use for tracking")),
-    "maxRetries" -> StepParameter(None, Some(true), None, None, None, None, Some("The maximum number of retries allowed"))))
+    "retryPolicy" -> StepParameter(None, Some(true), None, None, None, None, Some("The retry policy to use"))))
   @StepResults(primaryType = "String", secondaryTypes = Some(Map("$globals.$counterName" -> "Int")))
-  def simpleRetry(counterName: String, maxRetries: Int, pipelineContext: PipelineContext): PipelineStepResponse = {
+  def simpleRetry(counterName: String, retryPolicy: RetryPolicy, pipelineContext: PipelineContext): PipelineStepResponse = {
     val currentCounter = pipelineContext.getGlobalAs[Int](counterName)
-    val decision = if (currentCounter.getOrElse(0) < maxRetries) {
+    val decision = if (currentCounter.getOrElse(0) < retryPolicy.maximumRetries.getOrElse(1)) {
+      val waitPeriod = if (retryPolicy.useRetryCountAsTimeMultiplier.getOrElse(false)) {
+        currentCounter.getOrElse(0) * retryPolicy.waitTimeMultipliesMS.getOrElse(Constants.ONE_THOUSAND)
+      } else {
+        retryPolicy.waitTimeMultipliesMS.getOrElse(Constants.ONE_THOUSAND)
+      }
+      Thread.sleep(waitPeriod)
       "retry"
     } else {
       "stop"
