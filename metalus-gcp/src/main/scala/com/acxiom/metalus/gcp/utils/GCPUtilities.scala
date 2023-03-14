@@ -1,7 +1,7 @@
-package com.acxiom.gcp.utils
+package com.acxiom.metalus.gcp.utils
 
-import com.acxiom.gcp.pipeline.{BasicGCPCredential, GCPCredential}
-import com.acxiom.pipeline.{Constants, CredentialProvider, PipelineContext}
+import com.acxiom.metalus.gcp.pipeline.{BasicGCPCredential, GCPCredential}
+import com.acxiom.metalus.{Constants, CredentialProvider, PipelineContext}
 import com.google.api.core.{ApiFutureCallback, ApiFutures}
 import com.google.api.gax.batching.BatchingSettings
 import com.google.api.gax.core.FixedCredentialsProvider
@@ -36,36 +36,36 @@ object GCPUtilities {
     .setMaxRpcTimeout(Duration.ofMinutes(Constants.ONE))
     .setTotalTimeout(Duration.ofMinutes(Constants.TWO)).build
 
-  /**
-    * Given a credential map, this function will set the appropriate properties required for GCS access from Spark.
-    *
-    * @param credentials     The GCP auth map
-    * @param pipelineContext The current pipeline context
-    */
-  def setGCSAuthorization(credentials: Map[String, String], pipelineContext: PipelineContext): Unit = {
-    val skipGCSFS = pipelineContext.getGlobalAs[Boolean]("skipGCSFS")
-    if (!skipGCSFS.getOrElse(false)) {
-      val sc = pipelineContext.sparkSession.get.sparkContext
-      sc.hadoopConfiguration.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
-      sc.hadoopConfiguration.set("fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS")
-    }
-    setGCPSecurity(credentials, pipelineContext)
-  }
+//  /**
+//    * Given a credential map, this function will set the appropriate properties required for GCS access from Spark.
+//    *
+//    * @param credentials     The GCP auth map
+//    * @param pipelineContext The current pipeline context
+//    */
+//  def setGCSAuthorization(credentials: Map[String, String], pipelineContext: PipelineContext): Unit = {
+//    val skipGCSFS = pipelineContext.getGlobalAs[Boolean]("skipGCSFS")
+//    if (!skipGCSFS.getOrElse(false)) {
+//      val sc = pipelineContext.sparkSession.get.sparkContext
+//      sc.hadoopConfiguration.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
+//      sc.hadoopConfiguration.set("fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS")
+//    }
+//    setGCPSecurity(credentials, pipelineContext)
+//  }
 
-  /**
-    * Given a credential map, this function will set the security properties required for Spark access.
-    * @param credentials     The GCP auth map
-    * @param pipelineContext The current pipeline context
-    */
-  def setGCPSecurity(credentials: Map[String, String], pipelineContext: PipelineContext): Unit = {
-    val sc = pipelineContext.sparkSession.get.sparkContext
-    // Private Key
-    sc.hadoopConfiguration.set("fs.gs.project.id", credentials("project_id"))
-    sc.hadoopConfiguration.set("fs.gs.auth.service.account.enable", "true")
-    sc.hadoopConfiguration.set("fs.gs.auth.service.account.email", credentials("client_email"))
-    sc.hadoopConfiguration.set("fs.gs.auth.service.account.private.key.id", credentials("private_key_id"))
-    sc.hadoopConfiguration.set("fs.gs.auth.service.account.private.key", credentials("private_key"))
-  }
+//  /**
+//    * Given a credential map, this function will set the security properties required for Spark access.
+//    * @param credentials     The GCP auth map
+//    * @param pipelineContext The current pipeline context
+//    */
+//  def setGCPSecurity(credentials: Map[String, String], pipelineContext: PipelineContext): Unit = {
+//    val sc = pipelineContext.sparkSession.get.sparkContext
+//    // Private Key
+//    sc.hadoopConfiguration.set("fs.gs.project.id", credentials("project_id"))
+//    sc.hadoopConfiguration.set("fs.gs.auth.service.account.enable", "true")
+//    sc.hadoopConfiguration.set("fs.gs.auth.service.account.email", credentials("client_email"))
+//    sc.hadoopConfiguration.set("fs.gs.auth.service.account.private.key.id", credentials("private_key_id"))
+//    sc.hadoopConfiguration.set("fs.gs.auth.service.account.private.key", credentials("private_key"))
+//  }
 
   /**
     * Given a credential map, convert to a BasicGCPCredential.

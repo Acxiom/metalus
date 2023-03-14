@@ -1,8 +1,7 @@
-package com.acxiom.gcp.pipeline
+package com.acxiom.metalus.gcp.pipeline
 
-import com.acxiom.pipeline.Credential
-import org.json4s.native.JsonMethods.parse
-import org.json4s.{DefaultFormats, Formats}
+import com.acxiom.metalus.Credential
+import com.acxiom.metalus.parser.JsonParser
 
 import java.util.Base64
 
@@ -24,9 +23,8 @@ class BasicGCPCredential(override val parameters: Map[String, Any]) extends GCPC
   * @param parameters A map containing the gcpAuthKeyArray parameter
   */
 class DefaultGCPCredential(override val parameters: Map[String, Any]) extends GCPCredential {
-  implicit val formats: Formats = DefaultFormats
   private val authKeyArray = parameters("gcpAuthKeyArray").asInstanceOf[Array[Byte]]
-  private val authKeyMap = parse(new String(authKeyArray)).extract[Map[String, String]]
+  private val authKeyMap = JsonParser.parseMap(new String(authKeyArray)).asInstanceOf[Map[String, String]]
   override def authKey: Map[String, String] = authKeyMap
 }
 
@@ -36,8 +34,7 @@ class DefaultGCPCredential(override val parameters: Map[String, Any]) extends GC
   * @param parameters Startup parameters containing the gcpAuthKey parameter.
   */
 class Base64GCPCredential(override val parameters: Map[String, Any]) extends GCPCredential {
-  implicit val formats: Formats = DefaultFormats
   private val authKeyArray = Base64.getDecoder.decode(parameters("gcpAuthKey").asInstanceOf[String])
-  private val authKeyMap = parse(new String(authKeyArray)).extract[Map[String, String]]
+  private val authKeyMap = JsonParser.parseMap(new String(authKeyArray)).asInstanceOf[Map[String, String]]
   override def authKey: Map[String, String] = authKeyMap
 }
