@@ -1,0 +1,14 @@
+{
+  "alternatives": [
+    {
+      "stepId": "d252c782-afbd-4eef-9f59-c2e99677b8e6",
+      "alternativeStepId": "8bcea87d-9574-4187-b539-b9bc2639b6bb"
+    }
+  ],
+  "alternativeStepCommands": [
+    {
+      "stepId": "8bcea87d-9574-4187-b539-b9bc2639b6bb8bcea87d-9574-4187-b539-b9bc2639b6bb",
+      "command": "LambdaSteps.executeLambda"
+    }
+  ]
+}

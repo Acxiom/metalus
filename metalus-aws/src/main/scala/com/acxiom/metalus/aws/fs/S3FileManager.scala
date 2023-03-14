@@ -1,7 +1,8 @@
-package com.acxiom.metalus.fs
+package com.acxiom.metalus.aws.fs
 
+import com.acxiom.metalus.aws.utils.{AWSUtilities, DefaultAWSCredential, S3Utilities}
+import com.acxiom.metalus.fs.{FileManager, FileResource}
 import com.acxiom.metalus.utils.DriverUtils.buildPipelineException
-import com.acxiom.metalus.utils.{AWSUtilities, DefaultAWSCredential, S3Utilities}
 import org.slf4j.LoggerFactory
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.model._

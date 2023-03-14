@@ -1,15 +1,13 @@
 package com.acxiom.gcp.fs
 
 import com.acxiom.gcp.utils.GCPUtilities.generateCredentialsByteArray
-import com.acxiom.pipeline.Constants
-import com.acxiom.pipeline.fs.{FileInfo, FileManager}
-import com.google.auth.oauth2.GoogleCredentials
-import com.google.cloud.storage.{BlobId, BlobInfo, Storage, StorageOptions}
+import com.acxiom.metalus.Constants
+import com.acxiom.metalus.fs.FileManager
+import com.google.cloud.storage.{Storage, StorageOptions}
 
 import java.io._
 import java.net.URI
 import java.nio.channels.Channels
-import scala.jdk.CollectionConverters._
 
 object GCSFileManager {
   /**

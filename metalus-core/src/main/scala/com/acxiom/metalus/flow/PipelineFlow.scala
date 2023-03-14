@@ -225,10 +225,9 @@ trait PipelineFlow {
       case PipelineStepType.SPLIT =>
         Right(SplitStepFlow(pipeline, pipelineContext, step).execute())
       case _ =>
-        val alternateCommand = pipelineContext.getAlternateCommand(step.stepTemplateId.getOrElse(""))
+        val alternateCommand = pipelineContext.getAlternateCommand(step.stepTemplateId.getOrElse(""), step.asInstanceOf[PipelineStep].engineMeta.get)
         val finalStep = if (alternateCommand.isDefined) {
-          val engineMeta = step.asInstanceOf[PipelineStep].engineMeta.get
-          step.asInstanceOf[PipelineStep].copy(engineMeta = Some(engineMeta.copy(command = alternateCommand)))
+          step.asInstanceOf[PipelineStep].copy(engineMeta = Some(alternateCommand.get))
         } else {
           step.asInstanceOf[PipelineStep]
         }

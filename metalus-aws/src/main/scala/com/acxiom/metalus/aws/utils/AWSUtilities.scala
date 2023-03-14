@@ -1,4 +1,4 @@
-package com.acxiom.metalus.utils
+package com.acxiom.metalus.aws.utils
 
 import com.acxiom.metalus.CredentialProvider
 import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, AwsSessionCredentials, ProfileCredentialsProvider, StaticCredentialsProvider}

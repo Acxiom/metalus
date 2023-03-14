@@ -1,8 +1,8 @@
-package com.acxiom.metalus.steps
+package com.acxiom.metalus.aws.steps
 
 import com.acxiom.metalus.PipelineContext
 import com.acxiom.metalus.annotations.{StepFunction, StepObject, StepParameter, StepParameters}
-import com.acxiom.metalus.utils.{AWSUtilities, KinesisUtilities}
+import com.acxiom.metalus.aws.utils.{AWSUtilities, KinesisUtilities}
 
 @StepObject
 object KinesisSteps {

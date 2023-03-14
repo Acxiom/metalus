@@ -205,14 +205,14 @@ case class PipelineContext(globals: Option[Map[String, Any]],
    * @param stepTemplateId The step template id being referenced.
    * @return Either an alternate command or None if there is no alternative.
    */
-  def getAlternateCommand(stepTemplateId: String): Option[String] = {
+  def getAlternateCommand(stepTemplateId: String, engineMeta: EngineMeta): Option[EngineMeta] = {
     val map = alternateStepMaps.find(map => map.alternatives.exists(_.stepId == stepTemplateId))
     if (map.isDefined) {
       val step = map.get.alternatives.find(_.stepId == stepTemplateId)
       if (step.isDefined) {
         val command = map.get.alternativeStepCommands.find(_.stepId == step.get.alternativeStepId)
         if (command.isDefined) {
-          Some(command.get.command)
+          Some(engineMeta.copy(command = Some(command.get.command), pkg = command.get.pkg))
         } else {
           None
         }
@@ -593,7 +593,7 @@ case class AlternateStepMap(alternatives: List[StepMap], alternativeStepCommands
 
 case class StepMap(stepId: String, alternativeStepId: String)
 
-case class StepCommand(stepId: String, command: String)
+case class StepCommand(stepId: String, command: String, pkg: Option[String])
 
 /**
  * Contains a list of step kes and the action that may be taken.

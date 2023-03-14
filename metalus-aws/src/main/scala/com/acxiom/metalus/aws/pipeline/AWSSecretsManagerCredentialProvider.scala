@@ -1,7 +1,7 @@
-package com.acxiom.metalus.pipeline
+package com.acxiom.metalus.aws.pipeline
 
+import com.acxiom.metalus.aws.utils.{AWSBasicCredential, AWSCloudWatchCredential, AWSDynamoDBCredential, DefaultAWSCredential}
 import com.acxiom.metalus.parser.JsonParser
-import com.acxiom.metalus.utils.{AWSBasicCredential, AWSCloudWatchCredential, AWSDynamoDBCredential, DefaultAWSCredential}
 import com.acxiom.metalus.{Credential, CredentialParser, DefaultCredentialParser, DefaultCredentialProvider}
 import org.slf4j.LoggerFactory
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient

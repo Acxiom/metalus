@@ -1,8 +1,8 @@
-package com.acxiom.metalus.pipeline.connectors
+package com.acxiom.metalus.aws.pipeline.connectors
 
 import com.acxiom.metalus.PipelineContext
+import com.acxiom.metalus.aws.utils.AWSCredential
 import com.acxiom.metalus.connectors.Connector
-import com.acxiom.metalus.utils.AWSCredential
 
 trait AWSConnector extends Connector {
   override protected def getCredential(pipelineContext: PipelineContext): Option[AWSCredential] = {

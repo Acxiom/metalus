@@ -1,4 +1,4 @@
-package com.acxiom.metalus.utils
+package com.acxiom.metalus.aws.utils
 
 import org.slf4j.LoggerFactory
 

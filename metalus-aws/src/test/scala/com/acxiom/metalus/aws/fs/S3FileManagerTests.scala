@@ -1,7 +1,7 @@
-package com.acxiom.aws.fs
+package com.acxiom.metalus.fs
 
 import com.acxiom.metalus.Constants
-import com.acxiom.metalus.steps.S3Steps
+import com.acxiom.metalus.aws.steps.S3Steps
 import io.findify.s3mock.S3Mock
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
