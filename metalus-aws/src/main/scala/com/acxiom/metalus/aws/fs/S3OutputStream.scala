@@ -1,6 +1,6 @@
-package com.acxiom.metalus.fs
+package com.acxiom.metalus.aws.fs
 
-import com.acxiom.metalus.utils.S3Utilities
+import com.acxiom.metalus.aws.utils.S3Utilities
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model._

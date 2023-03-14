@@ -1,4 +1,4 @@
-package com.acxiom.metalus.pipeline.connectors
+package com.acxiom.metalus.aws.pipeline.connectors
 
 /**
   * Write a batch DataFrame to Kinesis using record batching. The following parameters are expected:

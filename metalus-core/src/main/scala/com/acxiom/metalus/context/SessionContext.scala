@@ -121,7 +121,7 @@ trait SessionContext extends Context {
   def loadStepStatus(): Option[List[StepStatus]]
 }
 
-case class SessionInformation(sessionId: UUID, runId: Int, status: String, startDate: Date, endDate: Date, durations: Long)
+case class SessionInformation(sessionId: UUID, runId: Int, status: String, startDate: Date, endDate: Date, duration: Long)
 case class StepStatus(stepKey: String, runId: Int, status: String, nextSteps: Option[List[String]])
 
 /**

@@ -1,15 +1,14 @@
-package com.acxiom.metalus.steps
+package com.acxiom.metalus.aws.steps
 
 import com.acxiom.metalus.annotations._
+import com.acxiom.metalus.aws.utils.AWSUtilities
 import com.acxiom.metalus.parser.JsonParser
-import com.acxiom.metalus.utils.AWSUtilities
+import com.acxiom.metalus.steps.Command
 import com.acxiom.metalus.utils.DriverUtils.{buildPipelineException, invokeWaitPeriod}
 import com.acxiom.metalus.{Constants, PipelineContext, PipelineStepResponse, RetryPolicy}
 import software.amazon.awssdk.core.SdkBytes
 import software.amazon.awssdk.services.lambda.model._
 import software.amazon.awssdk.services.lambda.{LambdaClient, LambdaClientBuilder}
-
-import scala.annotation.tailrec
 
 @StepObject
 object LambdaSteps {

@@ -33,18 +33,18 @@ class ReflectionUtilsTests extends AnyFunSpec with BeforeAndAfterAll {
         Map[String, Any]("string" -> "string", "boolean" -> true),
         pipelineContext.setCurrentStateInfo(stateInfo.copy(stepId = step.id)))
       assert(response.isInstanceOf[PipelineStepResponse])
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.getOrElse("") == "string")
-      assert(response.asInstanceOf[PipelineStepResponse].namedReturns.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].namedReturns.get("boolean").asInstanceOf[Boolean])
+      assert(response.primaryReturn.isDefined)
+      assert(response.primaryReturn.getOrElse("") == "string")
+      assert(response.namedReturns.isDefined)
+      assert(response.namedReturns.get("boolean").asInstanceOf[Boolean])
     }
 
     it("Should process step function with non-PipelineStepResponse") {
       val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionAnyResponse"), Some("com.acxiom.metalus.steps"))))
       val response = ReflectionUtils.processStep(step, Map[String, Any]("string" -> "string"), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.getOrElse("") == "string")
+      assert(response.primaryReturn.isDefined)
+      assert(response.primaryReturn.getOrElse("") == "string")
     }
 
     it("Should process step with Option") {
@@ -52,12 +52,12 @@ class ReflectionUtilsTests extends AnyFunSpec with BeforeAndAfterAll {
       val response = ReflectionUtils.processStep(step,
         Map[String, Any]("string" -> "string", "boolean" -> Some(true), "opt" -> "Option"), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.getOrElse("") == "string")
-      assert(response.asInstanceOf[PipelineStepResponse].namedReturns.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].namedReturns.get("boolean").asInstanceOf[Boolean])
-      assert(response.asInstanceOf[PipelineStepResponse].namedReturns.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].namedReturns.get("option").asInstanceOf[Option[String]].getOrElse("") == "Option")
+      assert(response.primaryReturn.isDefined)
+      assert(response.primaryReturn.getOrElse("") == "string")
+      assert(response.namedReturns.isDefined)
+      assert(response.namedReturns.get("boolean").asInstanceOf[Boolean])
+      assert(response.namedReturns.isDefined)
+      assert(response.namedReturns.get("option").asInstanceOf[Option[String]].getOrElse("") == "Option")
     }
 
     it("Should process step with default value") {
@@ -65,8 +65,8 @@ class ReflectionUtilsTests extends AnyFunSpec with BeforeAndAfterAll {
       val response = ReflectionUtils.processStep(step,
         Map[String, Any]("string" -> "string"), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "chicken")
+      assert(response.primaryReturn.isDefined)
+      assert(response.primaryReturn.get == "chicken")
     }
 
     it("Should process step with default value no option") {
@@ -74,8 +74,8 @@ class ReflectionUtilsTests extends AnyFunSpec with BeforeAndAfterAll {
       val response = ReflectionUtils.processStep(step,
         Map[String, Any]("string" -> "string", "default" -> None), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "default chicken")
+      assert(response.primaryReturn.isDefined)
+      assert(response.primaryReturn.get == "default chicken")
     }
 
     it("Should wrap values in a List, Seq, or Array if passing a single element to a collection") {
@@ -83,8 +83,8 @@ class ReflectionUtilsTests extends AnyFunSpec with BeforeAndAfterAll {
       val response = ReflectionUtils.processStep(step,
         Map[String, Any]("list" -> "l1", "seq" -> 1, "arrayList" -> new util.ArrayList()), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "Some(l1),Some(1),None")
+      assert(response.primaryReturn.isDefined)
+      assert(response.primaryReturn.get == "Some(l1),Some(1),None")
     }
 
     it("Should handle scala.List prefix") {
@@ -105,8 +105,8 @@ class ReflectionUtilsTests extends AnyFunSpec with BeforeAndAfterAll {
       val response = ReflectionUtils.processStep(step,
         Map[String, Any]("s" -> Some(List(Some("s1"), Some("s2")))), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == "s1,s2")
+      assert(response.primaryReturn.isDefined)
+      assert(response.primaryReturn.get == "s1,s2")
     }
 
     it("Should return an informative error if a step function is not found") {
@@ -150,8 +150,8 @@ class ReflectionUtilsTests extends AnyFunSpec with BeforeAndAfterAll {
       )
       val response = ReflectionUtils.processStep(step, map, pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == 1)
+      assert(response.primaryReturn.isDefined)
+      assert(response.primaryReturn.get == 1)
     }
 
     it("should handle Boxed types") {
@@ -167,24 +167,24 @@ class ReflectionUtilsTests extends AnyFunSpec with BeforeAndAfterAll {
       )
       val response = ReflectionUtils.processStep(step, map, pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.get == 1)
+      assert(response.primaryReturn.isDefined)
+      assert(response.primaryReturn.get == 1)
     }
 
     it("Should respect the pkg setting on EngineMeta") {
       val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionAnyResponse"), Some("com.acxiom.metalus.steps"))))
       val response = ReflectionUtils.processStep(step, Map[String, Any]("string" -> "string"), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.getOrElse("") == "string")
+      assert(response.primaryReturn.isDefined)
+      assert(response.primaryReturn.getOrElse("") == "string")
     }
 
     it("Should inject None for missing parameters") {
       val step = PipelineStep(engineMeta = Some(EngineMeta(Some("MockStepObject.mockStepFunctionWithOptionalGenericParams"))))
       val response = ReflectionUtils.processStep(step, Map[String, Any](), pipelineContext)
       assert(response.isInstanceOf[PipelineStepResponse])
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.isDefined)
-      assert(response.asInstanceOf[PipelineStepResponse].primaryReturn.getOrElse("") == "chicken")
+      assert(response.primaryReturn.isDefined)
+      assert(response.primaryReturn.getOrElse("") == "chicken")
     }
   }
 

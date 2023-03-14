@@ -1,4 +1,4 @@
-package com.acxiom.metalus.pipeline.connectors
+package com.acxiom.metalus.aws.pipeline.connectors
 
 import com.acxiom.metalus.Credential
 

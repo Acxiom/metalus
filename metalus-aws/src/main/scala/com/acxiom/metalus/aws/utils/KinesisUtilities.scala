@@ -1,4 +1,4 @@
-package com.acxiom.metalus.utils
+package com.acxiom.metalus.aws.utils
 
 import com.acxiom.metalus.sql.Row
 import com.acxiom.metalus.utils.DriverUtils.{buildPipelineException, invokeWaitPeriod}

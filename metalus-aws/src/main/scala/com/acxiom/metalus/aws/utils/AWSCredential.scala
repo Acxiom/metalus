@@ -1,4 +1,4 @@
-package com.acxiom.metalus.utils
+package com.acxiom.metalus.aws.utils
 
 import com.acxiom.metalus.Credential
 import com.acxiom.metalus.parser.JsonParser

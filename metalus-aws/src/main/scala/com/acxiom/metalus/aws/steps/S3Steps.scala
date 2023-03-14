@@ -1,7 +1,7 @@
-package com.acxiom.metalus.steps
+package com.acxiom.metalus.aws.steps
 
 import com.acxiom.metalus.annotations._
-import com.acxiom.metalus.fs.S3FileManager
+import com.acxiom.metalus.aws.fs.S3FileManager
 
 import java.net.URI
 

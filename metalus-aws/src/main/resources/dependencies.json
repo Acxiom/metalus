@@ -3,44 +3,8 @@
     "libraries": [
       {
         "groupId": "com.acxiom",
-        "artifactId": "metalus-common_${scala.compat.version}-spark_${spark.compat.version}",
-        "version": "${parent.version}"
-      },
-      {
-        "groupId": "org.apache.spark",
-        "artifactId": "spark-streaming-kinesis-asl_${scala.compat.version}",
-        "version": "${spark.version}",
-        "scope": "extraction,stream"
-      },
-      {
-        "groupId": "com.amazonaws",
-        "artifactId": "amazon-kinesis-client",
-        "version": "${kinesis.client.version}",
-        "scope": "extraction,stream"
-      },
-      {
-        "groupId": "com.amazonaws",
-        "artifactId": "aws-java-sdk-secretsmanager",
-        "version": "${aws-sdk-version}",
-        "scope": "extraction,secretsmanager"
-      },
-      {
-        "groupId": "com.amazonaws",
-        "artifactId": "aws-java-sdk-s3",
-        "version": "${aws-sdk-version}",
-        "scope": "extraction,s3"
-      },
-      {
-        "groupId": "com.amazonaws",
-        "artifactId": "aws-java-sdk-core",
-        "version": "${aws-sdk-version}",
-        "scope": "extraction,sdk"
-      },
-      {
-        "groupId": "org.apache.hadoop",
-        "artifactId": "hadoop-aws",
-        "version": "${hadoop-aws-version}",
-        "scope": "s3a"
+        "artifactId": "metalus-core_${scala.compat.version}",
+        "version": "${version}"
       }
     ]
   }

@@ -1,7 +1,7 @@
-package com.acxiom.metalus.pipeline
+package com.acxiom.metalus.aws.pipeline
 
 import com.acxiom.metalus._
-import com.acxiom.metalus.utils.{AWSUtilities, KinesisUtilities}
+import com.acxiom.metalus.aws.utils.{AWSUtilities, KinesisUtilities}
 
 class KinesisPipelineListener(val key: String,
                               val credentialName: String,
