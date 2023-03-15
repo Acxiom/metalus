@@ -18,7 +18,7 @@ object LambdaSteps {
        -1 indicates a failure and stdErr should be reviewed for more information. This step will automatically
        retry calls if non-code related issues occur. To adjust the retry behavior, include a RetryPolicy in
        a global named awsRetryPolicy.""",
-    "Pipeline", "Utilities", List[String]("batch"))
+    "Pipeline", "Utilities", List[String]("batch", "aws"))
   @StepParameters(Map("command" -> StepParameter(None, Some(true), None, None, None, None, Some("The Command object containing the execution information"))))
   @StepResults(primaryType = "Int", secondaryTypes = Some(Map("stdOut" -> "String", "stdErr" -> "String")))
   def executeLambda(command: Command, pipelineContext: PipelineContext): PipelineStepResponse = {
