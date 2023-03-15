@@ -1,10 +1,10 @@
-package com.acxiom.gcp.pipeline.connectors
+package com.acxiom.metalus.gcp.pipeline.connectors
 
-import com.acxiom.gcp.fs.GCSFileManager
-import com.acxiom.gcp.utils.GCPUtilities
-import com.acxiom.pipeline.connectors.FileConnector
-import com.acxiom.pipeline.fs.FileManager
-import com.acxiom.pipeline.{Credential, PipelineContext}
+import com.acxiom.metalus.connectors.FileConnector
+import com.acxiom.metalus.fs.FileManager
+import com.acxiom.metalus.gcp.fs.GCSFileManager
+import com.acxiom.metalus.gcp.utils.GCPUtilities
+import com.acxiom.metalus.{Credential, PipelineContext}
 
 /**
   * Provides an implementation of FileConnector that works with GCS.

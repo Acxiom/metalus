@@ -1,10 +1,9 @@
-package com.acxiom.gcp.pipeline
+package com.acxiom.metalus.gcp.pipeline
 
-import com.acxiom.pipeline._
+import com.acxiom.metalus.parser.JsonParser
+import com.acxiom.metalus.{Credential, CredentialParser, DefaultCredential, DefaultCredentialParser, DefaultCredentialProvider}
 import com.google.cloud.secretmanager.v1.{SecretManagerServiceClient, SecretName, SecretVersion, SecretVersionName}
-import org.apache.log4j.Logger
-import org.json4s.native.JsonMethods.parse
-import org.json4s.{DefaultFormats, Formats}
+import org.slf4j.LoggerFactory
 
 import java.util.Base64
 import scala.jdk.CollectionConverters._
@@ -16,9 +15,8 @@ import scala.jdk.CollectionConverters._
   */
 class GCPSecretsManagerCredentialProvider(override val parameters: Map[String, Any])
   extends DefaultCredentialProvider(parameters) {
-  private val logger = Logger.getLogger(getClass)
-  private implicit val formats: Formats = DefaultFormats
-  override protected val defaultParsers = List(new DefaultCredentialParser(), new GCPCredentialParser)
+  private val logger = LoggerFactory.getLogger(getClass)
+  override protected val defaultParsers: List[CredentialParser] = List(new DefaultCredentialParser(), new GCPCredentialParser)
   private val projectId = parameters.getOrElse("projectId", "").asInstanceOf[String]
   private val secretsManagerClient = SecretManagerServiceClient.create()
 
@@ -44,7 +42,7 @@ class GCPSecretsManagerCredentialProvider(override val parameters: Map[String, A
           Option(secret.get.getPayload.getData.toStringUtf8).isDefined) {
           val secretString = secret.get.getPayload.getData.toStringUtf8
           val credsMap = if ("(\\{.*?})".r.findAllIn(secretString).hasNext) {
-            parse(secretString).extract[Map[String, String]]
+            JsonParser.parseMap(secretString).asInstanceOf[Map[String, String]]
           } else {
             Map("credentialName" -> name, "credentialValue" -> secretString)
           }
