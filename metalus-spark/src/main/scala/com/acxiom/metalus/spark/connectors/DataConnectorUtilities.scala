@@ -75,11 +75,11 @@ object DataConnectorUtilities {
     * @param path         The path to write the data.
     * @return A DataStreamWriter[Row] based on the provided options.
     */
-  def buildDataStreamWriter[T](dataFrame: Dataset[T], writeOptions: DataFrameWriterOptions, path: String): DataStreamWriter[T] = {
-    val options = writeOptions.options.getOrElse(Map[String, String]())
-    val finalOptions = if (!options.contains("checkpointLocation")) {
+  def buildDataStreamWriter[T](dataFrame: Dataset[T], writeOptions: DataFrameWriterOptions, path: Option[String]): DataStreamWriter[T] = {
+    val options = writeOptions.options.getOrElse(Map[String, String]()) ++ path.map("path" -> _)
+    val finalOptions = if (!options.contains("checkpointLocation") && path.exists(_.nonEmpty)) {
       options + ("checkpointLocation" ->
-        s"${path.substring(0, path.lastIndexOf("/"))}/streaming_checkpoints_${Constants.FILE_APPEND_DATE_FORMAT.format(new Date())}")
+        s"${path.get.substring(0, path.get.lastIndexOf("/"))}/streaming_checkpoints_${Constants.FILE_APPEND_DATE_FORMAT.format(new Date())}")
     } else {
       options
     }
@@ -91,7 +91,7 @@ object DataConnectorUtilities {
     val writer = dataFrame.writeStream
       .format(writeOptions.format)
       .outputMode(mode)
-      .option("path", path).options(finalOptions)
+      .options(finalOptions)
       .trigger(writeOptions.triggerOptions.getOrElse(StreamingTriggerOptions()).getTrigger)
     addPartitionInformation(writer, writeOptions)
   }

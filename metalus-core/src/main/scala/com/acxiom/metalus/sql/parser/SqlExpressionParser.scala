@@ -67,7 +67,7 @@ private[metalus] final class SqlExpressionVisitor(tokenStream: CommonTokenStream
   override def visitComparison(ctx: ComparisonContext): BaseExpression =
     BinaryOperator(visit(ctx.left), visit(ctx.right), ctx.comparisonOperator().getText)(getRaw(ctx))
   override def visitLogicalBinary(ctx: LogicalBinaryContext): BaseExpression =
-    BinaryOperator(visit(ctx.left), visit(ctx.right), ctx.operator.getText)(getRaw(ctx))
+    BinaryOperator(visit(ctx.left), visit(ctx.right), ctx.operator.getText.toUpperCase)(getRaw(ctx))
   override def visitArithmeticBinary(ctx: ArithmeticBinaryContext): BaseExpression =
     BinaryOperator(visit(ctx.left), visit(ctx.right), ctx.operator.getText)(getRaw(ctx))
   override def visitConcatenation(ctx: ConcatenationContext): BaseExpression =

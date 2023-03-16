@@ -1,0 +1,21 @@
+{
+  "maven": {
+    "libraries": [
+      {
+        "groupId": "com.acxiom",
+        "artifactId": "metalus-core_${scala.compat.version}",
+        "version": "${version}"
+      },
+      {
+        "groupId": "com.acxiom",
+        "artifactId": "metalus-aws_${scala.compat.version}",
+        "version": "${version}"
+      },
+      {
+        "groupId": "com.acxiom",
+        "artifactId": "metalus-spark_${scala.compat.version}-spark_${spark.compat.version}",
+        "version": "${version}"
+      }
+    ]
+  }
+}
