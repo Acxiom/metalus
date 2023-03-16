@@ -9,6 +9,8 @@ trait Connector {
 
   def credential: Option[Credential]
 
+  def connectorType: String
+
   /**
     * Using the provided PipelineContext and the optional credentialName and credential, this function will
     * attempt to provide a Credential for use by the connector.

@@ -44,6 +44,33 @@
       "y": 830
     }
   },
+  "parameters": {
+    "inputs": [
+      {
+        "name": "sourceConnector",
+        "global": true,
+        "required": true
+      },
+      {
+        "name": "destinationConnector",
+        "global": true,
+        "required": true
+      },
+      {
+        "name": "sourceCopyPath",
+        "global": true,
+        "required": true
+      },
+      {
+        "name": "destinationCopyPath",
+        "global": true,
+        "required": true
+      }
+    ],
+    "restartableSteps": [
+      "VERIFY"
+    ]
+  },
   "steps": [
     {
       "id": "GETSOURCE",
@@ -67,8 +94,77 @@
           "primaryType": "com.acxiom.pipeline.fs.FileManager"
         }
       },
-      "nextStepId": "GETDESTINATION",
+      "nextStepId": "VALIDATE_SOURCE",
       "stepId": "259a880a-3e12-4843-9f02-2cfc2a05f576"
+    },
+    {
+      "id": "VALIDATE_SOURCE",
+      "displayName": "Does File Exist",
+      "description": "Checks whether a file exists",
+      "type": "branch",
+      "params": [
+        {
+          "type": "text",
+          "name": "fileManager",
+          "required": true,
+          "value": "@GETSOURCE",
+          "parameterType": "com.acxiom.pipeline.connectors.FileConnector",
+          "description": "Maps the value from the sourceConnector global."
+        },
+        {
+          "type": "text",
+          "name": "path",
+          "required": true,
+          "value": "!sourceCopyPath",
+          "parameterType": "String",
+          "description": "Maps the value from the sourceConnector global."
+        },
+        {
+          "type": "result",
+          "name": "true",
+          "required": true,
+          "value": "GETDESTINATION",
+          "parameterType": "String"
+        },
+        {
+          "type": "result",
+          "name": "false",
+          "required": true,
+          "value": "INVALID_SOURCE",
+          "parameterType": "String"
+        }
+      ],
+      "engineMeta": {
+        "command": "FileManagerSteps.exists",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "stepId": "aec5ebf7-7dac-4132-8d58-3a06b4772f79"
+    },
+    {
+      "id": "INVALID_SOURCE",
+      "displayName": "Raise Exception",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "text",
+          "name": "message",
+          "required": true,
+          "value": "Source path does not exist: !{sourceCopyPath}",
+          "parameterType": "String"
+        },
+        {
+          "type": "text",
+          "name": "stepIdOverride",
+          "required": true,
+          "value": "VALIDATE_SOURCE",
+          "parameterType": "String"
+        }
+      ],
+      "engineMeta": {
+        "command": "ExceptionSteps.throwPipelineException",
+        "pkg": "com.acxiom.pipeline.steps"
+      },
+      "stepId": "fb6c6293-c51d-49ab-a77e-de389610cdd6c"
     },
     {
       "id": "GETDESTINATION",

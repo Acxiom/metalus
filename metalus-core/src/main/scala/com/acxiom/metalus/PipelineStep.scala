@@ -84,13 +84,14 @@ final case class PipelineStepGroup(override val id: Option[String] = None,
                                    pipelineId: Option[String] = None) extends FlowStep
 
 /**
-  * Represents a template fora step to be used when creating a pipeline.
+  * Represents a template for a step to be used when creating a pipeline.
   *
   * @param id              The unique (to the pipeline) id of this step template. This property is used to reference this template within a pipeline step.
   * @param displayName     A name that can be displayed in logs and errors.
   * @param description     A long description of this step.
   * @param `type`          The type of step.
   * @param params          The step parameters that are used during execution.
+ *  @param category        Used for categorizing the template metadata.
   * @param engineMeta      Contains the instruction for invoking the step function.
   * @param restartable     Boolean flag indicating whether this step may be started in a flow restart
   */
@@ -99,6 +100,7 @@ case class StepTemplate(override val id: Option[String] = None,
                         override val description: Option[String] = None,
                         override val `type`: Option[String] = None,
                         override val params: Option[List[Parameter]] = None,
+                        category: Option[String] = None,
                         engineMeta: Option[EngineMeta] = None,
                         restartable: Option[Boolean] = Some(false)) extends Step
 
