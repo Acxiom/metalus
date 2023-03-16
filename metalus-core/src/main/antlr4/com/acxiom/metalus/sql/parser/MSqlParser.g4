@@ -287,6 +287,7 @@ booleanExpression
     | left=valueExpression NOT? IN L_PAREN query R_PAREN                                       #inSubquery
     | left=booleanExpression operator=AND right=booleanExpression         #logicalBinary
     | left=booleanExpression operator=OR right=booleanExpression          #logicalBinary
+    | left=booleanExpression operator=XOR right=booleanExpression          #logicalBinary
     ;
 
 isPredicate
