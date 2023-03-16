@@ -74,6 +74,18 @@ trait SparkDataConnector extends DataConnector {
             pipelineContext: PipelineContext): Option[StreamingQuery] =
     write(dataFrame, destination, tableName, pipelineContext, DataFrameWriterOptions())
 
+  protected def getCredentialReadOptions(pipelineContext: PipelineContext): Map[String, String] = {
+    getCredential(pipelineContext)
+      .flatMap(SparkOptionsProvider.getWriteOptions)
+      .getOrElse(Map.empty[String, String])
+  }
+
+  protected def getCredentialWriteOptions(pipelineContext: PipelineContext): Map[String, String] = {
+    getCredential(pipelineContext)
+      .flatMap(SparkOptionsProvider.getReadOptions)
+      .getOrElse(Map.empty[String, String])
+  }
+
 }
 
 trait BatchDataConnector extends SparkDataConnector {}
@@ -109,7 +121,8 @@ trait FileSystemDataConnector extends BatchDataConnector with StreamingDataConne
                      writeOptions: DataFrameWriterOptions): Option[StreamingQuery] = {
     val path = destination.map(preparePaths).flatMap(_.headOption)
     if (dataFrame.isStreaming) {
-      Some(DataConnectorUtilities.buildDataStreamWriter(dataFrame, writeOptions, path.mkString).start())
+      val writer = DataConnectorUtilities.buildDataStreamWriter(dataFrame, writeOptions, path)
+      tableName.map(writer.toTable) orElse Some(writer.start())
     } else {
       val writer = DataConnectorUtilities.buildDataFrameWriter(dataFrame, writeOptions)
       (path, tableName) match {
@@ -124,5 +137,5 @@ trait FileSystemDataConnector extends BatchDataConnector with StreamingDataConne
 
 // no op for security when using the default connector
 final case class DefaultSparkDataConnector(override val name: String,
-                                   override val credentialName: Option[String],
-                                   override val credential: Option[Credential]) extends FileSystemDataConnector
+                                           override val credentialName: Option[String],
+                                           override val credential: Option[Credential]) extends FileSystemDataConnector

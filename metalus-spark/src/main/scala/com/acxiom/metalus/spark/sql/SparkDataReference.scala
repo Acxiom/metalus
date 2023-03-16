@@ -86,6 +86,7 @@ final case class SparkDataReference(dataset: () => Dataset[_], origin: SparkData
 
   def toDataset: Dataset[_] = {
     val ds = dataset()
+    ds.show()
     alias.map(ds.alias).getOrElse(ds)
   }
 }

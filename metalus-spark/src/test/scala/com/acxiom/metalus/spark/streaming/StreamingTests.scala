@@ -82,7 +82,7 @@ class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
       // Setup the server
       val server = new ServerSocket(port)
       // Start the query
-      val query = Some(DataConnectorUtilities.buildDataStreamWriter(load, writeOptions, path).start())
+      val query = Some(DataConnectorUtilities.buildDataStreamWriter(load, writeOptions, Some(path)).start())
       // Write Data
       val socket = sendRecords(server, Constants.FIVE * Constants.TEN)
       // Thread the step
@@ -118,7 +118,7 @@ class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
       val server = new ServerSocket(port)
       val dataFrame = getReadStream(port, Some("partition_column"), Some(Constants.FILE_APPEND_DATE_FORMAT.format(new Date())))
       // Start the query
-      val query = Some(DataConnectorUtilities.buildDataStreamWriter(dataFrame, writeOptions, path).start())
+      val query = Some(DataConnectorUtilities.buildDataStreamWriter(dataFrame, writeOptions, Some(path)).start())
       // Write Data
       val socket = sendRecords(server, Constants.TEN)
       val monitor = Some("com.acxiom.metalus.spark.streaming.BatchPartitionedStreamingQueryMonitor")
@@ -137,7 +137,7 @@ class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
           fs.delete(new org.apache.hadoop.fs.Path(checkpointLocation), true)
           val q1 = Some(DataConnectorUtilities.buildDataStreamWriter(
             getReadStream(port, Some("partition_column"),
-              Some(Constants.FILE_APPEND_DATE_FORMAT.format(new Date()))), writeOptions, path).start())
+              Some(Constants.FILE_APPEND_DATE_FORMAT.format(new Date()))), writeOptions, Some(path)).start())
           val s1 = sendRecords(server, Constants.TWENTY)
           val r = StreamingSteps.monitorStreamingQuery(q1, monitor, ctx)
           s1.close()
@@ -178,7 +178,7 @@ class StreamingTests  extends AnyFunSpec with BeforeAndAfterAll {
       val server = new ServerSocket(port)
       val dataFrame = getReadStream(port, None, None)
       // Start the query
-      val query = Some(DataConnectorUtilities.buildDataStreamWriter(dataFrame, writeOptions, path).start())
+      val query = Some(DataConnectorUtilities.buildDataStreamWriter(dataFrame, writeOptions, Some(path)).start())
       // Write Data
       val socket = sendRecords(server, Constants.TEN)
       val monitor = Some("com.acxiom.metalus.spark.streaming.BatchFileStreamingQueryMonitor")

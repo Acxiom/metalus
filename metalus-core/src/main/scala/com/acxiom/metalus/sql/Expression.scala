@@ -286,6 +286,28 @@ object NumericLiteral {
   }
 }
 
+object DecimalLiteral {
+  def unapply(expr: BaseExpression): Option[Literal] = expr match {
+    case nl @ Literal(n, _) if isNumeric(n) => Some(nl)
+    case _ => None
+  }
+
+  private def isNumeric(value: String): Boolean = {
+    val index = value.indexOf('.')
+    index > -1 && index == value.lastIndexOf('.') && value.forall {
+      case '.' => true
+      case c => c.isDigit
+    }
+  }
+}
+
+object IntegerLiteral {
+  def unapply(expr: BaseExpression): Option[Literal] = expr match {
+    case nl @ Literal(n, _) if n.forall(_.isDigit) => Some(nl)
+    case _ => None
+  }
+}
+
 object SelectAll {
   def unapply(expr: BaseExpression): Option[Identifier] = expr match {
     case i @ Identifier("*", _, _) => Some(i)
