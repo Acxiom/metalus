@@ -27,7 +27,7 @@ case class S3FileConnector(region: String,
     */
   override def getFileManager(pipelineContext: PipelineContext): FileManager = {
     val finalCredential = getCredential(pipelineContext)
-    val s3 = new S3FileManager(region, bucket, finalCredential.get.awsAccessKey, finalCredential.get.awsAccessSecret,
+    val s3 = new S3FileManager(region, bucket, finalCredential.flatMap(_.awsAccessKey), finalCredential.get.awsAccessSecret,
       finalCredential.get.awsAccountId, finalCredential.get.awsRole, finalCredential.get.awsPartition)
     s3.connect()
     s3
