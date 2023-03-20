@@ -1,12 +1,13 @@
 package com.acxiom.metalus.steps
 
-import com.acxiom.metalus.PipelineContext
-import com.acxiom.metalus.annotations.{StepFunction, StepObject, StepParameter, StepParameters, StepResults}
+import com.acxiom.metalus.{PipelineContext, PipelineStepResponse}
+import com.acxiom.metalus.annotations._
 import com.acxiom.metalus.connectors.FileConnector
 import com.acxiom.metalus.fs.{FileManager, FileResource}
+import com.acxiom.metalus.sql.{Attribute, AttributeType, Schema}
 import org.slf4j.LoggerFactory
 
-import java.io.{InputStream, OutputStream}
+import java.io.{BufferedReader, InputStream, InputStreamReader, OutputStream}
 import java.util.Date
 
 @StepObject
@@ -189,7 +190,7 @@ object FileManagerSteps {
     "Get an InputStream",
     "Gets an InputStream using the provided FileManager",
     "Pipeline",
-    "Connectors")
+    "FileManager")
   @StepParameters(Map(
     "fileManager" -> StepParameter(None, Some(true), None, None,
       None, None, Some("The FileManager to use to get the InputStream")),
@@ -207,7 +208,7 @@ object FileManagerSteps {
     "Get an OutputStream",
     "Gets an OutputStream using the provided FileManager",
     "Pipeline",
-    "Connectors")
+    "FileManager")
   @StepParameters(Map(
     "fileManager" -> StepParameter(None, Some(true), None, None,
       None, None, Some("The FileManager to use to get the OutputStream")),
@@ -231,7 +232,7 @@ object FileManagerSteps {
     "Rename a File",
     "Renames a file using the provided FileManager",
     "Pipeline",
-    "Connectors")
+    "FileManager")
   @StepParameters(Map(
     "fileManager" -> StepParameter(None, Some(true), None, None,
       None, None, Some("The FileManager to use for the rename operation")),
@@ -247,9 +248,8 @@ object FileManagerSteps {
     "Get File Size",
     "Gets the size of a file",
     "Pipeline",
-    "Connectors")
-  @StepParameters(Map(
-    "fileManager" -> StepParameter(None, Some(true), None, None,
+    "FileManager")
+  @StepParameters(Map("fileManager" -> StepParameter(None, Some(true), None, None,
       None, None, Some("The FileManager to use for the size operation")),
     "path" -> StepParameter(None, Some(true), None, None,
       None, None, Some("The path of the file"))
@@ -260,7 +260,7 @@ object FileManagerSteps {
     "Does File Exist",
     "Checks whether a file exists",
     "Pipeline",
-    "Connectors")
+    "FileManager")
   @StepParameters(Map(
     "fileManager" -> StepParameter(None, Some(true), None, None,
       None, None, Some("The FileManager to use for the size operation")),
@@ -273,7 +273,7 @@ object FileManagerSteps {
     "Get a File Listing",
     "Gets a file listing using the provided FileManager",
     "Pipeline",
-    "Connectors")
+    "FileManager")
   @StepParameters(Map(
     "fileManager" -> StepParameter(None, Some(true), None, None,
       None, None, Some("The FileManager to use for the rename operation")),
@@ -289,7 +289,7 @@ object FileManagerSteps {
     "Get a Directory Listing",
     "Gets a directory listing using the provided FileManager",
     "Pipeline",
-    "Connectors")
+    "FileManager")
   @StepParameters(Map(
     "fileManager" -> StepParameter(None, Some(true), None, None,
       None, None, Some("The FileManager to use for the rename operation")),
@@ -297,6 +297,24 @@ object FileManagerSteps {
       None, None, Some("The path of the file being renamed"))
   ))
   def getDirectoryListing(fileManager: FileManager, path: String): List[FileResource] = fileManager.getDirectoryListing(path)
+
+  @StepFunction("100b2c7d-c1fb-5fe2-b9d1-dd9fff103272",
+    "Read header from a file",
+    "This step will load the first line of a file and parse it into a Schema",
+    "Pipeline",
+    "FileManager")
+  @StepParameters(Map("file" -> StepParameter(None, Some(true), None, None, description = Some("The file resource to read")),
+    "separator" -> StepParameter(None, Some(false), None, None, description = Some("The column separator. Defaults to ,"))))
+  @StepResults(primaryType = "List[com.acxiom.metalus.sql.Schema]", secondaryTypes = None)
+  def readHeader(file: FileResource, separator: Option[String]): PipelineStepResponse = {
+    val input = new BufferedReader(new InputStreamReader(file.getInputStream()))
+    val head = input.readLine()
+    input.close()
+    val columns = head.split(separator.getOrElse(",").toCharArray.head)
+      .map(_.toUpperCase).toList
+      .map(col => Attribute(col, AttributeType("String"), None, None))
+    PipelineStepResponse(Some(Schema(columns)))
+  }
 }
 
 case class CopyResults(success: Boolean, fileSize: Long, durationMS: Long, startTime: Date, endTime: Date)
