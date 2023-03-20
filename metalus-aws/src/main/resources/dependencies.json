@@ -5,6 +5,36 @@
         "groupId": "com.acxiom",
         "artifactId": "metalus-core_${scala.compat.version}",
         "version": "${version}"
+      },
+      {
+        "groupId": "software.amazon.awssdk",
+        "artifactId": "lambda",
+        "version": "${aws-sdk-version}",
+        "scope":"extraction"
+      },
+      {
+        "groupId": "software.amazon.awssdk",
+        "artifactId": "sdk-core",
+        "version": "${aws-sdk-version}",
+        "scope":"extraction"
+      },
+      {
+        "groupId": "software.amazon.awssdk",
+        "artifactId": "utils",
+        "version": "${aws-sdk-version}",
+        "scope":"extraction"
+      },
+      {
+        "groupId": "software.amazon.awssdk",
+        "artifactId": "annotations",
+        "version": "${aws-sdk-version}",
+        "scope":"extraction"
+      },
+      {
+        "groupId": "software.amazon.awssdk",
+        "artifactId": "aws-core",
+        "version": "${aws-sdk-version}",
+        "scope":"extraction"
       }
     ]
   }

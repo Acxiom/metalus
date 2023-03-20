@@ -8,6 +8,9 @@ import com.acxiom.metalus.fs.FileManager
   * implementation provides a way to get the FileManager for that file system and can be used by steps.
   */
 trait FileConnector extends Connector {
+
+  def connectorType: String = "FILE"
+
   /**
     * Creates and opens a FileManager.
     *
