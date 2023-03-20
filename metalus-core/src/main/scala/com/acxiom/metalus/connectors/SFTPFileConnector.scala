@@ -3,6 +3,21 @@ package com.acxiom.metalus.connectors
 import com.acxiom.metalus.fs.{FileManager, SFTPFileManager}
 import com.acxiom.metalus.{Credential, PipelineContext, UserNameCredential}
 
+import java.net.URI
+
+object SFTPFileConnector {
+  def fromURI(uri: URI,
+              name: String,
+              credentialName: Option[String],
+              credential: Option[Credential],
+              knownHosts: Option[String] = None,
+              bulkRequests: Option[Int] = None,
+              config: Option[Map[String, String]] = None,
+              timeout: Option[Int] = None): SFTPFileConnector = {
+    SFTPFileConnector(uri.getHost, name, credentialName, credential, Option(uri.getPort), knownHosts, bulkRequests, config, timeout)
+  }
+}
+
 /**
   * Provides an implementation of FileConnector that works with SFTP.
   *
