@@ -12,7 +12,6 @@ case class JDBCDataConnector(url: String,
                              defaultProperties: Option[Map[String, Any]] = None) extends DataConnector {
   override def createDataReference(properties: Option[Map[String, Any]], pipelineContext: PipelineContext): JDBCDataReference[_] = {
     val dbtable = {
-      pipelineContext.contextManager.getContext("")
       val tmp = properties.flatMap(_.get("dbtable")).map(_.toString)
       if (tmp.isEmpty) {
         throw PipelineException(message = Some("dbtable must be provided to create a JDBCDataReference"),
