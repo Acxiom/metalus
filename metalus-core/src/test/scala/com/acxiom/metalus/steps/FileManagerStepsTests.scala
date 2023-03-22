@@ -1,7 +1,7 @@
 package com.acxiom.metalus.steps
 
 import com.acxiom.metalus._
-import com.acxiom.metalus.connectors.{LocalFileConnector, SFTPFileConnector}
+import com.acxiom.metalus.connectors.{DataStreamOptions, LocalFileConnector, SFTPFileConnector}
 import com.acxiom.metalus.context.ContextManager
 import com.acxiom.metalus.sql.Schema
 import org.scalatest.BeforeAndAfterAll
@@ -170,7 +170,8 @@ class FileManagerStepsTests extends AnyFunSpec with BeforeAndAfterAll {
           |""".stripMargin.getBytes)
       out.flush()
       out.close()
-      val header = FileManagerSteps.readHeader(file, Some("|"))
+      val options = DataStreamOptions(None, Map("fileDelimiter" -> "|"))
+      val header = FileManagerSteps.readHeader(file, Some(options))
       assert(header.primaryReturn.isDefined)
       val columns = header.primaryReturn.get.asInstanceOf[Schema]
       assert(columns.attributes.size == Constants.FOUR)

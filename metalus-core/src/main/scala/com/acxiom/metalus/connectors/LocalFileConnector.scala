@@ -41,18 +41,7 @@ case class LocalFileConnector(override val name: String,
 }
 
 case class CSVFileDataRowReader(fileManager: FileManager, properties: DataStreamOptions) extends DataRowReader {
-  private val settings = new CsvParserSettings()
-  private val format = settings.getFormat
-  format.setComment('\u0000')
-  format.setDelimiter(properties.options.getOrElse("fileDelimiter", ",").toString)
-  properties.options.get("fileQuote").asInstanceOf[Option[String]].foreach(q => format.setQuote(q.head))
-  properties.options.get("fileQuoteEscape").asInstanceOf[Option[String]].foreach(q => format.setQuoteEscape(q.head))
-  properties.options.get("fileRecordDelimiter").asInstanceOf[Option[String]].foreach(r => format.setLineSeparator(r))
-  settings.setEmptyValue("")
-  settings.setNullValue("")
-  settings.setUnescapedQuoteHandling(UnescapedQuoteHandling.STOP_AT_CLOSING_QUOTE)
-  private val csvParser = new CsvParser(settings)
-
+  private val csvParser = DriverUtils.buildCSVParser(properties)
   private val filePath = properties.options.getOrElse("filePath", "INVALID_FILE_PATH").toString
   private val file = {
     if (!fileManager.exists(filePath)) {

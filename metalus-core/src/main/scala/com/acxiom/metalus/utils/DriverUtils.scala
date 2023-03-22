@@ -2,8 +2,10 @@ package com.acxiom.metalus.utils
 
 import com.acxiom.metalus._
 import com.acxiom.metalus.api.HttpRestClient
+import com.acxiom.metalus.connectors.DataStreamOptions
 import com.acxiom.metalus.drivers.StreamingDataParser
 import com.acxiom.metalus.fs.FileManager
+import com.univocity.parsers.csv.{CsvParser, CsvParserSettings, UnescapedQuoteHandling}
 import org.slf4j.event.Level
 
 import scala.io.Source
@@ -130,6 +132,26 @@ object DriverUtils {
     } else {
       updatedExe
     }
+  }
+
+  /**
+   * Creates a CSV parser.
+   *
+   * @param options The options to use for parsing.
+   * @return A CSV parser.
+   */
+  def buildCSVParser(options: DataStreamOptions): CsvParser = {
+    val settings = new CsvParserSettings()
+    val format = settings.getFormat
+    format.setComment('\u0000')
+    format.setDelimiter(options.options.getOrElse("fileDelimiter", ",").toString)
+    options.options.get("fileQuote").asInstanceOf[Option[String]].foreach(q => format.setQuote(q.head))
+    options.options.get("fileQuoteEscape").asInstanceOf[Option[String]].foreach(q => format.setQuoteEscape(q.head))
+    options.options.get("fileRecordDelimiter").asInstanceOf[Option[String]].foreach(r => format.setLineSeparator(r))
+    settings.setEmptyValue("")
+    settings.setNullValue("")
+    settings.setUnescapedQuoteHandling(UnescapedQuoteHandling.STOP_AT_CLOSING_QUOTE)
+    new CsvParser(settings)
   }
 
   // TODO [2.0 Review] Investigate using this for the Step Retry logic

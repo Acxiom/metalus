@@ -2,9 +2,10 @@ package com.acxiom.metalus.steps
 
 import com.acxiom.metalus.{PipelineContext, PipelineStepResponse}
 import com.acxiom.metalus.annotations._
-import com.acxiom.metalus.connectors.FileConnector
+import com.acxiom.metalus.connectors.{DataStreamOptions, FileConnector}
 import com.acxiom.metalus.fs.{FileManager, FileResource}
 import com.acxiom.metalus.sql.{Attribute, AttributeType, Schema}
+import com.acxiom.metalus.utils.DriverUtils
 import org.slf4j.LoggerFactory
 
 import java.io.{BufferedReader, InputStream, InputStreamReader, OutputStream}
@@ -304,13 +305,13 @@ object FileManagerSteps {
     "Pipeline",
     "FileManager")
   @StepParameters(Map("file" -> StepParameter(None, Some(true), None, None, description = Some("The file resource to read")),
-    "separator" -> StepParameter(None, Some(false), None, None, description = Some("The column separator. Defaults to ,"))))
+    "options" -> StepParameter(None, Some(false), None, None, description = Some("Optional settings to use during the data read"))))
   @StepResults(primaryType = "List[com.acxiom.metalus.sql.Schema]", secondaryTypes = None)
-  def readHeader(file: FileResource, separator: Option[String]): PipelineStepResponse = {
+  def readHeader(file: FileResource, options: Option[DataStreamOptions]): PipelineStepResponse = {
     val input = new BufferedReader(new InputStreamReader(file.getInputStream()))
     val head = input.readLine()
     input.close()
-    val columns = head.split(separator.getOrElse(",").toCharArray.head)
+    val columns = DriverUtils.buildCSVParser(options.getOrElse(DataStreamOptions(None))).parseLine(head)
       .map(_.toUpperCase).toList
       .map(col => Attribute(col, AttributeType("String"), None, None))
     PipelineStepResponse(Some(Schema(columns)))
