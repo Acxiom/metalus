@@ -5,10 +5,11 @@ import java.util.ServiceLoader
 import scala.jdk.CollectionConverters._
 
 trait SparkOptionsProvider {
+  type OptionsBuilder = PartialFunction[Any, Map[String, String]]
 
-  def getReadOptions: PartialFunction[Any, Map[String, String]]
+  def getReadOptions: OptionsBuilder
 
-  def getWriteOptions: PartialFunction[Any, Map[String, String]]
+  def getWriteOptions: OptionsBuilder
 
 }
 
