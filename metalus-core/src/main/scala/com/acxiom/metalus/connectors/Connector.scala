@@ -12,12 +12,28 @@ trait Connector {
   def connectorType: String
 
   /**
-    * Using the provided PipelineContext and the optional credentialName and credential, this function will
-    * attempt to provide a Credential for use by the connector.
-    *
-    * @param pipelineContext The current PipelineContext for this session.
-    * @return A credential or None.
-    */
+   * Returns a DataRowReader or None. The reader can be used to window data from the connector.
+   *
+   * @param properties Optional properties required by the reader.
+   * @return Returns a DataRowReader or None.
+   */
+  def getReader(properties: Option[DataStreamOptions]): Option[DataRowReader] = None
+
+  /**
+   * Returns a DataRowWriter or None. The writer can be used to window data to the connector.
+   *
+   * @param properties Optional properties required by the writer.
+   * @return Returns a DataRowWriter or None.
+   */
+  def getWriter(properties: Option[DataStreamOptions]): Option[DataRowWriter] = None
+
+  /**
+   * Using the provided PipelineContext and the optional credentialName and credential, this function will
+   * attempt to provide a Credential for use by the connector.
+   *
+   * @param pipelineContext The current PipelineContext for this session.
+   * @return A credential or None.
+   */
   protected def getCredential(pipelineContext: PipelineContext): Option[Credential] = {
     if (credentialName.isDefined) {
       pipelineContext.credentialProvider.get.getNamedCredential(credentialName.get)
