@@ -37,7 +37,7 @@ object FlowUtilsSteps {
   def streamData(source: Connector, pipelineId: String,
                  retryPolicy: RetryPolicy = RetryPolicy(),
                  options: Option[DataStreamOptions], pipelineContext: PipelineContext): Unit = {
-    val readerOpt = source.getReader(options)
+    val readerOpt = source.getReader(options, pipelineContext)
     val pipeline = pipelineContext.pipelineManager.getPipeline(pipelineId)
     if (readerOpt.isEmpty) {
       throw DriverUtils.buildPipelineException(Some(s"Connector ${source.name} does not support reading from a stream!"), None, Some(pipelineContext))

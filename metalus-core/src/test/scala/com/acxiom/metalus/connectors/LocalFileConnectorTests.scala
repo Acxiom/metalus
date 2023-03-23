@@ -1,13 +1,12 @@
 package com.acxiom.metalus.connectors
 
-import com.acxiom.metalus.Constants
+import com.acxiom.metalus.{Constants, TestHelper}
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.scalatest.funspec.AnyFunSpec
 
 import java.io.{File, FileInputStream}
 import java.nio.file.{Files, StandardCopyOption}
 import scala.io.Source
-import scala.jdk.CollectionConverters._
 
 class LocalFileConnectorTests extends AnyFunSpec {
   describe("LocalFileConnector - DataRowStream") {
@@ -22,7 +21,7 @@ class LocalFileConnectorTests extends AnyFunSpec {
       val options = DataStreamOptions(None,
         Map("filePath" -> dataFilePath, "fileDelimiter" -> ",", "useHeader" -> true),
         Constants.TWELVE)
-      val reader = localFileConnector.getReader(Some(options))
+      val reader = localFileConnector.getReader(Some(options), TestHelper.generatePipelineContext())
       assert(reader.isDefined)
       val firstRows = reader.get.next()
       assert(firstRows.isDefined && firstRows.get.length == Constants.TWELVE)
@@ -40,7 +39,7 @@ class LocalFileConnectorTests extends AnyFunSpec {
           "useHeader" -> true,
           "fileCompression" -> "gz"),
         Constants.TWELVE)
-      val writerOpt = localFileConnector.getWriter(Some(outputOptions))
+      val writerOpt = localFileConnector.getWriter(Some(outputOptions), TestHelper.generatePipelineContext())
       assert(writerOpt.isDefined)
       val writer = writerOpt.get
       writer.process(firstRows.get)
