@@ -5,9 +5,10 @@ import com.acxiom.metalus.api.HttpRestClient
 import com.acxiom.metalus.connectors.DataStreamOptions
 import com.acxiom.metalus.drivers.StreamingDataParser
 import com.acxiom.metalus.fs.FileManager
-import com.univocity.parsers.csv.{CsvParser, CsvParserSettings, UnescapedQuoteHandling}
+import com.univocity.parsers.csv.{CsvFormat, CsvParser, CsvParserSettings, CsvWriter, CsvWriterSettings, UnescapedQuoteHandling}
 import org.slf4j.event.Level
 
+import java.io.OutputStream
 import scala.io.Source
 
 object DriverUtils {
@@ -142,16 +143,27 @@ object DriverUtils {
    */
   def buildCSVParser(options: DataStreamOptions): CsvParser = {
     val settings = new CsvParserSettings()
-    val format = settings.getFormat
+    setupFormat(options, settings.getFormat)
+    settings.setEmptyValue("")
+    settings.setNullValue("")
+    settings.setUnescapedQuoteHandling(UnescapedQuoteHandling.STOP_AT_CLOSING_QUOTE)
+    new CsvParser(settings)
+  }
+
+  def buildCSVWriter(options: DataStreamOptions, outputStream: OutputStream): CsvWriter = {
+    val settings = new CsvWriterSettings()
+    setupFormat(options, settings.getFormat)
+    settings.setEmptyValue("")
+    settings.setNullValue("")
+    new CsvWriter(outputStream, settings)
+  }
+
+  private def setupFormat(options: DataStreamOptions, format: CsvFormat): Unit = {
     format.setComment('\u0000')
     format.setDelimiter(options.options.getOrElse("fileDelimiter", ",").toString)
     options.options.get("fileQuote").asInstanceOf[Option[String]].foreach(q => format.setQuote(q.head))
     options.options.get("fileQuoteEscape").asInstanceOf[Option[String]].foreach(q => format.setQuoteEscape(q.head))
     options.options.get("fileRecordDelimiter").asInstanceOf[Option[String]].foreach(r => format.setLineSeparator(r))
-    settings.setEmptyValue("")
-    settings.setNullValue("")
-    settings.setUnescapedQuoteHandling(UnescapedQuoteHandling.STOP_AT_CLOSING_QUOTE)
-    new CsvParser(settings)
   }
 
   // TODO [2.0 Review] Investigate using this for the Step Retry logic
