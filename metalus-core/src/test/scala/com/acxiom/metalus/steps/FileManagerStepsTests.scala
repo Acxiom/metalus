@@ -1,8 +1,9 @@
 package com.acxiom.metalus.steps
 
 import com.acxiom.metalus._
-import com.acxiom.metalus.connectors.{LocalFileConnector, SFTPFileConnector}
+import com.acxiom.metalus.connectors.{DataStreamOptions, LocalFileConnector, SFTPFileConnector}
 import com.acxiom.metalus.context.ContextManager
+import com.acxiom.metalus.sql.Schema
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
 import org.slf4j.event.Level
@@ -40,7 +41,7 @@ class FileManagerStepsTests extends AnyFunSpec with BeforeAndAfterAll {
 
   describe("FileManagerSteps - Basic") {
     val localFileConnector = LocalFileConnector("my-connector", None, None)
-    it("Should get input and output streams") {
+    it("should get input and output streams") {
       val local = localFileConnector.getFileManager(pipelineContext)
       val temp = File.createTempFile("fm-out", ".txt")
       temp.deleteOnExit()
@@ -54,7 +55,7 @@ class FileManagerStepsTests extends AnyFunSpec with BeforeAndAfterAll {
       assert(Source.fromInputStream(in).mkString == "chicken")
     }
 
-    it("Should check if a file exists") {
+    it("should check if a file exists") {
       val local = localFileConnector.getFileManager(pipelineContext)
       val tempDir = Files.createTempDirectory("test").toFile
       tempDir.deleteOnExit()
@@ -69,7 +70,7 @@ class FileManagerStepsTests extends AnyFunSpec with BeforeAndAfterAll {
       assert(FileManagerSteps.exists(local, temp.getAbsolutePath))
     }
 
-    it("Should rename a file") {
+    it("should rename a file") {
       val local = localFileConnector.getFileManager(pipelineContext)
       val temp = File.createTempFile("bad-name", ".txt")
       temp.deleteOnExit()
@@ -84,7 +85,7 @@ class FileManagerStepsTests extends AnyFunSpec with BeforeAndAfterAll {
       assert(FileManagerSteps.exists(local, temp1.getAbsolutePath))
     }
 
-    it("Should get a file size") {
+    it("should get a file size") {
       val local = localFileConnector.getFileManager(pipelineContext)
       val tempDir = Files.createTempDirectory("test").toFile
       tempDir.deleteOnExit()
@@ -100,7 +101,7 @@ class FileManagerStepsTests extends AnyFunSpec with BeforeAndAfterAll {
       assert(FileManagerSteps.getSize(local, temp.getAbsolutePath) == size)
     }
 
-    it("Should delete a file") {
+    it("should delete a file") {
       val local = localFileConnector.getFileManager(pipelineContext)
       val tempDir = Files.createTempDirectory("test").toFile
       tempDir.deleteOnExit()
@@ -117,7 +118,7 @@ class FileManagerStepsTests extends AnyFunSpec with BeforeAndAfterAll {
       assert(!FileManagerSteps.exists(local, temp.getAbsolutePath))
     }
 
-    it("Should get a file listing") {
+    it("should get a file listing") {
       val local = localFileConnector.getFileManager(pipelineContext)
       val tempDir = Files.createTempDirectory("test").toFile
       tempDir.deleteOnExit()
@@ -134,7 +135,7 @@ class FileManagerStepsTests extends AnyFunSpec with BeforeAndAfterAll {
       assert(listing.head.fileName == "file.txt")
     }
 
-    it("Should get a directory listing") {
+    it("should get a directory listing") {
       val local = localFileConnector.getFileManager(pipelineContext)
       val tempDir = Files.createTempDirectory("dlisting").toFile
       tempDir.deleteOnExit()
@@ -153,9 +154,35 @@ class FileManagerStepsTests extends AnyFunSpec with BeforeAndAfterAll {
       assert(listing.size == 1)
       assert(listing.head.fileName == "sub")
     }
+
+    it ("should read a header row") {
+      val local = FileManagerSteps.getFileManager(localFileConnector, pipelineContext)
+      val tempDir = Files.createTempDirectory("test").toFile
+      tempDir.deleteOnExit()
+      val temp = new File(tempDir.getAbsolutePath, "header.txt")
+      temp.deleteOnExit()
+      val file = local.getFileResource(temp.getAbsolutePath)
+      val out = file.getOutputStream()
+      out.write(
+        """COL1|COL2|COL3|COL4
+          |1|TEST|Y|TN
+          |2|PROD|N|AR
+          |""".stripMargin.getBytes)
+      out.flush()
+      out.close()
+      val options = DataStreamOptions(None, Map("fileDelimiter" -> "|"))
+      val header = FileManagerSteps.readHeader(file, Some(options))
+      assert(header.primaryReturn.isDefined)
+      val columns = header.primaryReturn.get.asInstanceOf[Schema]
+      assert(columns.attributes.size == Constants.FOUR)
+      assert(columns.attributes.head.name == "COL1")
+      assert(columns.attributes(1).name == "COL2")
+      assert(columns.attributes(2).name == "COL3")
+      assert(columns.attributes(3).name == "COL4")
+    }
   }
 
-  describe("FileManagerSteps - Copy") {
+  describe("FileManagerSteps - SFTP") {
     it("Should fail when strict host checking is enabled against localhost") {
       val sftpConnector = SFTPFileConnector("localhost", "sftp-connector", None,
         Some(UserNameCredential(Map("username" -> "tester", "password" -> "testing"))),
@@ -192,6 +219,7 @@ class FileManagerStepsTests extends AnyFunSpec with BeforeAndAfterAll {
       val copiedHdfsFile = local.getFileListing(temp.getParent).find(_.fileName == "COPIED_DATA.csv")
       assert(copiedHdfsFile.isDefined)
       assert(originalSftpFile.get.size == copiedHdfsFile.get.size)
+      assert(FileManagerSteps.compareFileSizes(sftp, "/MOCK_DATA.csv", local, s"${temp.getParent}/COPIED_DATA.csv") == 0)
 
       // Copy from HDFS to SFTP
       FileManagerSteps.copy(local, temp.getAbsolutePath, sftp, "/HDFS_COPIED_DATA.csv")

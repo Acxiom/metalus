@@ -2,10 +2,13 @@ package com.acxiom.metalus.utils
 
 import com.acxiom.metalus._
 import com.acxiom.metalus.api.HttpRestClient
+import com.acxiom.metalus.connectors.DataStreamOptions
 import com.acxiom.metalus.drivers.StreamingDataParser
 import com.acxiom.metalus.fs.FileManager
+import com.univocity.parsers.csv.{CsvFormat, CsvParser, CsvParserSettings, CsvWriter, CsvWriterSettings, UnescapedQuoteHandling}
 import org.slf4j.event.Level
 
+import java.io.OutputStream
 import scala.io.Source
 
 object DriverUtils {
@@ -88,7 +91,7 @@ object DriverUtils {
    */
   def parseCommonParameters(parameters: Map[String, Any]): CommonParameters =
     CommonParameters(parameters.getOrElse("driverSetupClass",
-      "com.acxiom.metalus.applications.ApplicationDriverSetup").asInstanceOf[String],
+      "com.acxiom.metalus.applications.DefaultApplicationDriverSetup").asInstanceOf[String],
       parameters.getOrElse("maxRetryAttempts", "0").toString.toInt,
       parameters.getOrElse("terminateAfterFailures", "false").toString.toBoolean,
       parameters.getOrElse("streaming-job", "false").toString.toBoolean)
@@ -130,6 +133,37 @@ object DriverUtils {
     } else {
       updatedExe
     }
+  }
+
+  /**
+   * Creates a CSV parser.
+   *
+   * @param options The options to use for parsing.
+   * @return A CSV parser.
+   */
+  def buildCSVParser(options: DataStreamOptions): CsvParser = {
+    val settings = new CsvParserSettings()
+    setupFormat(options, settings.getFormat)
+    settings.setEmptyValue("")
+    settings.setNullValue("")
+    settings.setUnescapedQuoteHandling(UnescapedQuoteHandling.STOP_AT_CLOSING_QUOTE)
+    new CsvParser(settings)
+  }
+
+  def buildCSVWriter(options: DataStreamOptions, outputStream: OutputStream): CsvWriter = {
+    val settings = new CsvWriterSettings()
+    setupFormat(options, settings.getFormat)
+    settings.setEmptyValue("")
+    settings.setNullValue("")
+    new CsvWriter(outputStream, settings)
+  }
+
+  private def setupFormat(options: DataStreamOptions, format: CsvFormat): Unit = {
+    format.setComment('\u0000')
+    format.setDelimiter(options.options.getOrElse("fileDelimiter", ",").toString)
+    options.options.get("fileQuote").asInstanceOf[Option[String]].foreach(q => format.setQuote(q.head))
+    options.options.get("fileQuoteEscape").asInstanceOf[Option[String]].foreach(q => format.setQuoteEscape(q.head))
+    options.options.get("fileRecordDelimiter").asInstanceOf[Option[String]].foreach(r => format.setLineSeparator(r))
   }
 
   // TODO [2.0 Review] Investigate using this for the Step Retry logic

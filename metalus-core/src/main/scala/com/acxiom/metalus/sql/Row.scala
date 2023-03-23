@@ -7,6 +7,6 @@ package com.acxiom.metalus.sql
  * @param schema    An optional schema that provides metadata about each column
  * @param nativeRow The original data representation.
  */
-case class Row(columns: Array[Any], schema: Option[Schema], nativeRow: Option[Any]) {
+case class Row(columns: Array[_], schema: Option[Schema], nativeRow: Option[Any]) {
   def mkString(sep: String): String = columns.mkString(sep)
 }

@@ -87,7 +87,7 @@ class FileManagerTests extends AnyFunSpec with Suite {
       val data = "Some string that isn't very large"
       val source = File.createTempFile("localFileManagerTest1", ".txt")
       source.deleteOnExit()
-      val buffer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream((source))))
+      val buffer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(source)))
       buffer.write(data)
       buffer.flush()
       buffer.close()
