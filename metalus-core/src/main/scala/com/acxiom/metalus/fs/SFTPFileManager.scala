@@ -8,22 +8,8 @@ import scala.jdk.CollectionConverters._
 object SFTPFileManager {
   val DEFAULT_PORT = 22
   private val DEFAULT_BULK_REQUESTS = 128
-  private val DEFAULT_TRANSFER_BUFFER = 32768
-  private val DEFAULT_INPUT_BUFFER = 65536
-  private val DEFAULT_OUTPUT_BUFFER = 65536
   private val DEFAULT_TIMEOUT = 0
   private val IGNORED_DIRECTORIES = List(".", "..")
-
-  def apply(hostName: String,
-            port: Option[Int] = None,
-            user: Option[String] = None,
-            password: Option[String] = None,
-            knownHosts: Option[String] = None,
-            bulkRequests: Option[Int] = None,
-            config: Option[Map[String, String]] = None,
-            timeout: Option[Int] = None
-           ): SFTPFileManager = new SFTPFileManager(hostName, port, user, password,
-    knownHosts, bulkRequests, config, timeout)
 }
 
 case class SFTPFileResource(path: String, channel: ChannelSftp) extends FileResource {
@@ -102,20 +88,23 @@ case class SFTPFileResource(path: String, channel: ChannelSftp) extends FileReso
   }
 }
 
-class SFTPFileManager(hostName: String,
+case class SFTPFileManager(hostName: String,
                       port: Option[Int] = None,
                       user: Option[String] = None,
                       password: Option[String] = None,
                       knownHosts: Option[String] = None,
                       bulkRequests: Option[Int] = None,
                       config: Option[Map[String, String]] = None,
-                      timeout: Option[Int] = None
-                     ) extends FileManager {
-  private val jsch = new JSch()
-  if (knownHosts.isDefined) {
-    jsch.setKnownHosts(knownHosts.get)
+                      timeout: Option[Int] = None) extends FileManager {
+  @transient private lazy val jsch = {
+    val tmp = new JSch()
+    if (knownHosts.isDefined) {
+      tmp.setKnownHosts(knownHosts.get)
+    }
+    tmp
   }
-  private lazy val session = {
+
+  @transient private lazy val session = {
     val ses = jsch.getSession(user.orNull, hostName, port.getOrElse(SFTPFileManager.DEFAULT_PORT))
     if (password.isDefined) {
       ses.setPassword(password.get)
@@ -127,7 +116,7 @@ class SFTPFileManager(hostName: String,
     ses
   }
 
-  private lazy val channel: ChannelSftp = {
+  @transient private lazy val channel: ChannelSftp = {
     session.connect(timeout.getOrElse(SFTPFileManager.DEFAULT_TIMEOUT))
     val chan = session.openChannel("sftp").asInstanceOf[ChannelSftp]
     chan.setBulkRequests(bulkRequests.getOrElse(SFTPFileManager.DEFAULT_BULK_REQUESTS))

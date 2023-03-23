@@ -36,7 +36,7 @@ object FileManager {
   * The FileManager trait is an abstraction useful for working with files on different file systems such
   * as HDFS or local.
   */
-trait FileManager {
+trait FileManager extends Serializable {
   /**
     * Connect to the file system
     */
@@ -269,7 +269,7 @@ case class LocalFileResource(file: File) extends FileResource {
 /**
   * Default implementation of the FileManager that works with local files.
   */
-class LocalFileManager extends FileManager {
+case class LocalFileManager() extends FileManager {
   override def exists(path: String): Boolean = new File(path).exists()
 
   /**

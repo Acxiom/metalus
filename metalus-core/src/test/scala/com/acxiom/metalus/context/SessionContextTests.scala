@@ -2,6 +2,7 @@ package com.acxiom.metalus.context
 
 import com.acxiom.metalus._
 import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
+import com.acxiom.metalus.fs.{LocalFileManager, SFTPFileManager}
 import org.scalatest.funspec.AnyFunSpec
 
 import java.sql.DriverManager
@@ -15,7 +16,10 @@ class SessionContextTests extends AnyFunSpec {
 
   private val GLOBALS_MAP = Map[String, Any]("param" -> DEFAULT_OBJECT,
     "string" -> "test string",
-    "int" -> Constants.FIVE)
+    "int" -> Constants.FIVE,
+    "fileManager" ->
+      SFTPFileManager("fake.host.com", Some(Constants.SIXTY), Some("nopasswduser"),
+        config = Some(Map("key" -> "is useless"))))
 
   private val BASE_STEP_AUDIT = ExecutionAudit(pipelineKey, AuditType.STEP, Map(), System.currentTimeMillis(),
     None, None)
@@ -54,7 +58,7 @@ class SessionContextTests extends AnyFunSpec {
       val conn = DriverManager.getConnection(settings.url, settings.connectionProperties)
       val stmt = conn.createStatement
 
-      it ("should read and write state data to a database") {
+      it("should read and write state data to a database") {
         val sessionStorageInfo = JDBCSessionStorage(settings.url, Map("driver" -> "org.apache.derby.jdbc.EmbeddedDriver"),
           None, Some(TestHelper.getDefaultCredentialProvider))
         val sessionContext = DefaultSessionContext(None, Some(sessionStorageInfo), None)
@@ -157,7 +161,7 @@ class SessionContextTests extends AnyFunSpec {
         assert(defaultObjParam.getSecondParam == DEFAULT_OBJECT.getSecondParam)
         val namedResponse = fullStep.namedReturns
         assert(namedResponse.isDefined)
-        assert(namedResponse.get.size == Constants.THREE)
+        assert(namedResponse.get.size == Constants.FOUR)
         assert(namedResponse.get.getOrElse("string", "BAD") == GLOBALS_MAP("string"))
         assert(namedResponse.get.getOrElse("int", -1) == GLOBALS_MAP("int"))
         defaultObjParam = namedResponse.get("param").asInstanceOf[MockDefaultParam]
@@ -170,8 +174,23 @@ class SessionContextTests extends AnyFunSpec {
         val subPipelineKey = PipelineStateKey("my-pipeline", None, stepGroup = Some(pipelineKey))
         assert(sessionContext.saveGlobals(subPipelineKey, updatedMap))
         // Main globals
-        assert(sessionContext.loadGlobals(pipelineKey).nonEmpty)
-        assert(namedResponse.get.size == Constants.THREE)
+        val restoredGlobals = sessionContext.loadGlobals(pipelineKey)
+        assert(restoredGlobals.nonEmpty)
+        assert(restoredGlobals.get.contains("fileManager"))
+        assert(restoredGlobals.get("fileManager").isInstanceOf[SFTPFileManager])
+        val fileManager = restoredGlobals.get("fileManager").asInstanceOf[SFTPFileManager]
+        assert(fileManager.hostName == "fake.host.com")
+        assert(fileManager.port.getOrElse(Constants.ZERO) == Constants.SIXTY)
+        assert(fileManager.user.getOrElse("") == "nopasswduser")
+        assert(fileManager.password.isEmpty)
+        assert(fileManager.knownHosts.isEmpty)
+        assert(fileManager.bulkRequests.isEmpty)
+        assert(fileManager.timeout.isEmpty)
+        assert(fileManager.config.isDefined)
+        assert(fileManager.config.get.size == Constants.ONE)
+        assert(fileManager.config.get.contains("key"))
+        assert(fileManager.config.get("key") == "is useless")
+        assert(namedResponse.get.size == Constants.FOUR)
         assert(namedResponse.get.getOrElse("string", "BAD") == GLOBALS_MAP("string"))
         assert(namedResponse.get.getOrElse("int", -1) == GLOBALS_MAP("int"))
         defaultObjParam = namedResponse.get("param").asInstanceOf[MockDefaultParam]
@@ -181,7 +200,7 @@ class SessionContextTests extends AnyFunSpec {
         // Second Globals
         var subGlobals = sessionContext.loadGlobals(subPipelineKey)
         assert(subGlobals.nonEmpty)
-        assert(subGlobals.get.size == Constants.FOUR)
+        assert(subGlobals.get.size == Constants.FIVE)
         assert(subGlobals.get.getOrElse("string", "BAD") == GLOBALS_MAP("string"))
         assert(subGlobals.get.getOrElse("test", -1L) == 50L)
         assert(subGlobals.get.getOrElse("int", -1) == Constants.SIX)
@@ -193,7 +212,7 @@ class SessionContextTests extends AnyFunSpec {
         assert(sessionContext.saveGlobals(subPipelineKey, updatedMap + ("test" -> 60L)))
         subGlobals = sessionContext.loadGlobals(subPipelineKey)
         assert(subGlobals.nonEmpty)
-        assert(subGlobals.get.size == Constants.FOUR)
+        assert(subGlobals.get.size == Constants.FIVE)
         assert(subGlobals.get.getOrElse("string", "BAD") == GLOBALS_MAP("string"))
         assert(subGlobals.get.getOrElse("test", -1L) == 60L)
         assert(subGlobals.get.getOrElse("int", -1) == Constants.SIX)
