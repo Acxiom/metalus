@@ -416,7 +416,14 @@ trait SessionConvertor {
 case class DefaultSessionConvertor() extends SessionConvertor {
   override def name: String = "DefaultConvertor"
 
-  override def canConvert(obj: Any): Boolean = obj.isInstanceOf[java.io.Serializable]
+  override def canConvert(obj: Any): Boolean = {
+    try {
+      new ObjectOutputStream(new ByteArrayOutputStream()).writeObject(obj)
+      true
+    } catch {
+      case _ => false
+    }
+  }
 
   override def serialize(obj: Any): Array[Byte] = {
     val o = new ByteArrayOutputStream()
