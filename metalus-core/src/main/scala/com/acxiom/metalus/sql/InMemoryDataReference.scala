@@ -1,11 +1,10 @@
 package com.acxiom.metalus.sql
 
-import com.acxiom.metalus.connectors.{ConnectorProvider, FileConnector}
-import com.acxiom.metalus.{PipelineContext, PipelineException}
 import com.acxiom.metalus.utils.ReflectionUtils
+import com.acxiom.metalus.{PipelineContext, PipelineException}
 import com.univocity.parsers.csv.{CsvParser, CsvParserSettings, UnescapedQuoteHandling}
 
-import java.io.{BufferedReader, InputStream, InputStreamReader}
+import java.io.InputStream
 import scala.collection.immutable.Queue
 import scala.jdk.CollectionConverters._
 import scala.math.ScalaNumber
@@ -49,7 +48,7 @@ object InMemoryTable {
     val params = options.map(_.mapValues(_.toString).toMap).getOrElse(Map.empty[String, String])
     val settings = new CsvParserSettings()
     val format = settings.getFormat
-    format.setComment('\0')
+    format.setComment('\u0000')
     format.setDelimiter(params.getOrElse("delimiter", params.getOrElse("separator", ",")))
     params.get("quote").foreach(q => format.setQuote(q.head))
     params.get("escape").foreach(e => format.setQuoteEscape(e.head))
