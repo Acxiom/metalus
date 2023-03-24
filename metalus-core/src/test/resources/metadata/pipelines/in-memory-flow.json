@@ -1,0 +1,28 @@
+{
+  "id": "in-memory-flow",
+  "name": "InMemory Test Pipeline",
+  "steps": [
+    {
+      "id": "VALIDATE_DATA",
+      "type": "Pipeline",
+      "params": [
+        {
+          "type": "object",
+          "name": "dataRef",
+          "required": true,
+          "value": "!streamedDataReference"
+        },
+        {
+          "type": "object",
+          "name": "results",
+          "required": true,
+          "value": "!rowBuffer"
+        }
+      ],
+      "engineMeta": {
+        "command": "MockStepObject.validateDataReference",
+        "pkg": "com.acxiom.metalus.steps"
+      }
+    }
+  ]
+}
