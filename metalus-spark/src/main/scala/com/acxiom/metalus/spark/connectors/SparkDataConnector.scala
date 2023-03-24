@@ -13,7 +13,8 @@ object SparkDataConnector {
     options.flatMap(_.get("readOptions")).collect {
       case dfr: DataFrameReaderOptions => dfr
     } orElse options.filter(_.nonEmpty).map { m =>
-      DataFrameReaderOptions(options = Some(m.mapValues(_.toString).toMap[String, String]))
+      val format = m.get("format").map(_.toString).getOrElse("parquet")
+      DataFrameReaderOptions(format, options = Some(m.mapValues(_.toString).toMap[String, String]))
     }
   }
 
@@ -21,7 +22,8 @@ object SparkDataConnector {
     options.flatMap(_.get("writeOptions")).collect {
       case dfw: DataFrameWriterOptions => dfw
     } orElse options.filter(_.nonEmpty).map { m =>
-      DataFrameWriterOptions(options = Some(m.mapValues(_.toString).toMap[String, String]))
+      val format = m.get("format").map(_.toString).getOrElse("parquet")
+      DataFrameWriterOptions(format, options = Some(m.mapValues(_.toString).toMap[String, String]))
     }
   }
 }

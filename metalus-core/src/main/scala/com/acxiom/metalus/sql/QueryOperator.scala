@@ -1,6 +1,6 @@
 package com.acxiom.metalus.sql
 
-import com.acxiom.metalus.connectors.DataConnector
+import com.acxiom.metalus.connectors.{Connector, DataConnector}
 
 abstract class QueryOperator(val name: String)
 
@@ -34,6 +34,9 @@ case class As(alias: String) extends QueryOperator("As")
 
 // non-standard
 case class ConvertEngine(engine: String) extends QueryOperator("Convert")
+case class Save(destination: String, connector: Option[Connector], options: Option[Map[String, Any]]) extends QueryOperator("Save")
+
+
 
 object CrossJoin {
   def unapply(join: Join): Option[DataReference[_]] = join match {

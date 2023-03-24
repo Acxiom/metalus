@@ -121,75 +121,62 @@ object InMemoryTable {
   }
 }
 
-final case class InMemoryTable(data: List[Array[Any]], schema: Schema) {
+//noinspection ScalaStyle
+final case class InMemoryTable(data: List[Array[Any]], schema: Schema, tableAlias: Option[String] = None,
+                               grouped: Boolean = false)
+  extends DataFrame[InMemoryTable] with GroupedDataFrame[InMemoryTable] {
+
+  private def convertRow(row: Array[Any]): Row = Row(row, Some(schema), None)
   def toMap: List[Map[String,Any]] = {
     val keys = schema.attributes.map(_.name)
     data.map(row => keys.zip(row).toMap)
   }
-}
 
+  override def collect(): Array[Row] = data.map(convertRow).toArray
 
-final case class InMemoryDataReference(base: () => InMemoryTable,
-                      origin: DataReferenceOrigin,
-                      pipelineContext: PipelineContext,
-                      logicalPlan: Queue[QueryOperator] = Queue(),
-                      tableAlias: Option[String] = None)
-  extends LogicalPlanDataReference[InMemoryTable, InMemoryTable] with ConvertableReference {
+  override def select(columns: Expression*): InMemoryTable = evalProjection(columns.toList)
 
-  type Row = Array[Any]
+  override def where(expression: Expression): InMemoryTable = {
+    val indexMap = getIndexMap(schema)
+    copy(data = data.filter(row => evalBoolean(expression.expressionTree, indexMap.get(_).map(row.apply))))
+  }
+
+  override def groupBy(columns: Expression*): InMemoryTable = evalGroupBy(columns.toList)
+
+  override def join(right: InMemoryTable, condition: Expression, joinType: String): InMemoryTable = {
+    val leftIndices = getIndexMap(schema)
+    val rightIndices = getIndexMap(right.schema)
+    val getVal: (String, Array[Any], Array[Any]) => Option[Any] = { (key, leftRow, rightRow) =>
+      leftIndices.get(key).map(leftRow.apply).orElse(rightIndices.get(key).map(rightRow.apply))
+    }
+    val joinedData = data.flatMap { leftRow =>
+      right.data.collect {
+        case rightRow if evalBoolean(condition.expressionTree, getVal(_, leftRow, rightRow)) => leftRow ++ rightRow
+      }
+    }
+    copy(joinedData, Schema(schema.attributes ++ schema.attributes))
+  }
+
+  override def join(right: InMemoryTable, using: Seq[Expression], joinType: String): InMemoryTable = ???
+
+  override def crossJoin(right: InMemoryTable): InMemoryTable = ???
+
+  override def orderBy(expression: Expression): InMemoryTable = ???
+
+  override def limit(limit: Int): InMemoryTable = copy(data = data.take(limit))
+
+  override def show(rows: Int): Unit = ???
+
+  override def as(alias: String): InMemoryTable = copy(tableAlias = Some(alias))
+
+  override def write: DataFrameWriter = ???
 
   private def getIndexMap(tableSchema: Schema): Map[String, Int] = tableSchema.attributes.zipWithIndex.flatMap {
     case (a, i) if tableAlias.nonEmpty => Seq(a.name -> i, s"${tableAlias.mkString}.${a.name}" -> i)
     case (a, i) => Seq(a.name -> i)
   }.toMap
 
-  private lazy val internalReference = base()
-
-  override def initialReference: InMemoryTable = internalReference
-
-  override def engine: String = "memory"
-
-  override def execute: InMemoryTable = executePlan
-
-  override protected def logicalPlanRules: LogicalPlanRules = {
-    case Select(expressions) => evalProjection(expressions, _)
-    case Where(expression) => table =>
-      val indexMap = getIndexMap(table.schema)
-      table.copy(data = table.data.filter(row => evalBoolean(expression.expressionTree, indexMap.get(_).map(row.apply))))
-    case GroupBy(expressions) => evalGroupBy(expressions, _)
-    case Join(right: InMemoryDataReference, "INNER", Some(condition), _) => left =>
-      val rightTable = right.execute
-      val leftIndices = getIndexMap(left.schema)
-      val rightIndices = right.getIndexMap(rightTable.schema)
-      val getVal: (String, Row, Row) => Option[Any] = { (key, leftRow, rightRow) =>
-        leftIndices.get(key).map(leftRow.apply).orElse(rightIndices.get(key).map(rightRow.apply))
-      }
-      val joinedData = left.data.flatMap{ leftRow =>
-        rightTable.data.collect{
-          case rightRow if evalBoolean(condition.expressionTree, getVal(_, leftRow, rightRow)) => leftRow ++ rightRow
-        }
-      }
-      InMemoryTable(joinedData, Schema(left.schema.attributes ++ rightTable.schema.attributes))
-    case Union(right: InMemoryDataReference, false) => left => {
-      val attributes = left.schema.attributes
-      val leftIndices = getIndexMap(left.schema)
-      val rightTable = right.execute
-      val rightIndices = right.getIndexMap(rightTable.schema)
-      left.copy(data = left.data ++ right.execute.data.map { row =>
-        val newRow = Array.ofDim[Any](attributes.size)
-        attributes.foreach(a => newRow(leftIndices(a.name)) = row(rightIndices(a.name)))
-        newRow
-      })
-    }
-    case Limit(limit) => table => table.copy(data = table.data.take(limit))
-  }
-
-  override protected def queryOperations: QueryFunction = {
-    case As(alias) => copy(tableAlias = Some(alias))
-    case qo if logicalPlanRules.isDefinedAt(qo) => copy(logicalPlan = updateLogicalPlan(qo))
-  }
-
-  def toBoolean(value: Option[Any]): Boolean = value.exists {
+  private def toBoolean(value: Option[Any]): Boolean = value.exists {
     case b: Boolean => b
     case s: String => s.toLowerCase != "false"
     case _ => true
@@ -203,34 +190,34 @@ final case class InMemoryDataReference(base: () => InMemoryTable,
       if (s.contains(".")) BigDecimal(s) else BigInt(s)
   }
 
-  def evalGroupBy(expressions: List[Expression], table: InMemoryTable): InMemoryTable = {
-    val indexMap = getIndexMap(table.schema)
+  def evalGroupBy(expressions: List[Expression]): InMemoryTable = {
+    val indexMap = getIndexMap(schema)
     val groupAttributes = expressions.map(e => getAttribute(e.expressionTree, e.text, indexMap))
-    val listAttributes = table.schema.attributes.map { attr =>
+    val listAttributes = schema.attributes.map { attr =>
       attr.copy(dataType = AttributeType("Array", Some(attr.dataType)))
     }.filter(a => !groupAttributes.exists(_.name == a.name))
     val newSchema = Schema(groupAttributes ++ listAttributes)
-    val newData = table.data.groupBy{ row =>
+    val newData = data.groupBy { row =>
       expressions.map(e => eval(e.expressionTree, indexMap.get(_).map(row.apply)).orNull)
-    }.map{ case (key, list) =>
+    }.map { case (key, list) =>
       val array = Array.ofDim[Any](listAttributes.size, list.size)
-      list.zipWithIndex.foreach{ case (row, j) =>
-        listAttributes.zipWithIndex.foreach{ case (a, i) =>
+      list.zipWithIndex.foreach { case (row, j) =>
+        listAttributes.zipWithIndex.foreach { case (a, i) =>
           array(i)(j) = row(indexMap(a.name))
         }
       }
       key.toArray ++ array
     }.toList
-    InMemoryTable(newData, newSchema)
+    copy(newData, newSchema, grouped = true)
   }
 
-  def evalProjection(expressions: List[Expression], table: InMemoryTable): InMemoryTable = {
-    val indexMap = getIndexMap(table.schema)
-    val schema = Schema(expressions.map(e => getAttribute(e.expressionTree, e.text, indexMap)))
-    val data = table.data.map{ row =>
+  private def evalProjection(expressions: List[Expression]): InMemoryTable = {
+    val indexMap = getIndexMap(schema)
+    val newSchema = Schema(expressions.map(e => getAttribute(e.expressionTree, e.text, indexMap)))
+    val newData = data.map { row =>
       expressions.map(e => eval(e.expressionTree, indexMap.get(_).map(row.apply)).orNull).toArray
     }
-    InMemoryTable(data, schema)
+    copy(newData, newSchema, grouped = false)
   }
 
   def evalBoolean(expr: BaseExpression, row: String => Option[Any]): Boolean = toBoolean(eval(expr, row))
@@ -242,7 +229,7 @@ final case class InMemoryDataReference(base: () => InMemoryTable,
     case i: Identifier => identifierAttribute(i, indices)
     case Cast(expr, dataType) => castAttribute(getAttribute(expr, defaultName, indices), dataType)
     case l: LogicalNot => Attribute("", AttributeType("Boolean"), Some(false), None)
-    case BinaryOperator(_, _, "AND"|"OR"|"XOR"|"="|"!=") => Attribute("", AttributeType("Boolean"), Some(false), None)
+    case BinaryOperator(_, _, "AND" | "OR" | "XOR" | "=" | "!=") => Attribute("", AttributeType("Boolean"), Some(false), None)
     case BinaryOperator(left, right, "||") =>
       val leftAttr = getAttribute(left, defaultName, indices)
       val rightAttr = getAttribute(right, defaultName, indices)
@@ -289,10 +276,7 @@ final case class InMemoryDataReference(base: () => InMemoryTable,
       case "INT" | "INTEGER" | "BIGINT" => if (v.isInstanceOf[BigInt]) v else BigInt(v.toString)
       case "DOUBLE" | "FLOAT" | "NUMBER" | "DECIMAL" => if (v.isInstanceOf[BigDecimal]) v else BigDecimal(v.toString)
       case "BOOLEAN" => toBoolean(value)
-      case bad => throw PipelineException(
-        message = Some(s"Illegal cast to type [$bad] in ${getClass.getSimpleName}"),
-        pipelineProgress = pipelineContext.currentStateInfo
-      )
+      case bad => throw new IllegalArgumentException(s"Illegal cast to type [$bad] in ${getClass.getSimpleName}")
     }
   }
 
@@ -300,10 +284,7 @@ final case class InMemoryDataReference(base: () => InMemoryTable,
     case "STRING" | "BIGINT" | "DECIMAL" | "BOOLEAN" => attribute.copy(dataType = AttributeType(dataType))
     case "INT" | "INTEGER" => attribute.copy(dataType = AttributeType("BigInt"))
     case "DOUBLE" | "FLOAT" | "NUMBER" => attribute.copy(dataType = AttributeType("Decimal"))
-    case bad => throw PipelineException(
-      message = Some(s"Illegal cast to type [$bad] in ${getClass.getSimpleName}"),
-      pipelineProgress = pipelineContext.currentStateInfo
-    )
+    case bad => throw new IllegalArgumentException(s"Illegal cast to type [$bad] in ${getClass.getSimpleName}")
   }
 
   def literal(lit: Literal): Option[Any] = lit match {
@@ -328,7 +309,7 @@ final case class InMemoryDataReference(base: () => InMemoryTable,
       case List(a) if tableAlias.contains(a) => (row(s"$a.${ident.value}"), Nil)
       case l => (row(l.head), l.drop(1) :+ ident.value)
     }
-    value.map{
+    value.map {
       case v if list.nonEmpty =>
         ReflectionUtils.extractField(v, list.mkString("."), extractFromOption = false) match {
           case o: Option[_] => o
@@ -346,13 +327,70 @@ final case class InMemoryDataReference(base: () => InMemoryTable,
       case List(a) if tableAlias.contains(a) => (indices.get(s"$a.${ident.value}"), Nil)
       case l => (indices.get(l.head), l.drop(1) :+ ident.value)
     }
-    index.map(i => internalReference.schema.attributes(i)).map {
+    index.map(i => schema.attributes(i)).map {
       case a if list.nonEmpty =>
         a // handle recursive later
       case a => a
     }
   } getOrElse {
-    indices.get(ident.value).map(i => internalReference.schema.attributes(i))
-      //.getOrElse(Attribute("", AttributeType("Null"), Some(true), None))
+    indices.get(ident.value).map(i => schema.attributes(i))
+    //.getOrElse(Attribute("", AttributeType("Null"), Some(true), None))
   }).getOrElse(Attribute(ident.value, AttributeType("Null"), Some(true), None))
+
+  override def having(expression: Expression): InMemoryTable = where(expression)
+
+  override def union(other: InMemoryTable): InMemoryTable = {
+    val attributes = schema.attributes
+    val leftIndices = getIndexMap(schema)
+    val rightIndices = getIndexMap(other.schema)
+    copy(data = data ++ other.data.map { row =>
+      val newRow = Array.ofDim[Any](attributes.size)
+      attributes.foreach(a => newRow(leftIndices(a.name)) = row(rightIndices(a.name)))
+      newRow
+    })
+  }
+
+  override def distinct(): InMemoryTable = copy(data = data.distinct)
+
+  override def aggregate(columns: Expression*): InMemoryTable = select(columns: _*)
 }
+
+
+final case class InMemoryDataReference(base: () => InMemoryTable,
+                      origin: DataReferenceOrigin,
+                      pipelineContext: PipelineContext,
+                      logicalPlan: Queue[QueryOperator] = Queue(),
+                      tableAlias: Option[String] = None)
+  extends LogicalPlanDataReference[InMemoryTable, InMemoryTable] with ConvertableReference {
+
+  private lazy val internalReference = base()
+
+  override def initialReference: InMemoryTable = internalReference
+
+  override def engine: String = "memory"
+
+  override def execute: InMemoryTable = executePlan
+
+  override protected def logicalPlanRules: LogicalPlanRules = {
+    case Select(expressions) => _.select(expressions: _*)
+    case Where(expression) => _.where(expression)
+    case GroupBy(expressions) => _.groupBy(expressions: _*)
+    case Join(right: InMemoryDataReference, "INNER", Some(condition), _) => _.join(right.execute, condition, "inner")
+    case Union(right: InMemoryDataReference, false) => _.union(right.execute)
+    case Limit(limit) => _.limit(limit)
+    case As(alias) => _.as(alias)
+  }
+
+  override protected def queryOperations: QueryFunction = {
+    case qo if logicalPlanRules.isDefinedAt(qo) => copy(logicalPlan = updateLogicalPlan(qo))
+  }
+
+}
+
+
+
+//final case class InMemoryToJDBCConverter extends DataReferenceConverters {
+//  override def getConverters: DataReferenceConverter = {
+//    case (imd: InMemoryDataReference, Insert(expressions))
+//  }
+//}
