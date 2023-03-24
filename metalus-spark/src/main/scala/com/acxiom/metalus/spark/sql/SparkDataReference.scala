@@ -57,15 +57,15 @@ final case class SparkDataReference(dataset: () => Dataset[_], origin: SparkData
       createAs(tableName, externalPath, options, connector)
     case CreateAs(tableName, _, false, externalPath, options, None) =>
       createAs(tableName, externalPath, options, origin.connector)
-    case Save(destination, connector, options) =>
-      val writerOptions = options.getOrElse(DataFrameWriterOptions(origin.readOptions.format, options = origin.readOptions.options))
+    case Save(destination, Some(connector: SparkDataConnector), options) =>
+      val writerOptions = SparkDataConnector.getWriteOptions(options)
+        .getOrElse(DataFrameWriterOptions(origin.readOptions.format, options = origin.readOptions.options))
       val newReadOptions = DataFrameReaderOptions(writerOptions.format, writerOptions.options)
       copy(() => {
         val ds = toDataset
         connector.write(ds, Some(destination), None, pipelineContext, writerOptions)
         connector.load(Some(destination), pipelineContext, newReadOptions.copy(schema = Some(ds.schema.toSchema)))
       }, origin = SparkDataReferenceOrigin(connector, newReadOptions))
-
   }
 
   private def createAs(name: String,
@@ -133,6 +133,3 @@ object SparkConvertable {
     case dr => dr.convertIfPossible(ConvertEngine("spark")).map(_.asInstanceOf[SparkDataReference])
   }
 }
-
-case class Save(destination: String, connector: SparkDataConnector, options: Option[DataFrameWriterOptions])
-  extends QueryOperator("Save")
