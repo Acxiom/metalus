@@ -54,7 +54,7 @@ class SessionContextTests extends AnyFunSpec {
     }
 
     describe("JDBC Storage") {
-      val settings = TestHelper.setupTestDB("sessionTest")
+      val settings = TestHelper.setupSessionTestDB("sessionTest")
       val conn = DriverManager.getConnection(settings.url, settings.connectionProperties)
       val stmt = conn.createStatement
 

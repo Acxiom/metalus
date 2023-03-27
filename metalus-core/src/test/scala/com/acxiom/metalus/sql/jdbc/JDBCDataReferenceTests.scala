@@ -12,6 +12,7 @@ import org.slf4j.event.Level
 import java.nio.file.{Files, Path}
 import java.sql.DriverManager
 
+// noinspection SqlDialectInspection,SqlNoDataSourceInspection
 class JDBCDataReferenceTests extends AnyFunSpec with BeforeAndAfterAll with GivenWhenThen {
 
   lazy val pipelineContext: PipelineContext = {
@@ -69,12 +70,14 @@ class JDBCDataReferenceTests extends AnyFunSpec with BeforeAndAfterAll with Give
         Select(List(Expression("count(breed) AS breed_count"), Expression("breed")))
       val jdbcResult = query.asInstanceOf[JDBCDataReference[JDBCResult]].execute
       assert(jdbcResult.resultSet.isDefined)
-      val rows = jdbcResult.resultSet.get
+      assert(jdbcResult.connection.isDefined)
+      val rows = jdbcResult.resultSet.get.toList
       assert(rows.size == 2)
       assert(rows.exists(m => m.get("BREED").exists(_.toString == "Game Cock")
         && m.get("BREED_COUNT").exists(_.toString == "1")))
       assert(rows.exists(m => m.get("BREED").exists(_.toString == "Sex-link")
         && m.get("BREED_COUNT").exists(_.toString == "2")))
+      jdbcResult.connection.get.close()
     }
 
     it("should create a table") {
@@ -87,6 +90,7 @@ class JDBCDataReferenceTests extends AnyFunSpec with BeforeAndAfterAll with Give
         CreateAs("breed_counts", noData = true)
       val jdbcResult = createCounts.asInstanceOf[JDBCDataReference[JDBCResult]].execute
       assert(jdbcResult.resultSet.isEmpty)
+      assert(jdbcResult.connection.isEmpty)
       val query = conn.getTable("breed_counts", Some(properties), pipelineContext)
       val res = query.asInstanceOf[JDBCDataReference[JDBCResult]].execute
       assert(res.resultSet.isDefined)

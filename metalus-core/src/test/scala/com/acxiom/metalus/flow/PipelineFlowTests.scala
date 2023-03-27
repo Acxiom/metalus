@@ -10,7 +10,7 @@ import scala.io.Source
 class PipelineFlowTests extends AnyFunSpec {
   describe("Simple pipeline") {
     it("should use an alternate step") {
-      val settings = TestHelper.setupTestDB("alternateStepTest")
+      val settings = TestHelper.setupSessionTestDB("alternateStepTest")
       val application = JsonParser.parseApplication(
         Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/simple_restart_application.json")).mkString)
       val credentialProvider = TestHelper.getDefaultCredentialProvider

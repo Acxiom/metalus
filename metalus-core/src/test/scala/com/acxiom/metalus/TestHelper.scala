@@ -33,7 +33,7 @@ object TestHelper {
     new DefaultCredentialProvider(parameters)
   }
 
-  def setupTestDB(name: String): MemoryDBSettings = {
+  def setupSessionTestDB(name: String): MemoryDBSettings = {
     val url = s"jdbc:derby:memory:$name;create=true"
     val properties = new Properties()
     val connectionMap = Map[String, String]("driver" -> "org.apache.derby.jdbc.EmbeddedDriver")
@@ -64,6 +64,25 @@ object TestHelper {
     stmt.execute(
       """CREATE TABLE SESSION_HISTORY
         |(SESSION_ID VARCHAR(64), RUN_ID INTEGER,  STATUS VARCHAR(15), START_TIME BIGINT, END_TIME BIGINT, DURATION BIGINT)""".stripMargin)
+    MemoryDBSettings(name, url, properties)
+  }
+
+  def setupOrdersTestDB(name: String): MemoryDBSettings = {
+    val url = s"jdbc:derby:memory:$name;create=true"
+    val properties = new Properties()
+    val connectionMap = Map[String, String]("driver" -> "org.apache.derby.jdbc.EmbeddedDriver")
+    connectionMap.foreach(entry => properties.put(entry._1, entry._2))
+    val conn = DriverManager.getConnection(url, properties)
+    val stmt = conn.createStatement
+    stmt.execute(
+      """CREATE TABLE ORDERS
+        |(ID INT,
+        |FIRST_NAME VARCHAR(2048),
+        |LAST_NAME VARCHAR(2048),
+        |EMAIL VARCHAR(2048),
+        |GENDER VARCHAR(6),
+        |EIN VARCHAR(2048),
+        |POSTAL_CODE VARCHAR(2048))""".stripMargin)
     MemoryDBSettings(name, url, properties)
   }
 
