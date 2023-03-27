@@ -15,6 +15,8 @@ trait JDBCDataReference[T] extends SqlBuildingDataReference[T] {
   def uri: String
 
   def properties: Map[String, String]
+
+  protected def createConnection(): Connection = JDBCUtils.createConnection(uri, properties)
 }
 
 final case class BasicJDBCDataReference(baseExpression: () => String,
