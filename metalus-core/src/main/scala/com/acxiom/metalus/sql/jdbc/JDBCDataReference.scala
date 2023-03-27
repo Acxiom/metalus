@@ -3,8 +3,7 @@ package com.acxiom.metalus.sql.jdbc
 import com.acxiom.metalus.PipelineContext
 import com.acxiom.metalus.sql._
 
-import java.sql.{Connection, DriverManager, ResultSet}
-import java.util.Properties
+import java.sql.{Connection, ResultSet}
 import scala.collection.immutable.Queue
 import scala.util.{Failure, Success, Try}
 
@@ -16,25 +15,6 @@ trait JDBCDataReference[T] extends SqlBuildingDataReference[T] {
   def uri: String
 
   def properties: Map[String, String]
-
-  protected def createConnection(): Connection = {
-    val props = new Properties()
-    properties.foreach(entry => props.put(entry._1, entry._2))
-    DriverManager.getConnection(uri, props)
-  }
-
-  protected implicit class ResultSetImplicits(rs: ResultSet) {
-    def map[R](func: Int => R): Iterator[R] = Iterator.from(0).takeWhile(_ => rs.next()).map(func)
-
-    def toList: List[Map[String, Any]] = {
-      val columns = (1 to rs.getMetaData.getColumnCount).map(rs.getMetaData.getColumnName)
-      new Iterator[Map[String, Any]] {
-        def hasNext: Boolean = rs.next()
-
-        def next(): Map[String, Any] = columns.map(c => c -> rs.getObject(c)).toMap
-      }.toList
-    }
-  }
 }
 
 final case class BasicJDBCDataReference(baseExpression: () => String,
@@ -50,7 +30,7 @@ final case class BasicJDBCDataReference(baseExpression: () => String,
   override def initialReference: String = baseExpression()
 
   override def execute: JDBCResult = {
-    Try(createConnection()).flatMap { connection =>
+    Try(JDBCUtils.createConnection(uri, properties)).flatMap { connection =>
       val stmt = connection.createStatement()
       val sql = logicalPlan.lastOption match {
         case Some(_: Select | _: CreateAs) => toSql
@@ -60,11 +40,13 @@ final case class BasicJDBCDataReference(baseExpression: () => String,
           s"SELECT * FROM $ref"
       }
       val res = Try(stmt.execute(sql)).map {
-        case true => JDBCResult(Some(stmt.getResultSet.toList), None)
-        case false => JDBCResult(None, Some(stmt.getUpdateCount))
+        case true => JDBCResult(Some(stmt.getResultSet), None, Some(connection))
+        case false =>
+          val updateCount = stmt.getUpdateCount
+          stmt.close()
+          connection.close()
+          JDBCResult(None, Some(updateCount), None)
       }
-      stmt.close()
-      connection.close()
       res
     } match {
       case Success(rs) => rs
@@ -82,4 +64,4 @@ final case class BasicJDBCDataReference(baseExpression: () => String,
   }
 }
 
-final case class JDBCResult(resultSet: Option[List[Map[String, Any]]], count: Option[Int])
+final case class JDBCResult(resultSet: Option[ResultSet], count: Option[Int], connection: Option[Connection])

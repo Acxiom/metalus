@@ -101,31 +101,14 @@ case class CSVFileDataRowReader(fileManager: FileManager, properties: DataStream
     }
   }
 
-  override def next(): Option[List[Row]] = {
-    try {
-      val rows = Range(Constants.ZERO, properties.rowBufferSize).foldLeft(List[Row]()) { (list, index) =>
-        val line = Option(inputStreamReader.readLine())
-        if (line.isDefined) {
-          list :+ Row(csvParser.parseLine(line.get), schema, Some(line))
-        } else {
-          list
-        }
-      }
-      if (rows.isEmpty) {
-        None
-      } else if (rows.length < properties.rowBufferSize) {
-        if (rows.nonEmpty) {
-          Some(rows)
-        } else {
-          None
-        }
-      } else {
-        Some(rows)
-      }
-    } catch {
-      case t: Throwable => throw DriverUtils.buildPipelineException(Some(s"Unable to read data: ${t.getMessage}"), Some(t), None)
+  override def next(): Option[List[Row]] = readDataWindow(properties, (list, index) => {
+    val line = Option(inputStreamReader.readLine())
+    if (line.isDefined) {
+      list :+ Row(csvParser.parseLine(line.get), schema, Some(line))
+    } else {
+      list
     }
-  }
+  })
 
   override def close(): Unit = {}
 

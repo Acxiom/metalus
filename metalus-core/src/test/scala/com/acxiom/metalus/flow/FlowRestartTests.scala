@@ -14,7 +14,7 @@ class FlowRestartTests extends AnyFunSpec {
   describe("Restart") {
     describe("simple") {
       it("should restart a step that maps the output from a previous step") {
-        val settings = TestHelper.setupTestDB("restartSimpleTest")
+        val settings = TestHelper.setupSessionTestDB("restartSimpleTest")
         val application = JsonParser.parseApplication(
           Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/simple_restart_application.json")).mkString)
         val credentialProvider = TestHelper.getDefaultCredentialProvider
@@ -76,7 +76,7 @@ class FlowRestartTests extends AnyFunSpec {
 
     describe("split") {
       it("should restart steps in each line of the split") {
-        val settings = TestHelper.setupTestDB("restartSplitTest")
+        val settings = TestHelper.setupSessionTestDB("restartSplitTest")
         val application = JsonParser.parseApplication(
           Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/split_flow_restart_application.json")).mkString)
         val credentialProvider = TestHelper.getDefaultCredentialProvider
@@ -143,7 +143,7 @@ class FlowRestartTests extends AnyFunSpec {
       }
 
       it("should restart steps in each line of the split using inline splits") {
-        val settings = TestHelper.setupTestDB("restartInlineSplitTest")
+        val settings = TestHelper.setupSessionTestDB("restartInlineSplitTest")
         val application = JsonParser.parseApplication(
           Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/split_flow_restart_application.json")).mkString)
         val credentialProvider = TestHelper.getDefaultCredentialProvider
@@ -214,7 +214,7 @@ class FlowRestartTests extends AnyFunSpec {
 
     describe("step group") {
       it("should restart a step within a step group") {
-        val settings = TestHelper.setupTestDB("restartStepGroupTest")
+        val settings = TestHelper.setupSessionTestDB("restartStepGroupTest")
         val application = JsonParser.parseApplication(
           Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/step_group_restart_application.json")).mkString)
         val credentialProvider = TestHelper.getDefaultCredentialProvider
@@ -299,7 +299,7 @@ class FlowRestartTests extends AnyFunSpec {
 
     describe("fork") {
       it("should restart within a fork") {
-        val settings = TestHelper.setupTestDB("restartForkTest")
+        val settings = TestHelper.setupSessionTestDB("restartForkTest")
         val application = JsonParser.parseApplication(
           Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/fork_restart_application.json")).mkString)
         val credentialProvider = TestHelper.getDefaultCredentialProvider
@@ -369,7 +369,7 @@ class FlowRestartTests extends AnyFunSpec {
 
   describe("Recovery") {
     it("should recover from a failed run within a step group") {
-      val settings = TestHelper.setupTestDB("recoveryStepGroupTest")
+      val settings = TestHelper.setupSessionTestDB("recoveryStepGroupTest")
       val application = JsonParser.parseApplication(
         Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/step_group_restart_application.json")).mkString)
       val credentialProvider = TestHelper.getDefaultCredentialProvider
@@ -447,7 +447,7 @@ class FlowRestartTests extends AnyFunSpec {
     }
 
     it("should recover from a failed run within a fork") {
-      val settings = TestHelper.setupTestDB("recoverForkTest")
+      val settings = TestHelper.setupSessionTestDB("recoverForkTest")
       val application = JsonParser.parseApplication(
         Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/fork_restart_application.json")).mkString)
       val credentialProvider = TestHelper.getDefaultCredentialProvider

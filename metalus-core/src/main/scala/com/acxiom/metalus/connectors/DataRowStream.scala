@@ -2,6 +2,7 @@ package com.acxiom.metalus.connectors
 
 import com.acxiom.metalus.{Constants, PipelineException}
 import com.acxiom.metalus.sql.{Row, Schema}
+import com.acxiom.metalus.utils.DriverUtils
 
 /**
  * Represents a stream of data.
@@ -29,6 +30,25 @@ trait DataRowReader extends DataRowStream {
    * @return A list of rows or None if the end of the stream has been reached.
    */
   def next(): Option[List[Row]]
+
+  protected def readDataWindow(properties: DataStreamOptions, rowFunc: (List[Row], Int) => List[Row]): Option[List[Row]] = {
+    try {
+      val rows = Range(Constants.ZERO, properties.rowBufferSize).foldLeft(List[Row]()) { (list, index) => rowFunc(list, index) }
+      if (rows.isEmpty) {
+        None
+      } else if (rows.length < properties.rowBufferSize) {
+        if (rows.nonEmpty) {
+          Some(rows)
+        } else {
+          None
+        }
+      } else {
+        Some(rows)
+      }
+    } catch {
+      case t: Throwable => throw DriverUtils.buildPipelineException(Some(s"Unable to read data: ${t.getMessage}"), Some(t), None)
+    }
+  }
 }
 
 /**
