@@ -1,7 +1,7 @@
 package com.acxiom.metalus.aws.pipeline.connectors
 
 import com.acxiom.metalus.aws.utils.{KinesisConsumer, KinesisProducer, KinesisStreamingDataParser}
-import com.acxiom.metalus.connectors.{DataRowReader, DataRowWriter, DataStreamOptions}
+import com.acxiom.metalus.connectors.{DataRowReader, DataRowWriter, DataStreamOptions, StreamConnector}
 import com.acxiom.metalus.utils.DriverUtils
 import com.acxiom.metalus.{Credential, PipelineContext, RetryPolicy}
 import software.amazon.awssdk.services.kinesis.model.Record
@@ -14,9 +14,7 @@ case class KinesisConnector(streamName: String,
                             retryPolicy: Option[RetryPolicy] = Some(RetryPolicy()),
                             override val name: String,
                             override val credentialName: Option[String],
-                            override val credential: Option[Credential]) extends AWSConnector {
-  override def connectorType: String = "STREAM"
-
+                            override val credential: Option[Credential]) extends AWSConnector with StreamConnector {
   override def getReader(properties: Option[DataStreamOptions], pipelineContext: PipelineContext): Option[DataRowReader] = {
     val parameters = pipelineContext.globals.getOrElse(Map())
     val opts = properties.getOrElse(DataStreamOptions(None))
