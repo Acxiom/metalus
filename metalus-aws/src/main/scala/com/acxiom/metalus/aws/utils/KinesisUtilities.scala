@@ -1,6 +1,9 @@
 package com.acxiom.metalus.aws.utils
 
+import com.acxiom.metalus.connectors.{DataRowReader, DataRowWriter}
+import com.acxiom.metalus.drivers.StreamingDataParser
 import com.acxiom.metalus.sql.Row
+import com.acxiom.metalus.utils.DriverUtils
 import com.acxiom.metalus.utils.DriverUtils.{buildPipelineException, invokeWaitPeriod}
 import com.acxiom.metalus.{Constants, PipelineException, RetryPolicy}
 import software.amazon.awssdk.core.SdkBytes
@@ -9,6 +12,7 @@ import software.amazon.awssdk.services.kinesis.{KinesisClient, KinesisClientBuil
 
 import java.net.URI
 import java.util
+import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 
 object KinesisUtilities {
@@ -53,52 +57,6 @@ object KinesisUtilities {
     kinesisProducer.process(Row(Array(message), None, None))
     kinesisProducer.close()
   }
-
-//  /**
-//   * Determines the column id to use to extract the partition key value when writing rows
-//   *
-//   * @param dataFrame    The DataFrame containing the schema
-//   * @param partitionKey The field name of the column to use for the key value.
-//   * @return The column index or zero id the column name is not found.
-//   */
-  //  def determinePartitionKey(dataFrame: DataFrame, partitionKey: String): Int = {
-  //    if (dataFrame.schema.isEmpty) {
-  //      0
-  //    } else {
-  //      val field = dataFrame.schema.fieldIndex(partitionKey)
-  //      if (field < 0) {
-  //        0
-  //      } else {
-  //        field
-  //      }
-  //    }
-  //  }
-
-//  /**
-//   * Write a batch DataFrame to Kinesis using record batching.
-//   *
-//   * @param dataFrame         The DataFrame to write
-//   * @param region            The region of the Kinesis stream
-//   * @param streamName        The Kinesis stream name
-//   * @param partitionKey      The static partition key to use
-//   * @param partitionKeyIndex The field index in the DataFrame row containing the value to use as the partition key
-//   * @param separator         The field separator to use when formatting the row data
-//   * @param credential        An optional credential to use to authenticate to Kinesis
-//   */
-//  def writeDataFrame(dataFrame: DataFrame,
-//                     region: String,
-//                     streamName: String,
-//                     partitionKey: Option[String],
-//                     partitionKeyIndex: Option[Int],
-//                     separator: String = ",",
-//                     credential: Option[AWSCredential] = None): Unit = {
-//    dataFrame.rdd.foreachPartition(rows => {
-//      val writer = new BatchKinesisWriter(streamName, region, partitionKey, partitionKeyIndex, separator, credential)
-//      writer.open()
-//      rows.foreach(writer.process)
-//      writer.close()
-//    })
-//  }
 }
 
 case class KinesisProducer(streamName: String,
@@ -107,7 +65,7 @@ case class KinesisProducer(streamName: String,
                            partitionKey: Option[String] = None,
                            partitionKeyIndex: Option[Int] = None,
                            retryPolicy: Option[RetryPolicy] = Some(RetryPolicy()),
-                           credential: Option[AWSCredential] = None) {
+                           credential: Option[AWSCredential] = None) extends DataRowWriter {
   private lazy val defaultPartitionKey = java.util.UUID.randomUUID().toString
   private val builder = AWSUtilities.setupCredentialProvider(KinesisClient.builder(), credential).asInstanceOf[KinesisClientBuilder]
   private val kinesisClient = builder.endpointOverride(new URI(s"https://kinesis.$region.amazonaws.com")).build()
@@ -127,7 +85,7 @@ case class KinesisProducer(streamName: String,
    * @throws PipelineException - will be thrown if this call cannot be completed.
    */
   @throws(classOf[PipelineException])
-  def process(row: Row): Unit = process(List(row))
+  override def process(row: Row): Unit = process(List(row))
 
   /**
    * Prepares the provided rows and pushes to the Kinesis stream. The data from each Row will be
@@ -139,7 +97,7 @@ case class KinesisProducer(streamName: String,
    * @throws PipelineException - will be thrown if this call cannot be completed.
    */
   @throws(classOf[PipelineException])
-  def process(rows: List[Row]): Unit = {
+  override def process(rows: List[Row]): Unit = {
     val requests = rows.foldLeft((List[util.List[PutRecordsRequestEntry]](), List[PutRecordsRequestEntry](), 0))((result, row) => {
       val data = row.mkString(separator).getBytes
       val currentSize = result._3 + data.length
@@ -187,4 +145,57 @@ case class KinesisProducer(streamName: String,
     .orElse(partitionKeyIndex.map(i => value.columns(i).toString))
     .filter(s => Option(s).nonEmpty && s.nonEmpty)
     .getOrElse(defaultPartitionKey)
+
+  override def open(): Unit = {}
+}
+
+case class KinesisConsumer(streamName: String,
+                           region: String,
+                           shardId: String,
+                           batchSize: Int = Constants.ONE_HUNDRED,
+                           parsers: List[StreamingDataParser[Record]],
+                           retryPolicy: RetryPolicy = RetryPolicy(),
+                           streamStartingPosition: String = "LATEST",
+                           credential: Option[AWSCredential] = None) extends DataRowReader {
+  private lazy val kinesisClient = AWSUtilities.setupCredentialProvider(KinesisClient.builder(), credential)
+    .asInstanceOf[KinesisClientBuilder].build()
+  private lazy val itReq = GetShardIteratorRequest.builder()
+    .streamName(streamName)
+    .shardIteratorType(streamStartingPosition)
+    .shardId(shardId)
+    .build()
+  private lazy val shardIteratorResult = kinesisClient.getShardIterator(itReq)
+  private lazy val shardIterator = shardIteratorResult.shardIterator
+  private lazy val recordsRequest = GetRecordsRequest.builder()
+    .shardIterator(shardIterator)
+    .limit(batchSize)
+    .build()
+
+  override def next(): Option[List[Row]] = retryNext()
+
+  @tailrec
+  private def retryNext(retryCount: Int = 0): Option[List[Row]] = {
+    try {
+      val result = kinesisClient.getRecords(recordsRequest)
+      if (Option(result.nextShardIterator()).isDefined) {
+        val records = result.records().asScala
+        val parser = DriverUtils.getStreamingParser[Record](records.head, parsers)
+        Some(parser.get.parseRecords(records.toList))
+      } else {
+        Some(List[Row]())
+      }
+    } catch {
+      case r: ProvisionedThroughputExceededException =>
+        if (retryCount < retryPolicy.maximumRetries.getOrElse(Constants.TEN)) {
+          DriverUtils.invokeWaitPeriod(retryPolicy, retryCount + 1)
+          retryNext(retryCount + 1)
+        } else {
+          throw buildPipelineException(Some(s"Unable to read records from stream ${recordsRequest.streamARN()}"), Some(r), None)
+        }
+    }
+  }
+
+  override def close(): Unit = {}
+
+  override def open(): Unit = {}
 }
