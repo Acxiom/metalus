@@ -1,8 +1,6 @@
 package com.acxiom.metalus.connectors
 
-import com.acxiom.metalus.sql.Row
-import com.acxiom.metalus.utils.DriverUtils
-import com.acxiom.metalus.{Constants, Credential, PipelineContext}
+import com.acxiom.metalus.{Credential, PipelineContext}
 
 trait Connector {
   def name: String

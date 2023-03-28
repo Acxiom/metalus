@@ -1,4 +1,4 @@
-package com.acxiom.metalus.aws.drivers
+package com.acxiom.metalus.aws.utils
 
 import com.acxiom.metalus.drivers.StreamingDataParser
 import com.acxiom.metalus.parser.JsonParser

@@ -19,7 +19,7 @@ case class GCSFileConnector(projectId: String,
                             bucket: String,
                             override val name: String,
                             override val credentialName: Option[String],
-                            override val credential: Option[Credential]) extends FileConnector with GCSConnector {
+                            override val credential: Option[Credential]) extends FileConnector with GCPConnector {
   /**
     * Creates and opens a FileManager.
     *

@@ -1,10 +1,8 @@
 package com.acxiom.metalus.gcp.pipeline.connectors
 
-import com.acxiom.metalus.Credential
-
-case class GCSDataConnector(override val name: String,
-                            override val credentialName: Option[String],
-                            override val credential: Option[Credential]) extends GCSConnector {
+//case class GCSDataConnector(override val name: String,
+//                            override val credentialName: Option[String],
+//                            override val credential: Option[Credential]) extends GCPConnector {
 //  extends FileSystemDataConnector with GCSConnector {
 //  override def load(source: Option[String],
 //                    pipelineContext: PipelineContext,
@@ -30,4 +28,4 @@ case class GCSDataConnector(override val name: String,
 //      GCPUtilities.setGCSAuthorization(finalCredential.get.authKey, pipelineContext)
 //    }
 //  }
-}
+//}
