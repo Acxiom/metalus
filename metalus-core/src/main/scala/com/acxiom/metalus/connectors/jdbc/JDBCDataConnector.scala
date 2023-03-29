@@ -26,13 +26,16 @@ case class JDBCDataConnector(url: String,
     getTable(dbtable, properties.map(_.mapValues(_.toString).filterKeys(_ != "dbtable").toMap[String, String]), pipelineContext)
   }
 
-  def getTable(dbtable: String, properties: Option[Map[String, String]], pipelineContext: PipelineContext): JDBCDataReference[_] = {
+  def getTable(dbtable: String, properties: Option[Map[String, String]], pipelineContext: PipelineContext): JDBCDataReference[_] =
+    getTable(() => dbtable, properties, pipelineContext)
+
+  def getTable(dbtable: () => String, properties: Option[Map[String, String]], pipelineContext: PipelineContext): JDBCDataReference[_] = {
     val info = defaultProperties.getOrElse(Map()).mapValues(_.toString).toMap[String, String] ++
       properties.getOrElse(Map()) ++
       getCredential(pipelineContext).collect {
         case unc: UserNameCredential => Map("user" -> unc.name, "password" -> unc.password)
       }.getOrElse(Map())
-    BasicJDBCDataReference(() => dbtable, url, info, DataReferenceOrigin(this, Some(info)), pipelineContext)
+    BasicJDBCDataReference(dbtable, url, info, DataReferenceOrigin(this, Some(info)), pipelineContext)
   }
 
   /**

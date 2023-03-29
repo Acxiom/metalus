@@ -1,0 +1,143 @@
+{
+  "id": "example-pipeline",
+  "name": "Example Pipeline",
+  "description": "This example demonstrates the features of Metalus Pipelines, including forks, branching, step-groups, and using various step functions",
+  "steps": [
+    {
+      "id": "ValidateSource",
+      "params": [
+        {
+          "type": "text",
+          "name": "value",
+          "required": true,
+          "value": "!sourceConnector",
+          "parameterType": "Option[Any]"
+        },
+        {
+          "type": "result",
+          "name": "true",
+          "required": true,
+          "value": "LogError"
+        },
+        {
+          "type": "result",
+          "name": "false",
+          "required": true,
+          "value": "IsFile"
+        }
+      ],
+      "type": "branch",
+      "stepId": "cc8d44ad-5049-460f-87c4-e250b9fa53f1",
+      "displayName": "Empty Check",
+      "description": "Determines if the provided value is defined. Returns true if the value is not defined.",
+      "engineMeta": {
+        "command": "FlowUtilsSteps.isempty",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "com.acxiom.pipeline.fs.FileManager"
+        }
+      }
+    },
+    {
+      "id": "IsFile",
+      "params": [
+        {
+          "type": "script",
+          "name": "script",
+          "required": false,
+          "language": "scala",
+          "value": "source.isInstanceOf[com.acxiom.pipeline.connectors.FileConnector]"
+        },
+        {
+          "type": "text",
+          "name": "values",
+          "required": false,
+          "parameterType": "Map[String,Any]",
+          "value": {
+            "source": "!sourceConnector"
+          }
+        },
+        {
+          "type": "text",
+          "name": "types",
+          "required": false,
+          "parameterType": "Map[String,Any]",
+          "value": {
+            "source": "Any"
+          }
+        },
+        {
+          "type": "boolean",
+          "name": "unwrapOptions",
+          "required": false,
+          "parameterType": "Boolean",
+          "value": true
+        },
+        {
+          "type": "result",
+          "name": "true",
+          "required": true,
+          "value": "CopyFile"
+        },
+        {
+          "type": "result",
+          "name": "false",
+          "required": true,
+          "value": "CreateSourceDataReference"
+        }
+      ],
+      "type": "Pipeline",
+      "category": "Scripting",
+      "stepId": "3ab721e8-0075-4418-aef1-26abdf3041be",
+      "description": "Executes a script with the provided object and returns the result",
+      "displayName": "Scala script Step with additional object provided",
+      "engineMeta": {
+        "spark": "ScalaSteps.processScriptWithValues",
+        "pkg": "com.acxiom.pipeline.steps",
+        "results": {
+          "primaryType": "com.acxiom.pipeline.PipelineStepResponse"
+        }
+      },
+      "nextStepId": "WriteToOutputAsset"
+    },
+    {
+      "id": "CopyFile",
+      "type": "step-group",
+      "category": "StepGroups",
+      "stepId": "f09b3b9c-82ac-56de-8dc8-f57c063dd4aa",
+      "displayName": "Copy File",
+      "description": "Allows pipelines to be executed as a single step within a parent pipeline.",
+      "params": [
+        {
+          "name": "pipelineId",
+          "type": "text",
+          "required": false,
+          "value": "copy-file"
+        },
+        {
+          "name": "pipeline",
+          "type": "text",
+          "required": false
+        },
+        {
+          "name": "useParentGlobals",
+          "type": "boolean",
+          "required": false,
+          "value": true
+        },
+        {
+          "name": "pipelineMappings",
+          "type": "text",
+          "required": false,
+          "value": {
+            "sourceConnector": "!sourceConnector",
+            "sourceCopyPath": "!sourceCopyPath",
+            "destinationConnector": "!destinationConnector",
+            "destinationCopyPath": "!destinationCopyPath"
+          }
+        }
+      ],
+      "nextStepId": "DetectHeader"
+    }
+  ]
+}

@@ -1,0 +1,616 @@
+{
+  "pipelineId": "example-pipeline",
+  "requiredParameters": [
+    "sourceName",
+    "sourceUri",
+    "destinationUri",
+    "rootLogLevel"
+  ],
+  "stepPackages": [
+    "com.acxiom.metalus.steps",
+    "com.acxiom.metalus"
+  ],
+  "pipelineTemplates": [
+    {
+      "id": "example-pipeline",
+      "name": "Example Pipeline",
+      "description": "This example demonstrates the features of Metalus Pipelines, including forks, branching, step-groups, and using various step functions",
+      "parameters": {
+        "inputs": [
+          {
+            "name": "sourceName",
+            "global": true,
+            "required": true
+          },
+          {
+            "name": "sourceName",
+            "global": true,
+            "required": true
+          }
+        ],
+        "output": {
+          "primaryMapping": "@STEP_3"
+        },
+        "restartableSteps": []
+      },
+      "steps": [
+        {
+          "id": "LogMessage-STARTING",
+          "params": [
+            {
+              "type": "text",
+              "name": "message",
+              "required": true,
+              "value": "Starting Example Pipeline"
+            },
+            {
+              "type": "text",
+              "name": "level",
+              "required": false,
+              "value": "INFO"
+            }
+          ],
+          "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090b",
+          "type": "Pipeline",
+          "displayName": "Log Message",
+          "description": "Log a simple message",
+          "engineMeta": {
+            "command": "LoggingSteps.logMessage",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "BuildSourceConnector"
+          ]
+        },
+        {
+          "id": "BuildSourceConnector",
+          "params": [
+            {
+              "type": "text",
+              "name": "name",
+              "required": true,
+              "value": "!sourceName"
+            },
+            {
+              "type": "text",
+              "name": "uri",
+              "required": false,
+              "value": "!sourceUri"
+            },
+            {
+              "type": "text",
+              "name": "connectorType",
+              "required": false,
+              "value": "!sourceConnectorType"
+            },
+            {
+              "type": "object",
+              "name": "parameters",
+              "required": false,
+              "value": "!sourceParameters"
+            }
+          ],
+          "stepId": "352abe61-6852-4844-9435-2ca427bcd45b",
+          "type": "Pipeline",
+          "displayName": "Get Connector",
+          "description": "This step provides access to connectors through the ConnectorProvider",
+          "engineMeta": {
+            "command": "ConnectorSteps.getConnector",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "BuildDestinationConnector"
+          ]
+        },
+        {
+          "id": "BuildDestinationConnector",
+          "params": [
+            {
+              "type": "text",
+              "name": "name",
+              "required": true,
+              "value": "!destinationName"
+            },
+            {
+              "type": "text",
+              "name": "uri",
+              "required": false,
+              "value": "!destinationUri"
+            },
+            {
+              "type": "text",
+              "name": "connectorType",
+              "required": false,
+              "value": "!destinationConnectorType"
+            },
+            {
+              "type": "object",
+              "name": "parameters",
+              "required": false,
+              "value": "!destinationParameters"
+            }
+          ],
+          "stepId": "352abe61-6852-4844-9435-2ca427bcd45b",
+          "type": "Pipeline",
+          "displayName": "Get Connector",
+          "description": "This step provides access to connectors through the ConnectorProvider",
+          "engineMeta": {
+            "command": "ConnectorSteps.getConnector",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "GetSourceConnectorType"
+          ]
+        },
+        {
+          "id": "GetSourceConnectorType",
+          "params": [
+            {
+              "type": "scalascript",
+              "name": "value",
+              "required": true,
+              "value": "(conn:@BuildSourceConnector:com.acxiom.metalus.connectors.Connector) conn.connectorType"
+            }
+          ],
+          "stepId": "b5485d97-d4e8-41a6-8af7-9ce79a435140",
+          "type": "Pipeline",
+          "displayName": "To String",
+          "description": "Returns the result of the toString method, can unwrap options",
+          "engineMeta": {
+            "command": "StringSteps.toString",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "IsFile"
+          ]
+        },
+        {
+          "id": "IsFile",
+          "value": "if(@GetSourceConnectorType = 'FILE') true else false",
+          "type": "branch",
+          "params": [
+            {
+              "name": "true",
+              "required": false,
+              "type": "result",
+              "value": "BuildCopyDestination"
+            },
+            {
+              "name": "false",
+              "required": false,
+              "type": "result",
+              "value": "CreateSourceDataReference"
+            }
+          ]
+        },
+        {
+          "id": "BuildCopyDestination",
+          "params": [
+            {
+              "type": "text",
+              "name": "name",
+              "required": true,
+              "value": "!copyFileName || CopyFileDestination"
+            },
+            {
+              "type": "text",
+              "name": "uri",
+              "required": false,
+              "value": "!copyFileUri"
+            },
+            {
+              "type": "text",
+              "name": "connectorType",
+              "required": false,
+              "value": "!copyFileConnectorType"
+            },
+            {
+              "type": "object",
+              "name": "parameters",
+              "required": false,
+              "value": "!copyFileParameters"
+            }
+          ],
+          "stepId": "352abe61-6852-4844-9435-2ca427bcd45b",
+          "type": "Pipeline",
+          "displayName": "Get Connector",
+          "description": "This step provides access to connectors through the ConnectorProvider",
+          "engineMeta": {
+            "command": "ConnectorSteps.getConnector",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "CopyFile"
+          ]
+        },
+        {
+          "id": "CopyFile",
+          "type": "step-group",
+          "displayName": "Copy File",
+          "description": "Allows pipelines to be executed as a single step within a parent pipeline.",
+          "pipelineId": "copy-file",
+          "params": [
+            {
+              "name": "useParentGlobals",
+              "type": "boolean",
+              "required": false,
+              "value": true
+            },
+            {
+              "name": "sourceConnector",
+              "type": "text",
+              "required": false,
+              "value": "@BuildSourceConnector"
+            },
+            {
+              "name": "sourceCopyPath",
+              "type": "text",
+              "required": false,
+              "value": "!sourcePath"
+            },
+            {
+              "name": "destinationConnector",
+              "type": "text",
+              "required": false,
+              "value": "@BuildCopyDestination"
+            },
+            {
+              "name": "destinationCopyPath",
+              "type": "text",
+              "required": false,
+              "value": "!copyFilePath"
+            }
+          ],
+          "nextSteps": [
+            "HasHeader"
+          ]
+        },
+        {
+          "id": "HasHeader",
+          "value": "if(@GetSourceConnectorType = 'FILE') true else false",
+          "type": "branch",
+          "params": [
+            {
+              "name": "true",
+              "required": false,
+              "type": "result",
+              "value": "GetFileManager"
+            },
+            {
+              "name": "false",
+              "required": false,
+              "type": "result",
+              "value": "CreateSourceDataReference"
+            }
+          ]
+        },
+        {
+          "id": "GetFileManager",
+          "params": [
+            {
+              "type": "text",
+              "name": "fileConnector",
+              "required": true,
+              "value": "@BuildCopyDestination"
+            }
+          ],
+          "stepId": "259a880a-3e12-4843-9f02-2cfc2a05f576",
+          "type": "Pipeline",
+          "displayName": "Create a FileManager",
+          "description": "Creates a FileManager using the provided FileConnector",
+          "engineMeta": {
+            "command": "FileManagerSteps.getFileManager",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "ReadHeader"
+          ]
+        },
+        {
+          "id": "ReadHeader",
+          "params": [
+            {
+              "type": "scalascript",
+              "name": "file",
+              "required": true,
+              "value": "(fileManager:@GetFileManager:com.acxiom.metalus.fs.FileManager,path:!copyFilePath:String) fileManager.getFileResource(path)"
+            },
+            {
+              "type": "text",
+              "name": "options",
+              "required": false
+            }
+          ],
+          "stepId": "100b2c7d-c1fb-5fe2-b9d1-dd9fff103272",
+          "type": "Pipeline",
+          "displayName": "Read header from a file",
+          "description": "This step will load the first line of a file and parse it into a Schema",
+          "engineMeta": {
+            "command": "FileManagerSteps.readHeader",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "GetInMemoryDataConnector"
+          ]
+        },
+        {
+          "id": "GetInMemoryDataConnector",
+          "params": [
+            {
+              "type": "text",
+              "name": "name",
+              "required": true,
+              "value": "INMEMORYCOPY"
+            },
+            {
+              "type": "text",
+              "name": "uri",
+              "required": false,
+              "value": "!copyFilePath"
+            },
+            {
+              "type": "text",
+              "name": "connectorType",
+              "required": false,
+              "value": "INMEMORY"
+            }
+          ],
+          "stepId": "352abe61-6852-4844-9435-2ca427bcd45b",
+          "type": "Pipeline",
+          "displayName": "Get Connector",
+          "description": "This step provides access to connectors through the ConnectorProvider",
+          "engineMeta": {
+            "command": "ConnectorSteps.getConnector",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "GetInMemoryDataReference"
+          ]
+        },
+        {
+          "id": "GetInMemoryDataReference",
+          "params": [
+            {
+              "type": "text",
+              "name": "connector",
+              "required": false,
+              "value": "@GetInMemoryDataConnector"
+            },
+            {
+              "type": "object",
+              "name": "properties",
+              "required": false,
+              "value": {
+                "schema": "@ReadHeader",
+                "path": "!copyFilePath"
+              }
+            }
+          ],
+          "stepId": "91bd5f24-ac28-4695-8a3c-f1d46f76031b",
+          "type": "Pipeline",
+          "displayName": "Create InMemory Data Reference",
+          "description": "Create an InMemoryDataReference object given an InMemoryDataConnector",
+          "engineMeta": {
+            "command": "DataReferenceSteps.createInMemoryDataReference",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "ExtractProduct",
+            "ExtractCustomer",
+            "ExtractCreditCard",
+            "ExtractOrder"
+          ]
+        },
+        {
+          "id": "SaveToJDBC",
+          "params": [
+            {
+              "type": "text",
+              "name": "dataReference",
+              "required": false,
+              "value": "@GetInMemoryDataReference"
+            },
+            {
+              "type": "object",
+              "name": "queryOperator",
+              "required": false,
+              "className": "com.acxiom.metalus.sql.Save",
+              "value": {
+                "name": "save",
+                "destination": "!tempWriteTable",
+                "connector": "@BuildDestinationConnector"
+              }
+            }
+          ],
+          "stepId": "91bd5f24-ac28-4695-8a3c-f1d46f76031b",
+          "type": "Pipeline",
+          "displayName": "Query DataReference",
+          "description": "Executes a script with the provided object and returns the result",
+          "engineMeta": {
+            "command": "QueryingSteps.applyQueryOperation",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "ExtractProduct",
+            "ExtractCustomer",
+            "ExtractCreditCard",
+            "ExtractOrder"
+          ]
+        },
+        {
+          "id": "CreateSourceDataReference",
+          "params": [
+            {
+              "type": "text",
+              "name": "connector",
+              "required": false,
+              "value": "@BuildSourceConnector"
+            },
+            {
+              "type": "object",
+              "name": "properties",
+              "required": false
+            }
+          ],
+          "stepId": "6847964a-c1b6-41cb-ad5a-fb192e12b3d5",
+          "type": "split",
+          "displayName": "Create Data Reference",
+          "description": "Create a DataReference object given an DataConnector",
+          "engineMeta": {
+            "command": "DataReferenceSteps.createDataReference",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "ExtractProduct",
+            "ExtractCustomer",
+            "ExtractCreditCard",
+            "ExtractOrder"
+          ]
+        },
+        {
+          "id": "ExtractProduct",
+          "params": [
+            {
+              "type": "text",
+              "name": "message",
+              "required": true,
+              "value": "Extracting products"
+            },
+            {
+              "type": "text",
+              "name": "level",
+              "required": false,
+              "value": "INFO"
+            }
+          ],
+          "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090b",
+          "type": "Pipeline",
+          "displayName": "Log Message",
+          "description": "Log a simple message",
+          "engineMeta": {
+            "command": "LoggingSteps.logMessage",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "Save-Merge"
+          ]
+        },
+        {
+          "id": "ExtractCustomer",
+          "params": [
+            {
+              "type": "text",
+              "name": "message",
+              "required": true,
+              "value": "Extracting customers"
+            },
+            {
+              "type": "text",
+              "name": "level",
+              "required": false,
+              "value": "INFO"
+            }
+          ],
+          "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090b",
+          "type": "Pipeline",
+          "displayName": "Log Message",
+          "description": "Log a simple message",
+          "engineMeta": {
+            "command": "LoggingSteps.logMessage",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "Save-Merge"
+          ]
+        },
+        {
+          "id": "ExtractCreditCard",
+          "params": [
+            {
+              "type": "text",
+              "name": "message",
+              "required": true,
+              "value": "Extracting credit cards"
+            },
+            {
+              "type": "text",
+              "name": "level",
+              "required": false,
+              "value": "INFO"
+            }
+          ],
+          "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090b",
+          "type": "Pipeline",
+          "displayName": "Log Message",
+          "description": "Log a simple message",
+          "engineMeta": {
+            "command": "LoggingSteps.logMessage",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "Save-Merge"
+          ]
+        },
+        {
+          "id": "ExtractOrder",
+          "params": [
+            {
+              "type": "text",
+              "name": "message",
+              "required": true,
+              "value": "Extracting orders"
+            },
+            {
+              "type": "text",
+              "name": "level",
+              "required": false,
+              "value": "INFO"
+            }
+          ],
+          "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090b",
+          "type": "Pipeline",
+          "displayName": "Log Message",
+          "description": "Log a simple message",
+          "engineMeta": {
+            "command": "LoggingSteps.logMessage",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "Save-Merge"
+          ]
+        },
+        {
+          "id": "Save-Merge",
+          "type": "merge",
+          "params": [],
+          "nextStepId": "LogMessage-DONE"
+        },
+        {
+          "id": "LogMessage-DONE",
+          "params": [
+            {
+              "type": "text",
+              "name": "message",
+              "required": true,
+              "value": "Example application completed"
+            },
+            {
+              "type": "text",
+              "name": "level",
+              "required": false,
+              "value": "INFO"
+            }
+          ],
+          "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090b",
+          "type": "Pipeline",
+          "displayName": "Log Message",
+          "description": "Log a simple message",
+          "engineMeta": {
+            "command": "LoggingSteps.logMessage",
+            "pkg": "com.acxiom.metalus.steps"
+          }
+        }
+      ]
+    }
+  ]
+}

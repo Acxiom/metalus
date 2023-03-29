@@ -63,6 +63,10 @@ final class DefaultConnectorProvider extends ConnectorProvider {
       val credentialName = options.flatMap(_.get("credentialName").map(_.toString))
       val credential = getCredentials(options)
       LocalFileConnector(name, credentialName, credential)
+    case (name, _, InMemoryDataConnectorType(_), options) =>
+      val credentialName = options.flatMap(_.get("credentialName").map(_.toString))
+      val credential = getCredentials(options)
+      InMemoryDataConnector(name, credentialName, credential)
   }
 
   private def getCredentials(options: Option[Map[String, Any]]): Option[Credential] =

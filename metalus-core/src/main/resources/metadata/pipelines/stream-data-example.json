@@ -1,0 +1,68 @@
+{
+  "id": "stream-data-example",
+  "name": "Stream Data Example",
+  "description": "Copies a file from the provided source location to the specified destination. After the copy is complete, the results are verified. If the copy failed, then it will be retried 5 times.",
+  "parameters": {
+    "inputs": [
+      {
+        "name": "sourceConnector",
+        "global": true,
+        "required": true
+      },
+      {
+        "name": "destinationConnector",
+        "global": true,
+        "required": true
+      },
+      {
+        "name": "sourceCopyPath",
+        "global": true,
+        "required": true
+      },
+      {
+        "name": "destinationCopyPath",
+        "global": true,
+        "required": true
+      }
+    ],
+    "restartableSteps": [
+      "VERIFY"
+    ]
+  },
+  "steps": [
+    {
+      "id": "ValidateSource",
+      "params": [
+        {
+          "type": "text",
+          "name": "name",
+          "required": true,
+          "value": "INMEMORYCOPY"
+        },
+        {
+          "type": "text",
+          "name": "uri",
+          "required": false,
+          "value": "!copyFilePath"
+        },
+        {
+          "type": "text",
+          "name": "connectorType",
+          "required": false,
+          "value": "INMEMORY"
+        }
+      ],
+      "stepId": "352abe61-6852-4844-9435-2ca427bcd45b",
+      "type": "Pipeline",
+      "displayName": "Get Connector",
+      "description": "This step provides access to connectors through the ConnectorProvider",
+      "engineMeta": {
+        "command": "ConnectorSteps.getConnector",
+        "pkg": "com.acxiom.metalus.steps"
+      },
+      "nextSteps": [
+        "GetInMemoryDataReference"
+      ]
+    }
+  ]
+}
