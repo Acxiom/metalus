@@ -7,6 +7,7 @@ import com.acxiom.metalus.utils.{ReflectionUtils, ScalaScriptEngine}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.annotation.tailrec
+import scala.collection.mutable.ArrayBuffer
 import scala.math.ScalaNumericAnyConversions
 
 object PipelineStepMapper {
@@ -447,10 +448,10 @@ trait PipelineStepMapper {
         case i: Int => Some(i)
         case i: BigInt => Some(i.toInt)
         case d: Double => Some(d)
+        case l: List[_] if parameter.`type`.map(_.toLowerCase).contains("expression") => Some(l.map(_.toString).map(Expression(_)))
         case l: List[_] => handleListParameter(l, parameter, pipelineContext)
         case m: Map[_, _] => handleMapParameter(m, parameter, pipelineContext)
-        case t => // Handle other types - This function may need to be reworked to support this so that it can be overridden
-          throw new RuntimeException(s"Unsupported value type ${t.getClass} for ${parameter.name.getOrElse("unknown")}!")
+        case t => throw new RuntimeException(s"Unsupported value type ${t.getClass} for ${parameter.name.getOrElse("unknown")}!")
     }
 
     // use the first valid (non-empty) value found

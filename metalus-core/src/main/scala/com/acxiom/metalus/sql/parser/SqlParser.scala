@@ -46,7 +46,7 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
       )))
     }.getOrElse(groupBy)
     buildAndChainStep("select", having, parameters = Some(List(
-      buildStepParameter("expressions", ctx.selectItem().asScala.map(getText), Some("expression"))
+      buildStepParameter("expressions", ctx.selectItem().asScala.map(getText).toList, Some("expression"))
     )))
   }
 
@@ -171,7 +171,7 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
 
   override def aggregateResult(aggregate: List[PipelineStep], nextResult: List[PipelineStep]): List[PipelineStep] = {
     nextResult.headOption.map{ next =>
-      val modStep = aggregate.lastOption.map(_.copy(nextSteps = Some(List("'" + next.id.mkString + "'"))))
+      val modStep = aggregate.lastOption.map(_.copy(nextSteps = Some(List(next.id.mkString))))
       aggregate.dropRight(1) ++ modStep ++ nextResult
 
     }.getOrElse(aggregate)
