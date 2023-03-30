@@ -395,10 +395,7 @@
             "pkg": "com.acxiom.metalus.steps"
           },
           "nextSteps": [
-            "ExtractProduct",
-            "ExtractCustomer",
-            "ExtractCreditCard",
-            "ExtractOrder"
+            "SaveToJDBC"
           ]
         },
         {
@@ -411,30 +408,36 @@
               "value": "@GetInMemoryDataReference"
             },
             {
-              "type": "object",
-              "name": "queryOperator",
+              "type": "text",
+              "name": "destination",
               "required": false,
-              "className": "com.acxiom.metalus.sql.Save",
-              "value": {
-                "name": "save",
-                "destination": "!tempWriteTable",
-                "connector": "@BuildDestinationConnector"
-              }
+              "value": "!tempWriteTable"
+            },
+            {
+              "type": "text",
+              "name": "connector",
+              "required": false,
+              "value": "@BuildDestinationConnector"
+            },
+            {
+              "type": "object",
+              "name": "converters",
+              "required": false,
+              "value": [
+                "com.acxiom.metalus.sql.InMemoryToJDBCDataReferenceConverters"
+              ]
             }
           ],
-          "stepId": "91bd5f24-ac28-4695-8a3c-f1d46f76031b",
+          "stepId": "121f1deb-0c7c-4833-9551-7296ec048a7d",
           "type": "Pipeline",
-          "displayName": "Query DataReference",
-          "description": "Executes a script with the provided object and returns the result",
+          "displayName": "DataReference Save",
+          "description": "Executes a save QueryOperation on a given DataReference",
           "engineMeta": {
-            "command": "QueryingSteps.applyQueryOperation",
+            "command": "QueryingSteps.save",
             "pkg": "com.acxiom.metalus.steps"
           },
           "nextSteps": [
-            "ExtractProduct",
-            "ExtractCustomer",
-            "ExtractCreditCard",
-            "ExtractOrder"
+            "AliasInputDataRef"
           ]
         },
         {
@@ -453,7 +456,7 @@
             }
           ],
           "stepId": "6847964a-c1b6-41cb-ad5a-fb192e12b3d5",
-          "type": "split",
+          "type": "Pipeline",
           "displayName": "Create Data Reference",
           "description": "Create a DataReference object given an DataConnector",
           "engineMeta": {
@@ -461,10 +464,76 @@
             "pkg": "com.acxiom.metalus.steps"
           },
           "nextSteps": [
-            "ExtractProduct",
+            "AliasInputDataRef"
+          ]
+        },
+        {
+          "id": "AliasInputDataRef",
+          "params": [
+            {
+              "type": "text",
+              "name": "dataReference",
+              "required": true,
+              "value": "@SaveToJDBC || @CreateSourceDataReference"
+            },
+            {
+              "type": "object",
+              "name": "queryOperator",
+              "required": false,
+              "className": "com.acxiom.metalus.sql.As",
+              "value": {
+                "name": "as",
+                "alias": "tbl_src"
+              }
+            }
+          ],
+          "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090b",
+          "type": "Pipeline",
+          "displayName": "Query DataReference",
+          "description": "Executes a script with the provided object and returns the result",
+          "engineMeta": {
+            "command": "QueryingSteps.applyQueryOperation",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "GetProductSQL",
             "ExtractCustomer",
             "ExtractCreditCard",
             "ExtractOrder"
+          ]
+        },
+        {
+          "id": "GetProductSQL",
+          "params": [
+            {
+              "type": "text",
+              "name": "sql",
+              "required": true,
+              "value": "select product_id, product_name, min(cost), max(units) from !dataRefName group by product_id, product_name"
+            },
+            {
+              "type": "text",
+              "name": "dataRefName",
+              "required": false,
+              "value": "dataRefName"
+            },
+            {
+              "type": "text",
+              "name": "dataReference",
+              "required": false,
+              "value": "@AliasInputDataRef"
+            }
+          ],
+          "stepId": "9fef376b-a915-4526-8c2b-61e573edf9ef",
+          "type": "Pipeline",
+          "displayName": "Execute SQL",
+          "description": "Executes a SQL script with the provided object and returns the result",
+          "engineMeta": {
+            "command": "QueryingSteps.runSQL",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
+            "ExtractProduct"
           ]
         },
         {
@@ -472,23 +541,37 @@
           "params": [
             {
               "type": "text",
-              "name": "message",
-              "required": true,
-              "value": "Extracting products"
+              "name": "dataReference",
+              "required": false,
+              "value": "@GetProductSQL"
             },
             {
               "type": "text",
-              "name": "level",
+              "name": "destination",
               "required": false,
-              "value": "INFO"
+              "value": "orders"
+            },
+            {
+              "type": "text",
+              "name": "connector",
+              "required": false,
+              "value": "@BuildDestinationConnector"
+            },
+            {
+              "type": "object",
+              "name": "converters",
+              "required": false,
+              "value": [
+                "com.acxiom.metalus.sql.InMemoryToJDBCDataReferenceConverters"
+              ]
             }
           ],
-          "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090b",
+          "stepId": "121f1deb-0c7c-4833-9551-7296ec048a7d",
           "type": "Pipeline",
-          "displayName": "Log Message",
-          "description": "Log a simple message",
+          "displayName": "DataReference Save",
+          "description": "Executes a save QueryOperation on a given DataReference",
           "engineMeta": {
-            "command": "LoggingSteps.logMessage",
+            "command": "QueryingSteps.save",
             "pkg": "com.acxiom.metalus.steps"
           },
           "nextSteps": [

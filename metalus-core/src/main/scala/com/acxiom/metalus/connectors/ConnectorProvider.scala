@@ -96,3 +96,10 @@ object DataConnectorType {
   }
 }
 
+object InMemoryDataConnectorType {
+  def unapply(connectorType: Option[String]): Option[String] = connectorType.map(_.toUpperCase) match {
+    case Some("INMEMORY") | None => Some("INMEMORY")
+    case _ => None
+  }
+}
+

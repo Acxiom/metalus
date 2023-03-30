@@ -64,6 +64,8 @@ trait ConvertableReference { self: DataReference[_] =>
 
   def convertIfPossible(queryOperation: QueryOperator,
                         converters: Option[List[String]] = None): Option[DataReference[_]] = {
+    println(converters)
+    println(defaultConverters)
     val extraConverters = converters.toList.flatten
       .flatMap(className => Try(ReflectionUtils.loadClass(className, None)).toOption)
       .collect { case drc: DataReferenceConverters => drc.getConverters }

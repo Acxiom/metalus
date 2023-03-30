@@ -37,7 +37,7 @@ class SqlParser(tokenStream: CommonTokenStream) extends MSqlParserBaseVisitor[Li
     }.getOrElse(fromJoinSteps)
     val groupBy = Option(ctx.groupBy()).map { groupBy =>
       buildAndChainStep("groupBy", where, parameters = Some(List(
-        buildStepParameter("expressions", groupBy.groupingElement().asScala.map(getText), Some("expression"))
+        buildStepParameter("expressions", groupBy.groupingElement().asScala.map(getText).toList, Some("expression"))
       )))
     }.getOrElse(where)
     val having = Option(ctx.having).map { having =>
