@@ -7,7 +7,6 @@ import com.acxiom.metalus.utils.{ReflectionUtils, ScalaScriptEngine}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.annotation.tailrec
-import scala.collection.mutable.ArrayBuffer
 import scala.math.ScalaNumericAnyConversions
 
 object PipelineStepMapper {
@@ -40,7 +39,7 @@ object MappingResolver {
     val credentialName = pipelinePath.mainValue
     logger.debug(s"Fetching credential: $credentialName")
     pipelineContext.credentialProvider.flatMap(_.getNamedCredential(credentialName))
-      .flatMap(getSpecificValue(_, pipelinePath, Some(true)))
+      .flatMap(getSpecificValue(_, pipelinePath))
   }
 
   def getGlobalParameter(value: String, pipelineContext: PipelineContext,
@@ -56,7 +55,6 @@ object MappingResolver {
     val globals = pipelineContext.globals.getOrElse(Map[String, Any]())
     val initGlobal = pipelineContext.getGlobal(value)
     val globalLink = pipelineContext.isGlobalLink(value)
-    val applyMethod = pipelineContext.getGlobal("extractMethodsEnabled").asInstanceOf[Option[Boolean]]
 
     if (initGlobal.isDefined) {
       val global = initGlobal.get match {
@@ -67,9 +65,9 @@ object MappingResolver {
       }
 
       val ret = global match {
-        case g: Option[_] if g.isDefined => ReflectionUtils.extractField(g.get, extractPath, applyMethod = applyMethod)
+        case g: Option[_] if g.isDefined => ReflectionUtils.extractField(g.get, extractPath)
         case _: Option[_] => None
-        case _ => ReflectionUtils.extractField(global, extractPath, applyMethod = applyMethod)
+        case _ => ReflectionUtils.extractField(global, extractPath)
       }
 
       ret match {
@@ -89,12 +87,11 @@ object MappingResolver {
     }
     logger.debug(s"pulling parameter for Pipeline,paramName=$paramName")
     // the value is marked as a step parameter, get it from pipelineContext.parameters (Will be a PipelineStepResponse)
-    val applyMethod = pipelineContext.getGlobalAs[Boolean]("extractMethodsEnabled")
     pipelinePath.special match {
       case '@' | '#' =>
         val result = pipelineContext.getStepResultByKey(paramName)
         if (result.isDefined) {
-          getResponseValue(pipelinePath, applyMethod, result)
+          getResponseValue(pipelinePath, result)
         } else {
           // Is this a fork?
           val stepName = if (pipelinePath.fork) {
@@ -104,7 +101,7 @@ object MappingResolver {
           }
           val results = pipelineContext.getStepResultsByKey(stepName)
           if (results.isDefined) {
-            val list = results.get.map(r => getResponseValue(pipelinePath, applyMethod, Some(r)))
+            val list = results.get.map(r => getResponseValue(pipelinePath, Some(r)))
             Some(list)
           } else {
             None
@@ -113,7 +110,7 @@ object MappingResolver {
       case '$' | '?' =>
         val results = pipelineContext.findParameterByPipelineKey(paramName)
         if (results.isDefined) {
-          getSpecificValue(results.get.parameters, pipelinePath, applyMethod)
+          getSpecificValue(results.get.parameters, pipelinePath)
         } else {
           None
         }
@@ -200,21 +197,21 @@ object MappingResolver {
     }
   }
 
-  private def getResponseValue(pipelinePath: PipelinePath, applyMethod: Option[Boolean], result: Option[PipelineStepResponse]) = {
+  private def getResponseValue(pipelinePath: PipelinePath, result: Option[PipelineStepResponse]) = {
     val response = if (pipelinePath.special == '@') {
       result.get.primaryReturn
     } else {
       result.get.namedReturns
     }
-    getSpecificValue(response, pipelinePath, applyMethod)
+    getSpecificValue(response, pipelinePath)
   }
 
-  private def getSpecificValue(parentObject: Any, pipelinePath: PipelinePath, applyMethod: Option[Boolean]): Option[Any] = {
+  private def getSpecificValue(parentObject: Any, pipelinePath: PipelinePath): Option[Any] = {
     parentObject match {
       case g: Option[_] if g.isDefined =>
-        Some(ReflectionUtils.extractField(g.get, pipelinePath.extraPath.mkString, applyMethod = applyMethod))
+        Some(ReflectionUtils.extractField(g.get, pipelinePath.extraPath.mkString))
       case _: Option[_] => None
-      case resp => Some(ReflectionUtils.extractField(resp, pipelinePath.extraPath.mkString, applyMethod = applyMethod))
+      case resp => Some(ReflectionUtils.extractField(resp, pipelinePath.extraPath.mkString))
     }
   }
 }
