@@ -124,11 +124,11 @@ object ReflectionUtils {
    * @param extractFromOption Setting this to true will see if the value is an option and extract the sub value.
    * @return The value from the field or an empty string
    */
-  def extractField(entity: Any, fieldName: String, extractFromOption: Boolean = true, applyMethod: Option[Boolean] = None): Any = {
+  def extractField(entity: Any, fieldName: String, extractFromOption: Boolean = true): Any = {
     if (fieldName == "") {
       entity
     } else {
-      val value = getField(entity, fieldName, applyMethod.getOrElse(false))
+      val value = getField(entity, fieldName)
       if (extractFromOption) {
         value match {
           case Some(v) => v
@@ -141,7 +141,7 @@ object ReflectionUtils {
   }
 
   @tailrec
-  private def getField(entity: Any, fieldName: String, applyMethod: Boolean): Any = {
+  private def getField(entity: Any, fieldName: String): Any = {
     val obj = entity match {
       case Some(v) => v
       case None => ""
@@ -156,29 +156,29 @@ object ReflectionUtils {
 
     val value = obj match {
       case map: Map[_, _] => map.asInstanceOf[Map[String, Any]].getOrElse(name, None)
-      case _ => getMemberValue(obj, name, applyMethod)
+      case _ => getMemberValue(obj, name)
     }
 
     val finalValue = if (value == None && name.contains("[") && name.endsWith("]")) {
-      extractArray(obj, name, applyMethod)
+      extractArray(obj, name)
     } else {
       value
     }
 
     if (finalValue != None && embedded) {
-      getField(finalValue, fieldName.substring(fieldName.indexOf(".") + 1), applyMethod)
+      getField(finalValue, fieldName.substring(fieldName.indexOf(".") + 1))
     } else {
       finalValue
     }
   }
 
-  private def extractArray(obj: Any, name: String, applyMethod: Boolean): Any = {
+  private def extractArray(obj: Any, name: String): Any = {
     val start = name.lastIndexOf('[')
     val arrayName = name.substring(0, start)
     val index = name.substring(start + 1, name.length - 1)
     if (index.forall(Character.isDigit)) {
       val i = index.toInt
-      val array = extractField(obj, arrayName, extractFromOption = true, Some(applyMethod))
+      val array = extractField(obj, arrayName)
       array match {
         case s: String if i < s.length => s(i)
         case s: Seq[_] if i < s.length => s(i)
@@ -190,17 +190,14 @@ object ReflectionUtils {
     }
   }
 
-  private def getMemberValue(obj: Any, fieldName: String, applyMethod: Boolean): Any = {
+  private def getMemberValue(obj: Any, fieldName: String): Any = {
     val mirror = ru.runtimeMirror(getClass.getClassLoader)
     val im = mirror.reflect(obj)
     val symbol = im.symbol.typeSignature.member(ru.TermName(fieldName))
     symbol match {
-      case method: MethodSymbol if applyMethod =>
+      case method: MethodSymbol =>
         val methodVal = im.reflectMethod(method)
         methodVal.apply()
-      case method: MethodSymbol if !method.isAccessor =>
-        val reason = s"${method.name} is a method. To enable method extraction, set the global [extractMethodsEnabled] to true."
-        throw new IllegalArgumentException(s"Unable to extract: [${im.symbol.name}.${method.name}]. $reason")
       case term: TermSymbol =>
         val fieldVal = im.reflectField(term)
         fieldVal.get
