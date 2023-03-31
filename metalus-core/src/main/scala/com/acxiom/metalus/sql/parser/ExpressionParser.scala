@@ -10,6 +10,7 @@ import org.antlr.v4.runtime.tree.{RuleNode, TerminalNode}
 
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
+import scala.util.Try
 import scala.util.control.NonFatal
 
 object ExpressionParser {
@@ -44,6 +45,8 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
   override def visitIntegerLiteral(ctx: IntegerLiteralContext): Option[Any] = Some(ctx.getText.toInt)
 
   override def visitDoubleLiteral(ctx: DoubleLiteralContext): Option[Any] = Some(ctx.getText.toDouble)
+
+  override def visitDecimalLiteral(ctx: DecimalLiteralContext): Option[Any] = Some(ctx.getText.toDouble)
 
   override def visitBooleanLit(ctx: BooleanLitContext): Option[Any] = Some(ctx.getText.toLowerCase.toBoolean)
 
@@ -101,6 +104,17 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
   } else {
     visit(ctx.elseExpr)
   }
+
+  override def visitSomeVale(ctx: SomeValeContext): Option[Any] = Some(visit(ctx.stepValue()))
+
+  override def visitNoneValue(ctx: NoneValueContext): Option[Any] = None
+
+//  override def visitObject(ctx: ObjectContext): Option[Any] = Try{
+//    val args = Option(ctx.stepValue())
+//      .map(_.asScala.flatMap(visit).map(_.asInstanceOf[AnyRef]).toArray)
+//      .getOrElse(Array())
+////    ReflectionUtils.loadJavaClass(ctx.stepIdentifier.getText, args)
+//  }.toOption
 
   override def defaultResult(): Option[Any] = None
 
