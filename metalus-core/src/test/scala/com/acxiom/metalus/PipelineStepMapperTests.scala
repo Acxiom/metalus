@@ -56,7 +56,6 @@ class PipelineStepMapperTests extends AnyFunSpec with BeforeAndAfterAll with Giv
     )
     val globalParameters = Map("pipelineId" -> "pipeline-id-3", "lastStepId" -> "step1", "globalString" -> "globalValue1", "globalInteger" -> Constants.FIVE,
       "globalBoolean" -> true, "globalTestObject" -> globalTestObject, "GlobalLinks" -> broadCastGlobal, "link9" -> "root_value",
-      "extractMethodsEnabled" -> true,
       "complexList" -> List(PipelineStepResponse(Some("moo")), PipelineStepResponse(Some("moo2"))),
       "optionsList" -> List(Some("1"), Some("2"), None, Some("3")),
       "numericString" -> "1", "bigIntGlobal" -> BigInt(1),

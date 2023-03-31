@@ -245,16 +245,7 @@ class ReflectionUtilsTests extends AnyFunSpec with BeforeAndAfterAll {
 
     it("Should execute methods without parameters") {
       val number = BigInt(3)
-      assert(ReflectionUtils.extractField(number, "bigInteger", applyMethod = Some(true)).isInstanceOf[BigInteger])
-    }
-
-    it("Should fail on methods if method extraction is disabled") {
-      val thrown = intercept[IllegalArgumentException] {
-        ReflectionUtils.extractField(List(), "isEmpty")
-      }
-      val expected = "Unable to extract: [Nil.isEmpty]. isEmpty is a method." +
-        " To enable method extraction, set the global [extractMethodsEnabled] to true."
-      assert(thrown.getMessage == expected)
+      assert(ReflectionUtils.extractField(number, "bigInteger").isInstanceOf[BigInteger])
     }
 
     it("Should return None when entity is None") {

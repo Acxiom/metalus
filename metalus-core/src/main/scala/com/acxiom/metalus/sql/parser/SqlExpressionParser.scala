@@ -110,7 +110,7 @@ private[metalus] final class SqlExpressionVisitor(tokenStream: CommonTokenStream
     Cast(visit(ctx.expression()), getText(ctx.`type`()))(getRaw(ctx))
 
   override def visitFunctionCall(ctx: FunctionCallContext): BaseExpression = {
-    val name = visitQualifiedName(ctx.qualifiedName()).text
+    val name = visitQualifiedName(ctx.qualifiedName()).text.toUpperCase
     SqlFunction(name, Option(ctx.expression()).map(_.asScala.map(visit).toList))(getRaw(ctx))
   }
 
