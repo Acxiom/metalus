@@ -65,7 +65,7 @@ class ExpressionParserTests extends AnyFunSpec {
       val exe = intercept[ParseException] {
         ExpressionParser.parse("<BAD SYNTAX>", pipelineContext)
       }
-      assert(exe.message.startsWith("mismatched input '<' expecting"))
+      assert(exe.message.startsWith("extraneous input '<' expecting {'(', '[', '{', 'FALSE', 'IF', 'NONE', 'NOT', 'SOME', 'TRUE', '&', '%', 'STEP', 'VALUE', STRING, UNICODE_STRING, INTEGER_VALUE, DECIMAL_VALUE, DOUBLE_VALUE, IDENTIFIER, '@', '#', '!', '$', '?'}"))
     }
   }
 
