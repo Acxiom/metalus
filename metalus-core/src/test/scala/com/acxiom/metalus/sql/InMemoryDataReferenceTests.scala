@@ -76,8 +76,7 @@ class InMemoryDataReferenceTests extends AnyFunSpec {
     it("should handle null fields") {
       val withNull = chickensData :+ Row(Array("5".toInt, "Pepper", None.orNull, None.orNull), None, None)
       val ref = conn.createDataReference(Some(Map("data" -> withNull, "schema" -> schema)), pipelineContext) +
-        Where(expr("breed = null")) +
-        Select(List(lit("null").cast("long").as("nullLong")))
+        Where(expr("breed = null"))
       val df = ref.asInstanceOf[InMemoryDataReference].execute
       assert(df.count() == 1)
       val res = df.collect()

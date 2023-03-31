@@ -217,7 +217,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.4.3</version>
+                <version>3.2.1</version>
                 <configuration>
                     <artifactSet>
                         <excludes>
@@ -267,6 +267,10 @@
                                 <relocation>
                                     <pattern>com.univocity</pattern>
                                     <shadedPattern>metalus.com.univocity</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>tech.tablesaw</pattern>
+                                    <shadedPattern>metalus.tech.tablesaw</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>

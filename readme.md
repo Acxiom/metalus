@@ -2,8 +2,9 @@
 The Metalus pipeline library provides a convenient way to build applications using JSON. Additional libraries are provided
 for working in different cloud environments and with different versions of Spark.
 
-## [Documentation](docs/readme.md)
-Documentation for this project may be found [here](docs/readme.md).
+## Documentation
+Documentation for this project may be found with each module. The [core module](metalus-core/readme.md) should be used
+as a starting point and is required by all other modules.
 
 ## [Contributing](docs/contributions.md)
 Instructions for contributing to this project and instructions on building may be found [here](docs/contributions.md).
@@ -20,7 +21,7 @@ the core mapping, data reference, application, pipeline and extension mechanisms
         <dependency>
             <groupId>com.acxiom</groupId>
             <artifactId>metalus-core_${scala.compat.version}</artifactId>
-            <version>${version}</version>
+            <version>${metalus-core-version}</version>
             <scope>provided</scope>
         </dependency>
 ```
@@ -34,7 +35,7 @@ any Maven project using the core dependency and this additional dependency:
         <dependency>
             <groupId>com.acxiom</groupId>
             <artifactId>metalus-aws_${scala.compat.version}</artifactId>
-            <version>${version}</version>
+            <version>${metalus-aws-version}</version>
             <scope>provided</scope>
         </dependency>
 ```
@@ -48,7 +49,7 @@ integrated into any Maven project using the core dependency and this additional 
         <dependency>
             <groupId>com.acxiom</groupId>
             <artifactId>metalus-gcp_${scala.compat.version}</artifactId>
-            <version>${version}</version>
+            <version>${metalus-gcp-version}</version>
             <scope>provided</scope>
         </dependency>
 ```
@@ -63,7 +64,7 @@ and 3.3. This library may be integrated into any Maven project using the core de
         <dependency>
             <groupId>com.acxiom</groupId>
             <artifactId>metalus-spark_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
-            <version>${version}</version>
+            <version>${metalus-spark-version}</version>
             <scope>provided</scope>
         </dependency>
 ```
@@ -78,7 +79,7 @@ additional dependency:
         <dependency>
             <groupId>com.acxiom</groupId>
             <artifactId>metalus-aws-spark_${scala.compat.version}-spark_${spark.compat.version}</artifactId>
-            <version>${version}</version>
+            <version>${metalus-aws-spark-version}</version>
             <scope>provided</scope>
         </dependency>
 ```
