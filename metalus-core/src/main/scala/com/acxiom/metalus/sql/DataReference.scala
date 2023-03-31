@@ -68,7 +68,7 @@ trait ConvertableReference { self: DataReference[_] =>
       .flatMap(className => Try(ReflectionUtils.loadClass(className, None)).toOption)
       .collect { case drc: DataReferenceConverters => drc.getConverters }
     (extraConverters ++ defaultConverters)
-      .reduceLeft(_ orElse _).lift((this, queryOperation))
+      .reduceLeftOption(_ orElse _).flatMap(_.lift((this, queryOperation)))
   }
 
   def getDefaultConverters: List[String] = pipelineContext.getGlobal("defaultDataReferenceConverters")

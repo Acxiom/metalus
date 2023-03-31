@@ -13,6 +13,6 @@ object MockStepObject {
   def validateDataReference(dataRef: DataReference[_], results: ListBuffer[Row]): Unit = {
     assert(dataRef.isInstanceOf[InMemoryDataReference])
     val table = dataRef.asInstanceOf[InMemoryDataReference].execute
-    table.data.foreach(r => results += Row(r, Some(table.schema), None))
+    table.collect().foreach(r => results += r)
   }
 }

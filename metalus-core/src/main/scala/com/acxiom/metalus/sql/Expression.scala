@@ -241,6 +241,8 @@ final case class Identifier(value: String, qualifiers: Option[List[String]], quo
     val quotedValue = if (value == "*") value else s"$q$value$q"
     (qualifiers.map(_.map(qualifier => s"$q$qualifier$q")).getOrElse(List()) :+ quotedValue).mkString(".")
   } getOrElse (qualifiers.getOrElse(List()) :+ value).mkString(".")
+
+  def qualifiedName: String = (qualifiers.getOrElse(List()) :+ value).mkString(".")
 }
 
 final case class Literal(value: String, quote: Option[String])(raw: String) extends LeafBaseExpression(raw) {
@@ -316,6 +318,21 @@ object SelectAll {
 
 object Expression {
   def apply(text: String): Expression = DefaultExpression(text)
+
+  def expr(text: String): Expression = DefaultExpression(text)
+
+  def col(text: String): Column = {
+    val values = text.split('.')
+    Column(Identifier(values.last, if (values.length > 1) Some(values.dropRight(1).toList) else None, None)(text))
+  }
+
+  def lit(text: String): Column = {
+    val quote = text.headOption.collect{
+      case q@('`' | '"') => q.toString
+    }
+    val value = quote.map(q => text.stripPrefix(q).stripSuffix(q)).getOrElse(text)
+    Column(Literal(value, quote)(text))
+  }
 }
 
 trait Expression {
@@ -330,3 +347,20 @@ trait Expression {
 }
 
 case class DefaultExpression(text: String) extends Expression
+
+case class Column(override val expressionTree: BaseExpression) extends Expression {
+  override def text: String = expressionTree.text
+
+  private implicit val getRaw: () => String = text _
+
+  def cast(dataType: String): Column = copy(Cast(expressionTree, dataType))
+
+  def as(alias: String): Column = {
+    val quote = alias.headOption.collect {
+      case q@('`' | '"') => q.toString
+    }
+    val value = quote.map(q => alias.stripPrefix(q).stripSuffix(q)).getOrElse(alias)
+    copy(Alias(expressionTree, Identifier(value, None, quote)(alias)))
+  }
+
+}

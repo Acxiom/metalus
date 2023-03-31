@@ -29,6 +29,7 @@ stepExpression
     | NOT stepExpression                       #booleanNot
     | L_PAREN stepExpression R_PAREN           #subExpr
     | stepValue                                #literalExpr
+    | object                                   #newObject
     ;
 
 
@@ -45,6 +46,8 @@ stepValue
     | stepLiteral #literalVal
     | L_BRACKET (stepValue (COMMA stepValue)*)? R_BRACKET #listValue
     | L_CURLY (mapParam (COMMA mapParam)*)? R_CURLY #mapValue
+    | SOME L_PAREN stepValue R_PAREN #someVale
+    | NONE # noneValue
     | reservedRef #reservedVal
     ;
 
@@ -76,6 +79,10 @@ booleanValue
 reservedRef
     : STEP
     | VALUE
+    ;
+
+object
+    : stepIdentifier L_PAREN (stepValue)* R_PAREN
     ;
 
 comparisonOperator

@@ -1,8 +1,9 @@
 package com.acxiom.metalus.spark
 
+import com.acxiom.metalus.PipelineContext
 import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.sql.{Attribute, AttributeType, Schema, Transformations}
-import org.apache.spark.sql.{Dataset, Row}
+import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.sql.types.{ArrayType, DataType, DataTypes, MapType, Metadata, StructField, StructType}
 
 import scala.language.implicitConversions
@@ -80,6 +81,15 @@ package object sql {
   implicit class RowImplicits(row: Row) {
     def toMetalusRow: com.acxiom.metalus.sql.Row = {
       com.acxiom.metalus.sql.Row(row.toSeq.toArray, Some(row.schema.toSchema), Some(row))
+    }
+  }
+
+  implicit class MetalusDataFrameImplicits(dataFrame: com.acxiom.metalus.sql.DataFrame[_]) {
+    def toSpark(implicit pipelineContext: PipelineContext): DataFrame = {
+      val spark = pipelineContext.sparkSession
+      val schema = dataFrame.schema.toStructType()
+      val rdd = spark.sparkContext.parallelize(dataFrame.collect().map(r => Row.fromSeq(r.columns)))
+      spark.createDataFrame(rdd, schema)
     }
   }
 
