@@ -50,7 +50,7 @@ object FlowUtilsSteps {
     try {
       Iterator.continually(reader.next()).takeWhile(r => r.isDefined).foreach(results => {
         if (results.get.nonEmpty) {
-          val properties = Map("data" -> results.get.map(_.columns), "schema" -> results.get.head.schema)
+          val properties = Map("data" -> results.get, "schema" -> results.get.head.schema)
           val dataRef = InMemoryDataConnector("data-chunk")
             .createDataReference(Some(properties), pipelineContext)
             .asInstanceOf[InMemoryDataReference]
