@@ -48,8 +48,8 @@ private[metalus] final class SqlExpressionVisitor(tokenStream: CommonTokenStream
     Identifier(ctx.getText.drop(1).dropRight(1), None, Some(ctx.getText.take(1)))(ctx.getText)
   override def visitBackQuotedIdentifier(ctx: BackQuotedIdentifierContext): BaseExpression =
     Identifier(ctx.getText.drop(1).dropRight(1), None, Some(ctx.getText.take(1)))(ctx.getText)
-  override def visitDigitIdentifier(ctx: DigitIdentifierContext): BaseExpression =
-    Identifier(ctx.getText, None, None)(ctx.getText)
+//  override def visitDigitIdentifier(ctx: DigitIdentifierContext): BaseExpression =
+//    Identifier(ctx.getText, None, None)(ctx.getText)
 
   override def visitQualifiedName(ctx: QualifiedNameContext): Identifier = {
     val (identifiers, quote) = unwrapQualifiedName(ctx.identifier())

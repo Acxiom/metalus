@@ -53,24 +53,32 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
   override def visitReservedVal(ctx: ReservedValContext): Option[Any] =
     keywordExecutor.lift(ctx.getText).flatten
 
-  override def visitMapping(ctx: MappingContext): Option[Any] = ctx.symbol.getType match {
-    case MExprParser.GLOBAL =>
-      MappingResolver.getGlobalParameter(ctx.key.IDENTIFIER().asScala.toList.mkString("."), pipelineContext,
-        Some(ExpressionParser.parse(_, _)(keywordExecutor)))
-    case MExprParser.PERCENT =>
-    MappingResolver.getCredential(ctx.key.IDENTIFIER().asScala.toList.mkString("."), pipelineContext)
-    case MExprParser.STEP_RETURN =>
-      MappingResolver.getStepResponse(ctx.key.IDENTIFIER().asScala.toList.mkString("."), secondary = false, pipelineContext)
-    case MExprParser.SECONDARY_RETURN =>
-      MappingResolver.getStepResponse(ctx.key.IDENTIFIER().asScala.toList.mkString("."), secondary = true, pipelineContext)
-    case MExprParser.AMPERSAND => pipelineContext.pipelineManager.getPipeline(ctx.key.IDENTIFIER().asScala.toList.head.getText)
-    case MExprParser.PARAMETER =>
-      MappingResolver.getPipelineParameter(ctx.key.IDENTIFIER().asScala.toList.mkString("."), pipelineContext, None)
-    case MExprParser.R_PARAMETER =>
-      MappingResolver.getPipelineParameter(ctx.key.IDENTIFIER().asScala.toList.mkString("."), pipelineContext,
-        Some(ExpressionParser.parse(_, pipelineContext)(keywordExecutor)))
-
+  override def visitMapping(ctx: MappingContext): Option[Any] = {
+    val ident = ctx.key.identifier().asScala.flatMap(visit).mkString(".")
+    ctx.symbol.getType match {
+      case MExprParser.GLOBAL =>
+        MappingResolver.getGlobalParameter(ident, pipelineContext,
+          Some(ExpressionParser.parse(_, _)(keywordExecutor)))
+      case MExprParser.PERCENT =>
+        MappingResolver.getCredential(ident, pipelineContext)
+      case MExprParser.STEP_RETURN =>
+        MappingResolver.getStepResponse(ident, secondary = false, pipelineContext)
+      case MExprParser.SECONDARY_RETURN =>
+        MappingResolver.getStepResponse(ident, secondary = true, pipelineContext)
+      case MExprParser.AMPERSAND => pipelineContext.pipelineManager.getPipeline(ident.split('.').head)
+      case MExprParser.PARAMETER =>
+        MappingResolver.getPipelineParameter(ident, pipelineContext, None)
+      case MExprParser.R_PARAMETER =>
+        MappingResolver.getPipelineParameter(ident, pipelineContext,
+          Some(ExpressionParser.parse(_, pipelineContext)(keywordExecutor)))
+    }
   }
+
+  override def visitUnquotedIdentifier(ctx: UnquotedIdentifierContext): Option[Any] = Some(ctx.getText)
+  override def visitQuotedIdentifier(ctx: QuotedIdentifierContext): Option[Any] = Some(ctx.getText.drop(1).dropRight(1))
+  override def visitBackQuotedIdentifier(ctx: BackQuotedIdentifierContext): Option[Any] = Some(ctx.getText.drop(1).dropRight(1))
+  override def visitArrayIdentifier(ctx: ArrayIdentifierContext): Option[Any] =
+    visit(ctx.identifier()).map(v => s"${v.toString}[${ctx.INTEGER_VALUE().getText}]")
 
   override def visitListValue(ctx: ListValueContext): Option[Any] =
     Some(Option(ctx.stepValue()).map(_.asScala.flatMap(visit).toList).getOrElse(List()))
@@ -109,12 +117,12 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
 
   override def visitNoneValue(ctx: NoneValueContext): Option[Any] = None
 
-//  override def visitObject(ctx: ObjectContext): Option[Any] = Try{
-//    val args = Option(ctx.stepValue())
-//      .map(_.asScala.flatMap(visit).map(_.asInstanceOf[AnyRef]).toArray)
-//      .getOrElse(Array())
-////    ReflectionUtils.loadJavaClass(ctx.stepIdentifier.getText, args)
-//  }.toOption
+  override def visitObject(ctx: ObjectContext): Option[Any] = Try{
+    val args = Option(ctx.stepValue())
+      .map(_.asScala.flatMap(visit).map(_.asInstanceOf[AnyRef]).toArray)
+      .getOrElse(Array())
+//    ReflectionUtils.loadJavaClass(ctx.stepIdentifier.getText, args)
+  }.toOption
 
   override def defaultResult(): Option[Any] = None
 

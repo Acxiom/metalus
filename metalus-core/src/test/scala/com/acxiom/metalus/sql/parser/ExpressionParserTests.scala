@@ -1,16 +1,24 @@
 package com.acxiom.metalus.sql.parser
 
+import com.acxiom.metalus.connectors.InMemoryDataConnector
 import com.acxiom.metalus.context.ContextManager
+import com.acxiom.metalus.sql.Row
 import com.acxiom.metalus.{DefaultPipelineListener, Parameter, PipelineContext, PipelineParameter, PipelineStateKey, PipelineStepMapper}
 import org.scalatest.funspec.AnyFunSpec
 
 class ExpressionParserTests extends AnyFunSpec {
 
   lazy val pipelineContext: PipelineContext = {
-    PipelineContext(Some(Map[String, Any](
+    val chickensData = List(
+      Row(Array(1, "Cogburn", "GameCock", true), None, None),
+      Row(Array(2, "Goldhen", "Sex-link", false), None, None),
+      Row(Array(3, "Blackhen", "Sex-link", false), None, None),
+      Row(Array("4".toInt, "Honey", "Orpington", false), None, None)
+    )
+    val ctx = PipelineContext(Some(Map[String, Any](
       "chicken" -> "silkie",
       "bird" -> "chicken",
-      "nested" -> Map("chicken" -> Some("gamecock"))
+      "nested" -> Map("chicken" -> Some("gamecock")),
     )),
       List(PipelineParameter(PipelineStateKey("0"), Map[String, Any]()),
         PipelineParameter(PipelineStateKey("1"), Map[String, Any]())),
@@ -18,6 +26,8 @@ class ExpressionParserTests extends AnyFunSpec {
       PipelineStepMapper(),
       Some(DefaultPipelineListener()),
       contextManager = new ContextManager(Map(), Map()))
+    val dr = InMemoryDataConnector("test").fromSeq(chickensData, None, ctx)
+    ctx.setGlobal("chickens", dr)
   }
 
   implicit val ke: ExpressionParser.KeywordExecutor = {
@@ -35,6 +45,7 @@ class ExpressionParserTests extends AnyFunSpec {
       ("!chicken || !bird", "silkie"),
       ("!bad || !bird", "chicken"),
       ("!nested.chicken + '_chicken'", "gamecock_chicken"),
+      ("!chickens.execute.collect[0].columns[1]", "Cogburn"),
       // keywords
       ("VALUE", "polish_chickens"),
       ("STEP", "leghorn_chickens"),
@@ -65,7 +76,7 @@ class ExpressionParserTests extends AnyFunSpec {
       val exe = intercept[ParseException] {
         ExpressionParser.parse("<BAD SYNTAX>", pipelineContext)
       }
-      assert(exe.message.startsWith("extraneous input '<' expecting {'(', '[', '{', 'FALSE', 'IF', 'NONE', 'NOT', 'SOME', 'TRUE', '&', '%', 'STEP', 'VALUE', STRING, UNICODE_STRING, INTEGER_VALUE, DECIMAL_VALUE, DOUBLE_VALUE, IDENTIFIER, '@', '#', '!', '$', '?'}"))
+      assert(exe.message.startsWith("extraneous input '<' expecting"))
     }
   }
 

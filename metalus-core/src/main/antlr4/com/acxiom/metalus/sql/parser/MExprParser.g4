@@ -32,13 +32,20 @@ stepExpression
     | object                                   #newObject
     ;
 
+identifier
+    : IDENTIFIER             #unquotedIdentifier
+    | QUOTED_IDENTIFIER      #quotedIdentifier
+    | nonReserved            #unquotedIdentifier
+    | BACKQUOTED_IDENTIFIER  #backQuotedIdentifier
+    | identifier L_BRACKET INTEGER_VALUE R_BRACKET #arrayIdentifier
+    ;
 
 mapping
     : symbol=(STEP_RETURN|SECONDARY_RETURN|GLOBAL|PARAMETER|R_PARAMETER|PERCENT|AMPERSAND) key=stepIdentifier
     ;
 
 stepIdentifier
-    : IDENTIFIER (DOT IDENTIFIER)*
+    : identifier (DOT identifier)*
     ;
 
 stepValue
@@ -87,4 +94,31 @@ object
 
 comparisonOperator
     : EQ | NEQ | LT | LTE | GT | GTE
+    ;
+
+nonReserved
+    : ADD | ADMIN | ALL | ALTER | ANALYZE | AND | ANTI | ANY | ARRAY | ASC | AT
+    | BERNOULLI | BETWEEN | BY
+    | CALL | CALLED | CASCADE | CATALOGS | COLUMN | COLUMNS | COMMENT | COMMIT | COMMITTED | CURRENT | CURRENT_ROLE
+    | DATA | DATE | DAY | DEFINER | DESC | DETERMINISTIC | DISTRIBUTED
+    | EXCLUDING | EXECUTE | EXPLAIN | EXTERNAL
+    | FETCH | FILTER | FIRST | FOLLOWING | FORMAT | FUNCTION | FUNCTIONS
+    | GRANT | GRANTED | GRANTS | GRAPHVIZ
+    | HOUR
+    | IF | IGNORE | INCLUDING | INPUT | INTERVAL | INVOKER | IO | ISOLATION
+    | JSON
+    | LANGUAGE | LAST | LATERAL | LEVEL | LIMIT | LOGICAL
+    | MAP | MATERIALIZED | MINUTE | MONTH
+    | NAME | NFC | NFD | NFKC | NFKD | NO | NONE | NULLIF | NULLS
+    | OFFSET | ONLY | OPTION | ORDINALITY | OUTPUT | OVER
+    | PARTITION | PARTITIONS | POSITION | PRECEDING | PRIVILEGES | PROPERTIES
+    | RANGE | READ | REFRESH | RENAME | REPEATABLE | REPLACE | RESET | RESPECT | RESTRICT | RETURN | RETURNS | REVOKE | ROLE | ROLES | ROLLBACK | ROW | ROWS
+    | SCHEMA | SCHEMAS | SECOND | SECURITY | SERIALIZABLE | SESSION | SET | SETS | SQL
+    | SHOW | SOME | START | STATS | SUBSTRING | SYSTEM
+    | TABLES | TABLESAMPLE | TEMPORARY | TEXT | TIME | TIMESTAMP | TO | TRANSACTION | TRUNCATE | TRY_CAST | TYPE
+    | UNBOUNDED | UNCOMMITTED | USE | USER
+    | VALIDATE | VERBOSE | VIEW
+    | WORK | WRITE
+    | YEAR
+    | ZONE
     ;
