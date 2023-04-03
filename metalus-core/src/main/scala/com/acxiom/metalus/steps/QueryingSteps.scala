@@ -1,14 +1,16 @@
 package com.acxiom.metalus.steps
 
 import com.acxiom.metalus.annotations.{StepFunction, StepParameter, StepParameters}
-import com.acxiom.metalus.connectors.DataConnector
+import com.acxiom.metalus.connectors.{Connector, DataConnector}
 import com.acxiom.metalus.sql._
 import com.acxiom.metalus.sql.parser.SqlParser
 import com.acxiom.metalus.utils.DriverUtils
 import com.acxiom.metalus.utils.DriverUtils.buildPipelineException
 import com.acxiom.metalus._
+import org.slf4j.{Logger, LoggerFactory}
 
 object QueryingSteps {
+  val logger: Logger = LoggerFactory.getLogger(getClass)
 
   @StepFunction("9fef376b-a915-4526-8c2b-61e573edf9ef",
     "Execute SQL",
@@ -43,10 +45,11 @@ object QueryingSteps {
     "queryOperator" -> StepParameter(None, Some(true), None, None, None, None, Some("An operator to query with."))))
   def applyQueryOperation(dataReference: DataReference[_],
                           queryOperator: QueryOperator,
+                          converters: Option[List[String]] = None,
                           pipelineContext: PipelineContext): DataReference[_] = {
     dataReference.applyOrElse(queryOperator, { qo =>
       dataReference match {
-        case cr: ConvertableReference => cr.convertAndApply(qo)
+        case cr: ConvertableReference => cr.convertAndApply(qo, converters)
         case _ => throw PipelineException(
           message = Some(s"${qo.name} is not a supported operation by $dataReference"),
           pipelineProgress = pipelineContext.currentStateInfo)
@@ -54,13 +57,40 @@ object QueryingSteps {
     })
   }
 
+  @StepFunction("121f1deb-0c7c-4833-9551-7296ec048a7d",
+    "DataReference Save",
+    "Executes a save QueryOperation on a given DataReference",
+    "Pipeline",
+    "DataReference")
+  @StepParameters(Map(
+    "dataReference" -> StepParameter(None, Some(true), None, None, None, None, Some("A data reference to save")),
+    "destination" -> StepParameter(None, Some(true), None, None, None, None, Some("Destination to save to")),
+    "connector" -> StepParameter(None, Some(true), None, None, None, None, Some("The connector to save to")),
+    "options" -> StepParameter(None, Some(false), None, None, None, None, Some("Save options map")),
+    "converters" -> StepParameter(None, Some(false), None, None, None, None, Some("Converter list to use for DataReferences"))))
+  def save(dataReference: DataReference[_], destination: String,
+           connector: Option[Connector], options: Option[Map[String, Any]] = None,
+           converters: Option[List[String]] = None, pipelineContext: PipelineContext): DataReference[_] =
+    applyQueryOperation(dataReference, Save(destination, connector, options), converters, pipelineContext)
+
+
+  @StepFunction("65506203-301b-41ee-ab00-601d270d6bb0",
+    "DataReference Execute",
+    "Executes a DataReference operator",
+    "Pipeline",
+    "DataReference")
+  @StepParameters(Map(
+    "dataReference" -> StepParameter(None, Some(true), None, None, None, None, Some("A data reference to save"))))
+  def execute(dataReference: DataReference[_], pipelineContext: PipelineContext): Any =
+    dataReference.execute
+
   def select(dataReference: DataReference[_], expressions: List[Expression],
              pipelineContext: PipelineContext): DataReference[_] =
-    applyQueryOperation(dataReference, Select(expressions), pipelineContext)
+    applyQueryOperation(dataReference, Select(expressions), None, pipelineContext)
 
   def where(dataReference: DataReference[_], expression: Expression,
             pipelineContext: PipelineContext): DataReference[_] =
-    applyQueryOperation(dataReference, Where(expression), pipelineContext)
+    applyQueryOperation(dataReference, Where(expression), None, pipelineContext)
 
   def join(left: DataReference[_],
            right: DataReference[_],
@@ -68,24 +98,38 @@ object QueryingSteps {
            using: Option[List[Expression]] = None,
            joinType: Option[String] = None,
            pipelineContext: PipelineContext): DataReference[_] =
-    applyQueryOperation(left, Join(right, joinType.getOrElse("inner"), condition, using), pipelineContext)
+    applyQueryOperation(left, Join(right, joinType.getOrElse("inner"), condition, using), None, pipelineContext)
 
   def groupBy(dataReference: DataReference[_], expressions: List[Expression],
               pipelineContext: PipelineContext): DataReference[_] =
-    applyQueryOperation(dataReference, GroupBy(expressions), pipelineContext)
+    applyQueryOperation(dataReference, GroupBy(expressions), None, pipelineContext)
 
   def having(dataReference: DataReference[_], expression: Expression,
              pipelineContext: PipelineContext): DataReference[_] =
-    applyQueryOperation(dataReference, Having(expression), pipelineContext)
+    applyQueryOperation(dataReference, Having(expression), None, pipelineContext)
 
   def as(dataReference: DataReference[_], alias: String,
          pipelineContext: PipelineContext): DataReference[_] =
-    applyQueryOperation(dataReference, As(alias), pipelineContext)
+    applyQueryOperation(dataReference, As(alias), None, pipelineContext)
 
   def orderBy(dataReference: DataReference[_], expressions: List[Expression],
               pipelineContext: PipelineContext): DataReference[_] =
-    applyQueryOperation(dataReference, OrderBy(expressions), pipelineContext)
+    applyQueryOperation(dataReference, OrderBy(expressions), None, pipelineContext)
 
+  @StepFunction("596afb9f-1dad-4c4a-91a9-ffb68dfcc642",
+    "DataReference CreateAs",
+    "Executes a CreateAs QueryOperation on a given DataReference",
+    "Pipeline",
+    "DataReference")
+  @StepParameters(Map(
+    "dataReference" -> StepParameter(None, Some(true), None, None, None, None, Some("A data reference to save")),
+    "name" -> StepParameter(None, Some(true), None, None, None, None, Some("Destination to save to")),
+    "view" -> StepParameter(None, Some(false), None, None, None, None, Some("Save as view or table")),
+    "noData" -> StepParameter(None, Some(false), None, None, None, None, Some("Create with no data")),
+    "externalPath" -> StepParameter(None, Some(false), None, None, None, None, Some("External path info")),
+    "options" -> StepParameter(None, Some(false), None, None, None, None, Some("Save options map")),
+    "connector" -> StepParameter(None, Some(false), None, None, None, None, Some("The connector to save to")),
+    "converters" -> StepParameter(None, Some(false), None, None, None, None, Some("Converter list to use for DataReferences"))))
   def create(dataReference: DataReference[_], name: String,
              view: Boolean = false,
              noData: Boolean = false,
@@ -93,7 +137,7 @@ object QueryingSteps {
              options: Option[Map[String, Any]] = None,
              connector: Option[DataConnector] = None,
              pipelineContext: PipelineContext): DataReference[_] =
-    applyQueryOperation(dataReference, CreateAs(name, view, noData, externalPath, options, connector), pipelineContext)
+    applyQueryOperation(dataReference, CreateAs(name, view, noData, externalPath, options, connector), None, pipelineContext)
 
   def convert(dataReference: DataReference[_], engine: String): DataReference[_] = {
     dataReference match {

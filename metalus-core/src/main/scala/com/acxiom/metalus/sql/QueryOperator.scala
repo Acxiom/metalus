@@ -18,7 +18,7 @@ case class CreateAs(tableName: String, view: Boolean = false,
                     connector: Option[DataConnector] = None)
   extends QueryOperator("CreateAs")
 case class Drop(view: Boolean, ifExists: Boolean) extends QueryOperator(s"Drop")
-case class Truncate() extends QueryOperator(s"Truncate")
+case class Truncate(destination: String) extends QueryOperator(s"Truncate")
 
 // querying
 case class Select(expressions: List[Expression]) extends QueryOperator("Select")

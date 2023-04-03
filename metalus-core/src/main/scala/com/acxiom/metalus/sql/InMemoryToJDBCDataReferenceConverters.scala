@@ -5,14 +5,13 @@ import com.acxiom.metalus.sql.jdbc.{BasicJDBCDataReference, JDBCDataReference}
 
 class InMemoryToJDBCDataReferenceConverters extends DataReferenceConverters {
   private def inMemoryToJDBC(imdr: InMemoryDataReference, saveOperator: Save): DataReference[_] = {
-    println(saveOperator)
-    println(saveOperator.connector)
     val jdbcConn = saveOperator.connector.map(_.asInstanceOf[JDBCDataConnector])
     val updatedSaveOptions = saveOperator.options.map(_.mapValues(_.toString).toMap)
-      .getOrElse(Map.empty[String, String]) + ("dbTable" -> saveOperator.destination)
+      .getOrElse(Map.empty[String, String]) + ("dbtable" -> saveOperator.destination)
+
     jdbcConn.get.getTable(() => {
       // create my table
-      //imdr.execute.write.format("jdbc").options(updatedSaveOptions).save(jdbcConn.url)
+      imdr.execute.write.format("jdbc").options(updatedSaveOptions).save(jdbcConn.get.url, imdr.pipelineContext)
       saveOperator.destination
     }, Some(updatedSaveOptions), imdr.pipelineContext)
   }

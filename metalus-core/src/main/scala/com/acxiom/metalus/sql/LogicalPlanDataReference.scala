@@ -1,5 +1,7 @@
 package com.acxiom.metalus.sql
 
+import com.acxiom.metalus.connectors.jdbc.JDBCDataConnector
+
 import scala.collection.immutable.Queue
 
 trait LogicalPlanDataReference[T, R] extends DataReference[T] {
@@ -37,7 +39,7 @@ trait SqlBuildingDataReference[T] extends LogicalPlanDataReference[T, String] {
   protected final val queryRef = 'queryRef
 
   protected final lazy val defaultOrdering = List(
-    "as", "join", "where", "groupBy", "having", "select", "orderby", "limit", "createas"
+    "as", "join", "where", "groupBy", "having", "select", "orderby", "limit", "createas", "save", "truncate"
   )
   private lazy val internalOrdering = ordering.map(_.toLowerCase).zipWithIndex.toMap
 
@@ -95,6 +97,10 @@ trait SqlBuildingDataReference[T] extends LogicalPlanDataReference[T, String] {
       val table = if (view) "VIEW" else "TABLE"
       val withNoData = if (noData) " WITH NO DATA" else ""
       sql"CREATE $table $tableName\nAS $queryRef$withNoData"
+    case Save(destination, Some(connector: JDBCDataConnector), options) => sql"INSERT INTO $destination $queryRef"
+    case Truncate(tableName) => {
+      case _ => s"TRUNCATE TABLE $tableName"
+    }
   }
 
   protected def parseExpression(expression: Expression):String = expression.text

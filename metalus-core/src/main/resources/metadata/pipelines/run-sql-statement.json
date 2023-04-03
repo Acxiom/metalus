@@ -1,0 +1,275 @@
+{
+  "id": "run-sql-statement",
+  "name": "Run SQL Statement",
+  "description": "Create or empty a target table, and run an insert statement into the table",
+  "parameters": {
+    "inputs": [
+      {
+        "name": "dataReference",
+        "global": true,
+        "required": true
+      },
+      {
+        "name": "sqlQuery",
+        "global": true,
+        "required": true
+      },
+      {
+        "name": "tableName",
+        "global": true,
+        "required": true
+      },
+      {
+        "name": "connector",
+        "global": true,
+        "required": true
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "GetSelectSQL",
+      "params": [
+        {
+          "type": "text",
+          "name": "sql",
+          "required": true,
+          "value": "!sqlQuery"
+        },
+        {
+          "type": "text",
+          "name": "dataRefName",
+          "required": false,
+          "value": "dataRefName"
+        },
+        {
+          "type": "text",
+          "name": "dataReference",
+          "required": false,
+          "value": "!dataReference"
+        }
+      ],
+      "stepId": "9fef376b-a915-4526-8c2b-61e573edf9ef",
+      "type": "Pipeline",
+      "displayName": "Execute SQL",
+      "description": "Executes a SQL script with the provided object and returns the result",
+      "engineMeta": {
+        "command": "QueryingSteps.runSQL",
+        "pkg": "com.acxiom.metalus.steps"
+      },
+      "nextSteps": [
+        "CreateTableSQL"
+      ]
+    },
+    {
+      "id": "CreateTableSQL",
+      "params": [
+        {
+          "type": "text",
+          "name": "dataReference",
+          "required": false,
+          "value": "@GetSelectSQL"
+        },
+        {
+          "type": "text",
+          "name": "name",
+          "required": false,
+          "value": "!tableName"
+        },
+        {
+          "type": "boolean",
+          "name": "noData",
+          "required": false,
+          "value": true
+        },
+        {
+          "type": "object",
+          "name": "converters",
+          "required": false,
+          "value": [
+            "com.acxiom.metalus.sql.InMemoryToJDBCDataReferenceConverters"
+          ]
+        }
+      ],
+      "stepId": "596afb9f-1dad-4c4a-91a9-ffb68dfcc642",
+      "type": "Pipeline",
+      "displayName": "DataReference CreateAs",
+      "description": "Executes a CreateAs QueryOperation on a given DataReference",
+      "engineMeta": {
+        "command": "QueryingSteps.create",
+        "pkg": "com.acxiom.metalus.steps"
+      },
+      "nextSteps": [
+        "ExecuteCreateTable"
+      ]
+    },
+    {
+      "id": "ExecuteCreateTable",
+      "params": [
+        {
+          "type": "text",
+          "name": "dataReference",
+          "required": false,
+          "value": "@CreateTableSQL"
+        }
+      ],
+      "stepId": "65506203-301b-41ee-ab00-601d270d6bb0",
+      "type": "Pipeline",
+      "displayName": "DataReference Execute",
+      "description": "Executes a DataReference operation",
+      "engineMeta": {
+        "command": "QueryingSteps.execute",
+        "pkg": "com.acxiom.metalus.steps"
+      },
+      "nextSteps": [
+        "SaveTable"
+      ],
+      "nextStepOnError": "CreateTruncateDataRef"
+    },
+    {
+      "id": "CreateTruncateDataRef",
+      "params": [
+        {
+          "type": "text",
+          "name": "connector",
+          "required": false,
+          "value": "!connector"
+        },
+        {
+          "type": "object",
+          "name": "properties",
+          "required": false,
+          "value": {
+            "dbtable": "!table"
+          }
+        }
+      ],
+      "stepId": "6847964a-c1b6-41cb-ad5a-fb192e12b3d5",
+      "type": "Pipeline",
+      "displayName": "Create Data Reference",
+      "description": "Create a DataReference object given an DataConnector",
+      "engineMeta": {
+        "command": "DataReferenceSteps.createDataReference",
+        "pkg": "com.acxiom.metalus.steps"
+      },
+      "nextSteps": [
+        "TruncateTableSQL"
+      ]
+    },
+    {
+      "id": "TruncateTableSQL",
+      "params": [
+        {
+          "type": "text",
+          "name": "dataReference",
+          "required": true,
+          "value": "@CreateTruncateDataRef"
+        },
+        {
+          "type": "object",
+          "name": "queryOperator",
+          "required": false,
+          "className": "com.acxiom.metalus.sql.Truncate",
+          "value": {
+            "name": "truncate",
+            "destination": "!tableName"
+          }
+        }
+      ],
+      "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090b",
+      "type": "Pipeline",
+      "displayName": "Query DataReference",
+      "description": "Executes a script with the provided object and returns the result",
+      "engineMeta": {
+        "command": "QueryingSteps.applyQueryOperation",
+        "pkg": "com.acxiom.metalus.steps"
+      },
+      "nextSteps": [
+        "ExecuteTruncate"
+      ]
+    },
+    {
+      "id": "ExecuteTruncate",
+      "params": [
+        {
+          "type": "text",
+          "name": "dataReference",
+          "required": false,
+          "value": "@TruncateTableSQL"
+        }
+      ],
+      "stepId": "65506203-301b-41ee-ab00-601d270d6bb0",
+      "type": "Pipeline",
+      "displayName": "DataReference Execute",
+      "description": "Executes a DataReference operation",
+      "engineMeta": {
+        "command": "QueryingSteps.execute",
+        "pkg": "com.acxiom.metalus.steps"
+      },
+      "nextSteps": [
+        "SaveTable"
+      ]
+    },
+    {
+      "id": "SaveTable",
+      "params": [
+        {
+          "type": "text",
+          "name": "dataReference",
+          "required": false,
+          "value": "@GetSelectSQL"
+        },
+        {
+          "type": "text",
+          "name": "destination",
+          "required": false,
+          "value": "!tableName"
+        },
+        {
+          "type": "text",
+          "name": "connector",
+          "required": false,
+          "value": "!connector"
+        },
+        {
+          "type": "object",
+          "name": "converters",
+          "required": false,
+          "value": [
+            "com.acxiom.metalus.sql.InMemoryToJDBCDataReferenceConverters"
+          ]
+        }
+      ],
+      "stepId": "121f1deb-0c7c-4833-9551-7296ec048a7d",
+      "type": "Pipeline",
+      "displayName": "DataReference Save",
+      "description": "Executes a save QueryOperation on a given DataReference",
+      "engineMeta": {
+        "command": "QueryingSteps.save",
+        "pkg": "com.acxiom.metalus.steps"
+      },
+      "nextSteps": [
+        "ExecuteSave"
+      ]
+    },
+    {
+      "id": "ExecuteSave",
+      "params": [
+        {
+          "type": "text",
+          "name": "dataReference",
+          "required": false,
+          "value": "@SaveTable"
+        }
+      ],
+      "stepId": "65506203-301b-41ee-ab00-601d270d6bb0",
+      "type": "Pipeline",
+      "displayName": "DataReference Execute",
+      "description": "Executes a DataReference operation",
+      "engineMeta": {
+        "command": "QueryingSteps.execute",
+        "pkg": "com.acxiom.metalus.steps"
+      }
+    }
+  ]
+}

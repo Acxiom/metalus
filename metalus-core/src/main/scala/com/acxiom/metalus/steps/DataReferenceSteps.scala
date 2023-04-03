@@ -23,6 +23,11 @@ object DataReferenceSteps {
     "Pipeline",
     "Data Reference")
   def createInMemoryDataReference(connector: InMemoryDataConnector,
-                                  properties: Option[Map[String, Any]], pipelineContext: PipelineContext): InMemoryDataReference =
-    connector.createDataReference(properties, pipelineContext).asInstanceOf[InMemoryDataReference]
+                                  properties: Option[Map[String, Any]], pipelineContext: PipelineContext): InMemoryDataReference = {
+    val updatedProperties = properties.map(_.collect {
+      case (k, Some(v)) => k -> v
+      case (k, v) if !v.isInstanceOf[Option[_]] => k -> v
+    })
+    connector.createDataReference(updatedProperties, pipelineContext).asInstanceOf[InMemoryDataReference]
+  }
 }

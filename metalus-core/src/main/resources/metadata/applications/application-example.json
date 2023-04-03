@@ -166,7 +166,7 @@
         },
         {
           "id": "IsFile",
-          "value": "if(@GetSourceConnectorType = 'FILE') true else false",
+          "value": "if(@BuildSourceConnector.connectorType = 'FILE') true else false",
           "type": "branch",
           "params": [
             {
@@ -437,6 +437,28 @@
             "pkg": "com.acxiom.metalus.steps"
           },
           "nextSteps": [
+            "ExecuteSaveToJDBC"
+          ]
+        },
+        {
+          "id": "ExecuteSaveToJDBC",
+          "params": [
+            {
+              "type": "text",
+              "name": "dataReference",
+              "required": false,
+              "value": "@SaveToJDBC"
+            }
+          ],
+          "stepId": "65506203-301b-41ee-ab00-601d270d6bb0",
+          "type": "Pipeline",
+          "displayName": "DataReference Execute",
+          "description": "Executes a DataReference operation",
+          "engineMeta": {
+            "command": "QueryingSteps.execute",
+            "pkg": "com.acxiom.metalus.steps"
+          },
+          "nextSteps": [
             "AliasInputDataRef"
           ]
         },
@@ -496,168 +518,176 @@
             "pkg": "com.acxiom.metalus.steps"
           },
           "nextSteps": [
-            "GetProductSQL",
-            "ExtractCustomer",
-            "ExtractCreditCard",
-            "ExtractOrder"
+            "ExtractProducts",
+            "ExtractCustomers",
+            "ExtractCreditCards",
+            "ExtractOrders"
           ]
         },
         {
-          "id": "GetProductSQL",
+          "id": "ExtractProducts",
+          "type": "step-group",
+          "displayName": "Copy File",
+          "description": "Allows pipelines to be executed as a single step within a parent pipeline.",
+          "pipelineId": "run-sql-statement",
           "params": [
             {
-              "type": "text",
-              "name": "sql",
-              "required": true,
-              "value": "select product_id, product_name, min(cost), max(units) from !dataRefName group by product_id, product_name"
-            },
-            {
-              "type": "text",
-              "name": "dataRefName",
+              "name": "useParentGlobals",
+              "type": "boolean",
               "required": false,
-              "value": "dataRefName"
+              "value": true
             },
             {
+              "name": "sqlQuery",
               "type": "text",
+              "required": false,
+              "value": "select product_id, product_name, min(cost) as cost, max(units) as units from !dataRefName group by product_id, product_name"
+            },
+            {
               "name": "dataReference",
-              "required": false,
-              "value": "@AliasInputDataRef"
-            }
-          ],
-          "stepId": "9fef376b-a915-4526-8c2b-61e573edf9ef",
-          "type": "Pipeline",
-          "displayName": "Execute SQL",
-          "description": "Executes a SQL script with the provided object and returns the result",
-          "engineMeta": {
-            "command": "QueryingSteps.runSQL",
-            "pkg": "com.acxiom.metalus.steps"
-          },
-          "nextSteps": [
-            "ExtractProduct"
-          ]
-        },
-        {
-          "id": "ExtractProduct",
-          "params": [
-            {
               "type": "text",
-              "name": "dataReference",
               "required": false,
-              "value": "@GetProductSQL"
+              "value": "@SaveToJDBC || @CreateSourceDataReference"
             },
             {
-              "type": "text",
-              "name": "destination",
-              "required": false,
-              "value": "orders"
-            },
-            {
-              "type": "text",
               "name": "connector",
+              "type": "text",
               "required": false,
               "value": "@BuildDestinationConnector"
             },
             {
-              "type": "object",
-              "name": "converters",
+              "name": "tableName",
+              "type": "text",
               "required": false,
-              "value": [
-                "com.acxiom.metalus.sql.InMemoryToJDBCDataReferenceConverters"
-              ]
+              "value": "products"
             }
           ],
-          "stepId": "121f1deb-0c7c-4833-9551-7296ec048a7d",
-          "type": "Pipeline",
-          "displayName": "DataReference Save",
-          "description": "Executes a save QueryOperation on a given DataReference",
-          "engineMeta": {
-            "command": "QueryingSteps.save",
-            "pkg": "com.acxiom.metalus.steps"
-          },
           "nextSteps": [
             "Save-Merge"
           ]
         },
         {
-          "id": "ExtractCustomer",
+          "id": "ExtractCustomers",
+          "type": "step-group",
+          "displayName": "Copy File",
+          "description": "Allows pipelines to be executed as a single step within a parent pipeline.",
+          "pipelineId": "run-sql-statement",
           "params": [
             {
-              "type": "text",
-              "name": "message",
-              "required": true,
-              "value": "Extracting customers"
+              "name": "useParentGlobals",
+              "type": "boolean",
+              "required": false,
+              "value": true
             },
             {
+              "name": "sqlQuery",
               "type": "text",
-              "name": "level",
               "required": false,
-              "value": "INFO"
+              "value": "select customer_id, max(first_name) as first_name, max(last_name) as last_name, max(email) as email, max(gender) as gender from !dataRefName group by customer_id"
+            },
+            {
+              "name": "dataReference",
+              "type": "text",
+              "required": false,
+              "value": "@SaveToJDBC || @CreateSourceDataReference"
+            },
+            {
+              "name": "connector",
+              "type": "text",
+              "required": false,
+              "value": "@BuildDestinationConnector"
+            },
+            {
+              "name": "tableName",
+              "type": "text",
+              "required": false,
+              "value": "customers"
             }
           ],
-          "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090b",
-          "type": "Pipeline",
-          "displayName": "Log Message",
-          "description": "Log a simple message",
-          "engineMeta": {
-            "command": "LoggingSteps.logMessage",
-            "pkg": "com.acxiom.metalus.steps"
-          },
           "nextSteps": [
             "Save-Merge"
           ]
         },
         {
-          "id": "ExtractCreditCard",
+          "id": "ExtractCreditCards",
+          "type": "step-group",
+          "displayName": "Copy File",
+          "description": "Allows pipelines to be executed as a single step within a parent pipeline.",
+          "pipelineId": "run-sql-statement",
           "params": [
             {
-              "type": "text",
-              "name": "message",
-              "required": true,
-              "value": "Extracting credit cards"
+              "name": "useParentGlobals",
+              "type": "boolean",
+              "required": false,
+              "value": true
             },
             {
+              "name": "sqlQuery",
               "type": "text",
-              "name": "level",
               "required": false,
-              "value": "INFO"
+              "value": "select cc_num, max(cc_type) as cc_type, max(postal_code) as postal_code from !dataRefName group by cc_num"
+            },
+            {
+              "name": "dataReference",
+              "type": "text",
+              "required": false,
+              "value": "@SaveToJDBC || @CreateSourceDataReference"
+            },
+            {
+              "name": "connector",
+              "type": "text",
+              "required": false,
+              "value": "@BuildDestinationConnector"
+            },
+            {
+              "name": "tableName",
+              "type": "text",
+              "required": false,
+              "value": "creditcards"
             }
           ],
-          "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090b",
-          "type": "Pipeline",
-          "displayName": "Log Message",
-          "description": "Log a simple message",
-          "engineMeta": {
-            "command": "LoggingSteps.logMessage",
-            "pkg": "com.acxiom.metalus.steps"
-          },
           "nextSteps": [
             "Save-Merge"
           ]
         },
         {
-          "id": "ExtractOrder",
+          "id": "ExtractOrders",
+          "type": "step-group",
+          "displayName": "Copy File",
+          "description": "Allows pipelines to be executed as a single step within a parent pipeline.",
+          "pipelineId": "run-sql-statement",
           "params": [
             {
-              "type": "text",
-              "name": "message",
-              "required": true,
-              "value": "Extracting orders"
+              "name": "useParentGlobals",
+              "type": "boolean",
+              "required": false,
+              "value": true
             },
             {
+              "name": "sqlQuery",
               "type": "text",
-              "name": "level",
               "required": false,
-              "value": "INFO"
+              "value": "select order_num, sum(cost) as total, sum(units) as qty_sold, max(customer_id) as customer_id from !dataRefName group by order_num"
+            },
+            {
+              "name": "dataReference",
+              "type": "text",
+              "required": false,
+              "value": "@SaveToJDBC || @CreateSourceDataReference"
+            },
+            {
+              "name": "connector",
+              "type": "text",
+              "required": false,
+              "value": "@BuildDestinationConnector"
+            },
+            {
+              "name": "tableName",
+              "type": "text",
+              "required": false,
+              "value": "orders"
             }
           ],
-          "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090b",
-          "type": "Pipeline",
-          "displayName": "Log Message",
-          "description": "Log a simple message",
-          "engineMeta": {
-            "command": "LoggingSteps.logMessage",
-            "pkg": "com.acxiom.metalus.steps"
-          },
           "nextSteps": [
             "Save-Merge"
           ]
