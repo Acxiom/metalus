@@ -180,7 +180,7 @@ case class StepGroupFlow(pipeline: Pipeline,
     val mappingList = if (stepGroup.parameters.isDefined && stepGroup.parameters.get.output.isDefined) {
       val mappings = List(Some(Parameter(Some("result"), Some("output"), None, None, Some(stepGroup.parameters.get.output.get.primaryMapping))))
       val secondary = stepGroup.parameters.get.output.get.secondaryMappings.getOrElse(List()).map(m => {
-        Some(Parameter(Some("result"), Some(m.mappedName), None, None, Some(m.stepKey)))
+        Some(Parameter(Some("result"), Some(m.mappedName), None, None, Some(m.resultMapping)))
       })
       mappings ::: secondary
     } else if (resultParam.isDefined) {

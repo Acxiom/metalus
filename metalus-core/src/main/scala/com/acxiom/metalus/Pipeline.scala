@@ -44,17 +44,17 @@ final case class InputParameter(name: String, global: Boolean, required: Boolean
 
 /**
   * Defines the result of a Pipeline.
-  * @param primaryMapping The mapping string to use when setting the primary mapping of the PipelineStepResponse.
+  * @param primaryMapping The mapping expression to use when setting the primary mapping of the PipelineStepResponse.
   * @param secondaryMappings A list of mappings to use for the secondary value in the PipelineStepResponse.
   */
 final case class PipelineResult(primaryMapping: String, secondaryMappings: Option[List[NamedMapping]] = None)
 
 /**
-  * Provides the mapping defintion for a result.
+  * Provides the mapping definition for a result.
   * @param mappedName The name of the mapping to use.
-  * @param stepKey The path to the value to map.
+  * @param resultMapping The mapping expression to use.
   */
-final case class NamedMapping(mappedName: String, stepKey: String)
+final case class NamedMapping(mappedName: String, resultMapping: String)
 
 /**
  * Represents the information used to track a fork process within an execution or pipeline

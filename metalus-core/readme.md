@@ -9,9 +9,9 @@ An [Application](docs/application.md) defines the setup required to execute a wo
 the highest level workflow component. There are sections that setup the workflow, but there is only a single [pipeline](#pipeline)
 for the main flow. This _pipeline_ may be a self-contained flow or it may embed other pipelines.
 ## Pipeline
-A [pipeline](docs/pipeline.md) defines the workflow.
+A [pipeline](docs/pipelines.md) defines the workflow.
 ## Step
-A [step](docs/step.md) defines a unit of work within a [pipeline](#pipeline). The term step is used to describe to separate
+A [step](docs/steps.md) defines a unit of work within a [pipeline](#pipeline). The term step is used to describe two separate
 concepts:
 ### Step Template
 A step template represents the metadata about a step. This metadata is useful for building [FlowSteps](#flowstep) within
@@ -44,4 +44,9 @@ In an effort to reduce coupling to specific technologies, _Contexts_ are used to
 functional components into the system at runtime. Examples include JSON4S, Spark and Session management.
 ## Session Management
 Session Management allows applications to restart and recover processes without having to restart from the beginning.
-The application pipeline and child pipelines should define restart steps to make this process easier. 
+The application pipeline and child pipelines should define restart steps to make this process easier.
+## Pipeline State Keys
+A [universal key](docs/pipelines.md#pipeline-state-key) allows every pipeline, step, step response, pipeline parameter and audit can be uniquely be identified.
+These keys are specific enough that a specific instance of a step running in a fork may be identified. This universal key
+facilitates accurately recovering failed processes, restarting steps, mapping flowstep parameter values and providing
+detailed audits.
