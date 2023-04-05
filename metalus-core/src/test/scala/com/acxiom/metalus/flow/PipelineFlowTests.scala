@@ -2,7 +2,7 @@ package com.acxiom.metalus.flow
 
 import com.acxiom.metalus.applications.ApplicationUtils
 import com.acxiom.metalus.parser.JsonParser
-import com.acxiom.metalus.{Constants, PipelineExecutor, TestHelper}
+import com.acxiom.metalus.{Constants, PipelineException, PipelineExecutor, TestHelper}
 import org.scalatest.funspec.AnyFunSpec
 
 import scala.io.Source
@@ -35,7 +35,34 @@ class PipelineFlowTests extends AnyFunSpec {
       val step3Result = result.pipelineContext.getStepResultByKey("simple_restart_pipeline.STEP_3")
       assert(step3Result.isDefined)
       assert(step3Result.get.primaryReturn.get.toString == "ALT_STEP1 -> STEP2 -> first run -> STEP3")
+      assert(result.output.isDefined)
+      assert(result.output.get.primaryReturn.isDefined)
+      assert(result.output.get.primaryReturn.get.toString == "ALT_STEP1 -> STEP2 -> first run -> STEP3")
+      assert(result.output.get.namedReturns.isEmpty)
 
+      TestHelper.stopTestDB(settings.name)
+    }
+
+    it("should validate the pipeline input parameters") {
+      val settings = TestHelper.setupSessionTestDB("pipelineValidationTest")
+      val application = JsonParser.parseApplication(
+        Source.fromInputStream(getClass.getResourceAsStream("/metadata/applications/simple_restart_application.json")).mkString)
+      val credentialProvider = TestHelper.getDefaultCredentialProvider
+      val pipelineListener = RestartPipelineListener()
+      val pipelineContext = ApplicationUtils.createPipelineContext(application,
+        Some(Map[String, Any]("rootLogLevel" -> true, "customLogLevels" -> "",
+          "connectionString" -> settings.url)), Some(Map[String, Any]("executionEngines" -> "test")),
+        pipelineListener, Some(credentialProvider))
+
+      assert(pipelineContext.executionEngines.isDefined)
+      assert(pipelineContext.executionEngines.get.length == Constants.TWO)
+      assert(pipelineContext.executionEngines.get.head == "test")
+
+      val result = PipelineExecutor.executePipelines(pipelineContext.pipelineManager.getPipeline(application.pipelineId.get).get, pipelineContext)
+      assert(!result.success)
+      assert(result.exception.isDefined)
+      assert(result.exception.get.isInstanceOf[PipelineException])
+      assert(result.exception.get.asInstanceOf[PipelineException].getMessage == "Required pipeline inputs (step2Value) are missing!")
       TestHelper.stopTestDB(settings.name)
     }
   }

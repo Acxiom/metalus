@@ -4,10 +4,10 @@
 An _**Application**_ defines the setup required to execute a workflow. An _Application_ may be
 reusable or custom to a single execution.
 
-* [Application Sections](#application-sections-)
+* [Application Sections](#application-sections)
 * [Running](#running)
 
-## Application Sections:
+## Application Sections
 ### Root Pipeline
 The _pipelineId_ attribute defines the main flow to be executed. This [pipeline](docs/pipeline.md) may exist on the classpath or be defined in the
 _pipelineTemplates_ section of the application JSON definition.

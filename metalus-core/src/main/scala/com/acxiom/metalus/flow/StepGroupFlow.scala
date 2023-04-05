@@ -83,19 +83,7 @@ case class StepGroupFlow(pipeline: Pipeline,
       })
       val globals = params._1 ++ params._3
       val pipelineParameter = params._2
-      subPipeline.parameters.get.inputs.get.foreach(input => {
-        if (input.required) {
-          val present = if (input.global) {
-            globals.get(input.name).isDefined
-          } else {
-            pipelineParameter.parameters.get(input.name).isDefined
-          }
-          // TODO Should we build the message to include all missing requirements?
-          if (!checkInputParameterRequirementSatisfied(input, subPipeline, globals, pipelineParameter, present)) {
-            throw PipelineException(message = Some("Not all required pipeline inputs are present"), pipelineProgress = pipelineContext.currentStateInfo)
-          }
-        }
-      })
+      validatePipelineParameters(subPipeline, pipelineContext, globals, pipelineParameter)
       (globals, Some(pipelineParameter))
     } else { // Original code
       (parameterValues.getOrElse("pipelineMappings", Map[String, Any]()).asInstanceOf[Map[String, Any]], None)
@@ -107,29 +95,6 @@ case class StepGroupFlow(pipeline: Pipeline,
       pipelineContext.copy(globals = Some(pipelineContext.globals.get ++ updates._1), parameters = pipelineParameters)
     } else {
       pipelineContext.copy(globals = Some(updates._1), parameters = pipelineParameters)
-    }
-  }
-
-  private def checkInputParameterRequirementSatisfied(input: InputParameter,
-                                                      subPipeline: Pipeline,
-                                                      globals: Map[String, Any],
-                                                      pipelineParameter: PipelineParameter,
-                                                      present: Boolean) = {
-    if (!present && input.alternates.isDefined && input.alternates.get.nonEmpty) {
-      input.alternates.get.exists(alt => {
-        val i = subPipeline.parameters.get.inputs.get.find(_.name == alt)
-        if (i.isDefined) {
-          if (i.get.global) {
-            globals.get(i.get.name).isDefined
-          } else {
-            pipelineParameter.parameters.get(i.get.name).isDefined
-          }
-        } else {
-          false
-        }
-      })
-    } else {
-      present
     }
   }
 

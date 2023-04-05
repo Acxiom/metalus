@@ -95,6 +95,7 @@ trait PipelineFlow {
 
   def execute(): FlowResult = {
     try {
+      validatePipeline(pipeline, initialContext)
       val step = pipeline.steps.get.head
       val pipelineStateInfo = initialContext.currentStateInfo.get
       val executionAudit = ExecutionAudit(pipelineStateInfo, AuditType.PIPELINE, start = System.currentTimeMillis())
@@ -346,6 +347,63 @@ trait PipelineFlow {
       })
     } else {
       List()
+    }
+  }
+
+  private def validatePipeline(pipeline: Pipeline, pipelineContext: PipelineContext): Unit = {
+    val stateKey = PipelineStateKey(pipeline.id.orNull)
+    val parameters = pipelineContext.findParameterByPipelineKey(stateKey.key).getOrElse(PipelineParameter(stateKey, Map()))
+    if (pipeline.parameters.isDefined && pipeline.parameters.get.inputs.isDefined &&
+    pipeline.parameters.get.inputs.get.nonEmpty) {
+      validatePipelineParameters(pipeline, pipelineContext, pipelineContext.globals.get, parameters)
+    }
+  }
+
+  protected def validatePipelineParameters(pipeline: Pipeline, pipelineContext: PipelineContext,
+                                           globals: Map[String, Any], parameters: PipelineParameter): Unit = {
+    val errorList = pipeline.parameters.get.inputs.get.foldLeft(List[String]())((errors, input) => {
+      if (input.required) {
+        val present = if (input.global) {
+          globals.contains(input.name)
+        } else {
+          parameters.parameters.contains(input.name)
+        }
+        if (!checkInputParameterRequirementSatisfied(input, pipeline, globals, parameters, present)) {
+          errors :+ input.name
+        } else {
+          errors
+        }
+      } else {
+        errors
+      }
+    })
+
+    if (errorList.nonEmpty) {
+      throw PipelineException(message = Some(s"Required pipeline inputs (${errorList.mkString(",")}) are missing!"),
+        pipelineProgress = pipelineContext.currentStateInfo)
+    }
+  }
+
+  private def checkInputParameterRequirementSatisfied(input: InputParameter,
+                                                        subPipeline: Pipeline,
+                                                        globals: Map[String, Any],
+                                                        pipelineParameter: PipelineParameter,
+                                                        present: Boolean): Boolean = {
+    if (!present && input.alternates.isDefined && input.alternates.get.nonEmpty) {
+      input.alternates.get.exists(alt => {
+        val i = subPipeline.parameters.get.inputs.get.find(_.name == alt)
+        if (i.isDefined) {
+          if (i.get.global) {
+            globals.contains(i.get.name)
+          } else {
+            pipelineParameter.parameters.contains(i.get.name)
+          }
+        } else {
+          false
+        }
+      })
+    } else {
+      present
     }
   }
 }
