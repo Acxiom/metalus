@@ -14,6 +14,7 @@ a failed application.
 * [Session Storage](#session-storage)
   * [Noop Session Storage](#noop-session-storage)
   * [JDBC Session Storage](#jdbc-session-storage)
+* [Application Configuration]()
 
 ## Session Context
 The session context interface defines the methods that will be used by the flow engine to manage the session data. Upon
@@ -94,4 +95,35 @@ Contains the session history across job runs.
 ```sql
 CREATE TABLE SESSION_HISTORY
 (SESSION_ID VARCHAR(64), RUN_ID INTEGER,  STATUS VARCHAR(15), START_TIME BIGINT, END_TIME BIGINT, DURATION BIGINT)
+```
+## Application Configuration
+The _SessionContext_ is responsible for handling session management within an application. Any application that does not
+specify the **session** context in the [contexts section](application.md#contexts) of the application will default to 
+using the [default session context](#default-session-context) and the [noop session storage](#noop-session-storage).
+Applications that wish to use session management for the purpose of restart and recovery of flows must create an entry in
+the [contexts section](application.md#contexts) of the application named _session_. An example is provided below that
+show using the [default session context](#default-session-context) and [JDBC session storage](#jdbc-session-storage). This
+example expects the named of the credential and the connection string to be passed on the command line.
+
+```json
+{
+  "contexts": {
+    "session": {
+      "className": "com.acxiom.metalus.context.DefaultSessionContext",
+      "parameters": {
+        "sessionStorage": {
+          "className": "com.acxiom.metalus.context.JDBCSessionStorage",
+          "mapEmbeddedVariables": true,
+          "object": {
+            "connectionProperties": {
+              "driver": "org.apache.derby.jdbc.EmbeddedDriver"
+            },
+            "credentialName": "!credentialName",
+            "connectionString": "!connectionString"
+          }
+        }
+      }
+    }
+  }
+}
 ```
