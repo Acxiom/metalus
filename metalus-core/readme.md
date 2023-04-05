@@ -43,8 +43,9 @@ within a Spark environment.
 In an effort to reduce coupling to specific technologies, _Contexts_ are used to provide a simple interface for introducing
 functional components into the system at runtime. Examples include JSON4S, Spark and Session management.
 ## Session Management
-Session Management allows applications to restart and recover processes without having to restart from the beginning.
-The application pipeline and child pipelines should define restart steps to make this process easier.
+[Session Management](docs/session-management.md) allows applications to restart and recover processes without having to
+start from the beginning. The application pipeline and child pipelines should define restart steps to make this process
+easier.
 ## Pipeline State Keys
 A [universal key](docs/pipelines.md#pipeline-state-key) allows every pipeline, step, step response, pipeline parameter and audit can be uniquely be identified.
 These keys are specific enough that a specific instance of a step running in a fork may be identified. This universal key
