@@ -19,6 +19,7 @@ class ExpressionParserTests extends AnyFunSpec {
       "chicken" -> "silkie",
       "bird" -> "chicken",
       "nested" -> Map("chicken" -> Some("gamecock")),
+      "four" -> 4
     )),
       List(PipelineParameter(PipelineStateKey("0"), Map[String, Any]()),
         PipelineParameter(PipelineStateKey("1"), Map[String, Any]())),
@@ -45,7 +46,6 @@ class ExpressionParserTests extends AnyFunSpec {
       ("!chicken || !bird", "silkie"),
       ("!bad || !bird", "chicken"),
       ("!nested.chicken + '_chicken'", "gamecock_chicken"),
-      ("!chickens.execute.collect[0].columns[1]", "Cogburn"),
       // keywords
       ("VALUE", "polish_chickens"),
       ("STEP", "leghorn_chickens"),
@@ -56,8 +56,31 @@ class ExpressionParserTests extends AnyFunSpec {
       ("!bad AND !bird", false),
       ("!bad OR !chicken", true),
       ("NOT !bad", true),
+      ("1 < 2", true),
+      ("1 > 2", false),
+      ("!four > 2", true),
+      ("!four >= !four", true),
+      ("3.6 <= !four", true),
+      // arithmetic
+      ("1 + 2", BigInt(3)),
+      ("!four % 2", BigInt(0)),
+      ("!four / 2", BigInt(2)),
+      ("!four - !four", BigInt(0)),
+      ("2 + 3.0 * 2", BigDecimal("8")), // check precedence
+      // collections
+      ("['1', '2', '3']", List("1", "2", "3")),
+      ("[]", List()),
+      ("{'a': 1, 'b': 2, 'c': 3}", Map("a" -> 1, "b" -> 2, "c" -> 3)),
+      ("{}", Map.empty[String, Any]),
+      ("['a', 'b', 'c'].reduce(p => p.left + p.right)", "abc"),
+      ("{'a': 1, 'b': 2, 'c': 3}.map(p => p._1).reduce(p => p.left + p.right)", "abc"),
+      ("{'a': 1, 'b': 2, 'c': 3}.map(p => p._1 + p._2).to_list", List("a1", "b2", "c3")),
+      ("['a', 'b', 'c'].exists(p => p = 'a')", true),
+      ("['a', 'b', 'c'].find(p => p = 'a')", "a"),
+      ("{'a': 1, 'b': 2, 'c': 3}.to_list.last", ("c", 3)),
       // complex
-      ("IF ((!chicken + '_' + !bird) != 'silkie_chicken') 'regular' ELSE 'bantam'", "bantam")
+      ("IF ((!chicken + '_' + !bird) != 'silkie_chicken') 'regular' ELSE 'bantam'", "bantam"),
+      ("!chickens.execute.collect[0]['col_1']", "Cogburn")
     )
 
     it("should evaluate basic expressions") {
