@@ -277,7 +277,7 @@ object FileManagerSteps {
     "FileManager")
   @StepParameters(Map(
     "fileManager" -> StepParameter(None, Some(true), None, None,
-      None, None, Some("The FileManager to use for the rename operation")),
+      None, None, Some("The FileManager to use for the listing operation")),
     "path" -> StepParameter(None, Some(true), None, None,
       None, None, Some("The path of the file being renamed")),
     "recursive" -> StepParameter(None, Some(false), None, None,
@@ -293,7 +293,7 @@ object FileManagerSteps {
     "FileManager")
   @StepParameters(Map(
     "fileManager" -> StepParameter(None, Some(true), None, None,
-      None, None, Some("The FileManager to use for the rename operation")),
+      None, None, Some("The FileManager to use for the listing operation")),
     "path" -> StepParameter(None, Some(true), None, None,
       None, None, Some("The path of the file being renamed"))
   ))

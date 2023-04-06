@@ -6,10 +6,11 @@ is made up of a root pipeline, contexts, mapped parameters, pipeline templates, 
 
 ## Application
 An [Application](docs/application.md) defines the setup required to execute a workflow. The _Application_ definition is
-the highest level workflow component. There are sections that setup the workflow, but there is only a single [pipeline](#pipeline)
+the highest level workflow component. There are sections that set up the workflow, but there is only a single [pipeline](#pipeline)
 for the main flow. This _pipeline_ may be a self-contained flow or it may embed other pipelines.
 ## Pipeline
-A [pipeline](docs/pipelines.md) defines the workflow.
+A [pipeline](docs/pipelines.md) is the mechanism used to process work. Pipelines can also embed other pipelines to allow
+reuse where it makes sense.
 ## Step
 A [step](docs/steps.md) defines a unit of work within a [pipeline](#pipeline). The term step is used to describe two separate
 concepts:
@@ -25,13 +26,13 @@ in the [Application](#application) JSON sections [globals](docs/application.md#g
 These will be referenced differently when they are _mapped_ in a [FlowStep](#flowstep) parameter. See the
 [Parameter Mapping](docs/flow-step-parameter-mapping.md) section for more information. In addition to definitions within
 the JSON, parameters may be specified on the command line. These parameters must start with _--_. The name will be used
-as the key and the value will stored within the [globals](docs/application.md#globals) on the _PipelineContext_ and made
+as the key and the value will be stored within the [globals](docs/application.md#globals) on the _PipelineContext_ and made
 available to all executed [Pipelines](#pipeline).
 ## Execution Engines
 Execution Engines are tags that can be used by the workflow process to determine which steps to execute ate runtime as
 well as tag which execution environments the flow is being processed.
 ## Connectors
-Connectors are another mechanism provided to make [Pipelines](#pipeline) and [FlowSteps](#flowstep) reusable by allowing
+[Connectors](docs/connectors.md) are another mechanism provided to make [Pipelines](#pipeline) and [FlowSteps](#flowstep) reusable by allowing
 the connection information and behaviors to be defined at runtime. There are three types of Connectors:
 _FILE_, _DATA_ and _STREAM_.
 ## Data References
@@ -51,3 +52,7 @@ A [universal key](docs/pipelines.md#pipeline-state-key) allows every pipeline, s
 These keys are specific enough that a specific instance of a step running in a fork may be identified. This universal key
 facilitates accurately recovering failed processes, restarting steps, mapping flowstep parameter values and providing
 detailed audits.
+## Credentials
+The [Credential Provider](docs/credential-provider.md) API is provided to allow managing secure credentials at runtime
+without the need to store unsecured authentication information within JSON files. The AWS and GCP projects provide
+secrets manager providers for the respective cloud.
