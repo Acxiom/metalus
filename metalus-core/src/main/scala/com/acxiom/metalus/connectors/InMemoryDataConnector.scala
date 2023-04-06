@@ -1,6 +1,6 @@
 package com.acxiom.metalus.connectors
 import com.acxiom.metalus.{Credential, PipelineContext, PipelineException, sql}
-import com.acxiom.metalus.sql.{TablesawDataFrame, DataReference, DataReferenceOrigin, InMemoryDataReference, Row, Schema}
+import com.acxiom.metalus.sql.{Attribute, AttributeType, DataReference, DataReferenceOrigin, InMemoryDataReference, Row, Schema, TablesawDataFrame}
 import tech.tablesaw.api._
 import tech.tablesaw.io.ReadOptions
 import tech.tablesaw.io.csv.CsvReadOptions
@@ -36,7 +36,7 @@ case class InMemoryDataConnector(name: String,
 
   private def fromList(rows: List[Row], schema: Option[Schema]): TablesawDataFrame = {
     val table = Table.create(name)
-    val finalSchema = schema.orElse(rows.headOption.flatMap(_.schema)).get
+    val finalSchema = schema.getOrElse(inferSchema(rows))
     val colFunctions = finalSchema.attributes.zipWithIndex.map { case (a, i) =>
       a.dataType.baseType.toLowerCase match {
         case "int" | "integer" =>
@@ -108,14 +108,37 @@ case class InMemoryDataConnector(name: String,
   private def schemaToColumTypes(schema: Schema): Array[ColumnType] = schema.attributes.map{ a =>
     a.dataType.baseType.toLowerCase match {
       case "int" | "integer" => ColumnType.INTEGER
+      case "short" => ColumnType.SHORT
       case "long" => ColumnType.LONG
       case "double" => ColumnType.DOUBLE
       case "float" => ColumnType.FLOAT
       case "boolean" => ColumnType.BOOLEAN
       case "text" => ColumnType.TEXT
       case "string" => ColumnType.STRING
+      case "skip" => ColumnType.SKIP
     }
   }.toArray
+
+  private def inferSchema(data: List[Row]): Schema = data.headOption.flatMap(_.schema) getOrElse Schema{
+    data.map(inferAttributesFromRow).reduce{ (left, right) =>
+      val (l, r) = if (left.size >= right.size) (left, right) else (right, left)
+      l.zipWithIndex.map{
+        case (a, i) if i >= r.size => a
+        case (a, i) if r(i).dataType.baseType != a.dataType.baseType => a.copy(dataType = AttributeType("STRING"))
+        case (a, _) => a
+      }
+    }
+  }
+
+  private def inferAttributesFromRow(row: Row): List[Attribute] = row.columns.zipWithIndex.map {
+    case (_: Short, i) => Attribute(s"col_$i", AttributeType("SHORT"), Some(true), None)
+    case (_: Int, i) => Attribute(s"col_$i", AttributeType("INT"), Some(true), None)
+    case (_: Long, i) => Attribute(s"col_$i", AttributeType("LONG"), Some(true), None)
+    case (_: Float, i) => Attribute(s"col_$i", AttributeType("FLOAT"), Some(true), None)
+    case (_: Double, i) => Attribute(s"col_$i", AttributeType("DOUBLE"), Some(true), None)
+    case (_: Boolean, i) => Attribute(s"col_$i", AttributeType("BOOLEAN"), Some(true), None)
+    case (_: String, i) => Attribute(s"col_$i", AttributeType("STRING"), Some(true), None)
+  }.toList
 
 
   def loadStream(path: String,
@@ -135,5 +158,9 @@ case class InMemoryDataConnector(name: String,
       df
     }
     InMemoryDataReference(getTable, DataReferenceOrigin(this, if(options.nonEmpty) Some(options) else None), pipelineContext)
+  }
+
+  def fromSeq(data: Seq[Row], schema: Option[Schema], pipelineContext: PipelineContext): InMemoryDataReference = {
+    InMemoryDataReference(() => fromList(data.toList, schema), DataReferenceOrigin(this, None), pipelineContext)
   }
 }
