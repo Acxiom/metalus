@@ -1,7 +1,7 @@
 package com.acxiom.metalus.sql
 
 import com.acxiom.metalus.PipelineContext
-import com.acxiom.metalus.connectors.{Connector, ConnectorProvider, DataConnector, FileConnector}
+import com.acxiom.metalus.connectors.{Connector, ConnectorProvider, DataConnector, DataStreamOptions, FileConnector}
 import com.acxiom.metalus.sql.DataFrame.SHOW_DEFAULT
 import com.google.common.collect.ArrayListMultimap
 import tech.tablesaw.aggregate.{AggregateFunction, StringAggregateFunction}
@@ -418,50 +418,49 @@ final case class TablesawDataFrame(table: Table, alias: Option[String] = None) e
     copy(table = newTable, alias = Some(alias))
   }
 
-  override def write: DataFrameWriter = TablesawDataFrameWriter(table, schemaInternal)
+  override def write: DataFrameWriter = TablesawDataFrameWriter()
 
-}
+  case class TablesawDataFrameWriter(format: Option[String] = None,
+                                     options: Option[Map[String, String]] = None,
+                                     connector: Option[Connector] = None,
+                                    ) extends DataFrameWriter {
+    private lazy val internalFormat = format.getOrElse("csv")
 
-case class TablesawDataFrameWriter(table: Table, schema: Schema,
-                                   format: Option[String] = None,
-                                   options: Option[Map[String, String]] = None,
-                                   connector: Option[Connector] = None,
-                                  ) extends DataFrameWriter {
-  private lazy val internalFormat = format.getOrElse("csv")
+    override def format(dataFormat: String): DataFrameWriter = copy(format = Some(dataFormat))
 
-  override def format(dataFormat: String): DataFrameWriter = copy(format = Some(dataFormat))
+    override def option(key: String, value: String): DataFrameWriter =
+      copy(options = Some(options.getOrElse(Map()) + (key -> value)))
 
-  override def option(key: String, value: String): DataFrameWriter =
-    copy(options = Some(options.getOrElse(Map()) + (key -> value)))
+    override def options(opts: Map[String, String]): DataFrameWriter =
+      copy(options = Some(options.getOrElse(Map()) ++ opts))
 
-  override def options(opts: Map[String, String]): DataFrameWriter =
-    copy(options = Some(options.getOrElse(Map()) ++ opts))
+    override def connector(conn: Connector): DataFrameWriter = copy(connector = Some(conn))
 
-  override def connector(conn: Connector): DataFrameWriter = copy(connector = Some(conn))
-
-  override def save(pipelineContext: PipelineContext): Unit = {
-    val uri = options.flatMap(o => o.get("uri").orElse(o.get("path"))).getOrElse(internalFormat)
-    save(uri, pipelineContext)
-  }
-
-  override def save(uri: String, pipelineContext: PipelineContext): Unit = {
-    val conn = connector.orElse(ConnectorProvider.getConnector(s"${table.name}_write", uri, None, options))
-    if (conn.isEmpty) {
-      throw new IllegalArgumentException(s"Unable to get Connector for uri: [$uri]")
+    override def save(pipelineContext: PipelineContext): Unit = {
+      val uri = options.flatMap(o => o.get("uri").orElse(o.get("path"))).getOrElse(internalFormat)
+      save(uri, pipelineContext)
     }
-    conn.get match {
-      case fc: FileConnector =>
-        val os = fc.getFileManager(pipelineContext).getFileResource(uri).getOutputStream()
-        table.write().toStream(os, internalFormat)
-        os.close()
-      case dc: DataConnector =>
-        val writer = dc.getWriter(None, pipelineContext)
-        if (writer.isEmpty) {
-          throw new IllegalArgumentException(s"Unable to get DataRowWriter from connector: [$dc]")
-        }
-        writer.get.process(table.asScala.map(r => com.acxiom.metalus.sql.Row(r.asScala.toArray, Some(schema), None)).toList)
+
+    override def save(uri: String, pipelineContext: PipelineContext): Unit = {
+      val conn = connector.orElse(ConnectorProvider.getConnector(s"${table.name}_write", uri, None, options))
+      if (conn.isEmpty) {
+        throw new IllegalArgumentException(s"Unable to get Connector for uri: [$uri]")
+      }
+      conn.get match {
+        case fc: FileConnector =>
+          val os = fc.getFileManager(pipelineContext).getFileResource(uri).getOutputStream()
+          table.write().toStream(os, internalFormat)
+          os.close()
+        case dc: DataConnector =>
+          val writer = dc.getWriter(Some(DataStreamOptions(Some(schema), options.getOrElse(Map()))), pipelineContext)
+          if (writer.isEmpty) {
+            throw new IllegalArgumentException(s"Unable to get DataRowWriter from connector: [$dc]")
+          }
+          writer.get.process(collect().toList)
+      }
     }
   }
+
 }
 
 
