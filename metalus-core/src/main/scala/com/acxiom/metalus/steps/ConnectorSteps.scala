@@ -1,10 +1,10 @@
 package com.acxiom.metalus.steps
 
-import com.acxiom.metalus.annotations.StepFunction
+import com.acxiom.metalus.annotations.{StepFunction, StepObject}
 import com.acxiom.metalus.connectors.{Connector, ConnectorProvider, DataConnector, FileConnector}
 
+@StepObject
 object ConnectorSteps {
-
   @StepFunction("352abe61-6852-4844-9435-2ca427bcd45b",
     "Get Connector",
     "This step provides access to connectors through the ConnectorProvider",
@@ -35,5 +35,4 @@ object ConnectorSteps {
                        uri: String,
                        parameters: Option[Map[String, Any]] = None): Option[DataConnector] =
     ConnectorProvider.getConnector(name, uri, Some("DATA"), parameters).map(_.asInstanceOf[DataConnector])
-
 }

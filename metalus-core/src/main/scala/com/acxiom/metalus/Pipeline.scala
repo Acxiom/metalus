@@ -8,16 +8,16 @@ import scala.io.Source
 import scala.jdk.CollectionConverters._
 
 /**
-  * Contains the a pipeline definition to be executed.
-  *
-  * @param id          The unique id of this pipeline.
-  * @param name        The pipeline name used for logging and errors.
-  * @param steps       A list of steps to execute.
-  * @param tags        A list of tags to use to help describe the pipeline
-  *                    the default map of step results.
-  * @param description An optional description of this pipeline.
-  * @param parameters  Optional parameters that may be used to control the inputts and outputs of this pipeline.
-  */
+ * Contains the a pipeline definition to be executed.
+ *
+ * @param id          The unique id of this pipeline.
+ * @param name        The pipeline name used for logging and errors.
+ * @param steps       A list of steps to execute.
+ * @param tags        A list of tags to use to help describe the pipeline
+ *                    the default map of step results.
+ * @param description An optional description of this pipeline.
+ * @param parameters  Optional parameters that may be used to control the inputts and outputs of this pipeline.
+ */
 case class Pipeline(id: Option[String] = None,
                     name: Option[String] = None,
                     steps: Option[List[FlowStep]] = None,
@@ -26,35 +26,39 @@ case class Pipeline(id: Option[String] = None,
                     parameters: Option[Parameters] = None)
 
 /**
-  * Represents the available parameters that may be specified for a Pipeline.
-  * @param inputs Optional list of parameters that must be present for this Pipeline to operate properly.
-  * @param output Optional mappings that will be used to produce a PipelineStepResponse for this Pipeline.
-  * @param restartableSteps List of step ids that can be restarted.
-  */
+ * Represents the available parameters that may be specified for a Pipeline.
+ *
+ * @param inputs           Optional list of parameters that must be present for this Pipeline to operate properly.
+ * @param output           Optional mappings that will be used to produce a PipelineStepResponse for this Pipeline.
+ * @param restartableSteps List of step ids that can be restarted.
+ */
 final case class Parameters(inputs: Option[List[InputParameter]] = None, output: Option[PipelineResult] = None, restartableSteps: Option[List[String]] = None)
 
 /**
-  * Defines a single input parameter for a Pipeline.
-  * @param name The name of the parameter.
-  * @param global True if this parameter is part of the globals definition, false if it is a PipelineParameter.
-  * @param required True if a value is required for this parameter.
-  * @param alternates List of alternate input parameters that may be used instead of this parameter.
-  */
+ * Defines a single input parameter for a Pipeline.
+ *
+ * @param name       The name of the parameter.
+ * @param global     True if this parameter is part of the globals definition, false if it is a PipelineParameter.
+ * @param required   True if a value is required for this parameter.
+ * @param alternates List of alternate input parameters that may be used instead of this parameter.
+ */
 final case class InputParameter(name: String, global: Boolean, required: Boolean = false, alternates: Option[List[String]] = None)
 
 /**
-  * Defines the result of a Pipeline.
-  * @param primaryMapping The mapping string to use when setting the primary mapping of the PipelineStepResponse.
-  * @param secondaryMappings A list of mappings to use for the secondary value in the PipelineStepResponse.
-  */
+ * Defines the result of a Pipeline.
+ *
+ * @param primaryMapping    The mapping expression to use when setting the primary mapping of the PipelineStepResponse.
+ * @param secondaryMappings A list of mappings to use for the secondary value in the PipelineStepResponse.
+ */
 final case class PipelineResult(primaryMapping: String, secondaryMappings: Option[List[NamedMapping]] = None)
 
 /**
-  * Provides the mapping defintion for a result.
-  * @param mappedName The name of the mapping to use.
-  * @param stepKey The path to the value to map.
-  */
-final case class NamedMapping(mappedName: String, stepKey: String)
+ * Provides the mapping definition for a result.
+ *
+ * @param mappedName    The name of the mapping to use.
+ * @param resultMapping The mapping expression to use.
+ */
+final case class NamedMapping(mappedName: String, resultMapping: String)
 
 /**
  * Represents the information used to track a fork process within an execution or pipeline
@@ -107,22 +111,22 @@ object PipelineStateKey {
 }
 
 /**
-  * Provides information about the current step being executed.
-  *
-  * @param pipelineId The current pipeline being executed.
-  * @param stepId     Optional step being executed.
-  * @param forkData   Optional information if this step is part of a fork.
-  * @param stepGroup  Information about the step group which started this pipeline.
-  */
+ * Provides information about the current step being executed.
+ *
+ * @param pipelineId The current pipeline being executed.
+ * @param stepId     Optional step being executed.
+ * @param forkData   Optional information if this step is part of a fork.
+ * @param stepGroup  Information about the step group which started this pipeline.
+ */
 final case class PipelineStateKey(pipelineId: String,
                                   stepId: Option[String] = None,
                                   forkData: Option[ForkData] = None,
                                   stepGroup: Option[PipelineStateKey] = None) {
   /**
-    * The unique key representing this state.
-    *
-    * @return The state key.
-    */
+   * The unique key representing this state.
+   *
+   * @return The state key.
+   */
   lazy val key: String = {
     (stepGroup.map(_.key) ++ Some(pipelineId) ++ stepId ++ forkData.map(f => s"f(${f.generateForkKeyValue()})"))
       .mkString(".")
@@ -134,40 +138,38 @@ final case class PipelineStateKey(pipelineId: String,
 }
 
 /**
-  * Contains information about a class that needs to be instantiated at runtime.
-  *
-  * @param className The fully qualified class name.
-  * @param parameters A map of simple parameters to pass to the constructor.
-  */
+ * Contains information about a class that needs to be instantiated at runtime.
+ *
+ * @param className  The fully qualified class name.
+ * @param parameters A map of simple parameters to pass to the constructor.
+ */
 case class ClassInfo(className: Option[String], parameters: Option[Map[String, Any]] = None)
 
 /**
-  * Global object that may be passed to step functions.
-  *
-  * @param globals            Contains all global objects.
-  * @param parameters         The pipeline parameters being used. Contains initial parameters as well as the result
-  *                           of steps that have been processed.
-  * @param stepPackages       The list of packages to consider when searching for step objects.
-  * @param parameterMapper    Used to map parameters to step functions
-  * @param pipelineListener   Used to communicate progress through the pipeline
-  * @param audits             List of audits
-  * @param pipelineManager    The PipelineManager to use for Step Groups.
-  * @param credentialProvider The CredentialProvider to use for accessing credentials.
-  * @param contextManager     The context manager to use for accessing side loaded contexts
-  * @param stepResults        A map of results from the execution of the pipeline steps.
-  * @param currentStateInfo   The current pipeline state information
- *  @param restartPoints      Optional list of steps that should be restarted.
- *  @param executionEngines   An optional list of execution engines.
- *  @param stepStatus         An oprional list of step status objects.
-  */
+ * Global object that may be passed to step functions.
+ *
+ * @param globals            Contains all global objects.
+ * @param parameters         The pipeline parameters being used. Contains initial parameters as well as the result
+ *                           of steps that have been processed.
+ * @param stepPackages       The list of packages to consider when searching for step objects.
+ * @param parameterMapper    Used to map parameters to step functions
+ * @param pipelineListener   Used to communicate progress through the pipeline
+ * @param audits             List of audits
+ * @param pipelineManager    The PipelineManager to use for Step Groups.
+ * @param credentialProvider The CredentialProvider to use for accessing credentials.
+ * @param contextManager     The context manager to use for accessing side loaded contexts
+ * @param stepResults        A map of results from the execution of the pipeline steps.
+ * @param currentStateInfo   The current pipeline state information
+ * @param restartPoints      Optional list of steps that should be restarted.
+ * @param executionEngines   An optional list of execution engines.
+ * @param stepStatus         An oprional list of step status objects.
+ */
 case class PipelineContext(globals: Option[Map[String, Any]],
                            parameters: List[PipelineParameter],
                            stepPackages: Option[List[String]] = Some(List(
                              "com.acxiom.metalus",
                              "com.acxiom.metalus.steps",
-                             "com.acxiom.metalus.pipeline.steps",
-                             "com.acxiom.metalus",
-                             "com.acxiom.metalus.steps")),
+                             "com.acxiom.metalus.pipeline.steps")),
                            parameterMapper: PipelineStepMapper = PipelineStepMapper(),
                            pipelineListener: Option[PipelineListener] = Some(PipelineListener()),
                            audits: List[ExecutionAudit] = List(),
@@ -202,6 +204,7 @@ case class PipelineContext(globals: Option[Map[String, Any]],
 
   /**
    * This method will see if there is an alternate step command that should be used.
+   *
    * @param stepTemplateId The step template id being referenced.
    * @return Either an alternate command or None if there is no alternative.
    */
@@ -225,35 +228,36 @@ case class PipelineContext(globals: Option[Map[String, Any]],
   }
 
   /**
-    * Merges the provided PipelineContext audits, stepResults and globals onto this PipelineContext. Merge is additive
-    * unless the value already exists in which case, the provide PipelineContext value will be used.
-    * @param pipelineContext The PipelineContext to merge.
-    * @return A modified PipelineContext
-    */
+   * Merges the provided PipelineContext audits, stepResults and globals onto this PipelineContext. Merge is additive
+   * unless the value already exists in which case, the provide PipelineContext value will be used.
+   *
+   * @param pipelineContext The PipelineContext to merge.
+   * @return A modified PipelineContext
+   */
   def merge(pipelineContext: PipelineContext): PipelineContext = {
     val newResults = pipelineContext.stepResults
       .foldLeft((this.stepResults, this))((results, result) => {
-      if (this.stepResults.keys.exists(_.key == result._1.key)) {
-        // Replace the current result with the incoming result
-        (results._1 + (result._1 -> result._2), results._2)
-      } else {
-        // See if there may be global updates
-        val ctx = if (result._2.namedReturns.isDefined) {
-          result._2.namedReturns.get.foldLeft(results._2)((updateCtx, entry) => {
-            if (entry._1.startsWith("$globals.")) {
-              updateCtx.setGlobal(entry._1.substring(Constants.NINE), entry._2)
-            } else if (entry._1.startsWith("$globalLink.")) {
-              updateCtx.setGlobalLink(entry._1.substring(Constants.TWELVE), entry._2.toString)
-            } else {
-              updateCtx
-            }
-          })
+        if (this.stepResults.keys.exists(_.key == result._1.key)) {
+          // Replace the current result with the incoming result
+          (results._1 + (result._1 -> result._2), results._2)
         } else {
-          results._2
+          // See if there may be global updates
+          val ctx = if (result._2.namedReturns.isDefined) {
+            result._2.namedReturns.get.foldLeft(results._2)((updateCtx, entry) => {
+              if (entry._1.startsWith("$globals.")) {
+                updateCtx.setGlobal(entry._1.substring(Constants.NINE), entry._2)
+              } else if (entry._1.startsWith("$globalLink.")) {
+                updateCtx.setGlobalLink(entry._1.substring(Constants.TWELVE), entry._2.toString)
+              } else {
+                updateCtx
+              }
+            })
+          } else {
+            results._2
+          }
+          (results._1 + result, ctx)
         }
-        (results._1 + result, ctx)
-      }
-    })
+      })
 
     val newAudits = pipelineContext.audits.foldLeft(this.audits)((audits, audit) => {
       val index = this.audits.indexWhere(_.key.key == audit.key.key)
@@ -274,28 +278,28 @@ case class PipelineContext(globals: Option[Map[String, Any]],
   }
 
   /**
-    * Get the named global value as a string.
-    *
-    * @param globalName The name of the global property to return.
-    * @return An option containing the value or None
-    */
+   * Get the named global value as a string.
+   *
+   * @param globalName The name of the global property to return.
+   * @return An option containing the value or None
+   */
   def getGlobalString(globalName: String): Option[String] = {
-    getGlobal(globalName).flatMap{
+    getGlobal(globalName).flatMap {
       case s: String => Some(s)
       case _ => None
     }
   }
 
   /**
-    * Get the named global value (considering GlobalLinks)
-    *
-    * @param globalName The name of the global property to return.
-    * @return An option containing the value or None
-    */
+   * Get the named global value (considering GlobalLinks)
+   *
+   * @param globalName The name of the global property to return.
+   * @return An option containing the value or None
+   */
   def getGlobal(globalName: String): Option[Any] = {
     this.globals.flatMap(x => {
-      x.collectFirst{
-        case ("GlobalLinks", v:Map[_,_]) if v.isInstanceOf[Map[String, Any]] && v.asInstanceOf[Map[String, Any]].contains(globalName) =>
+      x.collectFirst {
+        case ("GlobalLinks", v: Map[_, _]) if v.isInstanceOf[Map[String, Any]] && v.asInstanceOf[Map[String, Any]].contains(globalName) =>
           v.asInstanceOf[Map[String, Any]].getOrElse(globalName, "")
         case (k, Some(v)) if k == globalName => v
         case (k, v) if k == globalName && !v.isInstanceOf[Option[_]] => v
@@ -315,6 +319,7 @@ case class PipelineContext(globals: Option[Map[String, Any]],
 
   /**
    * Determines if the named global is a global link.
+   *
    * @param globalName The name of the global property to check.
    * @return true if the named global is a global link.
    */
@@ -379,10 +384,11 @@ case class PipelineContext(globals: Option[Map[String, Any]],
     this.copy(globals = Some(this.globals.getOrElse(Map[String, Any]()) - globalName))
 
   /**
-    * Returns the result of an executed step or None if the step response does not exist.
-    * @param stepKey The unique step key.
-    * @return The response value or None if no value exists.
-    */
+   * Returns the result of an executed step or None if the step response does not exist.
+   *
+   * @param stepKey The unique step key.
+   * @return The response value or None if no value exists.
+   */
   def getStepResultByKey(stepKey: String): Option[PipelineStepResponse] = {
     val result = stepResults.find(key => key._1.key == stepKey)
     if (result.isDefined) {
@@ -412,15 +418,17 @@ case class PipelineContext(globals: Option[Map[String, Any]],
   }
 
   /**
-    * Returns the result of an executed step or None if the step response does not exist.
-    * @param stepKey The unique step key.
-    * @return The response value or None if no value exists.
-    */
+   * Returns the result of an executed step or None if the step response does not exist.
+   *
+   * @param stepKey The unique step key.
+   * @return The response value or None if no value exists.
+   */
   def getStepResultByStateInfo(stepKey: PipelineStateKey): Option[PipelineStepResponse] = getStepResultByKey(stepKey.key)
 
   /**
    * Returns a list of response objects for the named step. This method is primarily useful when a step
    * executes within a fork. The results will be returned in index order of the fork information.
+   *
    * @param stepKey The lookup key.
    * @return A list of responses or None.
    */
@@ -440,11 +448,11 @@ case class PipelineContext(globals: Option[Map[String, Any]],
   }
 
   /**
-    * This method will locate the pipeline parameter for the provided key.
-    *
-    * @param pipelineKey The unique pipeline key.
-    * @return The pipeline parameter if it exists.
-    */
+   * This method will locate the pipeline parameter for the provided key.
+   *
+   * @param pipelineKey The unique pipeline key.
+   * @return The pipeline parameter if it exists.
+   */
   def findParameterByPipelineKey(pipelineKey: String): Option[PipelineParameter] =
     parameters.find(p => p.pipelineKey.key == pipelineKey)
 
@@ -452,20 +460,21 @@ case class PipelineContext(globals: Option[Map[String, Any]],
    * This method provides a shortcut for getting values from the pipeline parameters object.
    *
    * @param pipelineKey The unique pipeline key.
-   * @param name The name of the parameter to get.
+   * @param name        The name of the parameter to get.
    * @return The pipeline parameter value, if it exists.
    */
   def getParameterByPipelineKey(pipelineKey: String, name: String): Option[Any] =
     findParameterByPipelineKey(pipelineKey).flatMap(_.parameters.get(name))
 
   /**
-    * This method will add a new parameter lookup to the PipelineParameter specified by the key. If none exists,
-    * a new parameter will be added.
-    * @param pipelineKey The unique for the Pipeline
-    * @param name The name of the parameter to add.
-    * @param value The value to be added.
-    * @return An updated PipelineContext
-    */
+   * This method will add a new parameter lookup to the PipelineParameter specified by the key. If none exists,
+   * a new parameter will be added.
+   *
+   * @param pipelineKey The unique for the Pipeline
+   * @param name        The name of the parameter to add.
+   * @param value       The value to be added.
+   * @return An updated PipelineContext
+   */
   def setPipelineParameterByKey(pipelineKey: PipelineStateKey, name: String, value: Any): PipelineContext = {
     val index = this.parameters.indexWhere(_.pipelineKey.key == pipelineKey.key)
     val parameter = if (index == -1) {
@@ -483,40 +492,41 @@ case class PipelineContext(globals: Option[Map[String, Any]],
   }
 
   /**
-    * This will determine if the pipeline parameters contains anything for the given pipelineId.
-    *
-    * @param pipelineKey The unique pipeline
-   *  @param paramName The name of the parameter to check.
-    * @return true if the pipeline parameters has something for this id.
-    */
+   * This will determine if the pipeline parameters contains anything for the given pipelineId.
+   *
+   * @param pipelineKey The unique pipeline
+   * @param paramName   The name of the parameter to check.
+   * @return true if the pipeline parameters has something for this id.
+   */
   def hasPipelineParameters(pipelineKey: String, paramName: String): Boolean =
     parameters.exists(p => p.pipelineKey.key == pipelineKey && p.parameters.contains(paramName))
 
   /**
-    * This will determine if the pipeline parameters contains anything for the given pipelineId.
-    *
-    * @param pipelineKey The unique pipeline
-    * @return true if the pipeline parameters has something for this id.
-    */
+   * This will determine if the pipeline parameters contains anything for the given pipelineId.
+   *
+   * @param pipelineKey The unique pipeline
+   * @return true if the pipeline parameters has something for this id.
+   */
   def hasPipelineParameters(pipelineKey: PipelineStateKey): Boolean =
     parameters.exists(_.pipelineKey.key == pipelineKey.copy(stepId = None, forkData = None).key)
 
   def hasAudit(pipelineKey: PipelineStateKey): Boolean = audits.exists(_.key.key == pipelineKey.key)
 
   /**
-    * Sets the current state info on the context.
-    * @param pipelineStateInfo The new state info.
-    * @return Updated PipelineContext
-    */
+   * Sets the current state info on the context.
+   *
+   * @param pipelineStateInfo The new state info.
+   * @return Updated PipelineContext
+   */
   def setCurrentStateInfo(pipelineStateInfo: PipelineStateKey): PipelineContext =
     this.copy(currentStateInfo = Some(pipelineStateInfo))
 
   /**
-    * Add an audit for this pipeline context
-    *
-    * @param audit The audit to make root
-    * @return
-    */
+   * Add an audit for this pipeline context
+   *
+   * @param audit The audit to make root
+   * @return
+   */
   def setPipelineAudit(audit: ExecutionAudit): PipelineContext = {
     sessionContext.saveAudit(audit.key, audit)
     if (this.hasAudit(audit.key)) {
@@ -528,12 +538,12 @@ case class PipelineContext(globals: Option[Map[String, Any]],
   }
 
   /**
-    * Add or replace a metric value on an audit
-    *
-    * @param name The name of the metric to add or replace
-    * @param value The value of the metric entry
-    * @return An updated pipeline context with the metric
-    */
+   * Add or replace a metric value on an audit
+   *
+   * @param name  The name of the metric to add or replace
+   * @param value The value of the metric entry
+   * @return An updated pipeline context with the metric
+   */
   def setPipelineAuditMetric(auditKey: PipelineStateKey, name: String, value: Any): PipelineContext = {
     val audit = this.getPipelineAudit(auditKey)
     val updatedAudit = audit.get.setMetric(name, value)
@@ -542,23 +552,23 @@ case class PipelineContext(globals: Option[Map[String, Any]],
   }
 
   /**
-    * Retrieves the audit for the specified pipeline key
-    *
-    * @param auditKey The audit key to retrieve
-    * @return An audit or None
-    */
+   * Retrieves the audit for the specified pipeline key
+   *
+   * @param auditKey The audit key to retrieve
+   * @return An audit or None
+   */
   def getPipelineAudit(auditKey: PipelineStateKey): Option[ExecutionAudit] =
     this.audits.find(a => {
       a.key.key == auditKey.key
     })
 
   /**
-    * Retrieves the audit for the specified pipeline key. This method will remove the forkData to return
-    * all audits for a named step.
-    *
-    * @param auditKey The audit key to retrieve
-    * @return An audit or None
-    */
+   * Retrieves the audit for the specified pipeline key. This method will remove the forkData to return
+   * all audits for a named step.
+   *
+   * @param auditKey The audit key to retrieve
+   * @return An audit or None
+   */
   def getPipelineAudits(auditKey: PipelineStateKey): Option[List[ExecutionAudit]] =
     Some(this.audits.filter(_.key.copy(forkData = None).key == auditKey.copy(forkData = None).key))
 
@@ -611,14 +621,16 @@ case class RestartPoints(steps: List[StepState])
 case class StepState(key: PipelineStateKey, status: String)
 
 /**
-  * This class represents the result of executing a list of pipelines.
-  *
-  * @param pipelineContext The final pipeline context when execution stopped
-  * @param success         Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
-  * @param paused          Flag indicating whether the "failure" was actually a pause
-  * @param exception       The original exception
-  */
+ * This class represents the result of executing a list of pipelines.
+ *
+ * @param pipelineContext The final pipeline context when execution stopped
+ * @param success         Boolean flag indicating whether pipelines ran to completion (true) or stopped due to an error or message (false)
+ * @param paused          Flag indicating whether the "failure" was actually a pause
+ * @param exception       The original exception
+ * @param output          An optional output response generated by the Pipeline.
+ */
 case class PipelineExecutionResult(pipelineContext: PipelineContext,
                                    success: Boolean,
                                    paused: Boolean,
-                                   exception: Option[Throwable])
+                                   exception: Option[Throwable],
+                                   output: Option[PipelineStepResponse])

@@ -191,7 +191,7 @@ class StepGroupStepTests extends AnyFunSpec {
           InputParameter("globalTwo", global = true, required = true),
           InputParameter("globalThree", global = true, required = true),
           InputParameter("paramOne", global = false, required = true))),
-        Some(PipelineResult("@SUB_PIPELINE_STEP_TWO")))))
+        Some(PipelineResult("@SUB_PIPELINE_STEP_TWO", Some(List(NamedMapping("SECONDARY_RESULT", "@SUB_PIPELINE_STEP_ONE"))))))))
 
       val context = TestHelper.generatePipelineContext().setGlobal("subPipeline", stepGroup)
       val executionResult = PipelineExecutor.executePipelines(Pipeline(Some("pipelineId"),
@@ -205,6 +205,8 @@ class StepGroupStepTests extends AnyFunSpec {
       val response = result.get
       assert(response.primaryReturn.contains("gtwo"))
       assert(response.namedReturns.isDefined)
+      assert(response.namedReturns.get.contains("SECONDARY_RESULT"))
+      assert(response.namedReturns.get("SECONDARY_RESULT") == Some("globalOne"))
       assert(ctx.getGlobalString("updatedGlobal").getOrElse("") == "")
       assert(ctx.getGlobalString("mockGlobal").getOrElse("") == "This global has been updated")
       assert(ctx.getGlobalString("mockGlobalLink").getOrElse("") == "!some global link")

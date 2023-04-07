@@ -1,3 +1,15 @@
+[Home](../readme.md)
+
+# Steps
+A step defines a unit of work within a [pipeline](pipelines.md). The term step is used to describe two separate
+concepts:
+## Step Template
+A step template represents the metadata about a step. This metadata is useful for building [FlowSteps](#flowstep) within
+a [pipeline](pipelines.md).
+## FlowStep
+A flow step is any step that has been added to a [pipeline](#pipeline). The metadata is very similar, but additional
+attributes are added to the step and the parameters.
+
 # Steps
 The first task when preparing an application to use this project is to ensure that the reusable steps are available. A
 project containing common steps is available, but most developers will have requirements to integrate with existing 
