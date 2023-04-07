@@ -3,7 +3,7 @@ package com.acxiom.metalus.sql.parser
 import com.acxiom.metalus.connectors.InMemoryDataConnector
 import com.acxiom.metalus.context.ContextManager
 import com.acxiom.metalus.sql.Row
-import com.acxiom.metalus.{DefaultPipelineListener, Parameter, PipelineContext, PipelineParameter, PipelineStateKey, PipelineStepMapper}
+import com.acxiom.metalus.{DefaultPipelineListener, PipelineContext, PipelineParameter, PipelineStateKey, PipelineStepMapper}
 import org.scalatest.funspec.AnyFunSpec
 
 class ExpressionParserTests extends AnyFunSpec {
@@ -80,7 +80,11 @@ class ExpressionParserTests extends AnyFunSpec {
       ("{'a': 1, 'b': 2, 'c': 3}.to_list.last", ("c", 3)),
       // complex
       ("IF ((!chicken + '_' + !bird) != 'silkie_chicken') 'regular' ELSE 'bantam'", "bantam"),
-      ("!chickens.execute.collect[0]['col_1']", "Cogburn")
+      ("!chickens.execute.collect[0]['col_1']", "Cogburn"),
+      ("com.acxiom.metalus.sql.parser.JavaStyle('chickens', '!').mkString", "chickens,!"),
+      ("com.acxiom.metalus.sql.parser.JavaStyle(Some(1)).mkString", "1,default"),
+      ("com.acxiom.metalus.sql.parser.JavaStyle().mkString", "more,default"),
+      ("com.acxiom.metalus.sql.parser.ScalaStyle(!chicken + '!', !four, Some('moo'), None).mkString", "silkie!,4,moo,o2,d")
     )
 
     it("should evaluate basic expressions") {
@@ -103,4 +107,15 @@ class ExpressionParserTests extends AnyFunSpec {
     }
   }
 
+}
+
+class JavaStyle(s: String, s2: String) {
+  def this(moo: Option[Int]) = this(moo.mkString, "default")
+  def this() = this("more", "default")
+
+  def mkString: String = s"$s,$s2"
+}
+
+case class ScalaStyle(s1: String, l1: Long, o1: Option[Any], o2: Option[Int] = Some(2), d: Option[String] = Some("d")) {
+  def mkString: String = s"$s1,$l1,${o1.mkString},${o2.getOrElse("o2")},${d.mkString}"
 }

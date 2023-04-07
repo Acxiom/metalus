@@ -163,7 +163,7 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
   override def visitCollectionAccess(ctx: CollectionAccessContext): Option[Any] = visit(ctx.stepValueExpression()).flatMap {
     case a: Array[_] => toIntOption(ctx.stepExpression()).map(a.apply)
     case s: Seq[_] => toIntOption(ctx.stepExpression()).map(s.apply)
-    case m: Map[Any, _] => visit(ctx.stepExpression()).flatMap(a => m.get(a).map(unwrap))
+    case m: Map[Any, _] => visit(ctx.stepExpression()).flatMap(a => m.get(a).map(unwrap(_)))
     case r: Row => visit(ctx.stepExpression()).flatMap {
       case i: Int => r.get(i)
       case l: Long => r.get(l.toInt)
@@ -192,8 +192,7 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
     val l = List(visit(ctx.left), visit(ctx.right)).flatten
     val func: (Any, Any) => Any = {
       case (ScalaNumber(left), ScalaNumber(right)) => (left, right, op) match {
-        case (l: BigInt, r: BigInt, MExprParser.PLUS) =>
-          l + r
+        case (l: BigInt, r: BigInt, MExprParser.PLUS) => l + r
         case (l: BigInt, r: BigDecimal, MExprParser.PLUS) => BigDecimal(l) + r
         case (l: BigDecimal, r: BigInt, MExprParser.PLUS) =>  l + BigDecimal(r)
         case (l: BigDecimal, r: BigDecimal, MExprParser.PLUS) => l + r
@@ -201,8 +200,7 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
         case (l: BigInt, r: BigDecimal, MExprParser.MINUS) => BigDecimal(l) - r
         case (l: BigDecimal, r: BigInt, MExprParser.MINUS) => l - BigDecimal(r)
         case (l: BigDecimal, r: BigDecimal, MExprParser.MINUS) => l - r
-        case (l: BigInt, r: BigInt, MExprParser.ASTERISK) =>
-          l * r
+        case (l: BigInt, r: BigInt, MExprParser.ASTERISK) => l * r
         case (l: BigInt, r: BigDecimal, MExprParser.ASTERISK) => BigDecimal(l) * r
         case (l: BigDecimal, r: BigInt, MExprParser.ASTERISK) => l * BigDecimal(r)
         case (l: BigDecimal, r: BigDecimal, MExprParser.ASTERISK) => l * r
@@ -218,8 +216,6 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
       case (left, right) => left.toString + right.toString
     }
     l.reduceOption(func)
-//    List(ctx.left.accept(this), ctx.right.accept(this))
-//      .flatten.reduceOption(_.toString + _.toString)
   }
 
   // need this for short circuiting logic
@@ -277,10 +273,10 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
   override def visitNoneValue(ctx: NoneValueContext): Option[Any] = None
 
   override def visitObject(ctx: ObjectContext): Option[Any] = Try{
-    val args = Option(ctx.stepValue())
-      .map(_.asScala.flatMap(visit).map(_.asInstanceOf[AnyRef]).toArray)
+    val args = Option(ctx.stepExpression())
+      .map(_.asScala.map(visit).map(unwrap(_, recursive = false)).map(_.asInstanceOf[AnyRef]).toArray)
       .getOrElse(Array())
-//    ReflectionUtils.loadJavaClass(ctx.stepIdentifier.getText, args)
+    ReflectionUtils.fastLoadClass(ctx.stepIdentifier().getText, args)
   }.toOption
 
   override def defaultResult(): Option[Any] = None
@@ -304,8 +300,9 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
   }
 
   @tailrec
-  private def unwrap(value: Any): Any = value match {
-    case Some(v) => unwrap(v)
+  private def unwrap(value: Any, recursive: Boolean = true): Any = value match {
+    case Some(v) if recursive => unwrap(v)
+    case Some(v) => v
     case v => v
   }
 
