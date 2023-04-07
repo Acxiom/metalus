@@ -22,9 +22,9 @@ trait DataFrame[Impl <: DataFrame[Impl]] {
 
   def schema: Schema
 
-  def collect(): Array[Row]
-  def take(n: Int): Array[Row] = collect().take(n)
-  def toList: List[Row] = collect().toList
+  def collect(): Array[com.acxiom.metalus.sql.Row]
+  def take(n: Int): Array[com.acxiom.metalus.sql.Row] = collect().take(n)
+  def toList: List[com.acxiom.metalus.sql.Row] = collect().toList
 
   def select(columns: Expression*): Impl
   def selectExpr(expressions: String*): Impl = select(expressions.map(e => Expression(e)): _*)
@@ -355,8 +355,8 @@ final case class TablesawDataFrame(table: Table, alias: Option[String] = None) e
 
   override def count(): Long = table.rowCount()
 
-  override def collect(): Array[Row] = table.asScala.map { r =>
-    Row((0 until r.columnCount()).map(r.getObject).toArray, Some(schema), None)
+  override def collect(): Array[com.acxiom.metalus.sql.Row] = table.asScala.map { r =>
+    com.acxiom.metalus.sql.Row((0 until r.columnCount()).map(r.getObject).toArray, Some(schema), None)
   }.toArray
 
   override def select(columns: Expression*): TablesawDataFrame = {
@@ -388,7 +388,7 @@ final case class TablesawDataFrame(table: Table, alias: Option[String] = None) e
     val rightTable = right.table
     val rightSize = rightTable.rowCount()
     val newTable = table.emptyCopy()
-      .addColumns(rightTable.columns().asScala.map(r => r.emptyCopy()): _*)
+      .addColumns(rightTable.columns().asScala.map(r => r.emptyCopy()).toList: _*)
     val cols: Map[String, tech.tablesaw.columns.Column[_]] = newTable.columnArray().map(c => c.name -> c).toMap
     val leftCols = table.columnArray()
     val rightCols = rightTable.columnArray()
