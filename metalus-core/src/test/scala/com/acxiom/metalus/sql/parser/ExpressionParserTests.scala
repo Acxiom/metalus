@@ -6,6 +6,8 @@ import com.acxiom.metalus.sql.Row
 import com.acxiom.metalus.{DefaultPipelineListener, PipelineContext, PipelineParameter, PipelineStateKey, PipelineStepMapper}
 import org.scalatest.funspec.AnyFunSpec
 
+import java.math.BigInteger
+
 class ExpressionParserTests extends AnyFunSpec {
 
   lazy val pipelineContext: PipelineContext = {
@@ -19,7 +21,8 @@ class ExpressionParserTests extends AnyFunSpec {
       "chicken" -> "silkie",
       "bird" -> "chicken",
       "nested" -> Map("chicken" -> Some("gamecock")),
-      "four" -> 4
+      "four" -> 4,
+      "long" -> 4L
     )),
       List(PipelineParameter(PipelineStateKey("0"), Map[String, Any]()),
         PipelineParameter(PipelineStateKey("1"), Map[String, Any]())),
@@ -62,11 +65,11 @@ class ExpressionParserTests extends AnyFunSpec {
       ("!four >= !four", true),
       ("3.6 <= !four", true),
       // arithmetic
-      ("1 + 2", BigInt(3)),
-      ("!four % 2", BigInt(0)),
-      ("!four / 2", BigInt(2)),
-      ("!four - !four", BigInt(0)),
-      ("2 + 3.0 * 2", BigDecimal("8")), // check precedence
+      ("1 + 2", 3),
+      ("!four % 2", 0),
+      ("!four / 2", 2),
+      ("!four - !four", 0),
+      ("2 + 3.0 * 2", 8.0), // check precedence
       // collections
       ("['1', '2', '3']", List("1", "2", "3")),
       ("[]", List()),
@@ -83,8 +86,8 @@ class ExpressionParserTests extends AnyFunSpec {
       ("!chickens.execute.collect[0]['col_1']", "Cogburn"),
       ("com.acxiom.metalus.sql.parser.JavaStyle('chickens', '!').mkString", "chickens,!"),
       ("com.acxiom.metalus.sql.parser.JavaStyle(Some(1)).mkString", "1,default"),
-      ("com.acxiom.metalus.sql.parser.JavaStyle().mkString", "more,default"),
-      ("com.acxiom.metalus.sql.parser.ScalaStyle(!chicken + '!', !four, Some('moo'), None).mkString", "silkie!,4,moo,o2,d")
+      ("com.acxiom.metalus.sql.parser.JavaStyle().mkString", "more,default"), // verify empty args work
+      ("com.acxiom.metalus.sql.parser.ScalaStyle(!chicken + '!', !long - 1, Some('moo'), None).mkString", "silkie!,3,moo,o2,d")
     )
 
     it("should evaluate basic expressions") {
