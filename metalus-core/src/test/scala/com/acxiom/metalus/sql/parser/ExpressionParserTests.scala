@@ -6,8 +6,6 @@ import com.acxiom.metalus.sql.Row
 import com.acxiom.metalus.{DefaultPipelineListener, PipelineContext, PipelineParameter, PipelineStateKey, PipelineStepMapper}
 import org.scalatest.funspec.AnyFunSpec
 
-import java.math.BigInteger
-
 class ExpressionParserTests extends AnyFunSpec {
 
   lazy val pipelineContext: PipelineContext = {

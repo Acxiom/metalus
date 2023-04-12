@@ -334,16 +334,16 @@ object ReflectionUtils {
 
   // noinspection ScalaStyle
   private def isAssignableFrom(paramClass: Class[_], value: Any): Boolean = (paramClass, value) match {
-    case (_: Class[Byte], _: java.lang.Byte) => true
-    case (_: Class[Short], _: java.lang.Byte | _: java.lang.Short) => true
-    case (_: Class[Int], _: java.lang.Byte | _: java.lang.Short | _: java.lang.Integer) => true
-    case (_: Class[Long], _: java.lang.Byte | _: java.lang.Short | _: java.lang.Integer | _: java.lang.Long) => true
-    case (_: Class[Float], _: java.lang.Byte | _: java.lang.Short | _: java.lang.Integer | _: java.lang.Long |
-                           _: java.lang.Float) => true
-    case (_: Class[Double], _: java.lang.Byte | _: java.lang.Short | _: java.lang.Integer | _: java.lang.Long |
-                            _: java.lang.Float | _: java.lang.Double) => true
-    case (_: Class[Boolean], _: java.lang.Boolean) => true
-    case (_: Class[Char], _: java.lang.Character) => true
+    case (c, _: java.lang.Byte) if c == classOf[Byte] => true
+    case (c, _: java.lang.Byte | _: java.lang.Short) if c == classOf[Short] => true
+    case (c, _: java.lang.Byte | _: java.lang.Short | _: java.lang.Integer) if c == classOf[Int] => true
+    case (c, _: java.lang.Byte | _: java.lang.Short | _: java.lang.Integer | _: java.lang.Long) if c == classOf[Long] => true
+    case (c, _: java.lang.Byte | _: java.lang.Short | _: java.lang.Integer | _: java.lang.Long |
+                           _: java.lang.Float) if c == classOf[Float] => true
+    case (c, _: java.lang.Byte | _: java.lang.Short | _: java.lang.Integer | _: java.lang.Long |
+                            _: java.lang.Float | _: java.lang.Double) if c == classOf[Double] => true
+    case (c, _: java.lang.Boolean) if c == classOf[Boolean] => true
+    case (c, _: java.lang.Character) if c == classOf[Char] => true
     case (c, v) => c.isAssignableFrom(v.getClass)
   }
 

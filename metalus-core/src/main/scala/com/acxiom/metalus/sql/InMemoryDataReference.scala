@@ -23,6 +23,11 @@ final case class InMemoryDataReference(base: () => TablesawDataFrame,
       gd.aggregate(Expression(s"COUNT($name) AS ${name}_count"))
   }
 
+  override protected def optimize: Queue[QueryOperator] = super.optimize.filterNot{
+    case Select(List(e)) if e.text == "*" => true
+    case _ => false
+  }
+
   //noinspection ScalaStyle
   override protected def logicalPlanRules: LogicalPlanRules = {
     case Select(expressions) => {

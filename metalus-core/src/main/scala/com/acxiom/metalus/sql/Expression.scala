@@ -363,4 +363,16 @@ case class Column(override val expressionTree: BaseExpression) extends Expressio
     copy(Alias(expressionTree, Identifier(value, None, quote)(alias)))
   }
 
+  def +(expr: Expression): Column = copy(BinaryOperator(expressionTree, expr.expressionTree, "+"))
+  def -(expr: Expression): Column = copy(BinaryOperator(expressionTree, expr.expressionTree, "-"))
+  def *(expr: Expression): Column = copy(BinaryOperator(expressionTree, expr.expressionTree, "*"))
+  def /(expr: Expression): Column = copy(BinaryOperator(expressionTree, expr.expressionTree, "/"))
+
+  def ===(expr: Expression): Column = copy(BinaryOperator(expressionTree, expr.expressionTree, "="))
+  def !==(expr: Expression): Column = copy(BinaryOperator(expressionTree, expr.expressionTree, "!="))
+  def >(expr: Expression): Column = copy(BinaryOperator(expressionTree, expr.expressionTree, ">"))
+  def >==(expr: Expression): Column = copy(BinaryOperator(expressionTree, expr.expressionTree, ">="))
+  def <(expr: Expression): Column = copy(BinaryOperator(expressionTree, expr.expressionTree, "<"))
+  def <==(expr: Expression): Column = copy(BinaryOperator(expressionTree, expr.expressionTree, "<="))
+
 }
