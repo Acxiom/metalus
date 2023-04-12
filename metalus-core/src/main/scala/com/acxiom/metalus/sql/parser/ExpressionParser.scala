@@ -1,6 +1,7 @@
 package com.acxiom.metalus.sql.parser
 
 import com.acxiom.metalus.sql.Row
+import com.acxiom.metalus.sql.parser.ExpressionArithmetic.isNumber
 import com.acxiom.metalus.sql.parser.ExpressionParser.KeywordExecutor
 import com.acxiom.metalus.{MappingResolver, PipelineContext}
 import com.acxiom.metalus.sql.parser.MExprParser._
@@ -12,6 +13,7 @@ import org.antlr.v4.runtime.tree.RuleNode
 import java.math.BigInteger
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
+import scala.math.Numeric.{BigDecimalAsIfIntegral, DoubleAsIfIntegral, FloatAsIfIntegral}
 import scala.math.ScalaNumber
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -163,7 +165,7 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
   override def visitCollectionAccess(ctx: CollectionAccessContext): Option[Any] = visit(ctx.stepValueExpression()).flatMap {
     case a: Array[_] => toIntOption(ctx.stepExpression()).map(a.apply)
     case s: Seq[_] => toIntOption(ctx.stepExpression()).map(s.apply)
-    case m: Map[Any, _] => visit(ctx.stepExpression()).flatMap(a => m.get(a).map(unwrap))
+    case m: Map[Any, _] => visit(ctx.stepExpression()).flatMap(a => m.get(a).map(unwrap(_)))
     case r: Row => visit(ctx.stepExpression()).flatMap {
       case i: Int => r.get(i)
       case l: Long => r.get(l.toInt)
@@ -190,36 +192,12 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
   override def visitArithmetic(ctx: ArithmeticContext): Option[Any] = {
     val op = ctx.operator.getType
     val l = List(visit(ctx.left), visit(ctx.right)).flatten
-    val func: (Any, Any) => Any = {
-      case (ScalaNumber(left), ScalaNumber(right)) => (left, right, op) match {
-        case (l: BigInt, r: BigInt, MExprParser.PLUS) =>
-          l + r
-        case (l: BigInt, r: BigDecimal, MExprParser.PLUS) => BigDecimal(l) + r
-        case (l: BigDecimal, r: BigInt, MExprParser.PLUS) =>  l + BigDecimal(r)
-        case (l: BigDecimal, r: BigDecimal, MExprParser.PLUS) => l + r
-        case (l: BigInt, r: BigInt, MExprParser.MINUS) => l - r
-        case (l: BigInt, r: BigDecimal, MExprParser.MINUS) => BigDecimal(l) - r
-        case (l: BigDecimal, r: BigInt, MExprParser.MINUS) => l - BigDecimal(r)
-        case (l: BigDecimal, r: BigDecimal, MExprParser.MINUS) => l - r
-        case (l: BigInt, r: BigInt, MExprParser.ASTERISK) =>
-          l * r
-        case (l: BigInt, r: BigDecimal, MExprParser.ASTERISK) => BigDecimal(l) * r
-        case (l: BigDecimal, r: BigInt, MExprParser.ASTERISK) => l * BigDecimal(r)
-        case (l: BigDecimal, r: BigDecimal, MExprParser.ASTERISK) => l * r
-        case (l: BigInt, r: BigInt, MExprParser.SLASH) => l / r
-        case (l: BigInt, r: BigDecimal, MExprParser.SLASH) => BigDecimal(l) / r
-        case (l: BigDecimal, r: BigInt, MExprParser.SLASH) => l / BigDecimal(r)
-        case (l: BigDecimal, r: BigDecimal, MExprParser.SLASH) => l / r
-        case (l: BigInt, r: BigInt, MExprParser.PERCENT) => l % r
-        case (l: BigInt, r: BigDecimal, MExprParser.PERCENT) => BigDecimal(l) % r
-        case (l: BigDecimal, r: BigInt, MExprParser.PERCENT) => l % BigDecimal(r)
-        case (l: BigDecimal, r: BigDecimal, MExprParser.PERCENT) => l % r
-      }
-      case (left, right) => left.toString + right.toString
+    val func: (Any, Any) => Option[Any] = {
+      case (left, right) if isNumber(left) && isNumber(right) => ExpressionArithmetic(left, op, right)
+      case (left, right) if op == MExprParser.PLUS => Some(left.toString + right.toString) // treat all else as string concatenation
+      case _ => None // unsupported operation
     }
-    l.reduceOption(func)
-//    List(ctx.left.accept(this), ctx.right.accept(this))
-//      .flatten.reduceOption(_.toString + _.toString)
+    l.reduceOption((l, r) => unwrap(func(l, r), recursive = false))
   }
 
   // need this for short circuiting logic
@@ -277,10 +255,10 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
   override def visitNoneValue(ctx: NoneValueContext): Option[Any] = None
 
   override def visitObject(ctx: ObjectContext): Option[Any] = Try{
-    val args = Option(ctx.stepValue())
-      .map(_.asScala.flatMap(visit).map(_.asInstanceOf[AnyRef]).toArray)
+    val args = Option(ctx.stepExpression())
+      .map(_.asScala.map(visit).map(unwrap(_, recursive = false)).map(_.asInstanceOf[AnyRef]).toArray)
       .getOrElse(Array())
-//    ReflectionUtils.loadJavaClass(ctx.stepIdentifier.getText, args)
+    ReflectionUtils.fastLoadClass(ctx.stepIdentifier().getText, args)
   }.toOption
 
   override def defaultResult(): Option[Any] = None
@@ -304,8 +282,9 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
   }
 
   @tailrec
-  private def unwrap(value: Any): Any = value match {
-    case Some(v) => unwrap(v)
+  private def unwrap(value: Any, recursive: Boolean = true): Any = value match {
+    case Some(v) if recursive => unwrap(v)
+    case Some(v) => v
     case v => v
   }
 
@@ -327,5 +306,87 @@ object ScalaNumber {
     case bd: java.math.BigDecimal => BigDecimal(bd)
     case bi: BigInt => bi
     case bd: BigDecimal => bd
+  }
+}
+
+private[parser] object ExpressionArithmetic {
+
+  private val BYTE = 0
+  private val SHORT = 1
+  private val INT = 2
+  private val LONG = 3
+  private val BIG_INT = 4
+  private val FLOAT = 5
+  private val DOUBLE = 6
+  private val BIG_DECIMAL = 7
+  private val NAN = Int.MaxValue
+
+  //  private implicit val ordering: Ordering[Any] = Ordering.by(typeOrdering)
+
+  // scalastyle:off cyclomatic.complexity
+  def apply(left: Any, op: Int, right: Any): Option[Any] = {
+    val bound = (typeOrdering(left), typeOrdering(right)) match {
+      case (BIG_INT, r) if r > BIG_INT => BIG_DECIMAL
+      case (l, r) => math.max(l, r)
+    }
+    bound match {
+      case BYTE => Some(arithmetic[Byte](left.asInstanceOf[Number].byteValue(), op, right.asInstanceOf[Number].byteValue()))
+      case SHORT => Some(arithmetic[Short](left.asInstanceOf[Number].shortValue(), op, right.asInstanceOf[Number].shortValue()))
+      case INT => Some(arithmetic[Int](left.asInstanceOf[Number].intValue(), op, right.asInstanceOf[Number]intValue()))
+      case LONG => Some(arithmetic[Long](left.asInstanceOf[Number].longValue(), op, right.asInstanceOf[Number].longValue()))
+      case BIG_INT => Some(arithmetic[BigInt](toBigInt(left), op, toBigInt(right)))
+      // % needs integral instead of fractional, so specifying that manually for float, double and bigDecimal
+      case FLOAT if op == MExprParser.PERCENT =>
+        Some(arithmetic[Float](left.asInstanceOf[Number].floatValue(), op, right.asInstanceOf[Number].floatValue())(FloatAsIfIntegral))
+      case DOUBLE if op == MExprParser.PERCENT =>
+        Some(arithmetic[Double](left.asInstanceOf[Number].doubleValue(), op, right.asInstanceOf[Number].doubleValue())(DoubleAsIfIntegral))
+      case BIG_DECIMAL if op == MExprParser.PERCENT =>
+        Some(arithmetic[BigDecimal](toBigDecimal(left), op, toBigDecimal(right))(BigDecimalAsIfIntegral))
+      case FLOAT => Some(arithmetic[Float](left.asInstanceOf[Number].floatValue(), op, right.asInstanceOf[Number].floatValue()))
+      case DOUBLE => Some(arithmetic[Double](left.asInstanceOf[Number].doubleValue(), op, right.asInstanceOf[Number].doubleValue()))
+      case BIG_DECIMAL => Some(arithmetic[BigDecimal](toBigDecimal(left), op, toBigDecimal(right)))
+      case NAN => None
+    }
+  }
+
+  def toBigInt(any: Any): BigInt = any match {
+    case bi: BigInt => bi
+    case bi: BigInteger => BigInt(bi)
+    case n: Number => BigInt(n.longValue())
+    case s if s.toString.forall(c => c.isDigit) => BigInt(s.toString)
+  }
+
+  def toBigDecimal(any: Any): BigDecimal = any match {
+    case bd: BigDecimal => bd
+    case bd: java.math.BigDecimal => BigDecimal(bd)
+    case n: Number => BigDecimal(n.doubleValue())
+    case s if s.toString.forall(c => c.isDigit || c == '.') => BigDecimal(s.toString)
+  }
+
+  def isNumber(any: Any): Boolean = any match {
+    case _: Number => true
+    case _: BigInt | _: BigDecimal | _: BigInteger | _: java.math.BigDecimal => true
+    case _ => false
+  }
+
+  private def typeOrdering(n: Any): Int = n match {
+    case _: Byte | _: java.lang.Byte => BYTE
+    case _: Short | _: java.lang.Short => SHORT
+    case _: Int | _: Integer => INT
+    case _: Long | _: java.lang.Long => LONG
+    case _: BigInt | _: BigInteger => BIG_INT
+    case _: Float | _: java.lang.Float => FLOAT
+    case _: Double | _: java.lang.Double => DOUBLE
+    case _: BigDecimal | _: java.math.BigDecimal => BIG_DECIMAL
+    case _ => NAN
+  }
+
+  private def arithmetic[T](left: T, op: Int, right: T)(implicit num: Numeric[T]): T = (op, num) match {
+    case (MExprParser.PLUS, n) => n.plus(left, right)
+    case (MExprParser.MINUS, n) => n.minus(left, right)
+    case (MExprParser.ASTERISK, n) => n.times(left, right)
+    case (MExprParser.SLASH, n: Fractional[T]) => n.div(left, right)
+    case (MExprParser.SLASH, n: Integral[T]) => n.quot(left, right)
+    case (MExprParser.PERCENT, n: Integral[T]) => n.rem(left, right)
   }
 }

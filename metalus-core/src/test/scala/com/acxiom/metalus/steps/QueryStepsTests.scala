@@ -30,7 +30,7 @@ class QueryStepsTests extends AnyFunSpec {
           .createDataReference(Some(properties), pipelineContext)
           .asInstanceOf[InMemoryDataReference]
         val updateRef = QueryingSteps.runSQL("select LAST_NAME, FIRST_NAME, GENDER from !stinkyPete WHERE LAST_NAME = 'Betancourt'",
-          "stinkyPete", dataRef, RetryPolicy(Some(Constants.ZERO)), pipelineContext)
+          "stinkyPete", dataRef, pipelineContext)
         val df = updateRef.execute.asInstanceOf[TablesawDataFrame]
         assert(df.count() == Constants.TWO)
         assert(df.schema.attributes.length == Constants.THREE)

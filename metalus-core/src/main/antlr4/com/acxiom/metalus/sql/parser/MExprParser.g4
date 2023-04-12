@@ -99,7 +99,7 @@ reservedRef
     ;
 
 object
-    : stepIdentifier L_PAREN (stepValue)* R_PAREN
+    : stepIdentifier L_PAREN (stepExpression (COMMA stepExpression)*)? R_PAREN
     ;
 
 comparisonOperator
