@@ -415,9 +415,23 @@
             },
             {
               "type": "text",
+              "name": "saveMode",
+              "required": false,
+              "value": "overwrite"
+            },
+            {
+              "type": "text",
               "name": "connector",
               "required": false,
               "value": "@BuildDestinationConnector"
+            },
+            {
+              "type": "object",
+              "name": "options",
+              "required": false,
+              "value": {
+                "createTableSql": "create table !{tempWriteTable}(order_num varchar(50), product_id varchar(50), product_name varchar(255), cost double, units int, customer_id int, first_name varchar(255), last_name varchar(255), email varchar(255), gender varchar(25), ein varchar(255), postal_code varchar(25), cc_type varchar(25), cc_num varchar(32))"
+              }
             },
             {
               "type": "object",
@@ -459,7 +473,7 @@
             "pkg": "com.acxiom.metalus.steps"
           },
           "nextSteps": [
-            "AliasInputDataRef"
+            "GetDestinationDataRef"
           ]
         },
         {
@@ -486,35 +500,33 @@
             "pkg": "com.acxiom.metalus.steps"
           },
           "nextSteps": [
-            "AliasInputDataRef"
+            "GetDestinationDataRef"
           ]
         },
         {
-          "id": "AliasInputDataRef",
+          "id": "GetDestinationDataRef",
           "params": [
             {
               "type": "text",
-              "name": "dataReference",
-              "required": true,
-              "value": "@SaveToJDBC || @CreateSourceDataReference"
+              "name": "connector",
+              "required": false,
+              "value": "@BuildDestinationConnector"
             },
             {
               "type": "object",
-              "name": "queryOperator",
+              "name": "properties",
               "required": false,
-              "className": "com.acxiom.metalus.sql.As",
               "value": {
-                "name": "as",
-                "alias": "tbl_src"
+                "dbtable": "!tempWriteTable"
               }
             }
           ],
-          "stepId": "931ad4e5-4501-4716-853a-30fbf8fb6090b",
+          "stepId": "6847964a-c1b6-41cb-ad5a-fb192e12b3d5",
           "type": "Pipeline",
-          "displayName": "Query DataReference",
-          "description": "Executes a script with the provided object and returns the result",
+          "displayName": "Create Data Reference",
+          "description": "Create a DataReference object given an DataConnector",
           "engineMeta": {
-            "command": "QueryingSteps.applyQueryOperation",
+            "command": "DataReferenceSteps.createDataReference",
             "pkg": "com.acxiom.metalus.steps"
           },
           "nextSteps": [
@@ -547,7 +559,7 @@
               "name": "dataReference",
               "type": "text",
               "required": false,
-              "value": "@SaveToJDBC || @CreateSourceDataReference"
+              "value": "@GetDestinationDataRef"
             },
             {
               "name": "connector",
@@ -589,7 +601,7 @@
               "name": "dataReference",
               "type": "text",
               "required": false,
-              "value": "@SaveToJDBC || @CreateSourceDataReference"
+              "value": "@GetDestinationDataRef"
             },
             {
               "name": "connector",
@@ -631,7 +643,7 @@
               "name": "dataReference",
               "type": "text",
               "required": false,
-              "value": "@SaveToJDBC || @CreateSourceDataReference"
+              "value": "@GetDestinationDataRef"
             },
             {
               "name": "connector",
@@ -673,7 +685,7 @@
               "name": "dataReference",
               "type": "text",
               "required": false,
-              "value": "@SaveToJDBC || @CreateSourceDataReference"
+              "value": "@GetDestinationDataRef"
             },
             {
               "name": "connector",

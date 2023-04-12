@@ -140,7 +140,7 @@
           "name": "properties",
           "required": false,
           "value": {
-            "dbtable": "!table"
+            "dbtable": "!tableName"
           }
         }
       ],

@@ -5,6 +5,7 @@ import com.acxiom.metalus.sql.jdbc.{BasicJDBCDataReference, JDBCDataReference, J
 import com.acxiom.metalus.sql.{Attribute, AttributeType, DataReferenceOrigin, Row, Schema}
 import com.acxiom.metalus.utils.DriverUtils
 import com.acxiom.metalus.{Constants, Credential, PipelineContext, PipelineException, UserNameCredential}
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.sql.ResultSetMetaData
 import java.util.Date
@@ -14,14 +15,20 @@ case class JDBCDataConnector(url: String,
                              credentialName: Option[String] = None,
                              credential: Option[Credential] = None,
                              defaultProperties: Option[Map[String, Any]] = None) extends DataConnector {
+  val logger: Logger = LoggerFactory.getLogger(getClass)
   override def createDataReference(properties: Option[Map[String, Any]], pipelineContext: PipelineContext): JDBCDataReference[_] = {
     val dbtable = {
-      val tmp = properties.flatMap(_.get("dbtable")).map(_.toString)
+      logger.info(s"${properties}")
+      val tmp = properties.flatMap(_.get("dbtable")).collect {
+        case o: Option[_] => o.mkString
+        case v => v.toString
+      }.mkString
+      logger.info(s"tmp is value = $tmp")
       if (tmp.isEmpty) {
         throw PipelineException(message = Some("dbtable must be provided to create a JDBCDataReference"),
           pipelineProgress = pipelineContext.currentStateInfo)
       }
-      tmp.get
+      tmp
     }
     getTable(dbtable, properties.map(_.mapValues(_.toString).filterKeys(_ != "dbtable").toMap[String, String]), pipelineContext)
   }

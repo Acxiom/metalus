@@ -57,9 +57,10 @@ final case class SparkDataReference(dataset: () => Dataset[_], origin: SparkData
       createAs(tableName, externalPath, options, connector)
     case CreateAs(tableName, _, false, externalPath, options, None) =>
       createAs(tableName, externalPath, options, origin.connector)
-    case Save(destination, Some(connector: SparkDataConnector), options) =>
+    case Save(destination, saveMode, Some(connector: SparkDataConnector), options) =>
       val writerOptions = SparkDataConnector.getWriteOptions(options)
-        .getOrElse(DataFrameWriterOptions(origin.readOptions.format, options = origin.readOptions.options))
+        .getOrElse(DataFrameWriterOptions(origin.readOptions.format,
+          saveMode = saveMode.getOrElse("overwrite"), options = origin.readOptions.options))
       val newReadOptions = DataFrameReaderOptions(writerOptions.format, writerOptions.options)
       copy(() => {
         val ds = toDataset

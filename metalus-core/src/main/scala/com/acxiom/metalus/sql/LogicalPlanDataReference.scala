@@ -97,7 +97,7 @@ trait SqlBuildingDataReference[T] extends LogicalPlanDataReference[T, String] {
       val table = if (view) "VIEW" else "TABLE"
       val withNoData = if (noData) " WITH NO DATA" else ""
       sql"CREATE $table $tableName\nAS $queryRef$withNoData"
-    case Save(destination, Some(connector: JDBCDataConnector), options) => sql"INSERT INTO $destination $queryRef"
+    case Save(destination, saveMode, Some(connector: JDBCDataConnector), options) => sql"INSERT INTO $destination $queryRef"
     case Truncate(tableName) => {
       case _ => s"TRUNCATE TABLE $tableName"
     }

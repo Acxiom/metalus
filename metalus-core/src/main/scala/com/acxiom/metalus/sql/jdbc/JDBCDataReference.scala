@@ -2,6 +2,7 @@ package com.acxiom.metalus.sql.jdbc
 
 import com.acxiom.metalus.PipelineContext
 import com.acxiom.metalus.sql._
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.sql.{Connection, ResultSet}
 import scala.collection.immutable.Queue
@@ -28,6 +29,8 @@ final case class BasicJDBCDataReference(baseExpression: () => String,
                                        )
   extends JDBCDataReference[JDBCResult] with ConvertableReference {
 
+  val logger: Logger = LoggerFactory.getLogger(getClass)
+
 
   override def initialReference: String = baseExpression()
 
@@ -41,6 +44,7 @@ final case class BasicJDBCDataReference(baseExpression: () => String,
           val ref = if (sub.toLowerCase.contains("select ")) s"($sub)" else sub
           s"SELECT * FROM $ref"
       }
+      logger.info(s"executing sql: $sql")
       val res = Try(stmt.execute(sql)).map {
         case true => JDBCResult(Some(stmt.getResultSet), None, Some(connection))
         case false =>

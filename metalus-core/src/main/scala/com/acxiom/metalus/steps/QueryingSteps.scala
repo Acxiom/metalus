@@ -65,13 +65,14 @@ object QueryingSteps {
   @StepParameters(Map(
     "dataReference" -> StepParameter(None, Some(true), None, None, None, None, Some("A data reference to save")),
     "destination" -> StepParameter(None, Some(true), None, None, None, None, Some("Destination to save to")),
-    "connector" -> StepParameter(None, Some(true), None, None, None, None, Some("The connector to save to")),
+    "saveMode" -> StepParameter(None, Some(false), None, None, None, None, Some("Mode to use while saving")),
+    "connector" -> StepParameter(None, Some(false), None, None, None, None, Some("The connector to save to")),
     "options" -> StepParameter(None, Some(false), None, None, None, None, Some("Save options map")),
     "converters" -> StepParameter(None, Some(false), None, None, None, None, Some("Converter list to use for DataReferences"))))
-  def save(dataReference: DataReference[_], destination: String,
+  def save(dataReference: DataReference[_], destination: String, saveMode: Option[String],
            connector: Option[Connector], options: Option[Map[String, Any]] = None,
            converters: Option[List[String]] = None, pipelineContext: PipelineContext): DataReference[_] =
-    applyQueryOperation(dataReference, Save(destination, connector, options), converters, pipelineContext)
+    applyQueryOperation(dataReference, Save(destination, saveMode, connector, options), converters, pipelineContext)
 
 
   @StepFunction("65506203-301b-41ee-ab00-601d270d6bb0",

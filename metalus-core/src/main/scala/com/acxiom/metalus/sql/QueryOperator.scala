@@ -34,7 +34,7 @@ case class As(alias: String) extends QueryOperator("As")
 
 // non-standard
 case class ConvertEngine(engine: String) extends QueryOperator("Convert")
-case class Save(destination: String, connector: Option[Connector], options: Option[Map[String, Any]]) extends QueryOperator("Save")
+case class Save(destination: String, saveMode: Option[String], connector: Option[Connector], options: Option[Map[String, Any]]) extends QueryOperator("Save")
 
 
 

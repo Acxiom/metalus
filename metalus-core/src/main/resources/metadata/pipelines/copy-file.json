@@ -468,12 +468,16 @@
           "description": "Sets the name of the tracking counter to COPY_FILE_RETRY."
         },
         {
-          "type": "integer",
-          "name": "maxRetries",
-          "required": true,
-          "value": 5,
-          "parameterType": "Int",
-          "description": "The maximum number of retries will be 5."
+          "type": "object",
+          "name": "retryPolicy",
+          "required": false,
+          "className": "com.acxiom.metalus.RetryPolicy",
+          "parameterType": "com.acxiom.metalus.RetryPolicy",
+          "value": {
+            "maximumRetries": 10,
+            "waitTimeMultipliesMS": 1000,
+            "useRetryCountAsTimeMultiplier":true
+          }
         },
         {
           "type": "result",
