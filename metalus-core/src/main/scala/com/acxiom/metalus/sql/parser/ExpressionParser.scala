@@ -1,21 +1,25 @@
 package com.acxiom.metalus.sql.parser
 
+import com.acxiom.metalus.api.HttpRestClient
 import com.acxiom.metalus.sql.Row
 import com.acxiom.metalus.sql.parser.ExpressionArithmetic.isNumber
 import com.acxiom.metalus.sql.parser.ExpressionParser.KeywordExecutor
-import com.acxiom.metalus.{MappingResolver, PipelineContext}
+import com.acxiom.metalus.{MappingResolver, PipelineContext, PipelineException}
 import com.acxiom.metalus.sql.parser.MExprParser._
 import com.acxiom.metalus.utils.ReflectionUtils
 import org.antlr.v4.runtime._
 import org.antlr.v4.runtime.atn.PredictionMode
 import org.antlr.v4.runtime.tree.RuleNode
+import org.json4s.{DefaultFormats, Formats}
+import org.json4s.native.Serialization
+import org.slf4j.LoggerFactory
 
 import java.math.BigInteger
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 import scala.math.Numeric.{BigDecimalAsIfIntegral, DoubleAsIfIntegral, FloatAsIfIntegral}
 import scala.math.ScalaNumber
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
 object ExpressionParser {
@@ -31,7 +35,9 @@ object ExpressionParser {
 
   def parse(expr: String, pipelineContext: PipelineContext)(implicit keywordExecutor: KeywordExecutor = default): Option[Any] = {
     val tree = parseToTree(expr)
-    new ExpressionParser(pipelineContext, keywordExecutor, None).visit(tree)
+    val failOnException = pipelineContext.getGlobal("strictExpressions")
+      .exists(_.toString.toLowerCase == "true")
+    new ExpressionParser(pipelineContext, keywordExecutor, None, failOnException).visit(tree)
   }
 
   private def parseToTree(expr: String): SingleStepExpressionContext = {
@@ -58,7 +64,10 @@ object ExpressionParser {
 }
 
 //noinspection ScalaStyle
-class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: KeywordExecutor, derefObj: Option[Any]) extends MExprParserBaseVisitor[Option[Any]] {
+class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: KeywordExecutor, derefObj: Option[Any],
+                       failOnError: Boolean) extends MExprParserBaseVisitor[Option[Any]] {
+
+  private val logger = LoggerFactory.getLogger(getClass)
 
   override def visitStringLit(ctx: StringLitContext): Option[Any] = Some(ctx.getText.stripPrefix("'").stripSuffix("'"))
 
@@ -80,6 +89,9 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
       keywordExecutor.lift(idents.head).flatten.map{ obj =>
         ReflectionUtils.extractField(obj, idents.drop(1).mkString("."))
       }
+    } match {
+      case Some(None) => None
+      case o => o
     }
   }
 
@@ -112,7 +124,7 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
     val value = visit(ctx.stepValueExpression())
     val label = visit(ctx.label).mkString
     val func: Any => Option[Any] = { v =>
-      new ExpressionParser(pipelineContext, keywordExecutor orElse { case `label` => Some(v) }, None)
+      new ExpressionParser(pipelineContext, keywordExecutor orElse { case `label` => Some(v) }, derefObj, failOnError)
         .visit(ctx.stepExpression())
     }
     value.collect {
@@ -128,17 +140,17 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
     value.map((_, ctx.name.getType)).collect{
       case (t: Traversable[Any], MExprParser.TO_ARRAY) => t.toArray
       case (t: Traversable[Any], MExprParser.TO_LIST) => t.toList
-      case (t: Traversable[Any], MExprParser.TO_MAP) if t.headOption.exists(_.isInstanceOf[(Any, Any)])=>
+      case (t: Traversable[Any], MExprParser.TO_MAP) if t.headOption.forall(_.isInstanceOf[(Any, Any)])=>
         t.asInstanceOf[Traversable[(Any, Any)]].toMap
       case (a: Array[Any], MExprParser.TO_ARRAY) => a
       case (a: Array[Any], MExprParser.TO_LIST) => a.toList
-      case (a: Array[Any], MExprParser.TO_MAP) if a.headOption.exists(_.isInstanceOf[(Any, Any)]) =>
+      case (a: Array[Any], MExprParser.TO_MAP) if a.headOption.forall(_.isInstanceOf[(Any, Any)]) =>
         a.asInstanceOf[Array[(Any, Any)]].toMap
     } orElse {
       ctx.name.getType match {
         case MExprParser.TO_ARRAY => Some(value.toArray)
         case MExprParser.TO_LIST => Some(value.toList)
-        case MExprParser.TO_MAP if value.exists(_.isInstanceOf[(Any, Any)]) =>
+        case MExprParser.TO_MAP if value.forall(_.isInstanceOf[(Any, Any)]) =>
           Some(value.asInstanceOf[Option[(Any, Any)]].toMap)
       }
     }
@@ -172,10 +184,17 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
       case s: Short => r.get(s.toInt)
       case a => r.get(a.toString)
     }
+    case unsupported if failOnError =>
+      throw PipelineException(
+        message = Some(s"Unable to execute expression [${ctx.getText}], object: [${unsupported.toString}] is not a collection."),
+        pipelineProgress = pipelineContext.currentStateInfo)
+    case unsupported =>
+      logger.warn(s"Unable to execute expression [${ctx.getText}], object: [${unsupported.toString}] is not a collection.")
+      None
   }
 
   override def visitDereference(ctx: DereferenceContext): Option[Any] = visit(ctx.left).flatMap { v =>
-    new ExpressionParser(pipelineContext, keywordExecutor, Some(v)).visit(ctx.right)
+    new ExpressionParser(pipelineContext, keywordExecutor, Some(v), failOnError).visit(ctx.right)
   }
 
   override def visitListValue(ctx: ListValueContext): Option[Any] =
@@ -189,12 +208,29 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
       .getOrElse(Map.empty[String, Any])
   }
 
+  override def visitUnaryArithmetic(ctx: UnaryArithmeticContext): Option[Any] = {
+    val op = ctx.operator.getText
+    visit(ctx.stepExpression()).flatMap {
+      case n if op == "-" && isNumber(n) => ExpressionArithmetic(op, n)
+      case n if op == "+" && isNumber(n) => Some(n)
+      case unsupported if failOnError =>
+        throw PipelineException(
+          message = Some(s"Unary operator [$op] does not support object: [${unsupported.toString}]."),
+          pipelineProgress = pipelineContext.currentStateInfo)
+      case unsupported =>
+        logger.warn(s"Unary operator [$op] does not support object: [${unsupported.toString}].")
+        None
+    }
+  }
+
   override def visitArithmetic(ctx: ArithmeticContext): Option[Any] = {
-    val op = ctx.operator.getType
+    val op = ctx.operator.getText
     val l = List(visit(ctx.left), visit(ctx.right)).flatten
     val func: (Any, Any) => Option[Any] = {
       case (left, right) if isNumber(left) && isNumber(right) => ExpressionArithmetic(left, op, right)
-      case (left, right) if op == MExprParser.PLUS => Some(left.toString + right.toString) // treat all else as string concatenation
+      case (left: Traversable[Any], right: Traversable[Any]) if op == "++" => Some(left ++ right)
+      case (left: Array[Any], right: Array[Any]) if op == "++" => Some(left ++ right)
+      case (left, right) if op == "+" => Some(left.toString + right.toString) // treat all else as string concatenation
       case _ => None // unsupported operation
     }
     l.reduceOption((l, r) => unwrap(func(l, r), recursive = false))
@@ -259,7 +295,46 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
       .map(_.asScala.map(visit).map(unwrap(_, recursive = false)).map(_.asInstanceOf[AnyRef]).toArray)
       .getOrElse(Array())
     ReflectionUtils.fastLoadClass(ctx.stepIdentifier().getText, args)
-  }.toOption
+  } match {
+    case Failure(err) if failOnError =>
+      throw PipelineException(message = Some(s"Failed to instantiate object: ${ctx.stepIdentifier().getText}"),
+        cause = err, pipelineProgress = pipelineContext.currentStateInfo)
+    case Failure(err) =>
+      logger.error(s"Exception caught attempting to instantiate object: ${ctx.stepIdentifier().getText}.", err)
+      None
+    case Success(res) => Some(res)
+  }
+
+  override def visitRestCall(ctx: RestCallContext): Option[Any] =
+    ExpressionRestCall(ctx.httpMethod.getType, visit(ctx.url).mkString, Option(ctx.body).flatMap(visit),
+      Option(ctx.headers).flatMap(visit), failOnError, pipelineContext)
+
+  override def visitMathFunction(ctx: MathFunctionContext): Option[Any] = {
+    val name = visit(ctx.identifier()).mkString.toLowerCase
+    val arguments = ctx.stepExpression().asScala.flatMap(visit).toList
+    val res = (name, arguments) match {
+      case ("abs", List(n))=> ExpressionArithmetic("abs", n)
+      case (n@("ceil"|"floor"|"round"), List(num)) if isNumber(num) =>
+        val d = toDouble(num)
+        Some(n match {
+          case "ceil" => d.ceil
+          case "floor" => d.floor
+          case "round" => d.round
+        })
+      case (n@("max"|"min"), List(left, right)) => ExpressionArithmetic(left, n, right)
+      case (n@("max"|"min"), List(num)) if isNumber(num) => Some(num) // special case to handle where one side is None
+      case _ => None
+    }
+    res match {
+      case None if failOnError =>
+        throw PipelineException(message = Some(s"No function found for call: [$name(${arguments.mkString(", ")})"),
+          pipelineProgress = pipelineContext.currentStateInfo)
+      case None =>
+        logger.warn(s"No function found for call: [$name(${arguments.mkString(", ")})")
+        None
+      case s => s
+    }
+  }
 
   override def defaultResult(): Option[Any] = None
 
@@ -279,6 +354,14 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
   private def toIntOption(ctx: RuleContext): Option[Int] = visit(ctx) map {
     case i: Int => i
     case a => a.toString.toInt
+  }
+
+  private def toDouble(a: Any): Double = a match {
+    case d: Double => d
+    case n: Number => n.doubleValue()
+    case bi: BigInt => bi.doubleValue()
+    case bd: BigDecimal => bd.doubleValue()
+    case s => s.toString.toDouble
   }
 
   @tailrec
@@ -321,10 +404,21 @@ private[parser] object ExpressionArithmetic {
   private val BIG_DECIMAL = 7
   private val NAN = Int.MaxValue
 
-  //  private implicit val ordering: Ordering[Any] = Ordering.by(typeOrdering)
+  // scalastyle:off cyclomatic.complexity
+  def apply(op: String, right: Any): Option[Any] = typeOrdering(right) match {
+    case BYTE => Some(unary[Byte](op, right.asInstanceOf[Number].byteValue()))
+    case SHORT => Some(unary[Short](op, right.asInstanceOf[Number].shortValue()))
+    case INT => Some(unary[Int](op, right.asInstanceOf[Number] intValue()))
+    case LONG => Some(unary[Long](op, right.asInstanceOf[Number].longValue()))
+    case BIG_INT => Some(unary[BigInt](op, toBigInt(right)))
+    case FLOAT => Some(unary[Float](op, right.asInstanceOf[Number].floatValue()))
+    case DOUBLE => Some(unary[Double](op, right.asInstanceOf[Number].doubleValue()))
+    case BIG_DECIMAL => Some(unary[BigDecimal](op, toBigDecimal(right)))
+    case NAN => None
+  }
 
   // scalastyle:off cyclomatic.complexity
-  def apply(left: Any, op: Int, right: Any): Option[Any] = {
+  def apply(left: Any, op: String, right: Any): Option[Any] = {
     val bound = (typeOrdering(left), typeOrdering(right)) match {
       case (BIG_INT, r) if r > BIG_INT => BIG_DECIMAL
       case (l, r) => math.max(l, r)
@@ -336,11 +430,11 @@ private[parser] object ExpressionArithmetic {
       case LONG => Some(arithmetic[Long](left.asInstanceOf[Number].longValue(), op, right.asInstanceOf[Number].longValue()))
       case BIG_INT => Some(arithmetic[BigInt](toBigInt(left), op, toBigInt(right)))
       // % needs integral instead of fractional, so specifying that manually for float, double and bigDecimal
-      case FLOAT if op == MExprParser.PERCENT =>
+      case FLOAT if op == "%"=>
         Some(arithmetic[Float](left.asInstanceOf[Number].floatValue(), op, right.asInstanceOf[Number].floatValue())(FloatAsIfIntegral))
-      case DOUBLE if op == MExprParser.PERCENT =>
+      case DOUBLE if op == "%" =>
         Some(arithmetic[Double](left.asInstanceOf[Number].doubleValue(), op, right.asInstanceOf[Number].doubleValue())(DoubleAsIfIntegral))
-      case BIG_DECIMAL if op == MExprParser.PERCENT =>
+      case BIG_DECIMAL if op == "%" =>
         Some(arithmetic[BigDecimal](toBigDecimal(left), op, toBigDecimal(right))(BigDecimalAsIfIntegral))
       case FLOAT => Some(arithmetic[Float](left.asInstanceOf[Number].floatValue(), op, right.asInstanceOf[Number].floatValue()))
       case DOUBLE => Some(arithmetic[Double](left.asInstanceOf[Number].doubleValue(), op, right.asInstanceOf[Number].doubleValue()))
@@ -381,12 +475,69 @@ private[parser] object ExpressionArithmetic {
     case _ => NAN
   }
 
-  private def arithmetic[T](left: T, op: Int, right: T)(implicit num: Numeric[T]): T = (op, num) match {
-    case (MExprParser.PLUS, n) => n.plus(left, right)
-    case (MExprParser.MINUS, n) => n.minus(left, right)
-    case (MExprParser.ASTERISK, n) => n.times(left, right)
-    case (MExprParser.SLASH, n: Fractional[T]) => n.div(left, right)
-    case (MExprParser.SLASH, n: Integral[T]) => n.quot(left, right)
-    case (MExprParser.PERCENT, n: Integral[T]) => n.rem(left, right)
+  private def unary[T](op: String, right: T)(implicit num: Numeric[T]): T = (op, num) match {
+    case ("-", n) => n.negate(right)
+    case ("abs", n) => n.abs(right)
   }
+
+  private def arithmetic[T](left: T, op: String, right: T)(implicit num: Numeric[T]): T = (op, num) match {
+    case ("+", n) => n.plus(left, right)
+    case ("-", n) => n.minus(left, right)
+    case ("*", n) => n.times(left, right)
+    case ("/", n: Fractional[T]) => n.div(left, right)
+    case ("/", n: Integral[T]) => n.quot(left, right)
+    case ("%", n: Integral[T]) => n.rem(left, right)
+    case ("max", n) => n.max(left, right)
+    case ("min", n) => n.min(left, right)
+  }
+}
+
+private[parser] object ExpressionRestCall {
+
+  private val logger = LoggerFactory.getLogger(getClass)
+
+  private implicit val formats: Formats = DefaultFormats
+  def apply(method: Int, url: String, body: Option[Any], headers: Option[Any],
+            failOnError: Boolean, pipelineContext: PipelineContext): Option[Any] = Try {
+    val client = HttpRestClient(url)
+    val finalHeaders = getHeaders(headers)
+    val useJson = body.exists(b => b.isInstanceOf[Map[_, _]] || b.isInstanceOf[List[_]])
+    method match {
+      case MExprParser.GET =>
+        client.getStringContent("", finalHeaders)
+      case MExprParser.PUT if useJson =>
+        client.putJsonContent("", Serialization.write(body.get), finalHeaders)
+      case MExprParser.POST if useJson=>
+        client.postJsonContent("", Serialization.write(body.get), finalHeaders)
+      case MExprParser.PATCH if useJson =>
+        client.patchJsonContent("", Serialization.write(body.get), finalHeaders)
+      case MExprParser.PUT =>
+        client.putStringContent("", body.mkString, headers = finalHeaders)
+      case MExprParser.POST =>
+        client.postStringContent("", body.mkString, headers = finalHeaders)
+      case MExprParser.PATCH =>
+        client.patchStringContent("", body.mkString, headers = finalHeaders)
+      case MExprParser.DELETE =>
+        client.delete("", finalHeaders)
+    }
+  } match {
+    case Failure(err) if failOnError =>
+      throw PipelineException(message = Some(s"Failed to make call to api: $url"),
+        cause = err, pipelineProgress = pipelineContext.currentStateInfo)
+    case Failure(err) =>
+      logger.error(s"Exception caught making call to api: $url.", err)
+      None
+    case Success(res) => Some(res)
+  }
+
+  private def getHeaders(headers: Option[Any]): Option[Map[String, String]] = headers.collect {
+    case m: Map[_, _] => m.collect {
+      case (k, Some(v)) => k.toString -> v.toString
+      case (k, v) if !v.isInstanceOf[Option[_]] => k.toString -> v.toString
+    }
+    case l: Traversable[_] => l.collect {
+      case Tuple2(k, Some(v)) => k.toString -> v.toString
+      case Tuple2(k, v) if !v.isInstanceOf[Option[_]] => k.toString -> v.toString
+    }.toMap
+  }.filter(_.nonEmpty)
 }

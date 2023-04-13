@@ -235,9 +235,15 @@ object ReflectionUtils {
       case method: MethodSymbol =>
         val methodVal = im.reflectMethod(method)
         methodVal.apply()
-      case term: TermSymbol =>
+      case term: TermSymbol if term.alternatives.length == 1 =>
         val fieldVal = im.reflectField(term)
         fieldVal.get
+      case term: TermSymbol =>
+        term.alternatives.collectFirst {
+          case m: MethodSymbol if m.paramLists.headOption.forall(_.isEmpty) => m
+        }.map(im.reflectMethod)
+          .map(_.apply())
+          .getOrElse(None)
       case _ => None
     }
   }

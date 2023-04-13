@@ -92,21 +92,11 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
   /**
     * Checks the path to determine whether it exists or not.
     *
-    * @param path The path to verify
-    * @return True if the path exists, otherwise false.
-    */
-  def exists(path: String): Boolean = {
-    exists(path, None)
-  }
-
-  /**
-    * Checks the path to determine whether it exists or not.
-    *
     * @param path    The path to verify
     * @param headers Optional headers to pass to the connection
     * @return True if the path exists, otherwise false.
     */
-  def exists(path: String, headers: Option[Map[String, String]]): Boolean = {
+  def exists(path: String, headers: Option[Map[String, String]] = None): Boolean = {
     val connection = this.openUrlConnection(path, headers)
     val exists = connection.getResponseCode != 404
     connection.disconnect()
@@ -116,21 +106,11 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
   /**
     * Get the size of the content at the given path.
     *
-    * @param path The path to the content
-    * @return size of the given content
-    */
-  def getContentLength(path: String): Long = {
-    getContentLength(path, None)
-  }
-
-  /**
-    * Get the size of the content at the given path.
-    *
     * @param path    The path to the content
     * @param headers Optional headers to pass to the connection
     * @return size of the given content
     */
-  def getContentLength(path: String, headers: Option[Map[String, String]]): Long = {
+  def getContentLength(path: String, headers: Option[Map[String, String]] = None): Long = {
     val connection = this.openUrlConnection(path, headers)
     val length = connection.getContentLength
     connection.disconnect()
@@ -140,21 +120,11 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
   /**
     * Get the last modified date of the content at the given path.
     *
-    * @param path The path to the content
-    * @return last modified date of the content
-    */
-  def getLastModifiedDate(path: String): Date = {
-    getLastModifiedDate(path, None)
-  }
-
-  /**
-    * Get the last modified date of the content at the given path.
-    *
     * @param path    The path to the content
     * @param headers Optional headers to pass to the connection
     * @return last modified date of the content
     */
-  def getLastModifiedDate(path: String, headers: Option[Map[String, String]]): Date = {
+  def getLastModifiedDate(path: String, headers: Option[Map[String, String]] = None): Date = {
     val connection = this.openUrlConnection(path, headers)
     val lastModified = new Date(connection.getLastModified)
     connection.disconnect()
@@ -179,24 +149,12 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
     *
     * @param path       The path to read data from
     * @param bufferSize The buffer size to apply to the stream
-    * @return A buffered input stream
-    */
-  def getInputStream(path: String,
-                     bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): InputStream = {
-    getInputStream(path, bufferSize, None)
-  }
-
-  /**
-    * Creates a buffered input stream for the provided path. Closing this stream will close the connection.
-    *
-    * @param path       The path to read data from
-    * @param bufferSize The buffer size to apply to the stream
     * @param headers    Optional headers to pass to the connection
     * @return A buffered input stream
     */
   def getInputStream(path: String,
-                     bufferSize: Int,
-                     headers: Option[Map[String, String]]): InputStream = {
+                     bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE,
+                     headers: Option[Map[String, String]] = None): InputStream = {
     new BufferedInputStream(HttpInputStream(this.openUrlConnection(path, headers)), bufferSize)
   }
 
@@ -205,24 +163,12 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
     *
     * @param path       The path where data will be written.
     * @param bufferSize The buffer size to apply to the stream
-    * @return
-    */
-  def getOutputStream(path: String,
-                      bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE): OutputStream = {
-    getOutputStream(path, bufferSize, None)
-  }
-
-  /**
-    * Creates a buffered output stream for the provided path. Closing this stream will close the connection.
-    *
-    * @param path       The path where data will be written.
-    * @param bufferSize The buffer size to apply to the stream
     * @param headers    Optional headers to pass to the connection
     * @return
     */
   def getOutputStream(path: String,
-                      bufferSize: Int,
-                      headers: Option[Map[String, String]]): OutputStream = {
+                      bufferSize: Int = HttpRestClient.DEFAULT_BUFFER_SIZE,
+                      headers: Option[Map[String, String]] = None): OutputStream = {
     val connection = this.openUrlConnection(path, headers)
     connection.setDoOutput(true)
     connection.setRequestProperty(Constants.CONTENT_TYPE_HEADER, "multipart/form-data")
@@ -232,36 +178,15 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
   /**
     * Retrieves the value at the provided path as a string.
     *
-    * @param path The extra path to retrieve content
-    * @return String content
-    */
-  def getStringContent(path: String): String = {
-    getStringContent(path, None)
-  }
-
-  /**
-    * Retrieves the value at the provided path as a string.
-    *
     * @param path    The extra path to retrieve content
     * @param headers Optional headers to pass to the connection
     * @return String content
     */
-  def getStringContent(path: String, headers: Option[Map[String, String]]): String = {
+  def getStringContent(path: String, headers: Option[Map[String, String]] = None): String = {
     val input = getInputStream(path, HttpRestClient.DEFAULT_BUFFER_SIZE, headers)
     val content = Source.fromInputStream(input).mkString
     input.close()
     content
-  }
-
-  /**
-    * Simple method to post string content.
-    *
-    * @param path The path to post the content
-    * @param body The body to post
-    * @return The String output of the command.
-    */
-  def postJsonContent(path: String, body: String): String = {
-    postJsonContent(path, body, None)
   }
 
   /**
@@ -272,19 +197,8 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
     * @param headers Optional headers to pass to the connection
     * @return The String output of the command.
     */
-  def postJsonContent(path: String, body: String, headers: Option[Map[String, String]]): String = {
+  def postJsonContent(path: String, body: String, headers: Option[Map[String, String]] = None): String = {
     upsertJsonContent(path, body, "POST", Constants.JSON_CONTENT_TYPE, headers)
-  }
-
-  /**
-    * Simple method to put string content.
-    *
-    * @param path The path to put the content
-    * @param body The body to put
-    * @return The String output of the command.
-    */
-  def putJsonContent(path: String, body: String): String = {
-    putJsonContent(path, body, None)
   }
 
   /**
@@ -295,22 +209,20 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
     * @param headers Optional headers to pass to the connection
     * @return The String output of the command.
     */
-  def putJsonContent(path: String, body: String, headers: Option[Map[String, String]]): String = {
+  def putJsonContent(path: String, body: String, headers: Option[Map[String, String]] = None): String = {
     upsertJsonContent(path, body, "PUT", Constants.JSON_CONTENT_TYPE, headers)
   }
 
   /**
-    * Simple method to post string content.
-    *
-    * @param path        The path to post the content
-    * @param body        The body to post
-    * @param contentType The content type to post. Defaults to JSON.
-    * @return The String output of the command.
-    */
-  def postStringContent(path: String,
-                        body: String,
-                        contentType: String = Constants.JSON_CONTENT_TYPE): String = {
-    postStringContent(path, body, contentType, None)
+   * Simple method to patch string content.
+   *
+   * @param path    The path to put the content
+   * @param body    The body to put
+   * @param headers Optional headers to pass to the connection
+   * @return The String output of the command.
+   */
+  def patchJsonContent(path: String, body: String, headers: Option[Map[String, String]] = None): String = {
+    upsertJsonContent(path, body, "PATCH", Constants.JSON_CONTENT_TYPE, headers)
   }
 
   /**
@@ -324,8 +236,8 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
     */
   def postStringContent(path: String,
                         body: String,
-                        contentType: String,
-                        headers: Option[Map[String, String]]): String = {
+                        contentType: String = Constants.JSON_CONTENT_TYPE,
+                        headers: Option[Map[String, String]] = None): String = {
     upsertJsonContent(path, body, "POST", contentType, headers)
   }
 
@@ -335,38 +247,30 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
     * @param path        The path to put the content
     * @param body        The body to put
     * @param contentType The content type to put. Defaults to JSON.
-    * @return The String output of the command.
-    */
-  def putStringContent(path: String,
-                       body: String,
-                       contentType: String = Constants.JSON_CONTENT_TYPE): String = {
-    putStringContent(path, body, contentType, None)
-  }
-
-  /**
-    * Simple method to put string content.
-    *
-    * @param path        The path to put the content
-    * @param body        The body to put
-    * @param contentType The content type to put. Defaults to JSON.
     * @param headers     Optional headers to pass to the connection
     * @return The String output of the command.
     */
   def putStringContent(path: String,
                        body: String,
-                       contentType: String,
-                       headers: Option[Map[String, String]]): String = {
+                       contentType: String = Constants.JSON_CONTENT_TYPE,
+                       headers: Option[Map[String, String]] = None): String = {
     upsertJsonContent(path, body, "PUT", contentType, headers)
   }
 
   /**
-    * Attempts to delete the provided path.
-    *
-    * @param path The path to delete.
-    * @return True if the path could be deleted.
-    */
-  def delete(path: String): Boolean = {
-    delete(path, None)
+   * Simple method to patch string content.
+   *
+   * @param path        The path to put the content
+   * @param body        The body to put
+   * @param contentType The content type to put. Defaults to JSON.
+   * @param headers     Optional headers to pass to the connection
+   * @return The String output of the command.
+   */
+  def patchStringContent(path: String,
+                       body: String,
+                       contentType: String = Constants.JSON_CONTENT_TYPE,
+                       headers: Option[Map[String, String]] = None): String = {
+    upsertJsonContent(path, body, "PATCH", contentType, headers)
   }
 
   /**
@@ -376,7 +280,7 @@ class HttpRestClient(hostUrl: String, authorization: Option[Authorization], allo
     * @param headers Optional headers to pass to the connection
     * @return True if the path could be deleted.
     */
-  def delete(path: String, headers: Option[Map[String, String]]): Boolean = {
+  def delete(path: String, headers: Option[Map[String, String]] = None): Boolean = {
     val connection = this.openUrlConnection(path, headers)
     connection.setDoOutput(true)
     connection.setRequestProperty(Constants.CONTENT_TYPE_HEADER, "application/x-www-form-urlencoded")
