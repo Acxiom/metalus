@@ -73,6 +73,7 @@ class ExpressionParserTests extends AnyFunSpec {
       ("abs(-2.2)", 2.2),
       ("min(1, 0)", 0),
       ("max(5, 2.1)", 5),
+      ("min(!four, !notHere)", 4),
       ("ceil(5.4)", 6.0),
       ("floor(5.6)", 5.0),
       ("round(5.4)", 5.0),

@@ -322,6 +322,7 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
           case "round" => d.round
         })
       case (n@("max"|"min"), List(left, right)) => ExpressionArithmetic(left, n, right)
+      case (n@("max"|"min"), List(num)) if isNumber(num) => Some(num) // special case to handle where one side is None
       case _ => None
     }
     res match {
