@@ -110,14 +110,6 @@ class ExpressionParserTests extends AnyFunSpec {
       assert(ExpressionParser.parse(expr, pipelineContext).exists(_.toString == "true"))
     }
 
-    it("moo") {
-      val res = ExpressionParser.parse(
-        "GET('http://k8s-default-processp-dc4a33117f-830533697.us-east-1.elb.amazonaws.com/api/v1/health-check/ready')",
-        pipelineContext
-      )
-      println(res.get)
-    }
-
     it("should throw a parse exception on illegal syntax") {
       val exe = intercept[ParseException] {
         ExpressionParser.parse("<BAD SYNTAX>", pipelineContext)
@@ -144,10 +136,6 @@ class JavaStyle(s: String, s2: String) {
 
 case class ScalaStyle(s1: String, l1: Long, o1: Option[Any], o2: Option[Int] = Some(2), d: Option[String] = Some("d")) {
   def mkString: String = s"$s1,$l1,${o1.mkString},${o2.getOrElse("o2")},${d.mkString}"
-}
-
-class Moo(){
-  val m: String = "moo"
 }
 
 class ApiCall(url: String, params: Map[_, _]) {
