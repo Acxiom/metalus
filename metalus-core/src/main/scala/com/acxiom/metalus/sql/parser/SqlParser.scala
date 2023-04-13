@@ -359,6 +359,8 @@ class DataReferenceBuilder(override val tokenStream: TokenStream, pipelineContex
       case (None, Some(agg)) => agg
       case (Some(agg), None) => agg
       case (None, None) => None.orNull
+      case (Some(l), Some(r)) => // this should never happen at runtime, and indicate a missed case in the visitor logic
+        throw new IllegalStateException(s"Encountered unhandled join of dataReferences: [$l] and [$r]")
     }
 
 }
