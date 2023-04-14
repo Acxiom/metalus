@@ -29,7 +29,8 @@ A standard implementation of the [Session Context](#session-context) interface e
 This implementation will interact with the [Session Convertor](#session-storage) and [Session Storage](#session-storage)
 interfaces. As the set methods are called, the list of convertors will be consulted to serialize any objects and the storage
 will be called to handle storing session information. When loading a previous session, this implementation will attempt
-to restore state from the latest _runId_ available.
+to restore state from the latest _runId_ available. The _existingSessionId_ can be used to set the id to make it easier
+for external processes to track state.
 ## Session Convertor
 The session convertor interface defines the methods required to serialize/deserialize objects. Each implementation should
 specify a name that is unique as this will be tagged with the stored data to make it is easier to deserialize objects.

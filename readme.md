@@ -87,3 +87,7 @@ additional dependency:
 ### [Metalus Utilities](metalus-utils/readme.md)
 The Metalus Utilities project provides tools for extracting step, pipeline and application metadata from the standard and
 extended libraries. The dependency resolution tool provides the ability to build a classpath from one or more of the libraries.
+
+### [Metalus Agent](metalus-agent/readme.md)
+The Metalus Agent is a containerized service used to run Metalus applications by calling a rest endpoint. It is intended
+that this service be hosted in Kubernetes so that multiple instances may be running to distribute load. 
