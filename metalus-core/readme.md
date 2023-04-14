@@ -4,7 +4,6 @@
 The core library provides the foundational components required to build application workflows using JSON. Each application
 is made up of a root pipeline, contexts, mapped parameters, pipeline templates, an event listener and a parameter mapper.
 
-
 The primary goal of the Metalus flow engine is to provide the ability to build workflows that are reusable rather than
 specific to a single task. One such task is to copy a file. These steps in this task would be:
 * Verify source file exists
@@ -20,7 +19,7 @@ to allow building these reusable workflows by combining existing steps (and othe
 
 The next issue is that when copying a file the file system forces the use of different commands. HDFS, S3, GCS, SFTP and
 the local file system all uses different commands. Metalus offers a [connectors](#connectors) API to abstract the 
-filesystem until runtime allowing the same pipeline to be used regardless of file system. This API also allows copying
+file system until runtime allowing the same pipeline to be used regardless of file system. This API also allows copying
 from one file system to another without having to write a new pipeline.
 
 As with steps and pipelines, [applications](#application) also may be made reusable by mapping in command line parameters

@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: metalus-agent
+  name: metalus-agent
+  namespace: metalus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metalus-agent
+  template:
+    metadata:
+      labels:
+        app: metalus-agent
+    spec:
+      containers:
+        - name: metalus-agent
+          image: metalus-agent:latest
+          imagePullPolicy: Never
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health-check/ready
+              port: http
+            periodSeconds: 10
+            failureThreshold: 10
+            initialDelaySeconds: 20
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health-check/alive
+              port: http
+            periodSeconds: 10
+            failureThreshold: 10
+            initialDelaySeconds: 20
+          ports:
+            - name: http
+              containerPort: 9000
+              protocol: TCP
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: REQUIRED_CONTACT_POINT_NR
+              value: "3"
+            - name: APPLICATION_SECRET
+              value: "J4xHYzGtAfkTj4w5GDrq0ytvL3lz24PRMHGET/Kr7ds="

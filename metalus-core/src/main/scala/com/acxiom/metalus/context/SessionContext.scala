@@ -203,7 +203,7 @@ case class DefaultSessionContext(override val existingSessionId: Option[String],
         if (group._2.length == 1) {
           group._2.head
         } else {
-          group._2.maxBy(_.runId)
+          group._2.maxBy(_.runId) // Should never get here with the JDBC storage since it overwrite for each run
         }
       })
       val resultsMap = resultGroups.foldLeft(Map[String, PipelineStepResponse]())((responseMap, result) => {
@@ -960,6 +960,7 @@ case class JDBCSessionStorage(connectionString: String,
    */
   override def saveStepResult(sessionRecord: StepResultSessionRecord): Boolean = {
     // Table --> |SESSION_ID|DATE|RUN_ID|CONVERTOR|RESULT_KEY|NAME|STATE
+    // Not including RUN_ID since we will want to overwrite previous results.
     val sharedWhere =
       s"""WHERE SESSION_ID = '${sessionRecord.sessionId}'
          |AND RESULT_KEY = '${sessionRecord.resultKey}'
