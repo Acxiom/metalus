@@ -3,7 +3,7 @@ package com.acxiom.metalus.utils
 import com.acxiom.metalus._
 import org.slf4j.LoggerFactory
 
-import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.{Constructor, InvocationTargetException}
 import scala.annotation.tailrec
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
@@ -12,6 +12,43 @@ import scala.util.{Failure, Success, Try}
 
 object ReflectionUtils {
   private val logger = LoggerFactory.getLogger(getClass)
+
+  /**
+   * This methods expects args to already be properly ordered.
+   * It uses java reflection and is much faster than scala reflection, but loses a lot of the checks that loadClass
+   * performs. It will look up default values if they exist. This method will not handle exceptions thrown from failing
+   * to find a proper constructor match.
+   *
+   * @param className name of the class to instantiate.
+   * @param args      list of arguments for the constructor, can be empty.
+   * @return a new instance of the class indicated by className.
+   */
+  def fastLoadClass(className: String, args: Array[AnyRef]): Any = {
+    val clazz = Class.forName(className)
+    val ctors = clazz.getConstructors
+    val (ctor, finalArgs) = ctors.collectFirst{
+      case ctor if isAssignableFrom(ctor, args) =>
+        (ctor, args)
+    } orElse {
+      val defaultMethods = clazz.getMethods.collect {
+        case m if m.getName.startsWith("$lessinit$greater$default$") =>
+          m.getName.stripPrefix("$lessinit$greater$default$").toInt -> m
+      }.toMap
+      if (defaultMethods.nonEmpty) {
+        ctors.collectFirst {
+          case ctor if isAssignableFrom(ctor, args, partial = true) =>
+            val newArgs = args ++ (args.length until ctor.getParameterTypes.length)
+              .map(i => defaultMethods(i + 1).invoke(clazz))
+            (ctor, newArgs)
+        }
+      } else {
+        None
+      }
+    } getOrElse {
+      (ctors.maxBy(_.getParameterTypes.length), args)
+    }
+    ctor.newInstance(finalArgs: _*)
+  }
 
   /**
    * This function will attempt to find and instantiate the named class with the given parameters.
@@ -198,9 +235,15 @@ object ReflectionUtils {
       case method: MethodSymbol =>
         val methodVal = im.reflectMethod(method)
         methodVal.apply()
-      case term: TermSymbol =>
+      case term: TermSymbol if term.alternatives.length == 1 =>
         val fieldVal = im.reflectField(term)
         fieldVal.get
+      case term: TermSymbol =>
+        term.alternatives.collectFirst {
+          case m: MethodSymbol if m.paramLists.headOption.forall(_.isEmpty) => m
+        }.map(im.reflectMethod)
+          .map(_.apply())
+          .getOrElse(None)
       case _ => None
     }
   }
@@ -296,26 +339,23 @@ object ReflectionUtils {
   }
 
   // noinspection ScalaStyle
-  private def isAssignableFrom(paramClass: Class[_], value: Any): Boolean = {
-    value match {
-      case b: java.lang.Boolean =>
-        paramClass.isAssignableFrom(b.getClass) || paramClass.isAssignableFrom(b.asInstanceOf[Boolean].getClass)
-      case i: java.lang.Integer =>
-        paramClass.isAssignableFrom(i.getClass) || paramClass.isAssignableFrom(i.asInstanceOf[Int].getClass)
-      case l: java.lang.Long =>
-        paramClass.isAssignableFrom(l.getClass) || paramClass.isAssignableFrom(l.asInstanceOf[Long].getClass)
-      case s: java.lang.Short =>
-        paramClass.isAssignableFrom(s.getClass) || paramClass.isAssignableFrom(s.asInstanceOf[Short].getClass)
-      case c: java.lang.Character =>
-        paramClass.isAssignableFrom(c.getClass) || paramClass.isAssignableFrom(c.asInstanceOf[Char].getClass)
-      case d: java.lang.Double =>
-        paramClass.isAssignableFrom(d.getClass) || paramClass.isAssignableFrom(d.asInstanceOf[Double].getClass)
-      case f: java.lang.Float =>
-        paramClass.isAssignableFrom(f.getClass) || paramClass.isAssignableFrom(f.asInstanceOf[Float].getClass)
-      case by: java.lang.Byte =>
-        paramClass.isAssignableFrom(by.getClass) || paramClass.isAssignableFrom(by.asInstanceOf[Byte].getClass)
-      case _ => paramClass.isAssignableFrom(value.getClass)
-    }
+  private def isAssignableFrom(paramClass: Class[_], value: Any): Boolean = (paramClass, value) match {
+    case (c, _: java.lang.Byte) if c == classOf[Byte] => true
+    case (c, _: java.lang.Byte | _: java.lang.Short) if c == classOf[Short] => true
+    case (c, _: java.lang.Byte | _: java.lang.Short | _: java.lang.Integer) if c == classOf[Int] => true
+    case (c, _: java.lang.Byte | _: java.lang.Short | _: java.lang.Integer | _: java.lang.Long) if c == classOf[Long] => true
+    case (c, _: java.lang.Byte | _: java.lang.Short | _: java.lang.Integer | _: java.lang.Long |
+                           _: java.lang.Float) if c == classOf[Float] => true
+    case (c, _: java.lang.Byte | _: java.lang.Short | _: java.lang.Integer | _: java.lang.Long |
+                            _: java.lang.Float | _: java.lang.Double) if c == classOf[Double] => true
+    case (c, _: java.lang.Boolean) if c == classOf[Boolean] => true
+    case (c, _: java.lang.Character) if c == classOf[Char] => true
+    case (c, v) => c.isAssignableFrom(v.getClass)
+  }
+
+  private def isAssignableFrom(ctor: Constructor[_], args: Array[AnyRef], partial: Boolean = false): Boolean = {
+    val lengthCheck = if (partial) ctor.getParameterTypes.length >= args.length else ctor.getParameterTypes.length == args.length
+    lengthCheck && args.zipWithIndex.forall { case (a, i) => isAssignableFrom(ctor.getParameterTypes()(i), a) }
   }
 
   private def getFinalValue(paramType: ru.Type, value: Any): Any = {

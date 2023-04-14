@@ -24,12 +24,12 @@ singleStepExpression
 stepExpression
     : stepValueExpression                                                                        #stepValueExpr
     | NOT stepExpression                                                                         #booleanNot
+    | operator=(PLUS|MINUS) stepExpression                                                       #unaryArithmetic
     | left=stepExpression operator=(ASTERISK|SLASH|PERCENT) right=stepExpression                 #arithmetic
-    | left=stepExpression operator=(PLUS|MINUS) right=stepExpression                             #arithmetic
+    | left=stepExpression operator=(PLUS|MINUS|PLUSPLUS) right=stepExpression                    #arithmetic
     | left=stepExpression operator=(EQ|NEQ|LT|LTE|GT|GTE) right=stepExpression                   #booleanExpr
     | left=stepExpression operator=(AND|OR) right=stepExpression                                 #booleanExpr
     | IF L_PAREN ifExpr=stepExpression R_PAREN then=stepExpression ELSE elseExpr=stepExpression  #ifStatement
-    | L_PAREN stepExpression R_PAREN                                                             #subExpr
     | left=stepExpression operator=CONCAT right=stepExpression                                   #stepConcat
     ;
 
@@ -38,6 +38,7 @@ stepValueExpression
     | stepValueExpression DOT name=(EXISTS|FILTER|FIND|MAP|REDUCE) L_PAREN label=identifier ARG function=stepExpression R_PAREN  #lambda
     | stepValueExpression DOT name=(TO_ARRAY|TO_LIST|TO_MAP)  #toCollection
     | stepValueExpression L_BRACKET stepExpression R_BRACKET  #collectionAccess
+    | L_PAREN stepExpression R_PAREN                          #subExpr
     | left=stepValueExpression DOT right=stepValueExpression  #dereference
     ;
 
@@ -63,6 +64,8 @@ stepValue
     | L_CURLY (mapParam (COMMA mapParam)*)? R_CURLY        #mapValue
     | SOME L_PAREN stepExpression R_PAREN                  #someValue
     | NONE                                                 #noneValue
+    | restCall                                             #apiCall
+    | mathFunction                                         #mathFunc
     | object                                               #newObject
     | stepIdentifier                                       #variableAccess
     | reservedRef                                          #variableAccess
@@ -99,7 +102,17 @@ reservedRef
     ;
 
 object
-    : stepIdentifier L_PAREN (stepValue)* R_PAREN
+    : stepIdentifier L_PAREN (stepExpression (COMMA stepExpression)*)? R_PAREN
+    ;
+
+restCall
+    : httpMethod=(GET|PUT|POST|PATCH|DELETE) L_PAREN url=stepExpression
+       (COMMA body=stepExpression)?
+       (COMMA headers=stepExpression)? R_PAREN
+    ;
+
+mathFunction
+    : identifier L_PAREN (stepExpression (COMMA stepExpression)*)? R_PAREN
     ;
 
 comparisonOperator
@@ -110,10 +123,10 @@ nonReserved
     : ADD | ADMIN | ALL | ALTER | ANALYZE | AND | ANTI | ANY | ARRAY | ASC | AT
     | BERNOULLI | BETWEEN | BY
     | CALL | CALLED | CASCADE | CATALOGS | COLUMN | COLUMNS | COMMENT | COMMIT | COMMITTED | CURRENT | CURRENT_ROLE
-    | DATA | DATE | DAY | DEFINER | DESC | DETERMINISTIC | DISTRIBUTED
+    | DATA | DATE | DAY | DEFINER | DELETE | DESC | DETERMINISTIC | DISTRIBUTED
     | EXCLUDING | EXECUTE | EXISTS | EXPLAIN | EXTERNAL
     | FETCH | FILTER | FIND | FIRST | FOLLOWING | FORMAT | FUNCTION | FUNCTIONS
-    | GRANT | GRANTED | GRANTS | GRAPHVIZ
+    | GET | GRANT | GRANTED | GRANTS | GRAPHVIZ
     | HOUR
     | IF | IGNORE | INCLUDING | INPUT | INTERVAL | INVOKER | IO | ISOLATION
     | JSON
@@ -121,7 +134,7 @@ nonReserved
     | MAP | MATERIALIZED | MINUTE | MONTH
     | NAME | NFC | NFD | NFKC | NFKD | NO | NONE | NULLIF | NULLS
     | OFFSET | ONLY | OPTION | ORDINALITY | OUTPUT | OVER
-    | PARTITION | PARTITIONS | POSITION | PRECEDING | PRIVILEGES | PROPERTIES
+    | PARTITION | PARTITIONS | PATCH | POSITION | POST | PRECEDING | PRIVILEGES | PROPERTIES | PUT
     | RANGE | READ | REDUCE | REFRESH | RENAME | REPEATABLE | REPLACE | RESET | RESPECT | RESTRICT | RETURN | RETURNS
     | REVOKE | RIGHT | ROLE | ROLES | ROLLBACK | ROW | ROWS
     | SCHEMA | SCHEMAS | SECOND | SECURITY | SERIALIZABLE | SESSION | SET | SETS | SQL

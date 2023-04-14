@@ -18,19 +18,12 @@ object QueryingSteps {
   @StepParameters(Map(
     "dataReference" -> StepParameter(None, Some(true), None, None, None, None, Some("A data reference to query")),
     "dataRefName" -> StepParameter(None, Some(false), None, None, None, None, Some("The name of the global that should contain this DataReference")),
-    "retryPolicy" -> StepParameter(None, Some(false), None, None, None, None, Some("An optional retry policy")),
     "sql" -> StepParameter(None, Some(true), None, None, None, None, Some("The SQL query in the form of a string."))))
   def runSQL(sql: String,
              dataRefName: String,
              dataReference: DataReference[_],
-             retryPolicy: RetryPolicy = RetryPolicy(),
              pipelineContext: PipelineContext): DataReference[_] = {
-    val steps = SqlParser.parse(sql)
-    if (steps.isEmpty) {
-      throw DriverUtils.buildPipelineException(Some(s"Provided SQL did not result in valid execution steps: $sql"), None, Some(pipelineContext))
-    }
-    val pipeline = Pipeline(Some("GENERATED_PIPELINE"), Some("GENERATED_PIPELINE"), Some(steps))
-    processQueryPipeline(pipeline, retryPolicy, 0, pipelineContext.setGlobal(dataRefName, dataReference))
+    DataReference.sql(sql, pipelineContext.setGlobal(dataRefName, dataReference))
   }
 
   @StepFunction("8ab9536d-37c8-41ec-a90f-c1cc754928bf",
@@ -104,6 +97,7 @@ object QueryingSteps {
     }
   }
 
+  // Not used, but keeping this for now, may use it in the future
   private def processQueryPipeline(pipeline: Pipeline,
                                    retryPolicy: RetryPolicy = RetryPolicy(),
                                    retryCount: Int = 0,

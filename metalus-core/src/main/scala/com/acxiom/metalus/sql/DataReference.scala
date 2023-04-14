@@ -1,12 +1,17 @@
 package com.acxiom.metalus.sql
 
 import com.acxiom.metalus.connectors.DataConnector
+import com.acxiom.metalus.sql.parser.SqlParser
 import com.acxiom.metalus.{PipelineContext, PipelineException}
 import com.acxiom.metalus.utils.ReflectionUtils
 
 import scala.collection.immutable.Queue
 import scala.util.Try
 
+object DataReference {
+  def sql(text: String, pipelineContext: PipelineContext): DataReference[_] =
+    SqlParser.parseToDataReference(text, pipelineContext)
+}
 trait DataReference[+T] {
 
   type QueryFunction = PartialFunction[QueryOperator, DataReference[_]]
