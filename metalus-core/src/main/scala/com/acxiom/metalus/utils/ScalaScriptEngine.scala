@@ -4,6 +4,7 @@ import com.acxiom.metalus.PipelineContext
 
 import scala.reflect.runtime.universe
 import scala.tools.reflect.ToolBox
+import scala.util.Try
 
 class ScalaScriptEngine extends ScriptEngine {
 
@@ -94,15 +95,19 @@ class ScalaScriptEngine extends ScriptEngine {
 
   private def getValString(binding: Binding): String = {
     val finalType = binding.`type`.getOrElse(deriveBindingType(binding))
-    if (finalType == "Any") {
-      s"""val ${binding.name} = bindings.get.getBinding("${binding.name}").value"""
-    } else {
-      s"""val ${binding.name} = bindings.get.getBinding("${binding.name}").value.asInstanceOf[$finalType]"""
+    val name = binding.name
+    (finalType.toLowerCase, binding.function) match {
+      case ("any", true) =>
+        s"""lazy val $name = bindings.get.getBinding("${binding.name}").value.asInstanceOf[() => Any]()"""
+      case (_, true) =>
+        s"""lazy val $name = bindings.get.getBinding("${binding.name}").value.asInstanceOf[() => $finalType]()"""
+      case ("any", false) => s"""val ${binding.name} = bindings.get.getBinding("${binding.name}").value"""
+      case (_, false) =>
+        s"""val ${binding.name} = bindings.get.getBinding("${binding.name}").value.asInstanceOf[$finalType]"""
     }
   }
 
-  private def deriveBindingType(binding: Binding): String = {
-    try {
+  private def deriveBindingType(binding: Binding): String = Try{
       if (EnumChecker.isEnumValue(binding.value)) {
         "Any"
       } else {
@@ -114,16 +119,13 @@ class ScalaScriptEngine extends ScriptEngine {
           s"$className[${sym.typeParams.map(_ => "Any").mkString(",")}]"
         }
       }
-    } catch {
-      case _: Throwable => "Any"
-    }
-  }
+  }.toOption.getOrElse("Any")
 }
 
 case class Bindings(bindings: Map[String, Binding] = Map[String, Binding]()) {
 
-  def setBinding(name: String, value: Any, `type`: Option[String] = None): Bindings = {
-    this.copy(bindings = this.bindings ++ Map[String, Binding](name -> Binding(name, value, `type`)))
+  def setBinding(name: String, value: Any, `type`: Option[String] = None, function: Boolean = false): Bindings = {
+    this.copy(bindings = this.bindings ++ Map[String, Binding](name -> Binding(name, value, `type`, function)))
   }
 
   def getBinding(name: String): Binding = {
@@ -131,7 +133,7 @@ case class Bindings(bindings: Map[String, Binding] = Map[String, Binding]()) {
   }
 }
 
-case class Binding(name: String, value: Any, `type`: Option[String] = None)
+case class Binding(name: String, value: Any, `type`: Option[String] = None, function: Boolean = false)
 
 private[metalus] object EnumChecker extends Enumeration {
   def isEnumValue(value: Any): Boolean = {

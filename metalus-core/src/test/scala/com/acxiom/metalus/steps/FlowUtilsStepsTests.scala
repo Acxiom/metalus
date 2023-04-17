@@ -12,7 +12,7 @@ import scala.collection.mutable.ListBuffer
 class FlowUtilsStepsTests extends AnyFunSpec {
   val STRING_STEP: PipelineStep = PipelineStep(Some("STRINGSTEP"), Some("String Step"), None, Some("Pipeline"),
     Some(List(Parameter(Some("text"), Some("value"), Some(true), None, Some("lowercase")))),
-    Some("RETRY"), None, None, None, None, None, None, None, Some(EngineMeta(Some("StringSteps.toUpperCase"))))
+    Some("RETRY"), None, None, None, None, None, None, None, None, Some(EngineMeta(Some("StringSteps.toUpperCase"))))
 
   val RETRY_STEP: PipelineStep = PipelineStep(Some("RETRY"), Some("Retry Step"), None, Some("branch"),
     Some(List(Parameter(Some("text"), Some("counterName"), Some(true), None, Some("TEST_RETRY_COUNTER")),
@@ -20,7 +20,7 @@ class FlowUtilsStepsTests extends AnyFunSpec {
         Some(Map("maximumRetries" -> Constants.FIVE, "waitTimeMultipliesMS" -> Constants.ONE)),
         className = Some("com.acxiom.metalus.RetryPolicy")),
       Parameter(Some("result"), Some("retry"), Some(true), None, Some("STRINGSTEP")))),
-    None, None, None, None, None, None, None, None, Some(EngineMeta(Some("FlowUtilsSteps.simpleRetry"))))
+    None, None, None, None, None, None, None, None, None, Some(EngineMeta(Some("FlowUtilsSteps.simpleRetry"))))
 
   describe("FlowUtilsSteps") {
     describe("Retry") {
