@@ -61,6 +61,10 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "log4j-over-slf4j" % "1.7.32",
 //  "org.slf4j" % "slf4j-api" % "2.0.6",
 //  "ch.qos.logback" % "logback-core" % "1.3.4",
+
+  "org.json4s" %% "json4s-native" % "3.6.7",
+  "org.json4s" %% "json4s-ext" % "3.6.7",
+
   "com.github.tototoshi" %% "play-json4s-native" % "0.10.0",
   "com.github.tototoshi" %% "play-json4s-test-native" % "0.10.0" % Test,
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test,

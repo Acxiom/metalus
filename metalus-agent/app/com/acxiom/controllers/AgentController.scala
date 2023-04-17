@@ -13,9 +13,10 @@ class AgentController @Inject()(json4s: Json4s,
                                 val controllerComponents: ControllerComponents,
                                 val config: Configuration) extends MetalusAgentBaseController {
   implicit val json4sFormats: Formats = org.json4s.DefaultFormats
-  def execute(): Action[JValue] = Action(json4s.json) { implicit request =>
-    request.extract[ApplicationRequest]{ app =>
-      Ok(AgentUtils.executeRequest(app, config))
+  def execute(): Action[JValue] = Action(json4s.tolerantJson) { implicit request =>
+    request.extract[ApplicationRequest]{
+      case app if app.application.pipelineId.isEmpty => request.parseError[ApplicationRequest]
+      case app => Ok(AgentUtils.executeRequest(app, config))
     }
   }
 }
