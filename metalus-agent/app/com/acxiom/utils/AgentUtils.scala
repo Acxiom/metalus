@@ -1,20 +1,21 @@
 package com.acxiom.utils
 
-import com.acxiom.metalus.PipelineException
 import com.acxiom.metalus.applications.Application
 import com.acxiom.metalus.parser.JsonParser
+import com.acxiom.metalus.utils.DriverUtils
+import com.acxiom.metalus.{DependencyManager, PipelineException, RetryPolicy}
 import play.api.Configuration
 
 import java.io.{File, FileOutputStream, FilenameFilter}
-import java.net.InetAddress
 import java.nio.file.Files
 import java.security.MessageDigest
 import java.util.UUID
 import java.util.jar.{Attributes, JarEntry, JarOutputStream}
+import javax.inject.{Inject, Singleton}
 import scala.io.Source
-import scala.jdk.CollectionConverters._
 
-object AgentUtils {
+@Singleton
+class AgentUtils@Inject()(configuration: Configuration, processUtils: ProcessUtils) {
   lazy val AGENT_ID: String = {
     val existingId = System.getenv("AGENT_ID")
     if (Option(existingId).isDefined) {
@@ -55,7 +56,7 @@ object AgentUtils {
    * @param config  The system config used for accessing properties.
    * @return A classpath for this request.
    */
-  def generateClassPath(request: ApplicationRequest, config: Configuration): String = {
+  def generateClassPath(request: ApplicationRequest): String = {
     if (!request.resolveClasspath || request.stepLibraries.getOrElse(List()).isEmpty) {
       // In this case, add metalus-core which should be local
       val jars = new File("/opt/docker/lib/").listFiles(new FilenameFilter() {
@@ -75,9 +76,24 @@ object AgentUtils {
       }.foldLeft("") {
         _ + _
       }
-      val cacheDir = config.get[String]("api.context.cache.dir")
+      val cacheDir = configuration.get[String]("api.context.cache.dir")
       val cacheFile = new File(cacheDir, s"$cacheName.json")
-      // TODO Create a lock for this cache file and then release after the classpath is ready
+      val lockFile = new File(cacheDir, s"$cacheName.lck")
+      if (lockFile.exists() && !cacheFile.exists()) {
+         // Wait until lock is removed
+        val retry = RetryPolicy(None, Some(5), Some(false))
+        // Wait up to 5 minutes for the lock to be released.
+        val timeout = configuration.get[Int]("api.context.lock.timeout")
+        (1 to timeout).takeWhile(r => {
+          DriverUtils.invokeWaitPeriod(retry, 0)
+          lockFile.exists()
+        })
+        if (lockFile.exists()) {
+          lockFile.delete()
+        }
+        // Create the lock file
+        lockFile.createNewFile()
+      }
       if (cacheFile.exists()) {
         // Load the classpath from the cache
         val source = Source.fromFile(cacheFile)
@@ -86,23 +102,17 @@ object AgentUtils {
         json("classPath").toString
       } else {
         // Generate the classpath and create the cache file
+        val jarDir = configuration.get[String]("api.context.jars.dir")
         // Make sure the local staging dir is part of the repos
-        val jarDir = config.get[String]("api.context.jars.dir")
         val repos = (request.extraJarRepos.getOrElse(List()) +: jarDir).mkString(",")
-        val metalusUtils = config.get[String]("api.context.utils.dir")
-        val command = s"$metalusUtils/bin/dependency-resolver.sh --output-path $jarDir --jar-files $jars --repo $repos --jar-separator :"
-        val processBuilder = new ProcessBuilder(command)
-        val process = processBuilder.start()
-        val exitCode = process.waitFor()
-        // TODO Need to ensure multiple processes aren't writing to the jarDir at the same time or implement locking in metalus-utils
-        if (exitCode != 0) {
-          throw PipelineException(message = Some(s"Failed to build classpath: ${Source.fromInputStream(process.getErrorStream).mkString}"),
-            pipelineProgress = None)
-        }
-        val classPath = Source.fromInputStream(process.getInputStream).getLines().toList.last
-        val cache = Map[String, String]("classPath" -> classPath, "jars" -> jars, "repos" -> repos)
+        val parameters = Map[String, Any]("output-path" -> jarDir,
+          "jar-files" -> jars, "repo" -> repos)
+        val classpath = DependencyManager.resolveClasspath(parameters)
+        val cp = classpath.generateClassPath("", parameters.getOrElse("jar-separator", ",").asInstanceOf[String])
+        val cache = Map[String, String]("classPath" -> cp, "jars" -> jars, "repos" -> repos)
         Files.write(cacheFile.toPath, JsonParser.serialize(cache, None).getBytes)
-        classPath
+        lockFile.delete()
+        cp
       }
     }
   }
@@ -111,18 +121,17 @@ object AgentUtils {
    * Builds an execution command based on the provided ApplicationRequest.
    *
    * @param request The request.
-   * @param config  The system configuration.
    * @return The process information needed to track the execution.
    */
-  def executeRequest(request: ApplicationRequest, config: Configuration): ProcessInfo = {
+  def executeRequest(request: ApplicationRequest): ProcessInfo = {
     // Add the sessionId
     val sessionId = request.existingSessionId.getOrElse(UUID.randomUUID().toString)
     // Store the Application JSON in a jar file and add to the classpath
-    val jarDir = config.get[String]("api.context.jars.dir")
-    val applicationJar = AgentUtils.createApplicationJar(request.application, sessionId, jarDir)
+    val jarDir = configuration.get[String]("api.context.jars.dir")
+    val applicationJar = createApplicationJar(request.application, sessionId, jarDir)
     val command = List[String]("scala",
       "-cp",
-      s"$applicationJar:${AgentUtils.generateClassPath(request, config)}",
+      s"$applicationJar:${generateClassPath(request)}",
       "com.acxiom.metalus.drivers.DefaultPipelineDriver",
       "--executionEngines", request.executions.getOrElse(List[String]("batch")).mkString(","))
     // Add parameters
@@ -132,9 +141,6 @@ object AgentUtils {
     }
     // Start command and track processId
     val commandList = (parameterCommand ::: List("--existingSessionId", sessionId, "--applicationId", sessionId))
-    val processBuilder = new ProcessBuilder(commandList.asJava)
-    val process = processBuilder.start()
-    val pid = process.pid()
-    ProcessInfo(AgentUtils.AGENT_ID, sessionId, pid, InetAddress.getLocalHost.getHostName, commandList)
+    processUtils.executeCommand(commandList, sessionId, AGENT_ID)
   }
 }

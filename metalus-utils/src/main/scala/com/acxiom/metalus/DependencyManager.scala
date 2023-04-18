@@ -13,6 +13,13 @@ object DependencyManager {
 
   def main(args: Array[String]): Unit = {
     val parameters = DriverUtils.extractParameters(args, Some(List("jar-files", "output-path")))
+    val classpath: ResolvedClasspath = resolveClasspath(parameters)
+    val pathPrefix = parameters.getOrElse("path-prefix", "").asInstanceOf[String]
+    // Print the classpath to the console
+    print(classpath.generateClassPath(pathPrefix, parameters.getOrElse("jar-separator", ",").asInstanceOf[String]))
+  }
+
+  def resolveClasspath(parameters: Map[String, Any]): ResolvedClasspath = {
     // Get the output directory
     val output = new File(parameters.getOrElse("output-path", "jars").asInstanceOf[String])
     if (!output.exists()) {
@@ -43,9 +50,7 @@ object DependencyManager {
     val dependencies = resolveDependencies(initialClassPath.dependencies, output, parameters)
     // Build out the classpath
     val classpath = dependencies.foldLeft(initialClassPath)((cp, dep) => cp.addDependency(dep))
-    val pathPrefix = parameters.getOrElse("path-prefix", "").asInstanceOf[String]
-    // Print the classpath to the console
-    print(classpath.generateClassPath(pathPrefix, parameters.getOrElse("jar-separator", ",").asInstanceOf[String]))
+    classpath
   }
 
   private def resolveRemoteDependency(parameters: Map[String, Any], file: String, fileName: String, destFile: File) = {
