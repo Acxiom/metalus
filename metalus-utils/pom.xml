@@ -24,16 +24,19 @@
             <groupId>org.scala-lang</groupId>
             <artifactId>scalap</artifactId>
             <version>${scala.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.17</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-reload4j</artifactId>
             <version>2.0.6</version>
+            <scope>provided</scope>
         </dependency>
         <!-- Test libraries -->
         <dependency>
@@ -121,6 +124,7 @@
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>false</overWriteSnapshots>
                             <overWriteIfNewer>true</overWriteIfNewer>
+                            <includeScope>provided</includeScope>
                         </configuration>
                     </execution>
                 </executions>
@@ -154,6 +158,48 @@
                     <target>7</target>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.1</version>
+                <configuration>
+                    <artifactSet>
+                        <excludes>
+                            <exclude>classworlds:classworlds</exclude>
+                            <exclude>junit:junit</exclude>
+                            <exclude>jmock:*</exclude>
+                            <exclude>*:xml-apis</exclude>
+                            <exclude>com.fasterxml:*:jar:</exclude>
+                            <exclude>org.apache.maven:lib:tests</exclude>
+                            <exclude>org.apache.kafka:*:jar:</exclude>
+                            <exclude>org.joda:*:jar:</exclude>
+                            <exclude>joda-time:*:jar:</exclude>
+                            <exclude>log4j:log4j:jar:</exclude>
+                            <exclude>org.scala-lang:*:jar:</exclude>
+                            <exclude>org.apache.spark:jar:</exclude>
+                            <exclude>org.scalamock:jar:</exclude>
+                            <exclude>org.scalatest:jar:</exclude>
+                        </excludes>
+                    </artifactSet>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <relocations>
+                                <!-- This is required to prevent certain distributions from overriding with an older version -->
+                                <relocation>
+                                    <pattern>org.slf4j</pattern>
+                                    <shadedPattern>metalus.org.slf4j</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -165,7 +211,7 @@
             </activation>
             <properties>
                 <scala.compat.version>2.12</scala.compat.version>
-                <scala.version>2.12.13</scala.version>
+                <scala.version>2.12.17</scala.version>
             </properties>
         </profile>
         <profile>

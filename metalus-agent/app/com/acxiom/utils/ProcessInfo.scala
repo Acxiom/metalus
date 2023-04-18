@@ -1,4 +1,14 @@
 package com.acxiom.utils
 
-final case class ProcessInfo(agentId: String, sessionId: String, processId: Long, hostName: String, command: List[String])
+import java.util.Date
+
+case class ProcessInfo(agentId: String, sessionId: String, processId: Long, hostName: String, command: List[String])
   extends ApiResponse
+
+case class SessionProcess(sessionId: String,
+                          processId: Long,
+                          agentId: String,
+                          hostName: String,
+                          exitCode: Int,
+                          startTime: Date,
+                          endTime: Date)
