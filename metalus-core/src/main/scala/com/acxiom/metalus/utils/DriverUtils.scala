@@ -2,10 +2,10 @@ package com.acxiom.metalus.utils
 
 import com.acxiom.metalus._
 import com.acxiom.metalus.api.HttpRestClient
-import com.acxiom.metalus.connectors.{CSVFileDataRowReader, CSVFileDataRowWriter, DataRowReader, DataRowWriter, DataStreamOptions, FileConnector}
+import com.acxiom.metalus.connectors.DataStreamOptions
 import com.acxiom.metalus.drivers.StreamingDataParser
 import com.acxiom.metalus.fs.FileManager
-import com.univocity.parsers.csv.{CsvFormat, CsvParser, CsvParserSettings, CsvWriter, CsvWriterSettings, UnescapedQuoteHandling}
+import com.univocity.parsers.csv._
 import org.slf4j.event.Level
 
 import java.io.OutputStream
