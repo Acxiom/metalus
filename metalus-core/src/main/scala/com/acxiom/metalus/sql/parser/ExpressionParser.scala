@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory
 import java.math.BigInteger
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
-import scala.math.Numeric.{BigDecimalAsIfIntegral, DoubleAsIfIntegral, FloatAsIfIntegral}
+import scala.math.Numeric.BigDecimalAsIfIntegral
 import scala.math.ScalaNumber
 import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
@@ -430,11 +430,7 @@ private[parser] object ExpressionArithmetic {
       case LONG => Some(arithmetic[Long](left.asInstanceOf[Number].longValue(), op, right.asInstanceOf[Number].longValue()))
       case BIG_INT => Some(arithmetic[BigInt](toBigInt(left), op, toBigInt(right)))
       // % needs integral instead of fractional, so specifying that manually for float, double and bigDecimal
-      case FLOAT if op == "%"=>
-        Some(arithmetic[Float](left.asInstanceOf[Number].floatValue(), op, right.asInstanceOf[Number].floatValue())(FloatAsIfIntegral))
-      case DOUBLE if op == "%" =>
-        Some(arithmetic[Double](left.asInstanceOf[Number].doubleValue(), op, right.asInstanceOf[Number].doubleValue())(DoubleAsIfIntegral))
-      case BIG_DECIMAL if op == "%" =>
+      case BIG_DECIMAL | DOUBLE | FLOAT if op == "%" =>
         Some(arithmetic[BigDecimal](toBigDecimal(left), op, toBigDecimal(right))(BigDecimalAsIfIntegral))
       case FLOAT => Some(arithmetic[Float](left.asInstanceOf[Number].floatValue(), op, right.asInstanceOf[Number].floatValue()))
       case DOUBLE => Some(arithmetic[Double](left.asInstanceOf[Number].doubleValue(), op, right.asInstanceOf[Number].doubleValue()))
