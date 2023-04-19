@@ -1,4 +1,4 @@
-package com.acxiom.utils
+package com.acxiom.metalus.utils
 
 import com.acxiom.metalus.applications.Application
 import com.acxiom.metalus.parser.JsonParser
@@ -15,7 +15,7 @@ import javax.inject.{Inject, Singleton}
 import scala.io.Source
 
 @Singleton
-class AgentUtils@Inject()(configuration: Configuration, processUtils: ProcessUtils) {
+class AgentUtils @Inject()(configuration: Configuration, processUtils: ProcessUtils) {
   lazy val AGENT_ID: String = {
     val existingId = System.getenv("AGENT_ID")
     if (Option(existingId).isDefined) {
@@ -23,6 +23,19 @@ class AgentUtils@Inject()(configuration: Configuration, processUtils: ProcessUti
     } else {
       UUID.randomUUID().toString
     }
+  }
+
+  // See if processes need to be recovered
+  initialize()
+
+  private def initialize(): Unit = {
+    val processes = processUtils.getCurrentProcessInformation(AGENT_ID)
+    processes.foreach(process => {
+      processUtils.checkProcessStatus(process.toProcessInfo) match {
+        case "RECOVER" => processUtils.recoverProcess(process)
+        case _ =>
+      }
+    })
   }
 
   /**
@@ -53,7 +66,6 @@ class AgentUtils@Inject()(configuration: Configuration, processUtils: ProcessUti
    * Generates a classpath for the provided jars. This method will attempt to create/access a cache to increase performance.
    *
    * @param request The application request to use for the jars.
-   * @param config  The system config used for accessing properties.
    * @return A classpath for this request.
    */
   def generateClassPath(request: ApplicationRequest): String = {
@@ -80,7 +92,7 @@ class AgentUtils@Inject()(configuration: Configuration, processUtils: ProcessUti
       val cacheFile = new File(cacheDir, s"$cacheName.json")
       val lockFile = new File(cacheDir, s"$cacheName.lck")
       if (lockFile.exists() && !cacheFile.exists()) {
-         // Wait until lock is removed
+        // Wait until lock is removed
         val retry = RetryPolicy(None, Some(5), Some(false))
         // Wait up to 5 minutes for the lock to be released.
         val timeout = configuration.get[Int]("api.context.lock.timeout")

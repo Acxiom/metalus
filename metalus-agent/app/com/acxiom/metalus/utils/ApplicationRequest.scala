@@ -1,4 +1,4 @@
-package com.acxiom.utils
+package com.acxiom.metalus.utils
 
 import com.acxiom.metalus.applications.Application
 

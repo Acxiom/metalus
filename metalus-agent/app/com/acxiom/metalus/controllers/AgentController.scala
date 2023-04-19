@@ -1,4 +1,4 @@
-package com.acxiom.controllers
+package com.acxiom.metalus.controllers
 
 import play.api.mvc.{BaseController, ControllerComponents}
 

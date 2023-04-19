@@ -6,8 +6,6 @@ import com.acxiom.metalus.context.ContextManager
 import com.acxiom.metalus.sql.Schema
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
-import org.slf4j.event.Level
-import org.slf4j.{Logger, LoggerFactory}
 import software.sham.sftp.MockSftpServer
 
 import java.io.{File, PrintWriter}
@@ -20,7 +18,6 @@ class FileManagerStepsTests extends AnyFunSpec with BeforeAndAfterAll {
   var sftpServer: MockSftpServer = _
 
   override def beforeAll(): Unit = {
-    LoggerFactory.getLogger("com.acxiom.pipeline").atLevel(Level.DEBUG)
     sftpServer = new MockSftpServer(SFTP_PORT)
     Files.copy(getClass.getResourceAsStream("/MOCK_DATA.csv"),
       new File(s"${sftpServer.getBaseDirectory.toFile.getAbsolutePath}/MOCK_DATA.csv").toPath,
@@ -35,8 +32,6 @@ class FileManagerStepsTests extends AnyFunSpec with BeforeAndAfterAll {
 
   override def afterAll(): Unit = {
     sftpServer.stop()
-
-    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
   }
 
   describe("FileManagerSteps - Basic") {
