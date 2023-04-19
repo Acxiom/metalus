@@ -4,7 +4,7 @@
 # ~~~~
 
 # Health Check routes
-GET /v1/health-check/ready com.acxiom.controllers.HealthCheckController.healthCheck()
-GET /v1/health-check/alive com.acxiom.controllers.HealthCheckController.healthCheck()
+GET /v1/health-check/ready com.acxiom.metalus.controllers.HealthCheckController.healthCheck()
+GET /v1/health-check/alive com.acxiom.metalus.controllers.HealthCheckController.healthCheck()
 
-POST /v1/agent/execute com.acxiom.controllers.AgentController.execute()
+POST /v1/agent/execute com.acxiom.metalus.controllers.AgentController.execute()

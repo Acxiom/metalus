@@ -15,6 +15,12 @@ object LoggingSteps {
   @StepParameters(Map("message" -> StepParameter(None, Some(true), None, None, None, None, Some("The message to log")),
     "level" -> StepParameter(None, Some(true), None, None, None, None, Some("Log level at which to log. Should be a valid log4j level"))))
   def logMessage(message: String, level: String): Unit = {
-    logger.atLevel(DriverUtils.getLogLevel(level)).setMessage(message).log()
+    Option(level).getOrElse("").toUpperCase match {
+      case "ERROR" => logger.error(message)
+      case "WARN" => logger.warn(message)
+      case "DEBUG" => logger.debug(message)
+      case "TRACE" => logger.trace(message)
+      case _ => logger.info(message)
+    }
   }
 }

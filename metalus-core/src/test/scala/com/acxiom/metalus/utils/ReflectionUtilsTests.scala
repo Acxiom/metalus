@@ -2,23 +2,12 @@ package com.acxiom.metalus.utils
 
 import com.acxiom.metalus._
 import com.acxiom.metalus.context.ContextManager
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funspec.AnyFunSpec
-import org.slf4j.event.Level
-import org.slf4j.{Logger, LoggerFactory}
 
 import java.math.BigInteger
 import java.util
 
-class ReflectionUtilsTests extends AnyFunSpec with BeforeAndAfterAll {
-
-  override def beforeAll(): Unit = {
-    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
-  }
-
-  override def afterAll(): Unit = {
-    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
-  }
+class ReflectionUtilsTests extends AnyFunSpec {
 
   describe("ReflectionUtil - processStep") {
     val globals = Map[String, Any]("validateStepParameterTypes" -> true)

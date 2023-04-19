@@ -1,4 +1,4 @@
-package com.acxiom.controllers
+package com.acxiom.metalus.controllers
 
 import com.acxiom.utils.{AgentUtils, ApplicationRequest}
 import com.github.tototoshi.play2.json4s.Json4s

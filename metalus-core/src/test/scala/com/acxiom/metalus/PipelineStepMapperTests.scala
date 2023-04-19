@@ -3,19 +3,10 @@ package com.acxiom.metalus
 import com.acxiom.metalus.context.ContextManager
 import com.acxiom.metalus.parser.JsonParser
 import org.json4s.{DefaultFormats, Formats}
+import org.scalatest.GivenWhenThen
 import org.scalatest.funspec.AnyFunSpec
-import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
-import org.slf4j.event.Level
-import org.slf4j.{Logger, LoggerFactory}
 
-class PipelineStepMapperTests extends AnyFunSpec with BeforeAndAfterAll with GivenWhenThen {
-  override def beforeAll(): Unit = {
-    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
-  }
-
-  override def afterAll(): Unit = {
-    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
-  }
+class PipelineStepMapperTests extends AnyFunSpec with GivenWhenThen {
 
   describe("PipelineMapperSteps - map parameter") {
     val classMap = Map[String, Any]("string" -> "fred", "num" -> 3)
