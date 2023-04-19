@@ -3,11 +3,9 @@ package com.acxiom.metalus.sql.jdbc
 import com.acxiom.metalus.connectors.jdbc.JDBCDataConnector
 import com.acxiom.metalus.context.ContextManager
 import com.acxiom.metalus.sql._
-import com.acxiom.metalus.{DefaultPipelineListener, PipelineContext, PipelineParameter, PipelineStateKey, PipelineStepMapper, UserNameCredential}
+import com.acxiom.metalus._
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
-import org.slf4j.LoggerFactory
-import org.slf4j.event.Level
 
 import java.nio.file.{Files, Path}
 import java.sql.DriverManager
@@ -34,7 +32,6 @@ class JDBCDataReferenceTests extends AnyFunSpec with BeforeAndAfterAll with Give
   val credential: UserNameCredential = UserNameCredential(Map("username" -> "test_fixture", "password" -> "chicken"))
 
   override def beforeAll(): Unit = {
-    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
     System.setProperty("derby.system.home", localDir.toFile.getAbsolutePath + "/.derby")
     val con = DriverManager.getConnection(s"$url;user=test_fixture;password=chicken;create=true")
     val st = con.createStatement()

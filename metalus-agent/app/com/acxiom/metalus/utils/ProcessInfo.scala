@@ -1,4 +1,4 @@
-package com.acxiom.utils
+package com.acxiom.metalus.utils
 
 import java.util.Date
 
@@ -10,4 +10,9 @@ case class SessionProcess(sessionId: String,
                           hostName: String,
                           exitCode: Int,
                           startTime: Date,
-                          endTime: Date)
+                          endTime: Date,
+                          command: List[String]) {
+  def toProcessInfo: ProcessInfo = {
+    ProcessInfo(agentId, sessionId, processId, hostName, command)
+  }
+}

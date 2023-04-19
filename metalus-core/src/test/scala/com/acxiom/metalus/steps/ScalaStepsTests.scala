@@ -4,8 +4,6 @@ import com.acxiom.metalus._
 import com.acxiom.metalus.context.ContextManager
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen}
-import org.slf4j.event.Level
-import org.slf4j.{Logger, LoggerFactory}
 
 import java.io.File
 import java.nio.file.{FileSystems, Files, StandardCopyOption}
@@ -14,8 +12,6 @@ class ScalaStepsTests extends AnyFunSpec with BeforeAndAfterAll with GivenWhenTh
   var pipelineContext: PipelineContext = _
 
   override def beforeAll(): Unit = {
-    LoggerFactory.getLogger("com.acxiom.metalus").atLevel(Level.DEBUG)
-
     pipelineContext = PipelineContext(Some(Map[String, Any]()),
       List(PipelineParameter(PipelineStateKey("0"), Map[String, Any]()),
         PipelineParameter(PipelineStateKey("1"), Map[String, Any]())),
@@ -23,10 +19,6 @@ class ScalaStepsTests extends AnyFunSpec with BeforeAndAfterAll with GivenWhenTh
       PipelineStepMapper(),
       Some(DefaultPipelineListener()),
       contextManager = new ContextManager(Map(), Map()))
-  }
-
-  override def afterAll(): Unit = {
-    LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME).atLevel(Level.INFO)
   }
 
   describe("ScalaSteps - Basic scripting") {
