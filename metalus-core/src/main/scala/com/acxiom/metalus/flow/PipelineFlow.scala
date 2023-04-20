@@ -4,7 +4,7 @@ import com.acxiom.metalus._
 import com.acxiom.metalus.audits.{AuditType, ExecutionAudit}
 import com.acxiom.metalus.context.SessionContext
 import com.acxiom.metalus.sql.parser.ExpressionParser
-import com.acxiom.metalus.utils.ReflectionUtils
+import com.acxiom.metalus.utils.{Binding, Bindings, ReflectionUtils, ScalaScriptEngine}
 import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
@@ -244,14 +244,30 @@ trait PipelineFlow {
     if (expression == ExpressionParser.STEP) { // skip expression evaluation if we're just going to run a command
       processStepCommand(step, parameterValues, pipeline, pipelineContext)
     } else {
-      lazy val stepResult = processStepCommand(step, parameterValues, pipeline, pipelineContext) match {
-        case Left(psr) => psr
-        case Right(fr) => fr
+      val runStep: () => Any = { () =>
+        processStepCommand(step, parameterValues, pipeline, pipelineContext) match {
+          case Left(psr) => psr
+          case Right(fr) => fr
+        }
       }
-      ExpressionParser.parse(expression, pipelineContext){
-        case ExpressionParser.STEP => Some(stepResult)
-        case ident => parameterValues.get(ident)
-      } match {
+
+      val res = step.scriptEngine.getOrElse("mexpr").toLowerCase match {
+        case "mexpr" =>
+          lazy val stepResult = runStep()
+          ExpressionParser.parse(expression, pipelineContext) {
+            case ExpressionParser.STEP => Some(stepResult)
+            case ident => parameterValues.get(ident)
+          }
+        case "scala" | "scalascript" =>
+          val bindings = step.params.map(params => Bindings(params.map { p =>
+            val key = p.name.mkString
+            key -> Binding(key, parameterValues(key), p.parameterType)
+          }.toMap))
+            .getOrElse(Bindings())
+            .setBinding("STEP", runStep, Some("Any"), function = true)
+          new ScalaScriptEngine().executeScriptWithBindings(expression, bindings, pipelineContext)
+      }
+      res match {
         case Some(f: FlowResult) => Right(f)
         case Some(r: PipelineStepResponse) => Left(r)
         case o: Option[_] => Left(PipelineStepResponse(o))

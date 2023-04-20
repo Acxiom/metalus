@@ -143,7 +143,8 @@ object JsonParser {
       (input \ "retryLimit").extractOpt[Int],
       (input \ "nextSteps").extractOpt[List[String]],
       (input \ "value").extractOpt[String],
-      (input \ "dependencies").extractOpt[String]
+      (input \ "dependencies").extractOpt[String],
+      (input \ "scriptEngine").extractOpt[String]
     )
 
   }
@@ -161,7 +162,9 @@ object JsonParser {
       JField("retryLimit", Extraction.decompose(step.retryLimit)),
       JField("nextSteps", Extraction.decompose(step.nextSteps)),
       JField("value", Extraction.decompose(step.value)),
-      JField("dependencies", Extraction.decompose(step.dependencies)))
+      JField("dependencies", Extraction.decompose(step.dependencies)),
+      JField("scriptEngine", Extraction.decompose(step.scriptEngine))
+    )
   }
 
   private def generateFormats(json4sSerializers: Option[Json4sSerializers]): Formats = {

@@ -31,6 +31,8 @@ libraryDependencies ++= Seq(
   "com.acxiom" %% "metalus-utils" % metalusVersion,
   "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.6",
   "org.slf4j" % "log4j-over-slf4j" % "1.7.32",
+  "org.json4s" %% "json4s-native" % "3.6.7",
+  "org.json4s" %% "json4s-ext" % "3.6.7",
   "com.github.tototoshi" %% "play-json4s-native" % "0.10.0",
   "com.github.tototoshi" %% "play-json4s-test-native" % "0.10.0" % Test,
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test,
