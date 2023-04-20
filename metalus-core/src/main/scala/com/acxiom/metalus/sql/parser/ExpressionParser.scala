@@ -359,8 +359,8 @@ class ExpressionParser(pipelineContext: PipelineContext, keywordExecutor: Keywor
   private def toDouble(a: Any): Double = a match {
     case d: Double => d
     case n: Number => n.doubleValue()
-    case bi: BigInt => bi.doubleValue()
-    case bd: BigDecimal => bd.doubleValue()
+    case bi: BigInt => bi.doubleValue
+    case bd: BigDecimal => bd.doubleValue
     case s => s.toString.toDouble
   }
 
@@ -408,7 +408,7 @@ private[parser] object ExpressionArithmetic {
   def apply(op: String, right: Any): Option[Any] = typeOrdering(right) match {
     case BYTE => Some(unary[Byte](op, right.asInstanceOf[Number].byteValue()))
     case SHORT => Some(unary[Short](op, right.asInstanceOf[Number].shortValue()))
-    case INT => Some(unary[Int](op, right.asInstanceOf[Number] intValue()))
+    case INT => Some(unary[Int](op, right.asInstanceOf[Number].intValue()))
     case LONG => Some(unary[Long](op, right.asInstanceOf[Number].longValue()))
     case BIG_INT => Some(unary[BigInt](op, toBigInt(right)))
     case FLOAT => Some(unary[Float](op, right.asInstanceOf[Number].floatValue()))
@@ -426,7 +426,7 @@ private[parser] object ExpressionArithmetic {
     bound match {
       case BYTE => Some(arithmetic[Byte](left.asInstanceOf[Number].byteValue(), op, right.asInstanceOf[Number].byteValue()))
       case SHORT => Some(arithmetic[Short](left.asInstanceOf[Number].shortValue(), op, right.asInstanceOf[Number].shortValue()))
-      case INT => Some(arithmetic[Int](left.asInstanceOf[Number].intValue(), op, right.asInstanceOf[Number]intValue()))
+      case INT => Some(arithmetic[Int](left.asInstanceOf[Number].intValue(), op, right.asInstanceOf[Number].intValue()))
       case LONG => Some(arithmetic[Long](left.asInstanceOf[Number].longValue(), op, right.asInstanceOf[Number].longValue()))
       case BIG_INT => Some(arithmetic[BigInt](toBigInt(left), op, toBigInt(right)))
       // % needs integral instead of fractional, so specifying that manually for float, double and bigDecimal
