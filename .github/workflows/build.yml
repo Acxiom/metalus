@@ -22,7 +22,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: zulu
-          java-version: 1.8
+          java-version: 8.0.362+8
           cache: 'maven'
       - name: Build and Test
         env:
@@ -47,7 +47,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: zulu
-          java-version: 1.8
+          java-version: 8.0.362+8
           cache: 'maven'
       - name: Build and Test
         env:
@@ -72,7 +72,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: zulu
-          java-version: 1.8
+          java-version: 8.0.362+8
           cache: 'maven'
       - id: get-versions
         run: |
@@ -103,7 +103,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: zulu
-          java-version: 1.8
+          java-version: 8.0.362+8
           cache: 'maven'
       - id: get-versions
         run: |
