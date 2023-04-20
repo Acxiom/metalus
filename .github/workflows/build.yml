@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest ]
-        scala: [ '2.12' ]
+        scala: [ '2.12', '2.13' ]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -40,7 +40,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest ]
-        scala: [ '2.12' ]
+        scala: [ '2.12', '2.13' ]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -70,7 +70,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest ]
-        spark: [ '3.1_2.12', '3.2_2.12', '3.3_2.12' ]
+        spark: [ '3.1_2.12', '3.2_2.12', '3.3_2.12', '3.1_2.13', '3.2_2.13', '3.3_2.13' ]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -106,7 +106,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest ]
-        spark: [ '3.1_2.12', '3.2_2.12', '3.3_2.12' ]
+        spark: [ '3.1_2.12', '3.2_2.12', '3.3_2.12', '3.1_2.13', '3.2_2.13', '3.3_2.13' ]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
