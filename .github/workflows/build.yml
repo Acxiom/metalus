@@ -1,7 +1,7 @@
 name: Build
 
 on:
-  pull_request_target:
+  push:
     branches: [ metalus_2_0_0 ]
 
 jobs:
