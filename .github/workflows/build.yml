@@ -71,10 +71,10 @@ jobs:
       matrix:
         os: [ ubuntu-latest, macos-latest ]
         spark: [ '3.1_2.12', '3.2_2.12', '3.3_2.12', '3.1_2.12', '3.2_2.12', '3.3_2.12' ]
-      runs-on: ${{ matrix.os }}
-      defaults:
-        run:
-          working-directory: ./metalus-spark
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./metalus-spark
     steps:
       - name: Source Checkout
         uses: actions/checkout@v2
