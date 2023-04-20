@@ -65,13 +65,19 @@ jobs:
           SPARK_LOCAL_IP: 127.0.0.1
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
         run: mvn -B -P scala_${{ matrix.scala }} clean install
+      - name: Share Artifacts
+        uses: actions/upload-artifact@v3
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: metalus-aws_${{ matrix.scala }}
+          path: ~/.m2/repository/com/acxiom/metalus-aws_${{ matrix.scala }}
   spark:
     needs: core
     name: Spark
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest ]
-        spark: [ '3.1_2.12', '3.2_2.12', '3.3_2.12', '3.1_2.13', '3.2_2.13', '3.3_2.13' ]
+        spark: [ '3.1_2.12', '3.2_2.12', '3.3_2.12', '3.2_2.13', '3.3_2.13' ]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -101,34 +107,55 @@ jobs:
           SPARK_LOCAL_IP: 127.0.0.1
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
         run: mvn -B -P spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }} clean install
-#  spark-aws:
-#    needs: [spark, aws]
-#    name: Spark AWS
-#    strategy:
-#      matrix:
-#        os: [ ubuntu-latest, macos-latest ]
-#        spark: [ '3.1_2.12', '3.2_2.12', '3.3_2.12', '3.1_2.13', '3.2_2.13', '3.3_2.13' ]
-#    runs-on: ${{ matrix.os }}
-#    defaults:
-#      run:
-#        working-directory: ./metalus-aws-spark
-#    steps:
-#      - name: Source Checkout
-#        uses: actions/checkout@v2
-#      - name: Set up JDK 1.8
-#        uses: actions/setup-java@v3
-#        with:
-#          distribution: zulu
-#          java-version: 8.0.362+8
-#          cache: 'maven'
-#      - id: get-versions
-#        run: |
-#          spark=$(echo ${{matrix.spark}} | cut -d_ -f1)
-#          scala=$(echo ${{matrix.spark}} | cut -d_ -f2)
-#          echo "::set-output name=spark::$spark"
-#          echo "::set-output name=scala::$scala"
-#      - name: Build and Test
-#        env:
-#          SPARK_LOCAL_IP: 127.0.0.1
-#          JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
-#        run: mvn -B -P spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }} clean install
+      - name: Share Artifacts
+        uses: actions/upload-artifact@v3
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: metalus-spark_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}
+          path: ~/.m2/repository/com/acxiom/metalus-spark_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}
+  spark-aws:
+    needs: [spark, aws]
+    name: Spark AWS
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        spark: [ '3.1_2.12', '3.2_2.12', '3.3_2.12', '3.2_2.13', '3.3_2.13' ]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./metalus-aws-spark
+    steps:
+      - name: Source Checkout
+        uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 8.0.362+8
+          cache: 'maven'
+      - id: get-versions
+        run: |
+          spark=$(echo ${{matrix.spark}} | cut -d_ -f1)
+          scala=$(echo ${{matrix.spark}} | cut -d_ -f2)
+          echo "::set-output name=spark::$spark"
+          echo "::set-output name=scala::$scala"
+      - name: Download Core
+        uses: actions/download-artifact@v3
+        with:
+          name: metalus-core_${{ steps.get-versions.outputs.scala }}
+          path: ~/.m2/repository/com/acxiom/metalus-core_${{ steps.get-versions.outputs.scala }}
+      - name: Download AWS
+        uses: actions/download-artifact@v3
+        with:
+          name: metalus-aws_${{ steps.get-versions.outputs.scala }}
+          path: ~/.m2/repository/com/acxiom/metalus-core_${{ steps.get-versions.outputs.scala }}
+      - name: Download Spark
+        uses: actions/download-artifact@v3
+        with:
+          name: metalus-spark_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}
+          path: ~/.m2/repository/com/acxiom/metalus-spark_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}
+      - name: Build and Test
+        env:
+          SPARK_LOCAL_IP: 127.0.0.1
+          JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+        run: mvn -B -P spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }} clean install
