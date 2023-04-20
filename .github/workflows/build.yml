@@ -148,7 +148,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: metalus-aws_${{ steps.get-versions.outputs.scala }}
-          path: ~/.m2/repository/com/acxiom/metalus-core_${{ steps.get-versions.outputs.scala }}
+          path: ~/.m2/repository/com/acxiom/metalus-aws_${{ steps.get-versions.outputs.scala }}
       - name: Download Spark
         uses: actions/download-artifact@v3
         with:
