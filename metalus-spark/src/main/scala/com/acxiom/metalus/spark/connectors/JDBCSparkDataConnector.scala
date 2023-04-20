@@ -18,7 +18,7 @@ case class JDBCSparkDataConnector(url: String,
   extends BatchDataConnector with StreamingDataConnector {
   override def load(source: Option[String], pipelineContext: PipelineContext, readOptions: DataFrameReaderOptions): SparkDataReference = {
     val properties = new Properties()
-    properties.putAll(readOptions.options.getOrElse(Map[String, String]()).asJava)
+    readOptions.options.getOrElse(Map[String, String]()).foreach(entry => properties.put(entry._1, entry._2))
     val reader = DataConnectorUtilities.buildDataFrameReader(pipelineContext.sparkSession, readOptions.copy("jdbc"))
     SparkDataReference ({ () =>
       if (predicates.isDefined && predicates.get.nonEmpty) {
@@ -34,7 +34,7 @@ case class JDBCSparkDataConnector(url: String,
                      pipelineContext: PipelineContext,
                      writeOptions: DataFrameWriterOptions): Option[StreamingQuery] = {
     val properties = new Properties()
-    properties.putAll(writeOptions.options.getOrElse(Map[String, String]()).asJava)
+    writeOptions.options.getOrElse(Map[String, String]()).foreach(entry => properties.put(entry._1, entry._2))
     if (dataFrame.isStreaming) {
       Some(dataFrame.writeStream.trigger(writeOptions.triggerOptions.getOrElse(StreamingTriggerOptions()).getTrigger)
         .options(writeOptions.options.getOrElse(Map())).foreachBatch { (batchDF: Dataset[_], batchId: Long) =>
