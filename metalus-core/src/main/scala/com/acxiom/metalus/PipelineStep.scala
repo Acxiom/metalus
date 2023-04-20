@@ -31,6 +31,7 @@ trait FlowStep extends Step {
   def nextSteps: Option[List[String]] = None
   def dependencies: Option[String] = None
   def value: Option[String] = None
+  def scriptEngine: Option[String] = None
 
   def valueExpression: String = (executeIfEmpty.map(e => s"$e || ").mkString + value.getOrElse("STEP")).trim
 
@@ -66,6 +67,7 @@ final case class PipelineStep(override val id: Option[String] = None,
                               override val nextSteps: Option[List[String]] = None,
                               override val value: Option[String] = None,
                               override val dependencies: Option[String] = None,
+                              override val scriptEngine: Option[String] = None,
                               engineMeta: Option[EngineMeta] = None) extends FlowStep
 
 final case class PipelineStepGroup(override val id: Option[String] = None,
@@ -81,6 +83,7 @@ final case class PipelineStepGroup(override val id: Option[String] = None,
                                    override val nextSteps: Option[List[String]] = None,
                                    override val value: Option[String] = None,
                                    override val dependencies: Option[String] = None,
+                                   override val scriptEngine: Option[String] = None,
                                    pipelineId: Option[String] = None) extends FlowStep
 
 /**
