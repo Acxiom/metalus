@@ -6,6 +6,7 @@ import org.json4s.JsonAST.JValue
 import play.api.{Logging, MarkerContext}
 import play.api.mvc.{BaseController, Request, Result}
 
+import scala.concurrent.Future
 import scala.reflect.runtime.universe.TypeTag
 
 trait MetalusAgentBaseController extends BaseController with Logging {
@@ -21,6 +22,11 @@ trait MetalusAgentBaseController extends BaseController with Logging {
     def extract[A](func: A => Result)
                   (implicit formats: Formats, ev: Manifest[A], typeTag: TypeTag[A], mc: MarkerContext): Result = {
       request.body.extract[Option[A]].map(func).getOrElse(parseError[A])
+    }
+
+    def extractAsync[A](func: A => Future[Result])
+                  (implicit formats: Formats, ev: Manifest[A], typeTag: TypeTag[A], mc: MarkerContext): Future[Result] = {
+      request.body.extract[Option[A]].map(func).getOrElse(Future.successful(parseError[A]))
     }
 
     def extractOption[A](func: Option[A] => Result)(implicit formats: Formats, ev: Manifest[A]): Result = {

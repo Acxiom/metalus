@@ -1,5 +1,9 @@
 package com.acxiom.metalus.utils
 
+import akka.actor.{ActorRef, ActorSystem}
+import akka.pattern.ask
+import akka.util.Timeout
+import com.acxiom.metalus.actors.ProcessManager
 import com.acxiom.metalus.applications.Application
 import com.acxiom.metalus.parser.JsonParser
 import com.acxiom.metalus.utils.DriverUtils
@@ -11,11 +15,15 @@ import java.nio.file.Files
 import java.security.MessageDigest
 import java.util.UUID
 import java.util.jar.{Attributes, JarEntry, JarOutputStream}
-import javax.inject.{Inject, Singleton}
+import javax.inject.{Inject, Named, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 import scala.io.Source
 
 @Singleton
-class AgentUtils @Inject()(configuration: Configuration, processUtils: ProcessUtils) {
+class AgentUtils @Inject()(@Named("process-manager") processManager: ActorRef, system: ActorSystem,
+                           configuration: Configuration, processUtils: ProcessUtils)
+                          (implicit ec: ExecutionContext) {
   lazy val AGENT_ID: String = {
     val existingId = System.getenv("AGENT_ID")
     if (Option(existingId).isDefined) {
@@ -30,12 +38,17 @@ class AgentUtils @Inject()(configuration: Configuration, processUtils: ProcessUt
 
   private def initialize(): Unit = {
     val processes = processUtils.getCurrentProcessInformation(AGENT_ID)
-    processes.foreach(process => {
-      processUtils.checkProcessStatus(process.toProcessInfo) match {
-        case "RECOVER" => processUtils.recoverProcess(process)
-        case _ =>
-      }
-    })
+    processes.foreach { process =>
+        processUtils.checkProcessStatus(process.toProcessInfo) match {
+          case "RECOVER" => processUtils.recoverProcess(process)
+          case _ =>
+        }
+    }
+    val frequency = Duration(configuration.getOptional[String]("api.context.process.monitor.polling").getOrElse("30s")) match {
+      case fd: FiniteDuration => fd
+      case _ => 30.seconds
+    }
+    system.scheduler.scheduleAtFixedRate(Duration.Zero, frequency, processManager, ProcessManager.PollProcesses)
   }
 
   /**
@@ -135,7 +148,7 @@ class AgentUtils @Inject()(configuration: Configuration, processUtils: ProcessUt
    * @param request The request.
    * @return The process information needed to track the execution.
    */
-  def executeRequest(request: ApplicationRequest): ProcessInfo = {
+  def executeRequest(request: ApplicationRequest)(implicit timeout: Timeout): Future[ProcessInfo] = {
     // Add the sessionId
     val sessionId = request.existingSessionId.getOrElse(UUID.randomUUID().toString)
     // Store the Application JSON in a jar file and add to the classpath
@@ -147,12 +160,12 @@ class AgentUtils @Inject()(configuration: Configuration, processUtils: ProcessUt
       "com.acxiom.metalus.drivers.DefaultPipelineDriver",
       "--executionEngines", request.executions.getOrElse(List[String]("batch")).mkString(","))
     // Add parameters
-    val parameterCommand = request.parameters.getOrElse(List()).foldLeft(command) { (list, param) => {
+    val parameterCommand = request.parameters.getOrElse(List()).foldLeft(command) { (list, param) =>
       list :+ param
     }
-    }
+
     // Start command and track processId
     val commandList = (parameterCommand ::: List("--existingSessionId", sessionId, "--applicationId", sessionId))
-    processUtils.executeCommand(commandList, sessionId, AGENT_ID)
+    (processManager ? ProcessManager.ExecuteCommand(commandList, sessionId, AGENT_ID)).mapTo[ProcessInfo]
   }
 }

@@ -7,4 +7,6 @@
 GET /v1/health-check/ready com.acxiom.metalus.controllers.HealthCheckController.healthCheck()
 GET /v1/health-check/alive com.acxiom.metalus.controllers.HealthCheckController.healthCheck()
 
+GET /v1/agent/ com.acxiom.metalus.controllers.AgentController.getStatus()
+GET /v1/agent/:id com.acxiom.metalus.controllers.AgentController.getStatus(id: Long)
 POST /v1/agent/execute com.acxiom.metalus.controllers.AgentController.execute()
