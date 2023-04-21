@@ -30,7 +30,7 @@ class AgentController @Inject()(@Named("process-manager") processManager: ActorR
     }
   }
 
-  def getStatus: Action[AnyContent] = Action.async { implicit request =>
+  def getStatuses: Action[AnyContent] = Action.async { implicit request =>
     (processManager ? ProcessManager.GetProcessStatus(None))
       .mapTo[Set[ProcessInfo]]
       .map(s => Ok(ApiResponse("processes" -> s)))
