@@ -34,6 +34,6 @@ final class AWSConnectorProvider extends ConnectorProvider {
 
 object S3URI {
   def unapply(uri: String): Option[URI] = Try(new URI(uri)).toOption.collect {
-    case u if u.getScheme.startsWith("s3") => u
+    case u if Option(u.getScheme).mkString.startsWith("s3") => u
   }
 }

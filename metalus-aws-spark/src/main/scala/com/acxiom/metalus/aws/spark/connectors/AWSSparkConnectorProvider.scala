@@ -41,7 +41,6 @@ final class AWSSparkConnectorProvider extends ConnectorProvider {
         credentialName = options.get("credentialName").map(_.toString),
         credential = getCredentials(Some(options))
       )
-
   }
 
   private def getCredentials(options: Option[Map[String, Any]]): Option[Credential] =
