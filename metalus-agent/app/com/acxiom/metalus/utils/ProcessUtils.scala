@@ -47,23 +47,22 @@ class ProcessUtils @Inject()(configuration: Configuration, lifecycle: Applicatio
    * @param agentId     The current agentId.
    * @return True if the process data was stored.
    */
-  def executeCommand(commandList: List[String], sessionId: String, agentId: String): ProcessInfo = {
+  def executeCommand(commandList: List[String], sessionId: String, agentId: String): Process = {
     val processBuilder = new ProcessBuilder(commandList.asJava)
     val process = processBuilder.start()
     val pid = process.pid()
-    val processInfo = ProcessInfo(agentId, sessionId, pid, InetAddress.getLocalHost.getHostName, commandList)
-    // TODO Register the process with the monitoring task
+    val hostName = InetAddress.getLocalHost.getHostName
     // Serialize the command for storage
     val result = serializeCommand(commandList)
     val stmt = connection.prepareStatement(
       s"""INSERT INTO SESSION_PROCESS
-         |VALUES('${processInfo.sessionId}', ${processInfo.processId}, '${processInfo.agentId}',
-         |'${processInfo.hostName}', NULL, ${System.currentTimeMillis()}, NULL, NULL, ?)""".stripMargin)
+         |VALUES('$sessionId', $pid, '$agentId',
+         |'$hostName', NULL, ${System.currentTimeMillis()}, NULL, NULL, ?)""".stripMargin)
     stmt.setBlob(1, new ByteArrayInputStream(result))
     val response = stmt.executeUpdate() == 1
     // TODO Handle the response
     stmt.close()
-    processInfo
+    process
   }
 
   /**
@@ -101,7 +100,8 @@ class ProcessUtils @Inject()(configuration: Configuration, lifecycle: Applicatio
     delete.executeUpdate()
     delete.close()
 
-    executeCommand(process.command, process.sessionId, process.agentId)
+    val p = executeCommand(process.command, process.sessionId, process.agentId)
+    ProcessInfo(process.agentId, process.sessionId, p.pid(), InetAddress.getLocalHost.getHostName, process.command)
   }
 
   /**
