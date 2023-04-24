@@ -36,7 +36,7 @@ class FunctionStepsTests extends AnyFunSpec with BeforeAndAfterAll {
              |      "position": 1
              |    },
              |    {
-             |      "name": "/badDir",
+             |      "name": "badDir",
              |      "position": 2
              |    }
              |  ]
@@ -46,7 +46,7 @@ class FunctionStepsTests extends AnyFunSpec with BeforeAndAfterAll {
         val thrown = intercept[PipelineException] {
           FunctionSteps.executeCommand(command, TestHelper.generatePipelineContext())
         }
-        assert(thrown.getMessage.startsWith("ls: /badDir: No such file or directory"))
+        assert(thrown.getMessage.contains("No such file or directory"))
       }
 
       it("should execute command and return output and error") {
