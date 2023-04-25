@@ -6,7 +6,6 @@ import akka.util.Timeout
 import com.acxiom.metalus.actors.ProcessManager
 import com.acxiom.metalus.applications.Application
 import com.acxiom.metalus.parser.JsonParser
-import com.acxiom.metalus.utils.DriverUtils
 import com.acxiom.metalus.{DependencyManager, PipelineException, RetryPolicy}
 import play.api.Configuration
 
@@ -16,8 +15,8 @@ import java.security.MessageDigest
 import java.util.UUID
 import java.util.jar.{Attributes, JarEntry, JarOutputStream}
 import javax.inject.{Inject, Named, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
 
 @Singleton
@@ -81,7 +80,7 @@ class AgentUtils @Inject()(@Named("process-manager") processManager: ActorRef, s
    * @param request The application request to use for the jars.
    * @return A classpath for this request.
    */
-  def generateClassPath(request: ApplicationRequest): String = {
+  def generateClassPath(request: ClasspathRequest): String = {
     if (!request.resolveClasspath || request.stepLibraries.getOrElse(List()).isEmpty) {
       // In this case, add metalus-core which should be local
       val jars = new File("/opt/docker/lib/").listFiles(new FilenameFilter() {
@@ -131,7 +130,7 @@ class AgentUtils @Inject()(@Named("process-manager") processManager: ActorRef, s
         // Make sure the local staging dir is part of the repos
         val repos = (request.extraJarRepos.getOrElse(List()) +: jarDir).mkString(",")
         val parameters = Map[String, Any]("output-path" -> jarDir,
-          "jar-files" -> jars, "repo" -> repos)
+          "jar-files" -> jars, "repo" -> repos, "include-scopes" -> request.extraScopes.getOrElse("runtime").toString.mkString(","))
         val classpath = DependencyManager.resolveClasspath(parameters)
         val cp = classpath.generateClassPath("", parameters.getOrElse("jar-separator", ",").asInstanceOf[String])
         val cache = Map[String, String]("classPath" -> cp, "jars" -> jars, "repos" -> repos)
@@ -156,7 +155,7 @@ class AgentUtils @Inject()(@Named("process-manager") processManager: ActorRef, s
     val applicationJar = createApplicationJar(request.application, sessionId, jarDir)
     val command = List[String]("scala",
       "-cp",
-      s"$applicationJar:${generateClassPath(request)}",
+      s"$applicationJar:${generateClassPath(request.toClasspathRequest)}",
       "com.acxiom.metalus.drivers.DefaultPipelineDriver",
       "--executionEngines", request.executions.getOrElse(List[String]("batch")).mkString(","))
     // Add parameters

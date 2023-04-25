@@ -4,14 +4,14 @@ import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 import com.acxiom.metalus.actors.ProcessManager
-import com.acxiom.metalus.utils.{AgentUtils, ApiResponse, ApplicationRequest, ProcessInfo}
+import com.acxiom.metalus.utils._
 import com.github.tototoshi.play2.json4s.Json4s
 import org.json4s.{Formats, JValue}
-import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 
 import javax.inject.{Inject, Named, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class AgentController @Inject()(@Named("process-manager") processManager: ActorRef,
@@ -27,6 +27,13 @@ class AgentController @Inject()(@Named("process-manager") processManager: ActorR
     request.extractAsync[ApplicationRequest] {
       case app if app.application.pipelineId.isEmpty => Future.successful(request.parseError[ApplicationRequest])
       case app => agentUtils.executeRequest(app).map(processInfo => Ok(processInfo))
+    }
+  }
+
+  def buildClasspath: Action[JValue] = Action(json4s.tolerantJson).async { implicit request =>
+    request.extractAsync[ClasspathRequest] {
+      case app if app.stepLibraries.isEmpty => Future.successful(request.parseError[ClasspathRequest])
+      case app => Future.successful(Ok(ApiResponse("classpath" -> agentUtils.generateClassPath(app))))
     }
   }
 

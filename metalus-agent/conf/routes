@@ -9,4 +9,5 @@ GET /v1/health-check/alive com.acxiom.metalus.controllers.HealthCheckController.
 
 GET /v1/agent/ com.acxiom.metalus.controllers.AgentController.getStatuses()
 GET /v1/agent/:id com.acxiom.metalus.controllers.AgentController.getStatus(id: Long)
+PUT /v1/agent/classpath com.acxiom.metalus.controllers.AgentController.buildClasspath()
 POST /v1/agent/execute com.acxiom.metalus.controllers.AgentController.execute()
