@@ -504,8 +504,8 @@
             </activation>
             <properties>
                 <spark.compat.version>3.3</spark.compat.version>
-                <spark.version>3.3.2</spark.version>
-                <json4s.version>3.7.0-M16</json4s.version>
+                <spark.version>3.3.1</spark.version>
+                <json4s.version>3.7.0-M11</json4s.version>
                 <mongo.version>3.0.2</mongo.version>
                 <scala.compat.version>2.12</scala.compat.version>
                 <scala.version>2.12.13</scala.version>
