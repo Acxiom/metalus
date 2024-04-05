@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.acxiom</groupId>
     <artifactId>metalus</artifactId>
-    <version>1.9.5-SNAPSHOT</version>
+    <version>1.9.6-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <packaging>pom</packaging>
     <description>Metalus Pipeline Library</description>
@@ -586,12 +586,12 @@
                 </dependency>
             </dependencies>
             <!-- TODO This should be removed when we figure out what is pulling in the jms libraries -->
-            <repositories>
-                <repository>
-                    <id>JMS Stuff</id>
-                    <url>http://builds.archive.org/maven2</url>
-                </repository>
-            </repositories>
+<!--            <repositories>-->
+<!--                <repository>-->
+<!--                    <id>JMS Stuff</id>-->
+<!--                    <url>http://builds.archive.org/maven2</url>-->
+<!--                </repository>-->
+<!--            </repositories>-->
         </profile>
         <profile>
             <id>scala_2.12</id>
