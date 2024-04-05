@@ -586,12 +586,12 @@
                 </dependency>
             </dependencies>
             <!-- TODO This should be removed when we figure out what is pulling in the jms libraries -->
-            <repositories>
-                <repository>
-                    <id>JMS Stuff</id>
-                    <url>http://builds.archive.org/maven2</url>
-                </repository>
-            </repositories>
+<!--            <repositories>-->
+<!--                <repository>-->
+<!--                    <id>JMS Stuff</id>-->
+<!--                    <url>http://builds.archive.org/maven2</url>-->
+<!--                </repository>-->
+<!--            </repositories>-->
         </profile>
         <profile>
             <id>scala_2.12</id>
