@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.acxiom</groupId>
     <artifactId>metalus</artifactId>
-    <version>1.9.6-SNAPSHOT</version>
+    <version>1.9.7-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <packaging>pom</packaging>
     <description>Metalus Pipeline Library</description>
@@ -446,7 +446,7 @@
                 <scala.version>2.12.13</scala.version>
                 <jackson.core.version>2.12.0</jackson.core.version>
                 <kinesis.client.version>1.12.0</kinesis.client.version>
-                <aws-sdk-version>1.11.655</aws-sdk-version>
+                <aws-sdk-version>1.11.999</aws-sdk-version>
                 <hadoop-aws-version>2.7.7</hadoop-aws-version>
                 <delta-lake-version>2.0.0</delta-lake-version>
                 <hadoop.minicluster.version>3.3.1</hadoop.minicluster.version>
@@ -511,7 +511,7 @@
                 <scala.version>2.12.13</scala.version>
                 <jackson.core.version>2.13.0</jackson.core.version>
                 <kinesis.client.version>1.12.0</kinesis.client.version>
-                <aws-sdk-version>1.11.655</aws-sdk-version>
+                <aws-sdk-version>1.11.999</aws-sdk-version>
                 <hadoop-aws-version>2.7.7</hadoop-aws-version>
                 <delta-lake-version>2.1.0</delta-lake-version>
                 <hadoop.minicluster.version>3.3.3</hadoop.minicluster.version>
