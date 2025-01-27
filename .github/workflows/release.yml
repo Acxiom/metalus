@@ -145,12 +145,12 @@ jobs:
           pwd
           ls -l metalus-application/target
       - name: Upload Application Jar
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: metalus-application_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.jar
           path: metalus-application/target/metalus-application_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.jar
       - name: Upload Application Utils
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: metalus-utils_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.tar.gz
           path: metalus-utils/target/metalus-utils_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.tar.gz
