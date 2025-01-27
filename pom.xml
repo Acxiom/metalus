@@ -514,7 +514,7 @@
                 <aws-sdk-version>1.11.999</aws-sdk-version>
                 <hadoop-aws-version>3.3.1</hadoop-aws-version>
                 <delta-lake-version>2.2.0</delta-lake-version>
-                <hadoop.minicluster.version>3.3.1</hadoop.minicluster.version>
+                <hadoop.minicluster.version>3.3.3</hadoop.minicluster.version>
             </properties>
             <dependencies>
                 <dependency>
@@ -549,7 +549,7 @@
                 <dependency>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-minicluster</artifactId>
-                    <version>3.3.3</version>
+                    <version>${hadoop.minicluster.version}</version>
                     <scope>test</scope>
                     <exclusions>
                         <exclusion>
@@ -565,7 +565,7 @@
                 <dependency>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-client-minicluster</artifactId>
-                    <version>3.3.3</version>
+                    <version>${hadoop.minicluster.version}</version>
                     <scope>test</scope>
                     <exclusions>
                         <exclusion>
