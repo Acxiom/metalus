@@ -134,7 +134,7 @@ jobs:
         env:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-        run: mvn --settings deployment/release-settings.xml -pl metalus-core,metalus-aws,metalus-common,metalus-gcp,metalus-kafka,metalus-mongo,metalus-delta,metalus-utils -B -P release,spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }} -DskipTests=true -Dgpg.executable=gpg1 -Dgpg.keyname=E08709FDFF083D6D -Dgpg.passphrase=${{ secrets.SIGNING_KEY_PASSPHRASE }} -Dgpg.publicKeyring=deployment/pubring.gpg -Dgpg.secretKeyring=deployment/secring.gpg deploy
+        run: mvn --settings deployment/release-settings.xml -pl metalus-core,metalus-aws,metalus-common,metalus-gcp,metalus-delta,metalus-utils -B -P release,spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }} -DskipTests=true -Dgpg.executable=gpg1 -Dgpg.keyname=E08709FDFF083D6D -Dgpg.passphrase=${{ secrets.SIGNING_KEY_PASSPHRASE }} -Dgpg.publicKeyring=deployment/pubring.gpg -Dgpg.secretKeyring=deployment/secring.gpg deploy
       - name: Set Metalus Version
         run: |
           echo 'METALUS_VERSION<<EOF' >> $GITHUB_ENV
