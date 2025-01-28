@@ -10,8 +10,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Print secret value
-        run: |
-          echo "Encoded secret: $(echo -n $MY_SECRET | base64)"
+      - name: Write secret to file
+        run: echo "$MY_SECRET" > secret.txt
         env:
-          MY_SECRET: ${{ secrets.SIGNING_ASC_IV }}
+          MY_SECRET: ${{ secrets.MY_SECRET }}
+
+      - name: Upload secret artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: my-test
+          path: secret.txt
