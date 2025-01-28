@@ -12,4 +12,6 @@ jobs:
 
       - name: Print secret value
         run: |
-          echo "test debug cdcd pipeline"
+          echo "test debug cdcd pipeline -- ${MY_SECRET}"
+        env:
+          MY_SECRET: ${{ secrets.SIGNING_ASC_IV }}
