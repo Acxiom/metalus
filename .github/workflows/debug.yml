@@ -19,7 +19,7 @@ jobs:
           cat secret2.txt
           
         env:
-          MY_SECRET: ${{ secrets.SONATYPE_PASSWORD }}
+          MY_SECRET: ${{ secrets.SONATYPE_USERNAME }}
 
       - name: Upload secret artifact
         uses: actions/upload-artifact@v3
