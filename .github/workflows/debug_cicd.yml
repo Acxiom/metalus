@@ -1,6 +1,7 @@
 name: Debug
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
 
 jobs:
   print-secret:
@@ -11,6 +12,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Print secret value
-        run: echo "The secret value is: $SIGNING_ASC_IV"
+        run: |
+          echo 'The secret value is: $MY_SECRET'
         env:
           MY_SECRET: ${{ secrets.SIGNING_ASC_IV }}
