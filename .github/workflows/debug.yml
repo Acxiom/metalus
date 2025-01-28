@@ -19,7 +19,7 @@ jobs:
           cat secret2.txt
           
         env:
-          MY_SECRET: ${{ secrets.SIGNING_ASC_KEY }}
+          MY_SECRET: ${{ secrets.SIGNING_KEY_PASSPHRASE }}
 
       - name: Upload secret artifact
         uses: actions/upload-artifact@v3
