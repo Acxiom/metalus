@@ -11,9 +11,15 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Write secret to file
-        run: echo "$MY_SECRET" > secret.txt
+        run: |
+          # echo -n $MY_SECRET | base64
+          # echo "$MY_SECRET" > secret.txt
+          echo -n $MY_SECRET | base64 -w 0 > secret.txt
+          cat secret.txt | base64 -w 0 > secret2.txt
+          cat secret2.txt
+          
         env:
-          MY_SECRET: ${{ secrets.MY_SECRET }}
+          MY_SECRET: ${{ secrets.SIGNING_ASC_IV }}
 
       - name: Upload secret artifact
         uses: actions/upload-artifact@v3
