@@ -13,6 +13,6 @@ jobs:
 
       - name: Print secret value
         run: |
-          echo 'The secret value is: $MY_SECRET'
+          echo "this is my test"
         env:
           MY_SECRET: ${{ secrets.SIGNING_ASC_IV }}
