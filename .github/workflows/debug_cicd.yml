@@ -1,0 +1,16 @@
+name: Print Secret to Console
+
+on: workflow_dispatch
+
+jobs:
+  print-secret:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Print secret value
+        run: echo "The secret value is: $SIGNING_ASC_IV and $SIGNING_ASC_KEY "
+        env:
+          MY_SECRET: ${{ secrets.MY_SECRET }}
