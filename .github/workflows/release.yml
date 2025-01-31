@@ -61,7 +61,7 @@ jobs:
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
         run: mvn -P spark_3.1 -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 -B -DrepoToken=${{ secrets.COVERALLS_REPO_TOKEN }} scoverage:report coveralls:report
   release_pom:
-    if: ${{ github.repository == 'Acxiom/metalus' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
+    if: ${{ github.repository == 'Acxiom/metalus' && github.ref == 'refs/heads/cicd_update' && github.event_name != 'pull_request' }}
     name: Release POM
     needs: code_quality
     runs-on: ubuntu-latest
@@ -93,7 +93,7 @@ jobs:
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
         run: mvn --settings deployment/release-settings.xml -pl . -B -P release,spark_3.1 -DskipTests=true -Dgpg.executable=gpg1 -Dgpg.keyname=E08709FDFF083D6D -Dgpg.passphrase=${{ secrets.SIGNING_KEY_PASSPHRASE }} -Dgpg.publicKeyring=deployment/pubring.gpg -Dgpg.secretKeyring=deployment/secring.gpg deploy
   release:
-    if: ${{ github.repository == 'Acxiom/metalus' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
+    if: ${{ github.repository == 'Acxiom/metalus' && github.ref == 'refs/heads/cicd_update' && github.event_name != 'pull_request' }}
     name: Release
     needs: code_quality
     strategy:
@@ -145,12 +145,12 @@ jobs:
           pwd
           ls -l metalus-application/target
       - name: Upload Application Jar
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: metalus-application_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.jar
           path: metalus-application/target/metalus-application_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.jar
       - name: Upload Application Utils
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: metalus-utils_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.tar.gz
           path: metalus-utils/target/metalus-utils_${{ steps.get-versions.outputs.scala }}-spark_${{ steps.get-versions.outputs.spark }}-${{ env.METALUS_VERSION }}.tar.gz
