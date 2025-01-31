@@ -89,8 +89,8 @@ jobs:
           gpg1 --secret-keyring=deployment/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
       - name: Deploy Maven Central
         env:
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          TOKEN_USERNAME: ${{ secrets.TOKEN_USERNAME }}
+          TOKEN_PASSWORD: ${{ secrets.TOKEN_PASSWORD }}
         run: mvn --settings deployment/release-settings.xml -pl . -B -P release,spark_3.1 -DskipTests=true -Dgpg.executable=gpg1 -Dgpg.keyname=E08709FDFF083D6D -Dgpg.passphrase=${{ secrets.SIGNING_KEY_PASSPHRASE }} -Dgpg.publicKeyring=deployment/pubring.gpg -Dgpg.secretKeyring=deployment/secring.gpg deploy
   release:
     if: ${{ github.repository == 'Acxiom/metalus' && github.ref == 'refs/heads/cicd_update' && github.event_name != 'pull_request' }}
@@ -132,8 +132,8 @@ jobs:
           gpg1 --secret-keyring=deployment/secring.gpg --no-default-keyring --import deployment/acxsigningkey.asc
       - name: Deploy Maven Central
         env:
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          TOKEN_USERNAME: ${{ secrets.TOKEN_USERNAME }}
+          TOKEN_PASSWORD: ${{ secrets.TOKEN_PASSWORD }}
         run: mvn --settings deployment/release-settings.xml -pl metalus-core,metalus-aws,metalus-common,metalus-gcp,metalus-delta,metalus-utils -B -P release,spark_${{ steps.get-versions.outputs.spark }},scala_${{ steps.get-versions.outputs.scala }} -DskipTests=true -Dgpg.executable=gpg1 -Dgpg.keyname=E08709FDFF083D6D -Dgpg.passphrase=${{ secrets.SIGNING_KEY_PASSPHRASE }} -Dgpg.publicKeyring=deployment/pubring.gpg -Dgpg.secretKeyring=deployment/secring.gpg deploy
       - name: Set Metalus Version
         run: |
